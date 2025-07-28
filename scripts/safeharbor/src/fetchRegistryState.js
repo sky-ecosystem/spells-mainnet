@@ -4,7 +4,7 @@ import {
 } from "./utils/contractUtils.js";
 import { AGREEMENT_ADDRESS } from "./constants.js";
 
-async function fetchRegistryState() {
+export async function fetchOnChainState() {
     try {
         // Initialize provider and contract instances
         const provider = createProvider();
@@ -42,4 +42,3 @@ if (process.argv[1] === new URL(import.meta.url).pathname) {
     fetchRegistryState();
 }
 
-export { fetchRegistryState };

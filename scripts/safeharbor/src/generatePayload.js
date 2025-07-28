@@ -28,7 +28,7 @@ export function findArrayDifferences(current, desired) {
 }
 
 // Build internal representation from CSV
-export function buildCSVRepresentation(records) {
+export function normalizeDataFromCSV(records) {
     return records
         .filter((record) => record.Status === "ACTIVE")
         .reduce((groups, record) => {
@@ -46,7 +46,7 @@ export function buildCSVRepresentation(records) {
 }
 
 // Build internal representation from on-chain state
-export function buildOnChainRepresentation(details) {
+export function normalizeDataFromOnchainState(details) {
     return details.chains.reduce((groups, chain) => {
         const chainName = getChainName(chain.id);
         groups[chainName] = chain.accounts;
@@ -281,12 +281,12 @@ export async function generateUpdatePayload() {
         console.log("Downloading Google Sheet CSV...");
         const records = await downloadAndParseCSV(CSV_URL_SHEET1);
 
-        const csvState = buildCSVRepresentation(records);
+        const csvState = normalizeDataFromCSV(records);
 
         // 2. Fetch on-chain state
         console.log("Fetching on-chain state...");
         const currentDetails = await fetchAgreementDetails();
-        const onChainState = buildOnChainRepresentation(currentDetails);
+        const onChainState = normalizeDataFromOnchainState(currentDetails);
 
         // 3. Generate human-readable diffs
         const diffs = generateHumanReadableDiffs(csvState, onChainState);

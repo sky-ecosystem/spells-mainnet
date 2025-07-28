@@ -33,7 +33,7 @@ Since the initial deployment will be done through an EOA, the following steps ne
 2. The owner of the `AgreementV2` contract is the PauseProxy.
 3. The existing scope of the `AgreementV2` contract is the initial state of the scope of the sheet. This can be verified running the `generatePayload.js` script.
 
-# General Flow of `GeneratePayload.js`
+# General Flow of `generatePayload.js`
 
 The script follows these steps:
 

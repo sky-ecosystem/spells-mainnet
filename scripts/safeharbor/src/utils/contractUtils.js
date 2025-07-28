@@ -13,10 +13,10 @@ import { getAssetRecoveryAddress, getChainId } from "./chainUtils.js";
 
 // Create a provider instance
 export function createProvider() {
-    if (!process.env.RPC_URL) {
-        throw new Error("RPC_URL environment variable is not set");
+    if (!process.env.ETH_RPC_URL) {
+        throw new Error("ETH_RPC_URL environment variable is not set");
     }
-    return new ethers.providers.JsonRpcProvider(process.env.RPC_URL);
+    return new ethers.providers.JsonRpcProvider(process.env.ETH_RPC_URL);
 }
 
 export function createEmptyDetails() {
