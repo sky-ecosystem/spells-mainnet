@@ -15,8 +15,6 @@ export const OPTIMISM_ASSET_RECOVERY_ADDRESS =
 export const UNICHAIN_ASSET_RECOVERY_ADDRESS =
     "0xb383070cf9f4f01c3a2cfd0ef6da4bc057b429b7"; // GovRelay
 
-// PUBLIC VIRTUAL TESTNET RPC URL = "https://virtual.mainnet.us-east.rpc.tenderly.co/5d232630-82fd-4629-863b-65c00faa1ccc"
-
 // CSV URLs
 export const CSV_URL_SHEET1 =
     "https://docs.google.com/spreadsheets/d/1e_KOYOeBGaA5EG3Xqco6lOP_a0zV4Vrm3w5-dqFk00U/export?format=csv&gid=1121763694"; // Sky Contracts

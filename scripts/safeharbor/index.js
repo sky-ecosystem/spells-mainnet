@@ -14,12 +14,11 @@ if (!process.env.RPC_URL) {
 }
 
 // Execute the main function
-generateUpdatePayload()
-    .then(() => {
-        console.log("Payload generation completed successfully.");
-        process.exit(0);
-    })
-    .catch((error) => {
-        console.error("Failed to generate payload:", error);
-        process.exit(1);
-    });
+try {
+  await generateUpdatePayload();
+  console.log("Payload generation completed successfully.");
+  process.exit(0);
+} catch(error) {
+  console.error("Failed to generate payload:", error);
+  process.exit(1);
+}

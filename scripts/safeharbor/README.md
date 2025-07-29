@@ -73,17 +73,6 @@ This will create a `updates.json` file in the `scripts/safeharbor` directory.
 ## Setting up the environment
 required env variables:
 ```
-- ETH_RPC_URL: An endpoint to a mainnet node 
-- ETH_SENDER: An EOA address that will be used to deploy the AgreementV2 contract
-- RPC_URL: An endpoint to a local anvil node
+- ETH_RPC_URL: An endpoint to a node that contains the registry and the agreement deployed.
 ```
-To setup the environment, run the following command:
-
-```bash
-source setupEnv.sh
-```
-This scripts will create a local anvil node using the mainnet node as a fork, fund the ETH_SENDER address and then run the script to deploy the AgreementV2 contract. Once the script is done running, it's possible to run the `generatePayload.js` script to generate the payload for the spell.
-
-Since the deployment script is comprehensive, without any changes, there will be no updates to the output. However it's possible to change the `DeployAgreement.s.sol` to remove the addition of contracts to the scope, making the some contracts to be outputted.
-
-NOTE: The script will leave an anvil instance running in the background, which will need to be stopped manually.
+For testing purposes, a public virtual testnet with a deployed and configured agreement is [here](https://dashboard.tenderly.co/dewiz-xyz/2024-10-04-makerdao-executive-spell/testnet/06356e6c-0c7e-4db2-a216-e4ca8023c6c3)
