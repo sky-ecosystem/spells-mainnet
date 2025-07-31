@@ -1,8 +1,10 @@
 import { ethers } from "ethers";
-import { AGREEMENTV2_ABI } from "./abis.js";
+import { AGREEMENTV2_ABI, MULTICALL_ABI } from "./abis.js";
 import { getChainId, getAssetRecoveryAddress } from "./utils/chainUtils.js";
+import { AGREEMENT_ADDRESS, MULTICALL_ADDRESS } from "./constants.js";
 
 const agreementInterface = new ethers.utils.Interface(AGREEMENTV2_ABI);
+const multicallInterface = new ethers.utils.Interface(MULTICALL_ABI);
 
 // Account difference calculation
 export function calculateAccountDifferences(currentAccounts, desiredAccounts) {
@@ -141,9 +143,8 @@ function generateChainUpdates(onChainState, csvState) {
                         acc.childContractScope === null,
                 );
                 if (problematicAccounts.length > 0) {
-                    console.log(
-                        `Problematic accounts found in chain ${chainsToAdd[index]}:`,
-                        problematicAccounts,
+                    throw new Error(
+                        `Problematic accounts found in chain ${chainsToAdd[index]}: ${JSON.stringify(problematicAccounts)}`,
                     );
                 }
             }
@@ -161,8 +162,46 @@ function generateChainUpdates(onChainState, csvState) {
     return updates;
 }
 
+function wrapWithMulticall(
+    updates,
+    agreementContractAddress,
+    multicallContractAddress,
+) {
+    // If no updates, return the original array
+    if (updates.length === 0) {
+        return updates;
+    }
+
+    // Convert individual updates to multicall format
+    const calls = updates.map((update) => ({
+        target: agreementContractAddress,
+        callData: update.calldata,
+    }));
+
+    // Generate multicall calldata
+    const multicallCalldata = multicallInterface.encodeFunctionData(
+        "aggregate",
+        [calls],
+    );
+
+    // Add the multicall update to the array
+    const multicallUpdate = {
+        function: "multicall",
+        args: [calls],
+        calldata: multicallCalldata,
+        target: multicallContractAddress,
+    };
+
+    // Return original updates plus the multicall wrapper
+    return [...updates, multicallUpdate];
+}
+
 export function generateUpdates(onChainState, csvState) {
     const chainUpdates = generateChainUpdates(onChainState, csvState);
     const accountUpdates = generateAccountUpdates(onChainState, csvState);
-    return [...chainUpdates, ...accountUpdates];
+    return wrapWithMulticall(
+        [...chainUpdates, ...accountUpdates],
+        AGREEMENT_ADDRESS,
+        MULTICALL_ADDRESS,
+    );
 }
