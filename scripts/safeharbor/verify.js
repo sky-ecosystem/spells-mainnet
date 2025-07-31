@@ -60,7 +60,7 @@ try {
 
     }
     
-    process.exit(isMatch ? 0 : 1);
+    process.exit(comparisonResult ? 0 : 1);
 } catch (error) {
     console.error("Failed to verify calldata:", error);
     process.exit(1);
