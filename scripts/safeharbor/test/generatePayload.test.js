@@ -494,6 +494,5 @@ describe("generatePayload E2E Tests", () => {
             assert.ok(chainIdsToRemove.includes(100)); // gnosis  
             assert.ok(chainIdsToRemove.includes(42161)); // arbitrum
         });
-
     });
 });
