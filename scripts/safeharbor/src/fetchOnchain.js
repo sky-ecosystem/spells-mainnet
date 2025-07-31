@@ -15,7 +15,7 @@ async function fetchAgreementDetails() {
 function normalize(details) {
     return details.chains.reduce((groups, chain) => {
         const chainName = getChainName(chain.caip2ChainId);
-        groups[chainName] = chain.accounts.map(account => ({
+        groups[chainName] = chain.accounts.map((account) => ({
             accountAddress: account[0],
             childContractScope: account[1],
         }));

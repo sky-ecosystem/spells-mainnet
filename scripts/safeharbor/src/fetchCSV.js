@@ -9,7 +9,7 @@ async function downloadAndAParse(url) {
         const csvText = await response.text();
 
         // Basic validation that we got CSV data
-        if (!response.headers.get('content-type')?.includes('text/csv')) {
+        if (!response.headers.get("content-type")?.includes("text/csv")) {
             throw new Error(
                 "Invalid content type. Expected CSV data. Please check the URL format.",
             );
@@ -42,10 +42,11 @@ function normalize(records) {
             if (!groups[chain]) {
                 groups[chain] = [];
             }
-            
+
             // Handle both possible column names for factory flag
-            const isFactory = (record.isFactory === "TRUE" || record.IsFactory === "TRUE");
-            
+            const isFactory =
+                record.isFactory === "TRUE" || record.IsFactory === "TRUE";
+
             groups[chain].push({
                 accountAddress: record.Address,
                 childContractScope: isFactory ? 2 : 0,

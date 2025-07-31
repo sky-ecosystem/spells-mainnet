@@ -1,9 +1,6 @@
 import { ethers } from "ethers";
-import {
-    AGREEMENT_ADDRESS,
-} from "../constants.js";
+import { AGREEMENT_ADDRESS } from "../constants.js";
 import { AGREEMENTV2_ABI as AGREEMENT_ABI } from "../abis.js";
-import { getAssetRecoveryAddress, getChainId } from "./chainUtils.js";
 
 // Create a provider instance
 export function createProvider() {

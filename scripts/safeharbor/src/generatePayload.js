@@ -10,7 +10,7 @@ import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
 // Main function
-export async function generateUpdatePayload() {
+export async function generatePayload() {
     try {
         // 1. Download and parse CSV
         console.log("Downloading Google Sheet CSV...");
@@ -36,5 +36,3 @@ export async function generateUpdatePayload() {
         throw error;
     }
 }
-
-generateUpdatePayload();

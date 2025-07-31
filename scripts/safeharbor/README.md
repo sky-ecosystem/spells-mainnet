@@ -59,6 +59,7 @@ The script follows these steps:
 
 To run the script, run the following command:
 required env variables:
+
 ```
 - RPC_URL: An endpoint to a node that has the registry and the agreement deployed.
 ```
@@ -66,13 +67,17 @@ required env variables:
 ```bash
 npm run generate
 ```
+
 This will create a `updates.json` file in the `scripts/safeharbor` directory.
 
 # Testing
 
 ## Setting up the environment
+
 required env variables:
+
 ```
 - ETH_RPC_URL: An endpoint to a node that contains the registry and the agreement deployed.
 ```
+
 For testing purposes, a public virtual testnet with a deployed and configured agreement is [here](https://dashboard.tenderly.co/dewiz-xyz/makerdao/testnet/07f7fbe4-ef01-46cf-a1f0-b8f5a8bf1afb)
