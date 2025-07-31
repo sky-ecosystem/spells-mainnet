@@ -4,13 +4,6 @@ import { getChainId, getAssetRecoveryAddress } from "./utils/chainUtils.js";
 
 const agreementInterface = new ethers.utils.Interface(AGREEMENTV2_ABI);
 
-// Helper function to find differences between arrays
-function findArrayDifferences(current, desired) {
-    const toAdd = desired.filter((item) => !current.includes(item));
-    const toRemove = current.filter((item) => !desired.includes(item));
-    return { toAdd, toRemove };
-}
-
 // Account difference calculation
 export function calculateAccountDifferences(currentAccounts, desiredAccounts) {
     // Create maps for easier lookup with composite keys
@@ -59,29 +52,17 @@ function generateAccountUpdates(onChainState, csvState) {
             desiredAccounts,
         );
 
-        // Handle removals first
-        // Sort indices in descending order to avoid index shifting issues
+        // Handle removals - removeAccounts now takes addresses directly
         if (toRemove.length > 0) {
-            const sortedIndices = toRemove
-                .map((addr) =>
-                    currentAccounts.findIndex(
-                        (acc) => acc.accountAddress === addr,
-                    ),
-                )
-                .filter(index => index !== -1)
-                .sort((a, b) => b - a);
-
-            for (const index of sortedIndices) {
-                updates.push({
-                    function: "removeAccount",
-                    args: [chainId, index],
-                    calldata: agreementInterface.encodeFunctionData(
-                        "removeAccount",
-                        [chainId, index],
-                    ),
-                    "raw-abi": AGREEMENTV2_RAW_ABI_MAP["removeAccount"],
-                });
-            }
+            updates.push({
+                function: "removeAccounts",
+                args: [chainId, toRemove],
+                calldata: agreementInterface.encodeFunctionData(
+                    "removeAccounts",
+                    [chainId, toRemove],
+                ),
+                "fnSignature": AGREEMENTV2_RAW_ABI_MAP["removeAccounts"],
+            });
         }
 
         // Handle additions
@@ -93,7 +74,7 @@ function generateAccountUpdates(onChainState, csvState) {
                     "addAccounts",
                     [chainId, toAdd],
                 ),
-                "raw-abi": AGREEMENTV2_RAW_ABI_MAP["addAccounts"],
+                "fnSignature": AGREEMENTV2_RAW_ABI_MAP["addAccounts"],
             });
         }
     }
@@ -106,42 +87,58 @@ function generateChainUpdates(onChainState, csvState) {
 
     const currentChainNames = Object.keys(onChainState);
     const desiredChainNames = Object.keys(csvState);
-    
+
     // Find chains to add and remove
     const chainsToRemove = currentChainNames.filter(chain => !desiredChainNames.includes(chain));
     const chainsToAdd = desiredChainNames.filter(chain => !currentChainNames.includes(chain));
-    
-    // Remove chains that are no longer in CSV
-    for (const chainName of chainsToRemove) {
-        const chainId = getChainId(chainName);
+
+    // Remove chains that are no longer in CSV - batch them together
+    if (chainsToRemove.length > 0) {
+        const chainIdsToRemove = chainsToRemove.map(chainName => getChainId(chainName));
         updates.push({
-            function: "removeChain",
-            args: [chainId],
-            calldata: agreementInterface.encodeFunctionData("removeChain", [
-                chainId,
+            function: "removeChains",
+            args: [chainIdsToRemove],
+            calldata: agreementInterface.encodeFunctionData("removeChains", [
+                chainIdsToRemove,
             ]),
-            "raw-abi": AGREEMENTV2_RAW_ABI_MAP["removeChain"],
+            "fnSignature": AGREEMENTV2_RAW_ABI_MAP["removeChains"],
         });
     }
     
-    // Add new chains from CSV
-    for (const chainName of chainsToAdd) {
-        const chainId = getChainId(chainName);
-        const accounts = csvState[chainName] || [];
+    // Add new chains from CSV - batch them together
+    if (chainsToAdd.length > 0) {
+        const newChains = chainsToAdd.map(chainName => {
+            const chainId = getChainId(chainName);
+            const accounts = csvState[chainName] || [];
+            
+            return {
+                assetRecoveryAddress: getAssetRecoveryAddress(chainName),
+                accounts: accounts,
+                caip2ChainId: chainId,
+            };
+        });
         
-        const newChain = {
-            assetRecoveryAddress: getAssetRecoveryAddress(chainName),
-            accounts: accounts,
-            id: chainId,
-        };
-        
+        // Debug: Check for undefined values in accounts across all new chains
+        newChains.forEach((chain, index) => {
+            if (chain.accounts.length > 0) {
+                const problematicAccounts = chain.accounts.filter(acc => 
+                    !acc.accountAddress || 
+                    acc.childContractScope === undefined || 
+                    acc.childContractScope === null
+                );
+                if (problematicAccounts.length > 0) {
+                    console.log(`Problematic accounts found in chain ${chainsToAdd[index]}:`, problematicAccounts);
+                }
+            }
+        });
+
         updates.push({
             function: "addChains",
-            args: [[newChain]],
+            args: [newChains],
             calldata: agreementInterface.encodeFunctionData("addChains", [
-                [newChain],
+                newChains,
             ]),
-            "raw-abi": AGREEMENTV2_RAW_ABI_MAP["addChains"],
+            "fnSignature": AGREEMENTV2_RAW_ABI_MAP["addChains"],
         });
     }
     

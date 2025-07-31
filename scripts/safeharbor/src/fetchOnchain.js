@@ -14,7 +14,7 @@ async function fetchAgreementDetails() {
 // Build internal representation from on-chain state
 function normalize(details) {
     return details.chains.reduce((groups, chain) => {
-        const chainName = getChainName(chain.id);
+        const chainName = getChainName(chain.caip2ChainId);
         groups[chainName] = chain.accounts.map(account => ({
             accountAddress: account[0],
             childContractScope: account[1],

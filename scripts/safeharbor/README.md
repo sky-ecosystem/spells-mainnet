@@ -75,4 +75,4 @@ required env variables:
 ```
 - ETH_RPC_URL: An endpoint to a node that contains the registry and the agreement deployed.
 ```
-For testing purposes, a public virtual testnet with a deployed and configured agreement is [here](https://dashboard.tenderly.co/dewiz-xyz/2024-10-04-makerdao-executive-spell/testnet/06356e6c-0c7e-4db2-a216-e4ca8023c6c3)
+For testing purposes, a public virtual testnet with a deployed and configured agreement is [here](https://dashboard.tenderly.co/dewiz-xyz/makerdao/testnet/07f7fbe4-ef01-46cf-a1f0-b8f5a8bf1afb)
