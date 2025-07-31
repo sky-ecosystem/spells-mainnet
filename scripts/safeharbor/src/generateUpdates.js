@@ -49,12 +49,18 @@ export function calculateAccountDifferences(currentAccounts, desiredAccounts) {
     return { toAdd, toRemove };
 }
 
-function generateAccountUpdates(onChainState, csvState) {
+function generateAccountUpdates(onChainState, csvState, chainsToRemove = []) {
     const updates = [];
 
     // Iterate through each chain that exists in onChainState
     // New chains are handled by generateChainUpdates
     for (const chainName of Object.keys(onChainState)) {
+        // Skip chains that are being removed
+        if (chainsToRemove.includes(chainName)) {
+            console.log(`Skipping account updates for chain ${chainName} - will be removed entirely`);
+            continue;
+        }
+
         const chainId = getChainId(chainName);
         const currentAccounts = onChainState[chainName] || [];
         const desiredAccounts = csvState[chainName] || [];
@@ -159,7 +165,7 @@ function generateChainUpdates(onChainState, csvState) {
         });
     }
 
-    return updates;
+    return { updates, chainsToRemove };
 }
 
 function wrapWithMulticall(
@@ -197,8 +203,8 @@ function wrapWithMulticall(
 }
 
 export function generateUpdates(onChainState, csvState) {
-    const chainUpdates = generateChainUpdates(onChainState, csvState);
-    const accountUpdates = generateAccountUpdates(onChainState, csvState);
+    const { updates: chainUpdates, chainsToRemove } = generateChainUpdates(onChainState, csvState);
+    const accountUpdates = generateAccountUpdates(onChainState, csvState, chainsToRemove);
     return wrapWithMulticall(
         [...chainUpdates, ...accountUpdates],
         AGREEMENT_ADDRESS,

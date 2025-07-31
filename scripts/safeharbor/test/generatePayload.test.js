@@ -1,13 +1,20 @@
 import { test, describe, vi, beforeEach } from "vitest";
 import assert from "node:assert";
-import {
-    arraysEqual,
-    findArrayDifferences,
-    calculateAccountDifferences,
-    generateChainUpdates,
-    generateAccountUpdates,
-} from "../src/generatePayload.js";
+import { generatePayload } from "../src/generatePayload.js";
+import { AGREEMENT_ADDRESS, MULTICALL_ADDRESS } from "../src/constants.js";
 
+// Mock the dependencies
+vi.mock("../src/fetchCSV.js");
+vi.mock("../src/fetchOnchain.js");
+vi.mock("../src/utils/chainUtils.js");
+vi.mock("fs", () => ({
+    writeFileSync: vi.fn(),
+}));
+
+import { getNormalizedDataFromCSV } from "../src/fetchCSV.js";
+import { getNormalizedDataFromOnchainState } from "../src/fetchOnchain.js";
+
+// Mock chain utilities
 vi.mock("../src/utils/chainUtils.js", () => ({
     getChainId: vi.fn((chainName) => {
         const chainIds = {
@@ -15,6 +22,7 @@ vi.mock("../src/utils/chainUtils.js", () => ({
             gnosis: 100,
             arbitrum: 42161,
             optimism: 10,
+            polygon: 137,
         };
         return chainIds[chainName] || 1;
     }),
@@ -22,8 +30,9 @@ vi.mock("../src/utils/chainUtils.js", () => ({
         const chainNames = {
             1: "ethereum",
             100: "gnosis",
-            42161: "arbitrum",
+            42161: "arbitrum", 
             10: "optimism",
+            137: "polygon",
         };
         return chainNames[chainId] || "ethereum";
     }),
@@ -32,541 +41,459 @@ vi.mock("../src/utils/chainUtils.js", () => ({
     ),
 }));
 
-describe("generatePayload.js", () => {
+
+describe("generatePayload E2E Tests", () => {
     beforeEach(() => {
         vi.clearAllMocks();
     });
 
-    describe("arraysEqual", () => {
-        test("should return true for two identical arrays", () => {
-            assert.strictEqual(arraysEqual([1, 2, 3], [1, 2, 3]), true);
-        });
+    // Test Fixtures
+    const INITIAL_ONCHAIN_STATE = {
+        ethereum: [
+            { accountAddress: "0xA1", childContractScope: 0 },
+            { accountAddress: "0xA2", childContractScope: 2 },
+        ],
+        gnosis: [
+            { accountAddress: "0xB1", childContractScope: 0 },
+        ],
+        arbitrum: [
+            { accountAddress: "0xC1", childContractScope: 0 },
+            { accountAddress: "0xC2", childContractScope: 0 },
+        ],
+    };
 
-        test("should return false for arrays with different lengths", () => {
-            assert.strictEqual(arraysEqual([1, 2], [1, 2, 3]), false);
-        });
+    describe("No changes scenario", () => {
+        test("should generate no updates when onchain and CSV data match", async () => {
+            // Arrange - CSV data matches onchain exactly
+            const csvData = {
+                ethereum: [
+                    { accountAddress: "0xA1", childContractScope: 0 },
+                    { accountAddress: "0xA2", childContractScope: 2 },
+                ],
+                gnosis: [
+                    { accountAddress: "0xB1", childContractScope: 0 },
+                ],
+                arbitrum: [
+                    { accountAddress: "0xC1", childContractScope: 0 },
+                    { accountAddress: "0xC2", childContractScope: 0 },
+                ],
+            };
 
-        test("should return false for arrays with different elements", () => {
-            assert.strictEqual(arraysEqual([1, 2, 3], [1, 2, 4]), false);
-        });
+            getNormalizedDataFromOnchainState.mockResolvedValue(INITIAL_ONCHAIN_STATE);
+            getNormalizedDataFromCSV.mockResolvedValue(csvData);
 
-        test("should return true for two empty arrays", () => {
-            assert.strictEqual(arraysEqual([], []), true);
-        });
-    });
+            // Act
+            const result = await generatePayload();
 
-    describe("findArrayDifferences", () => {
-        test("should find elements to add and remove correctly", () => {
-            const current = ["a", "b", "c"];
-            const desired = ["b", "c", "d"];
-            const result = findArrayDifferences(current, desired);
-            assert.deepStrictEqual(result.toAdd, ["d"]);
-            assert.deepStrictEqual(result.toRemove, ["a"]);
-        });
-
-        test("should return empty arrays if no differences", () => {
-            const current = ["a", "b", "c"];
-            const desired = ["a", "b", "c"];
-            const result = findArrayDifferences(current, desired);
-            assert.deepStrictEqual(result.toAdd, []);
-            assert.deepStrictEqual(result.toRemove, []);
-        });
-
-        test("should handle all additions", () => {
-            const current = [];
-            const desired = ["a", "b"];
-            const result = findArrayDifferences(current, desired);
-            assert.deepStrictEqual(result.toAdd, ["a", "b"]);
-            assert.deepStrictEqual(result.toRemove, []);
-        });
-
-        test("should handle all removals", () => {
-            const current = ["a", "b"];
-            const desired = [];
-            const result = findArrayDifferences(current, desired);
-            assert.deepStrictEqual(result.toAdd, []);
-            assert.deepStrictEqual(result.toRemove, ["a", "b"]);
-        });
-
-        test("should handle empty arrays for both", () => {
-            const current = [];
-            const desired = [];
-            const result = findArrayDifferences(current, desired);
-            assert.deepStrictEqual(result.toAdd, []);
-            assert.deepStrictEqual(result.toRemove, []);
+            // Assert - should have empty multicall since no changes needed
+            assert.strictEqual(result.length, 0);
         });
     });
 
-    describe("calculateAccountDifferences", () => {
-        test("should correctly identify accounts to add and remove", () => {
-            const currentAccounts = [
-                { accountAddress: "0xA", childContractScope: 0 },
-                { accountAddress: "0xB", childContractScope: 0 },
-            ];
-            const desiredAccounts = [
-                { accountAddress: "0xB", isFactory: false },
-                { accountAddress: "0xC", isFactory: true }, // Added
-            ];
+    describe("Account addition scenarios", () => {
+        test("should generate addAccounts updates when new accounts are added to existing chains", async () => {
+            // Arrange - Add new accounts to existing chains
+            const csvData = {
+                ethereum: [
+                    { accountAddress: "0xA1", childContractScope: 0 }, // existing
+                    { accountAddress: "0xA2", childContractScope: 2 }, // existing
+                    { accountAddress: "0xA3", childContractScope: 0 }, // new
+                ],
+                gnosis: [
+                    { accountAddress: "0xB1", childContractScope: 0 }, // existing
+                    { accountAddress: "0xB2", childContractScope: 2 }, // new factory
+                ],
+                arbitrum: [
+                    { accountAddress: "0xC1", childContractScope: 0 }, // existing
+                    { accountAddress: "0xC2", childContractScope: 0 }, // existing
+                ],
+            };
 
-            const result = calculateAccountDifferences(
-                currentAccounts,
-                desiredAccounts,
-            );
-            assert.deepStrictEqual(result.toAdd, [
-                { accountAddress: "0xC", childContractScope: 3 },
+            getNormalizedDataFromOnchainState.mockResolvedValue(INITIAL_ONCHAIN_STATE);
+            getNormalizedDataFromCSV.mockResolvedValue(csvData);
+
+            // Act
+            const result = await generatePayload();
+
+            // Assert
+            assert.strictEqual(result.length, 3); // 2 additions and 1 multicall
+
+            const addAccountsUpdates = result.filter(u => u.function === "addAccounts");
+            assert.strictEqual(addAccountsUpdates.length, 2); // ethereum and gnosis
+
+            // Check ethereum addition
+            const ethereumUpdate = addAccountsUpdates.find(u => u.args[0] === 1);
+            assert.ok(ethereumUpdate);
+            assert.deepStrictEqual(ethereumUpdate.args[1], [
+                { accountAddress: "0xA3", childContractScope: 0 }
             ]);
-            assert.deepStrictEqual(result.toRemove, ["0xA"]);
-        });
 
-        test("should return empty arrays if no differences", () => {
-            const currentAccounts = [
-                { accountAddress: "0xA", childContractScope: 0 },
-            ];
-            const desiredAccounts = [
-                { accountAddress: "0xA", isFactory: false },
-            ];
-            const result = calculateAccountDifferences(
-                currentAccounts,
-                desiredAccounts,
-            );
-            assert.deepStrictEqual(result.toAdd, []);
-            assert.deepStrictEqual(result.toRemove, []);
-        });
-
-        test("should handle only additions", () => {
-            const currentAccounts = [];
-            const desiredAccounts = [
-                { accountAddress: "0xD", isFactory: false },
-            ];
-            const result = calculateAccountDifferences(
-                currentAccounts,
-                desiredAccounts,
-            );
-            assert.deepStrictEqual(result.toAdd, [
-                { accountAddress: "0xD", childContractScope: 0 },
+            // Check gnosis addition
+            const gnosisUpdate = addAccountsUpdates.find(u => u.args[0] === 100);
+            assert.ok(gnosisUpdate);
+            assert.deepStrictEqual(gnosisUpdate.args[1], [
+                { accountAddress: "0xB2", childContractScope: 2 }
             ]);
-            assert.deepStrictEqual(result.toRemove, []);
-        });
 
-        test("should handle only removals", () => {
-            const currentAccounts = [
-                { accountAddress: "0xE", childContractScope: 0 },
-            ];
-            const desiredAccounts = [];
-            const result = calculateAccountDifferences(
-                currentAccounts,
-                desiredAccounts,
-            );
-            assert.deepStrictEqual(result.toAdd, []);
-            assert.deepStrictEqual(result.toRemove, ["0xE"]);
+            // Check multicall
+            const multicallUpdate = result.find(u => u.function === "multicall");
+            assert.ok(multicallUpdate);
+            assert.strictEqual(multicallUpdate.args[0].length, 2);
+            assert.strictEqual(multicallUpdate.args[0][0].target, AGREEMENT_ADDRESS);
+            assert.strictEqual(multicallUpdate.args[0][0].callData, ethereumUpdate.calldata);
+            assert.strictEqual(multicallUpdate.args[0][1].target, AGREEMENT_ADDRESS);
+            assert.strictEqual(multicallUpdate.args[0][1].callData, gnosisUpdate.calldata);
         });
     });
 
-    describe("generateChainUpdates", () => {
-        test("should generate removeChain updates for chains not in desired state", () => {
-            const currentChains = [
-                { id: 1, accounts: [] },
-                { id: 100, accounts: [] },
-                { id: 42161, accounts: [] },
-            ];
-            const chainGroups = {
-                ethereum: [],
-                gnosis: [],
-                // arbitrum is missing, so it should be removed
+    describe("Account removal scenarios", () => {
+        test("should generate removeAccounts updates when accounts are removed", async () => {
+            // Arrange - Remove some accounts
+            const csvData = {
+                ethereum: [
+                    { accountAddress: "0xA1", childContractScope: 0 }, // keep
+                    // 0xA2 removed
+                ],
+                gnosis: [
+                    // 0xB1 removed - entire chain becomes empty but still exists
+                ],
+                arbitrum: [
+                    { accountAddress: "0xC1", childContractScope: 0 }, // keep
+                    // 0xC2 removed
+                ],
             };
 
-            // We need to mock the imports for this test to work
-            // In a real scenario, you'd use a proper mocking framework
-            const updates = generateChainUpdates(currentChains, chainGroups);
+            getNormalizedDataFromOnchainState.mockResolvedValue(INITIAL_ONCHAIN_STATE);
+            getNormalizedDataFromCSV.mockResolvedValue(csvData);
 
-            // Should have one removeChain update for arbitrum (42161)
-            const removeUpdates = updates.filter(
-                (u) => u.function === "removeChain",
-            );
-            assert.strictEqual(removeUpdates.length, 1);
-            assert.strictEqual(removeUpdates[0].args[0], "42161");
-        });
+            // Act
+            const result = await generatePayload();
 
-        test("should generate addChains updates for new chains", () => {
-            const currentChains = [{ id: 1, accounts: [] }];
-            const chainGroups = {
-                ethereum: [],
-                gnosis: [{ accountAddress: "0xABC", childContractScope: 0 }],
-            };
+            // Assert
+            assert.strictEqual(result.length, 4);
 
-            const updates = generateChainUpdates(currentChains, chainGroups);
+            const removeAccountsUpdates = result.filter(u => u.function === "removeAccounts");
+            assert.strictEqual(removeAccountsUpdates.length, 3); // all three chains have removals
 
-            // Should have one addChains update for polygon
-            const addUpdates = updates.filter(
-                (u) => u.function === "addChains",
-            );
-            assert.strictEqual(addUpdates.length, 1);
+            // Check ethereum removal
+            const ethereumUpdate = removeAccountsUpdates.find(u => u.args[0] === 1);
+            assert.ok(ethereumUpdate);
+            assert.deepStrictEqual(ethereumUpdate.args[1], ["0xA2"]);
 
-            const newChain = addUpdates[0].args[0][0];
-            assert.strictEqual(newChain.id, 100);
+            // Check gnosis removal
+            const gnosisUpdate = removeAccountsUpdates.find(u => u.args[0] === 100);
+            assert.ok(gnosisUpdate);
+            assert.deepStrictEqual(gnosisUpdate.args[1], ["0xB1"]);
 
-            assert.strictEqual(newChain.accounts.length, 1);
-            assert.strictEqual(newChain.accounts[0].accountAddress, "0xABC");
-        });
+            // Check arbitrum removal
+            const arbitrumUpdate = removeAccountsUpdates.find(u => u.args[0] === 42161);
+            assert.ok(arbitrumUpdate);
+            assert.deepStrictEqual(arbitrumUpdate.args[1], ["0xC2"]);
 
-        test("should handle no changes needed", () => {
-            const currentChains = [
-                { id: 1, accounts: [] },
-                { id: 100, accounts: [] },
-            ];
-            const chainGroups = {
-                ethereum: [],
-                gnosis: [],
-            };
-
-            const updates = generateChainUpdates(currentChains, chainGroups);
-            assert.strictEqual(updates.length, 0);
-        });
-
-        test("should handle both additions and removals", () => {
-            const currentChains = [
-                { id: 1, accounts: [] },
-                { id: 42161, accounts: [] },
-            ];
-            const chainGroups = {
-                ethereum: [],
-                gnosis: [],
-            };
-
-            const updates = generateChainUpdates(currentChains, chainGroups);
-
-            assert.strictEqual(updates.length, 2);
-
-            const removeUpdates = updates.filter(
-                (u) => u.function === "removeChain",
-            );
-            const addUpdates = updates.filter(
-                (u) => u.function === "addChains",
-            );
-
-            assert.strictEqual(removeUpdates.length, 1);
-            assert.strictEqual(addUpdates.length, 1);
-        });
-
-        test("should include correct calldata and raw-abi for removeChain", () => {
-            const currentChains = [{ id: 1, accounts: [] }];
-            const chainGroups = {};
-
-            const updates = generateChainUpdates(currentChains, chainGroups);
-
-            assert.strictEqual(updates[0].function, "removeChain");
-            assert.strictEqual(updates[0].args[0], "1");
-            assert.ok(updates[0].calldata);
-            assert.ok(updates[0]["raw-abi"]);
-        });
-
-        test("should include correct calldata and raw-abi for addChains", () => {
-            const currentChains = [];
-            const chainGroups = {
-                ethereum: [{ accountAddress: "0xTEST", childContractScope: 0 }],
-            };
-
-            const updates = generateChainUpdates(currentChains, chainGroups);
-
-            assert.strictEqual(updates[0].function, "addChains");
-            assert.strictEqual(updates[0].args[0].length, 1);
-            assert.ok(updates[0].calldata);
-            assert.ok(updates[0]["raw-abi"]);
+            // Check multicall
+            const multicallUpdate = result.find(u => u.function === "multicall");
+            assert.ok(multicallUpdate);
+            assert.strictEqual(multicallUpdate.args[0].length, 3);
+            assert.strictEqual(multicallUpdate.args[0][0].target, AGREEMENT_ADDRESS);
+            assert.strictEqual(multicallUpdate.args[0][0].callData, ethereumUpdate.calldata);
+            assert.strictEqual(multicallUpdate.args[0][1].target, AGREEMENT_ADDRESS);
+            assert.strictEqual(multicallUpdate.args[0][1].callData, gnosisUpdate.calldata);
+            assert.strictEqual(multicallUpdate.args[0][2].target, AGREEMENT_ADDRESS);
+            assert.strictEqual(multicallUpdate.args[0][2].callData, arbitrumUpdate.calldata);
         });
     });
 
-    describe("generateAccountUpdates", () => {
-        test("should generate setAccounts updates for account replacements", () => {
-            const currentChains = [
-                {
-                    id: 1,
-                    accounts: [
-                        { accountAddress: "0xOLD1", childContractScope: 0 },
-                        { accountAddress: "0xOLD2", childContractScope: 0 },
-                    ],
-                },
-            ];
-            const chainGroups = {
+    describe("Chain addition scenarios", () => {
+        test("should generate addChains updates when new chains are introduced", async () => {
+            // Arrange - Add new chains
+            const csvData = {
                 ethereum: [
-                    { accountAddress: "0xNEW1", childContractScope: 0 },
-                    { accountAddress: "0xNEW2", childContractScope: 0 },
+                    { accountAddress: "0xA1", childContractScope: 0 },
+                    { accountAddress: "0xA2", childContractScope: 2 },
+                ],
+                gnosis: [
+                    { accountAddress: "0xB1", childContractScope: 0 },
+                ],
+                arbitrum: [
+                    { accountAddress: "0xC1", childContractScope: 0 },
+                    { accountAddress: "0xC2", childContractScope: 0 },
+                ],
+                optimism: [ // new chain
+                    { accountAddress: "0xD1", childContractScope: 0 },
+                    { accountAddress: "0xD2", childContractScope: 2 },
+                ],
+                polygon: [ // new chain
+                    { accountAddress: "0xE1", childContractScope: 0 },
                 ],
             };
 
-            const updates = generateAccountUpdates(currentChains, chainGroups);
+            getNormalizedDataFromOnchainState.mockResolvedValue(INITIAL_ONCHAIN_STATE);
+            getNormalizedDataFromCSV.mockResolvedValue(csvData);
 
-            // Should have one setAccounts update replacing both accounts
-            const setAccountsUpdates = updates.filter(
-                (u) => u.function === "setAccounts",
-            );
-            assert.strictEqual(setAccountsUpdates.length, 1);
+            // Act
+            const result = await generatePayload();
 
-            const update = setAccountsUpdates[0];
+            // Assert
+            assert.strictEqual(result.length, 2);
 
-            assert.strictEqual(update.args[0], 0); // chainId index
-            assert.deepStrictEqual(update.args[1], [0, 1]); // account indices
-            assert.strictEqual(update.args[2].length, 2); // new accounts
-            assert.strictEqual(update.args[2][0].accountAddress, "0xNEW1");
-            assert.strictEqual(update.args[2][1].accountAddress, "0xNEW2");
+            const addChainsUpdates = result.filter(u => u.function === "addChains");
+            assert.strictEqual(addChainsUpdates.length, 1); // Should batch new chains together
+
+            const newChains = addChainsUpdates[0].args[0];
+            assert.strictEqual(newChains.length, 2); // optimism and polygon
+
+            // Check optimism chain
+            const optimismChain = newChains.find(c => c.caip2ChainId === 10);
+            assert.ok(optimismChain);
+            assert.strictEqual(optimismChain.assetRecoveryAddress, "0xOPTIMISM_RECOVERY_ADDRESS");
+            assert.strictEqual(optimismChain.accounts.length, 2);
+            assert.deepStrictEqual(optimismChain.accounts, [
+                { accountAddress: "0xD1", childContractScope: 0 },
+                { accountAddress: "0xD2", childContractScope: 2 },
+            ]);
+
+            // Check polygon chain
+            const polygonChain = newChains.find(c => c.caip2ChainId === 137);
+            assert.ok(polygonChain);
+            assert.strictEqual(polygonChain.assetRecoveryAddress, "0xPOLYGON_RECOVERY_ADDRESS");
+            assert.strictEqual(polygonChain.accounts.length, 1);
+            assert.deepStrictEqual(polygonChain.accounts, [
+                { accountAddress: "0xE1", childContractScope: 0 },
+            ]);
+
+            // Check multicall
+            const multicallUpdate = result.find(u => u.function === "multicall");
+
+            assert.ok(multicallUpdate);
+            assert.strictEqual(multicallUpdate.args[0].length, 1);
+            assert.strictEqual(multicallUpdate.args[0][0].target, AGREEMENT_ADDRESS);
+            assert.strictEqual(multicallUpdate.args[0][0].callData, addChainsUpdates[0].calldata);
         });
 
-        test("should generate removeAccount updates for excess removals", () => {
-            const currentChains = [
-                {
-                    id: 1,
-                    accounts: [
-                        { accountAddress: "0xA", childContractScope: 0 },
-                        { accountAddress: "0xB", childContractScope: 0 },
-                        { accountAddress: "0xC", childContractScope: 0 },
-                    ],
-                },
-            ];
-            const chainGroups = {
-                ethereum: [{ accountAddress: "0xNEW", childContractScope: 0 }],
+        test("should generate addChains with empty accounts for new empty chains", async () => {
+            // Arrange - Add new empty chain
+            const csvData = {
+                ...INITIAL_ONCHAIN_STATE,
+                optimism: [], // new empty chain
             };
 
-            const updates = generateAccountUpdates(currentChains, chainGroups);
+            getNormalizedDataFromOnchainState.mockResolvedValue(INITIAL_ONCHAIN_STATE);
+            getNormalizedDataFromCSV.mockResolvedValue(csvData);
 
-            // Should have one setAccounts (replacing one) and two removeAccount updates
-            const setAccountsUpdates = updates.filter(
-                (u) => u.function === "setAccounts",
-            );
-            const removeAccountUpdates = updates.filter(
-                (u) => u.function === "removeAccount",
-            );
+            // Act
+            const result = await generatePayload();
 
-            assert.strictEqual(setAccountsUpdates.length, 1);
-            assert.strictEqual(removeAccountUpdates.length, 2);
+            // Assert
+            assert.strictEqual(result.length, 2);
 
-            // removeAccount should be called with decreasing indices (to avoid index shifting issues)
-            assert.strictEqual(removeAccountUpdates[0].args[1], 2); // Remove index 2 first
-            assert.strictEqual(removeAccountUpdates[1].args[1], 1); // Then remove index 1
-        });
+            const addChainsUpdates = result.filter(u => u.function === "addChains");
+            assert.strictEqual(addChainsUpdates.length, 1);
 
-        test("should generate addAccounts updates for excess additions", () => {
-            const currentChains = [
-                {
-                    id: 1,
-                    accounts: [
-                        { accountAddress: "0xA", childContractScope: 0 },
-                    ],
-                },
-            ];
-            const chainGroups = {
-                ethereum: [
-                    { accountAddress: "0xNEW1", childContractScope: 0 },
-                    { accountAddress: "0xNEW2", childContractScope: 0 },
-                    { accountAddress: "0xNEW3", childContractScope: 0 },
-                ],
-            };
+            const newChains = addChainsUpdates[0].args[0];
+            assert.strictEqual(newChains.length, 1);
+            assert.strictEqual(newChains[0].caip2ChainId, 10);
+            assert.strictEqual(newChains[0].accounts.length, 0);
 
-            const updates = generateAccountUpdates(currentChains, chainGroups);
-
-            // Should have one setAccounts (replacing one) and one addAccounts (adding two)
-            const setAccountsUpdates = updates.filter(
-                (u) => u.function === "setAccounts",
-            );
-            const addAccountsUpdates = updates.filter(
-                (u) => u.function === "addAccounts",
-            );
-
-            assert.strictEqual(setAccountsUpdates.length, 1);
-            assert.strictEqual(addAccountsUpdates.length, 1);
-
-            // addAccounts should contain the remaining 2 accounts
-            assert.strictEqual(addAccountsUpdates[0].args[1].length, 2);
-        });
-
-        test("should handle no account changes", () => {
-            const currentChains = [
-                {
-                    id: 1,
-                    accounts: [
-                        { accountAddress: "0xA", childContractScope: 0 },
-                    ],
-                },
-            ];
-            const chainGroups = {
-                ethereum: [{ accountAddress: "0xA", childContractScope: 0 }],
-            };
-
-            const updates = generateAccountUpdates(currentChains, chainGroups);
-            assert.strictEqual(updates.length, 0);
-        });
-
-        test("should handle chains with no desired accounts", () => {
-            const currentChains = [
-                {
-                    id: 1,
-                    accounts: [
-                        { accountAddress: "0xA", childContractScope: 0 },
-                        { accountAddress: "0xB", childContractScope: 0 },
-                    ],
-                },
-            ];
-            const chainGroups = {
-                ethereum: [], // No desired accounts
-            };
-
-            const updates = generateAccountUpdates(currentChains, chainGroups);
-
-            // Should have two removeAccount updates
-            const removeAccountUpdates = updates.filter(
-                (u) => u.function === "removeAccount",
-            );
-            assert.strictEqual(removeAccountUpdates.length, 2);
-        });
-
-        test("should handle chains not in chainGroups", () => {
-            const currentChains = [
-                {
-                    id: 1,
-                    accounts: [
-                        { accountAddress: "0xA", childContractScope: 0 },
-                    ],
-                },
-            ];
-            const chainGroups = {
-                // ethereum not included
-            };
-
-            const updates = generateAccountUpdates(currentChains, chainGroups);
-
-            // Should remove the existing account since no desired accounts
-            const removeAccountUpdates = updates.filter(
-                (u) => u.function === "removeAccount",
-            );
-            assert.strictEqual(removeAccountUpdates.length, 1);
-        });
-
-        test("should preserve childContractScope when adding accounts", () => {
-            const currentChains = [
-                {
-                    id: 1,
-                    accounts: [],
-                },
-            ];
-            const chainGroups = {
-                ethereum: [
-                    {
-                        accountAddress: "0xFactory",
-                        childContractScope: 3,
-                        isFactory: true,
-                    },
-                    {
-                        accountAddress: "0xNormal",
-                        childContractScope: 0,
-                        isFactory: false,
-                    },
-                ],
-            };
-
-            const updates = generateAccountUpdates(currentChains, chainGroups);
-
-            const addAccountsUpdates = updates.filter(
-                (u) => u.function === "addAccounts",
-            );
-            assert.strictEqual(addAccountsUpdates.length, 1);
-
-            const accounts = addAccountsUpdates[0].args[1];
-            const factoryAccount = accounts.find(
-                (acc) => acc.accountAddress === "0xFactory",
-            );
-            const normalAccount = accounts.find(
-                (acc) => acc.accountAddress === "0xNormal",
-            );
-
-            assert.strictEqual(factoryAccount.childContractScope, 3);
-            assert.strictEqual(normalAccount.childContractScope, 0);
-        });
-
-        test("should include correct calldata and raw-abi for all operations", () => {
-            const currentChains = [
-                {
-                    id: 1,
-                    accounts: [
-                        { accountAddress: "0xA", childContractScope: 0 },
-                    ],
-                },
-            ];
-            const chainGroups = {
-                ethereum: [{ accountAddress: "0xB", childContractScope: 0 }],
-            };
-
-            const updates = generateAccountUpdates(currentChains, chainGroups);
-
-            // Should have one setAccounts update
-            assert.strictEqual(updates.length, 1);
-
-            const update = updates[0];
-            assert.strictEqual(update.function, "setAccounts");
-            assert.ok(update.calldata);
-            assert.ok(update["raw-abi"]);
-        });
-
-        test("should handle multiple chains with different account changes", () => {
-            const currentChains = [
-                {
-                    id: 1,
-                    accounts: [
-                        { accountAddress: "0xA", childContractScope: 0 },
-                    ],
-                },
-                {
-                    id: 137,
-                    accounts: [
-                        { accountAddress: "0xB", childContractScope: 0 },
-                    ],
-                },
-            ];
-            const chainGroups = {
-                ethereum: [
-                    { accountAddress: "0xNEW_A", childContractScope: 0 },
-                ],
-                polygon: [], // Remove all accounts from polygon
-            };
-
-            const updates = generateAccountUpdates(currentChains, chainGroups);
-
-            // Should have updates for both chains
-            assert.ok(updates.length >= 2);
-
-            // Check that updates reference correct chain indices
-            const ethereumUpdates = updates.filter((u) => u.args[0] === 0);
-            const polygonUpdates = updates.filter((u) => u.args[0] === 1);
-
-            assert.ok(ethereumUpdates.length > 0);
-            assert.ok(polygonUpdates.length > 0);
+            // Check multicall
+            const multicallUpdate = result.find(u => u.function === "multicall");
+            assert.ok(multicallUpdate);
+            assert.strictEqual(multicallUpdate.args[0].length, 1);
+            assert.strictEqual(multicallUpdate.args[0][0].target, AGREEMENT_ADDRESS);
+            assert.strictEqual(multicallUpdate.args[0][0].callData, addChainsUpdates[0].calldata);
         });
     });
 
-    describe("Integration tests", () => {
-        test("calculateAccountDifferences should work with generateAccountUpdates", () => {
-            const currentAccounts = [
-                { accountAddress: "0xA", childContractScope: 0 },
-                { accountAddress: "0xB", childContractScope: 0 },
-            ];
-            const desiredAccounts = [
-                { accountAddress: "0xB", isFactory: false },
-                { accountAddress: "0xC", isFactory: true },
-            ];
+    describe("Chain removal scenarios", () => {
+        test("should generate removeChains updates when chains are removed", async () => {
+            // Arrange - Remove some chains
+            const csvData = {
+                ethereum: [
+                    { accountAddress: "0xA1", childContractScope: 0 },
+                    { accountAddress: "0xA2", childContractScope: 2 },
+                ],
+                // gnosis and arbitrum removed
+            };
 
-            const diff = calculateAccountDifferences(
-                currentAccounts,
-                desiredAccounts,
-            );
+            getNormalizedDataFromOnchainState.mockResolvedValue(INITIAL_ONCHAIN_STATE);
+            getNormalizedDataFromCSV.mockResolvedValue(csvData);
 
-            // Verify the structure matches what generateAccountUpdates expects
-            assert.ok(Array.isArray(diff.toAdd));
-            assert.ok(Array.isArray(diff.toRemove));
-            assert.ok(
-                diff.toAdd.every(
-                    (acc) =>
-                        acc.accountAddress &&
-                        typeof acc.childContractScope === "number",
-                ),
-            );
-            assert.ok(diff.toRemove.every((addr) => typeof addr === "string"));
+            // Act
+            const result = await generatePayload();
+
+            // Assert
+            assert.strictEqual(result.length, 2);
+
+            const removeChainsUpdates = result.filter(u => u.function === "removeChains");
+            assert.strictEqual(removeChainsUpdates.length, 1); // Should batch removals
+
+            const chainIdsToRemove = removeChainsUpdates[0].args[0];
+            assert.strictEqual(chainIdsToRemove.length, 2);
+            assert.ok(chainIdsToRemove.includes(100)); // gnosis
+            assert.ok(chainIdsToRemove.includes(42161)); // arbitrum
         });
+    });
+
+    describe("Complex mixed scenarios", () => {
+        test("should handle simultaneous chain additions, removals, and account changes", async () => {
+            // Arrange - Complex scenario
+            const csvData = {
+                ethereum: [
+                    { accountAddress: "0xA1", childContractScope: 0 }, // existing
+                    { accountAddress: "0xA3", childContractScope: 0 }, // new (0xA2 removed)
+                ],
+                // gnosis removed entirely
+                arbitrum: [
+                    { accountAddress: "0xC1", childContractScope: 0 }, // existing
+                    { accountAddress: "0xC2", childContractScope: 0 }, // existing
+                    { accountAddress: "0xC3", childContractScope: 2 }, // new
+                ],
+                optimism: [ // new chain
+                    { accountAddress: "0xD1", childContractScope: 0 },
+                ],
+            };
+
+            getNormalizedDataFromOnchainState.mockResolvedValue(INITIAL_ONCHAIN_STATE);
+            getNormalizedDataFromCSV.mockResolvedValue(csvData);
+
+            // Act
+            const result = await generatePayload();
+
+            // Assert - check that we have all expected update types
+            // Included updates:
+            // 1. RemoveChains: Gnosis
+            // 2. AddChains: Optimism, Polygon
+            // 3. RemoveAccounts: Ethereum 0xA2
+            // 4. AddAccounts: Ethereum 0xA3
+            // 5. AddAccounts: Arbitrum 0xC3
+            // 6. Multicall
+            assert.strictEqual(result.length, 6);
+
+            const chainUpdates = result.filter(u => u.function === "removeChains" || u.function === "addChains");
+            const accountUpdates = result.filter(u => u.function === "removeAccounts" || u.function === "addAccounts");
+            const multicallUpdate = result.filter(u => u.function === "multicall");
+
+            assert.ok(chainUpdates.length > 0, "Should have chain updates");
+            assert.ok(accountUpdates.length > 0, "Should have account updates");
+            assert.strictEqual(multicallUpdate.length, 1, "Should have exactly one multicall wrapper");
+
+            // Verify chain removal
+            const removeChainUpdate = result.find(u => u.function === "removeChains");
+            assert.ok(removeChainUpdate);
+            assert.ok(removeChainUpdate.args[0].includes(100)); // gnosis removed
+
+            // Verify chain addition
+            const addChainUpdate = result.find(u => u.function === "addChains");
+            assert.ok(addChainUpdate);
+            const newChain = addChainUpdate.args[0].find(c => c.caip2ChainId === 10);
+            assert.ok(newChain); // optimism added
+
+            // Verify account changes
+            const removeAccountUpdate = result.find(u => u.function === "removeAccounts" && u.args[0] === 1);
+            assert.ok(removeAccountUpdate);
+            assert.ok(removeAccountUpdate.args[1].includes("0xA2")); // ethereum account removed
+
+            const addAccountUpdate = result.find(u => u.function === "addAccounts" && u.args[0] === 1);
+            assert.ok(addAccountUpdate);
+            assert.deepStrictEqual(addAccountUpdate.args[1], [
+                { accountAddress: "0xA3", childContractScope: 0 }
+            ]);
+
+            const addAccountUpdate2 = result.find(u => u.function === "addAccounts" && u.args[0] === 42161);
+            assert.ok(addAccountUpdate2);
+            assert.deepStrictEqual(addAccountUpdate2.args[1], [
+                { accountAddress: "0xC3", childContractScope: 2 }
+            ]);
+
+            // Verify multicall
+            assert.strictEqual(multicallUpdate[0].args[0].length, 5);
+            assert.strictEqual(multicallUpdate[0].args[0][0].target, AGREEMENT_ADDRESS);
+            assert.strictEqual(multicallUpdate[0].args[0][0].callData, removeChainUpdate.calldata);
+            assert.strictEqual(multicallUpdate[0].args[0][1].target, AGREEMENT_ADDRESS);
+            assert.strictEqual(multicallUpdate[0].args[0][1].callData, addChainUpdate.calldata);
+            assert.strictEqual(multicallUpdate[0].args[0][2].target, AGREEMENT_ADDRESS);
+            assert.strictEqual(multicallUpdate[0].args[0][2].callData, removeAccountUpdate.calldata);
+            assert.strictEqual(multicallUpdate[0].args[0][3].target, AGREEMENT_ADDRESS);
+            assert.strictEqual(multicallUpdate[0].args[0][3].callData, addAccountUpdate.calldata);
+            assert.strictEqual(multicallUpdate[0].args[0][4].target, AGREEMENT_ADDRESS);
+            assert.strictEqual(multicallUpdate[0].args[0][4].callData, addAccountUpdate2.calldata);
+        });
+
+        test("should preserve childContractScope values correctly in complex scenarios", async () => {
+            // Arrange - Focus on childContractScope handling
+            const csvData = {
+                ethereum: [
+                    { accountAddress: "0xFactory1", childContractScope: 2 }, // factory
+                    { accountAddress: "0xNormal1", childContractScope: 0 }, // regular
+                ],
+                optimism: [ // new chain with mixed account types
+                    { accountAddress: "0xFactory2", childContractScope: 2 }, // factory
+                    { accountAddress: "0xNormal2", childContractScope: 0 }, // regular
+                    { accountAddress: "0xNormal3", childContractScope: 0 }, // regular
+                ],
+            };
+
+            getNormalizedDataFromOnchainState.mockResolvedValue(INITIAL_ONCHAIN_STATE);
+            getNormalizedDataFromCSV.mockResolvedValue(csvData);
+
+            // Act
+            const result = await generatePayload();
+
+            // Assert - verify childContractScope preservation in all operations
+            const addChainUpdate = result.find(u => u.function === "addChains");
+            assert.ok(addChainUpdate);
+            
+            const optimismChain = addChainUpdate.args[0].find(c => c.caip2ChainId === 10);
+            assert.ok(optimismChain);
+            
+            const factoryAccount = optimismChain.accounts.find(a => a.accountAddress === "0xFactory2");
+            const normalAccounts = optimismChain.accounts.filter(a => a.accountAddress.includes("Normal"));
+            
+            assert.strictEqual(factoryAccount.childContractScope, 2);
+            assert.ok(normalAccounts.every(a => a.childContractScope === 0));
+        });
+    });
+
+    describe("Edge cases", () => {
+        test("should handle completely empty onchain state", async () => {
+            // Arrange
+            const csvData = {
+                ethereum: [
+                    { accountAddress: "0xA1", childContractScope: 0 },
+                ],
+            };
+
+            getNormalizedDataFromOnchainState.mockResolvedValue({});
+            getNormalizedDataFromCSV.mockResolvedValue(csvData);
+
+            // Act
+            const result = await generatePayload();
+
+            // Assert - should only have addChains
+            const addChainsUpdates = result.filter(u => u.function === "addChains");
+            assert.strictEqual(addChainsUpdates.length, 1);
+            
+            const removeUpdates = result.filter(u => u.function.includes("remove"));
+            assert.strictEqual(removeUpdates.length, 0);
+        });
+
+        test("should handle completely empty CSV state", async () => {
+            // Arrange
+            getNormalizedDataFromOnchainState.mockResolvedValue(INITIAL_ONCHAIN_STATE);
+            getNormalizedDataFromCSV.mockResolvedValue({});
+
+            // Act
+            const result = await generatePayload();
+
+            // Assert - should only have removeChains (batched)
+            const removeChainsUpdates = result.filter(u => u.function === "removeChains");
+            assert.strictEqual(removeChainsUpdates.length, 1);
+            
+            const chainIdsToRemove = removeChainsUpdates[0].args[0];
+            assert.strictEqual(chainIdsToRemove.length, 3); // all chains removed
+            assert.ok(chainIdsToRemove.includes(1)); // ethereum
+            assert.ok(chainIdsToRemove.includes(100)); // gnosis  
+            assert.ok(chainIdsToRemove.includes(42161)); // arbitrum
+        });
+
     });
 });
