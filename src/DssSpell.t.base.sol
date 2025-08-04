@@ -1229,7 +1229,7 @@ contract DssSpellTestBase is Config, DssTest {
 
         // Enforce the global Line also falls between (sum of lines) + offset and (sum of lines) + 2*offset.
         assertTrue(sums[0] +     values.line_offset * RAD <= vat.Line(), "TestError/vat-Line-2");
-        assertTrue(sums[0] + 2 * values.line_offset * RAD >= vat.Line(), "TestError/vat-Line-3");
+        assertGe(sums[0] + 2 * values.line_offset * RAD,vat.Line(), "TestError/vat-Line-3");
 
         // TODO: have a discussion about how we want to manage the global Line going forward.
     }

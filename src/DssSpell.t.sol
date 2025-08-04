@@ -217,9 +217,51 @@ contract DssSpellTest is DssSpellTestBase {
         //assertEq(OsmAbstract(0xF15993A5C5BE496b8e1c9657Fd2233b579Cd3Bc6).wards(ORACLE_WALLET01), 1);
     }
 
-    function testRemovedChainlogKeys() public skipped { // add the `skipped` modifier to skip
-        string[1] memory removedKeys = [
-            "MKR_SKY_LEGACY"
+    function testRemovedChainlogKeys() public { // add the `skipped` modifier to skip
+        string[43] memory removedKeys = [
+            "PIP_MKR",
+            "PIP_AAVE",
+            "PIP_ADAI",
+            "PIP_BAL",
+            "PIP_BAT",
+            "PIP_COMP",
+            "PIP_CRVV1ETHSTETH",
+            "PIP_GNO",
+            "PIP_GUSD",
+            "PIP_KNC",
+            "PIP_LINK",
+            "PIP_LRC",
+            "PIP_MANA",
+            "PIP_MATIC",
+            "PIP_PAX",
+            "PIP_PAXUSD",
+            "PIP_RENBTC",
+            "PIP_RETH",
+            "PIP_RWA003",
+            "PIP_RWA006",
+            "PIP_RWA007",
+            "PIP_RWA008",
+            "PIP_RWA010",
+            "PIP_RWA011",
+            "PIP_RWA012",
+            "PIP_RWA013",
+            "PIP_RWA014",
+            "PIP_RWA015",
+            "PIP_TUSD",
+            "PIP_UNI",
+            "PIP_UNIV2AAVEETH",
+            "PIP_UNIV2DAIETH",
+            "PIP_UNIV2DAIUSDT",
+            "PIP_UNIV2ETHUSDT",
+            "PIP_UNIV2LINKETH",
+            "PIP_UNIV2UNIETH",
+            "PIP_UNIV2USDCETH",
+            "PIP_UNIV2WBTCDAI",
+            "PIP_UNIV2WBTCETH",
+            "PIP_USDC",
+            "PIP_USDT",
+            "PIP_YFI",
+            "PIP_ZRX"
         ];
 
         for (uint256 i = 0; i < removedKeys.length; i++) {
@@ -1294,7 +1336,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPARK TESTS
-    function testSparkSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
+    function testSparkSpellIsExecuted() public { // add the `skipped` modifier to skip
         address SPARK_PROXY = addr.addr('SPARK_PROXY');
         address SPARK_SPELL = address(0x41EdbF09cd2f272175c7fACB857B767859543D15); // Insert Spark spell address
 
@@ -1313,7 +1355,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // Grove/Bloom TESTS
-    function testGroveSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
+    function testGroveSpellIsExecuted() public { // add the `skipped` modifier to skip
         address GROVE_PROXY = addr.addr('ALLOCATOR_BLOOM_A_SUBPROXY');
         address GROVE_SPELL = address(0xe069f56033Ed646aF3B4024501FF47BBce67CfD1); // Insert Grove spell address
 
@@ -1332,6 +1374,8 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
-
+    function testIlkRegistryRemovals() public {
+        // TODO
+    }
 
 }

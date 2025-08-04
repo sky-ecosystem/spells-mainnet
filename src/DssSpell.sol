@@ -95,7 +95,7 @@ contract DssSpellAction is DssAction {
         ChainlogLike(CHAINLOG).removeAddress("PIP_MKR");
 
         // Remove LSE-MKR-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("LSE-MKR-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("LSE-MKR-A");
 
         // ----- [Housekeeping] Retire Other Legacy Oracles -----
         // Forum: https://forum.sky.money/t/phase-3-mkr-to-sky-migration-item-housekeeping-august-7th-spell/26919/3
@@ -230,138 +230,139 @@ contract DssSpellAction is DssAction {
         // Forum: https://forum.sky.money/t/phase-3-mkr-to-sky-migration-item-housekeeping-august-7th-spell/26919/3
 
         // Remove AAVE-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("AAVE-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("AAVE-A");
 
         // Remove ADAI-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("ADAI-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("ADAI-A");
 
         // Remove BAL-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("BAL-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("BAL-A");
 
         // Remove BAT-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("BAT-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("BAT-A");
 
         // Remove COMP-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("COMP-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("COMP-A");
 
         // Remove CRVV1ETHSTETH-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("CRVV1ETHSTETH-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("CRVV1ETHSTETH-A");
 
         // Remove GNO-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("GNO-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("GNO-A");
 
         // Remove GUSD-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("GUSD-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("GUSD-A");
 
         // Remove KNC-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("KNC-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("KNC-A");
 
         // Remove LINK-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("LINK-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("LINK-A");
 
         // Remove LRC-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("LRC-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("LRC-A");
 
         // Remove LSE-MKR-A from the ilk registry
         // Note: Removed above
 
         // Remove MANA-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("MANA-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("MANA-A");
 
         // Remove MATIC-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("MATIC-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("MATIC-A");
 
         // Remove PAX-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("PAX-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("PAX-A");
 
         // Remove PAXUSD-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("PAXUSD-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("PAXUSD-A");
 
         // Remove RENBTC-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("RENBTC-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("RENBTC-A");
 
         // Remove RETH-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("RETH-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("RETH-A");
 
         // Remove RWA003-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("RWA003-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("RWA003-A");
 
         // Remove RWA006-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("RWA006-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("RWA006-A");
 
         // Remove RWA007-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("RWA007-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("RWA007-A");
 
         // Remove RWA008-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("RWA008-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("RWA008-A");
 
         // Remove RWA010-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("RWA010-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("RWA010-A");
 
         // Remove RWA011-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("RWA011-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("RWA011-A");
 
         // Remove RWA012-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("RWA012-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("RWA012-A");
 
         // Remove RWA013-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("RWA013-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("RWA013-A");
 
         // Remove RWA014-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("RWA014-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("RWA014-A");
 
         // Remove RWA015-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("RWA015-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("RWA015-A");
 
         // Remove TUSD-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("TUSD-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("TUSD-A");
 
         // Remove UNI-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("UNI-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("UNI-A");
 
         // Remove UNIV2AAVEETH-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("UNIV2AAVEETH-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("UNIV2AAVEETH-A");
 
         // Remove UNIV2DAIETH-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("UNIV2DAIETH-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("UNIV2DAIETH-A");
 
         // Remove UNIV2DAIUSDT-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("UNIV2DAIUSDT-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("UNIV2DAIUSDT-A");
 
         // Remove UNIV2ETHUSDT-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("UNIV2ETHUSDT-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("UNIV2ETHUSDT-A");
 
         // Remove UNIV2LINKETH-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("UNIV2LINKETH-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("UNIV2LINKETH-A");
 
         // Remove UNIV2UNIETH-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("UNIV2UNIETH-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("UNIV2UNIETH-A");
 
         // Remove UNIV2USDCETH-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("UNIV2USDCETH-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("UNIV2USDCETH-A");
 
         // Remove UNIV2WBTCDAI-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("UNIV2WBTCDAI-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("UNIV2WBTCDAI-A");
 
         // Remove UNIV2WBTCETH-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("UNIV2WBTCETH-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("UNIV2WBTCETH-A");
 
         // Remove USDC-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("USDC-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("USDC-A");
 
         // Remove USDC-B from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("USDC-B");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("USDC-B");
 
         // Remove USDT-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("USDT-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("USDT-A");
 
         // Remove YFI-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("YFI-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("YFI-A");
 
         // Remove ZRX-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).remove("ZRX-A");
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("ZRX-A");
 
-        // Note: Bump Chainlog version to ...
+        // Note: Bump Chainlog version to 1.20.3 as periphery contracts are being removed
+        DssExecLib.setChangelogVersion("1.20.3");
 
         // ----- Execute Spark Proxy Spell -----
         // Forum: https://forum.sky.money/t/august-7-2025-proposed-changes-to-spark-for-upcoming-spell/26896
