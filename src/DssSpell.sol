@@ -19,16 +19,11 @@ pragma solidity 0.8.16;
 import "dss-exec-lib/DssExec.sol";
 import "dss-exec-lib/DssAction.sol";
 
-import {VestAbstract} from "dss-interfaces/dss/VestAbstract.sol";
-import {DssAutoLineAbstract} from "dss-interfaces/dss/DssAutoLineAbstract.sol";
-import {GemAbstract} from "dss-interfaces/ERC/GemAbstract.sol";
+import { VatAbstract }         from "dss-interfaces/dss/VatAbstract.sol";
+import { IlkRegistryAbstract } from "dss-interfaces/dss/IlkRegistryAbstract.sol";
 
-interface VestedRewardsDistributionLike {
-    function distribute() external returns (uint256 amount);
-}
-
-interface DaiUsdsLike {
-    function daiToUsds(address usr, uint256 wad) external;
+interface ChainlogLike {
+    function removeAddress(bytes32) external;
 }
 
 interface ProxyLike {
@@ -39,15 +34,12 @@ contract DssSpellAction is DssAction {
     // Provides a descriptive tag for bot consumption
     // This should be modified weekly to provide a summary of the actions
     // Hash: cast keccak -- "$(wget 'https://raw.githubusercontent.com/sky-ecosystem/executive-votes/637e2eee88d66b1430da42910721bdae50b756bd/2025/executive-vote-2025-07-24.md' -q -O - 2>/dev/null)"
-    string public constant override description = "2025-07-24 MakerDAO Executive Spell | Hash: 0x0dbe0fbe5cc34f6b9d1c894a654a9b10949c05476eb98534fd03297f3521e579";
+    string public constant override description = "2025-07-08 MakerDAO Executive Spell | Hash: TODO";
 
     // Set office hours according to the summary
     function officeHours() public pure override returns (bool) {
         return true;
     }
-
-    // Note: by the previous convention it should be a comma-separated list of DAO resolutions IPFS hashes
-    string public constant dao_resolutions = "bafkreidm3bqfiwv224m6w4zuabsiwqruy22sjfaxfvgx4kgcnu3wndxmva";
 
     // ---------- Rates ----------
     // Many of the settings that change weekly rely on the rate accumulator
@@ -62,190 +54,335 @@ contract DssSpellAction is DssAction {
     // uint256 internal constant X_PCT_RATE = ;
 
     // ---------- Math ----------
-    uint256 internal constant MILLION = 10 ** 6;
-    uint256 internal constant WAD     = 10 ** 18;
+    uint256 constant internal RAD = 10 ** 45;
 
-    // ---------- Addresses ----------
-    address internal immutable DAI                   = DssExecLib.dai();
-    address internal immutable MCD_VEST_SKY_TREASURY = DssExecLib.getChangelogAddress("MCD_VEST_SKY_TREASURY");
-    address internal immutable REWARDS_DIST_USDS_SKY = DssExecLib.getChangelogAddress("REWARDS_DIST_USDS_SKY");
-    address internal immutable MCD_IAM_AUTO_LINE     = DssExecLib.getChangelogAddress("MCD_IAM_AUTO_LINE");
-    address internal immutable SKY                   = DssExecLib.getChangelogAddress("SKY");
-    address internal immutable DAI_USDS              = DssExecLib.getChangelogAddress("DAI_USDS");
-
-    // ---------- Wallets ----------
-    address internal constant BLUE           = 0xb6C09680D822F162449cdFB8248a7D3FC26Ec9Bf;
-    address internal constant BONAPUBLICA    = 0x167c1a762B08D7e78dbF8f24e5C3f1Ab415021D3;
-    address internal constant CLOAKY_2       = 0x9244F47D70587Fa2329B89B6f503022b63Ad54A5;
-    address internal constant JULIACHANG     = 0x252abAEe2F4f4b8D39E5F12b163eDFb7fac7AED7;
-    address internal constant WBC            = 0xeBcE83e491947aDB1396Ee7E55d3c81414fB0D47;
-    address internal constant PBG            = 0x8D4df847dB7FfE0B46AF084fE031F7691C6478c2;
-    address internal constant EXCEL          = 0x0F04a22B62A26e25A29Cba5a595623038ef7AcE7;
-    address internal constant CLOAKY_KOHLA_2 = 0x73dFC091Ad77c03F2809204fCF03C0b9dccf8c7a;
-    address internal constant AEGIS_D        = 0x78C180CF113Fe4845C325f44648b6567BC79d6E0;
+    // ---------- Contracts ----------
+    address internal immutable MCD_VAT      = DssExecLib.vat();
+    address internal immutable ILK_REGISTRY = DssExecLib.reg();
+    address internal immutable CHAINLOG     = DssExecLib.LOG;
 
     // ---------- Grove Proxy Spell ----------
     // Note: The deployment address for the Grove Proxy can be found at https://forum.sky.money/t/technical-scope-of-the-star-2-allocator-launch/26190
     address internal constant GROVE_PROXY = 0x1369f7b2b38c76B6478c0f0E66D94923421891Ba;
-    address internal constant GROVE_SPELL = 0xe069f56033Ed646aF3B4024501FF47BBce67CfD1;
+    address internal constant GROVE_SPELL = 0xa25127f759B6F07020bf2206D31bEb6Ed04D1550;
 
     // ---------- Spark Proxy Spell ----------
     // Note: Spark Proxy: https://github.com/sparkdotfi/sparklend-deployments/blob/bba4c57d54deb6a14490b897c12a949aa035a99b/script/output/1/primary-sce-latest.json#L2
     address internal constant SPARK_PROXY = 0x3300f198988e4C9C63F75dF86De36421f06af8c4;
-    address internal constant SPARK_SPELL = 0x41EdbF09cd2f272175c7fACB857B767859543D15;
+    address internal constant SPARK_SPELL = 0xb12057500EB57C3c43B91171D52b6DB141cCa01a;
 
     function actions() public override {
-        // ---------- Sky Token Rewards Rebalance ----------
-        // Forum: https://forum.sky.money/t/sky-token-rewards-usds-to-sky-rewards-normalization-configuration/26638/8
-        // Forum: https://forum.sky.money/t/sky-token-rewards-usds-to-sky-rewards-normalization-configuration/26638/9
+        // ----- Deactivate Legacy Morpho DAI Vault DDM -----
+        // Forum: https://forum.sky.money/t/august-7-2025-proposed-changes-to-spark-for-upcoming-spell/26896
+        // Poll: https://vote.sky.money/polling/QmeLZrZo
 
-        // Yank MCD_VEST_SKY_TREASURY vest with ID 4
-        VestAbstract(MCD_VEST_SKY_TREASURY).yank(4);
+        // Note: Get the debt ceiling for DIRECT-SPARK-MORPHO-DAI
+        (,,,uint256 line,) = VatAbstract(MCD_VAT).ilks("DIRECT-SPARK-MORPHO-DAI");
 
-        // VestedRewardsDistribution.distribute() on REWARDS_DIST_USDS_SKY
-        // Note: `distribute()` only needs to be called if it wasn't already, otherwise it reverts
-        if (VestAbstract(MCD_VEST_SKY_TREASURY).unpaid(4) > 0) {
-            VestedRewardsDistributionLike(REWARDS_DIST_USDS_SKY).distribute();
-        }
+        // Remove DIRECT-SPARK-MORPHO-DAI from the Autoline
+        DssExecLib.removeIlkFromAutoLine("DIRECT-SPARK-MORPHO-DAI");
 
-        // ---------- Create a New MCD_VEST_SKY_TREASURY Stream ----------
-        // Forum: https://forum.sky.money/t/sky-token-rewards-usds-to-sky-rewards-normalization-configuration/26638/8
-        // Forum: https://forum.sky.money/t/sky-token-rewards-usds-to-sky-rewards-normalization-configuration/26638/9
+        // Set DIRECT-SPARK-MORPHO-DAI Debt Ceiling to 0
+        DssExecLib.setIlkDebtCeiling("DIRECT-SPARK-MORPHO-DAI", 0);
 
-        // res: 1 (restricted)
-        // Note: the stream is restricted below, right after being created
+        // Reduce Global Debt Ceiling to account for this change
+        DssExecLib.decreaseGlobalDebtCeiling(line / RAD);
 
-        // Increase SKY allowance for MCD_VEST_SKY_TREASURY to the sum of all streams
-        GemAbstract(SKY).approve(
-            MCD_VEST_SKY_TREASURY,
-            VestAbstract(MCD_VEST_SKY_TREASURY).tot(1) - VestAbstract(MCD_VEST_SKY_TREASURY).rxd(1) +
-            VestAbstract(MCD_VEST_SKY_TREASURY).tot(2) - VestAbstract(MCD_VEST_SKY_TREASURY).rxd(2) +
-            VestAbstract(MCD_VEST_SKY_TREASURY).tot(3) - VestAbstract(MCD_VEST_SKY_TREASURY).rxd(3) +
-            100_851_495 * WAD
-        );
+        // ----- Retire Legacy MKR Oracle -----
+        // Forum: https://forum.sky.money/t/phase-3-mkr-to-sky-migration-item-housekeeping-august-7th-spell/26919/3
 
-        // MCD_VEST_SKY_TREASURY Vest Stream  | from 'block.timestamp' to 'block.timestamp + 15,724,800 seconds' | 100,851,495 * WAD SKY | REWARDS_DIST_USDS_SKY
-        uint256 vestId = VestAbstract(MCD_VEST_SKY_TREASURY).create(
-            REWARDS_DIST_USDS_SKY,
-            100_851_495 * WAD,
-            block.timestamp,
-            15_724_800 seconds,
-            0,
-            address(0)
-        );
+        // Remove PIP_MKR from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_MKR");
 
-        // Note: restricting the stream, as instructed above
-        VestAbstract(MCD_VEST_SKY_TREASURY).restrict(vestId);
+        // Remove LSE-MKR-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("LSE-MKR-A");
 
-        // File the new stream ID on REWARDS_DIST_USDS_SKY
-        DssExecLib.setValue(REWARDS_DIST_USDS_SKY, "vestId", vestId);
+        // ----- [Housekeeping] Retire Other Legacy Oracles -----
+        // Forum: https://forum.sky.money/t/phase-3-mkr-to-sky-migration-item-housekeeping-august-7th-spell/26919/3
 
-        // ---------- Delegate Compensation for June 2025 ----------
-        // Forum: https://forum.sky.money/t/june-2025-aligned-delegate-compensation/26816
-        // Atlas: https://sky-atlas.powerhouse.io/Budget_And_Participation_Requirements/4c698938-1a11-4486-a568-e54fc6b0ce0c%7C0db3af4e
+        // Remove PIP_AAVE from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_AAVE");
 
-        // BLUE - 4,000 USDS - 0xb6C09680D822F162449cdFB8248a7D3FC26Ec9Bf
-        _transferUsds(BLUE, 4_000 * WAD);
+        // Remove PIP_ADAI from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_ADAI");
 
-        // Bonapublica - 4,000 USDS - 0x167c1a762B08D7e78dbF8f24e5C3f1Ab415021D3
-        _transferUsds(BONAPUBLICA, 4_000 * WAD);
+        // Remove PIP_BAL from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_BAL");
 
-        // Cloaky - 4,000 USDS - 0x9244F47D70587Fa2329B89B6f503022b63Ad54A5
-        _transferUsds(CLOAKY_2, 4_000 * WAD);
+        // Remove PIP_BAT from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_BAT");
 
-        // JuliaChang - 4,000 USDS - 0x252abAEe2F4f4b8D39E5F12b163eDFb7fac7AED7
-        _transferUsds(JULIACHANG, 4_000 * WAD);
+        // Remove PIP_COMP from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_COMP");
 
-        // WBC - 3,733 USDS - 0xeBcE83e491947aDB1396Ee7E55d3c81414fB0D47
-        _transferUsds(WBC, 3_733 * WAD);
+        // Remove PIP_CRVV1ETHSTETH from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_CRVV1ETHSTETH");
 
-        // PBG - 800 USDS - 0x8D4df847dB7FfE0B46AF084fE031F7691C6478c2
-        _transferUsds(PBG, 800 * WAD);
+        // Remove PIP_GNO from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_GNO");
 
-        // Excel - 400 USDS - 0x0F04a22B62A26e25A29Cba5a595623038ef7AcE7
-        _transferUsds(EXCEL, 400 * WAD);
+        // Remove PIP_GUSD from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_GUSD");
 
-        // AegisD - 129 USDS - 0x78C180CF113Fe4845C325f44648b6567BC79d6E0
-        _transferUsds(AEGIS_D, 129 * WAD);
+        // Remove PIP_KNC from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_KNC");
 
-        // ---------- Atlas Core Development USDS Payments for July 2025 ----------
-        // Forum: https://forum.sky.money/t/atlas-core-development-payment-requests-july-2025/26779
-        // Forum: https://forum.sky.money/t/atlas-core-development-payment-requests-july-2025/26779/6
+        // Remove PIP_LINK from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_LINK");
 
-        // BLUE - 50,167 USDS - 0xb6C09680D822F162449cdFB8248a7D3FC26Ec9Bf
-        _transferUsds(BLUE, 50_167 * WAD);
+        // Remove PIP_LRC from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_LRC");
 
-        // Cloaky - 16,417 USDS - 0x9244F47D70587Fa2329B89B6f503022b63Ad54A5
-        _transferUsds(CLOAKY_2, 16_417 * WAD);
+        // Remove PIP_MANA from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_MANA");
 
-        // Kohla - 11,000 USDS - 0x73dFC091Ad77c03F2809204fCF03C0b9dccf8c7a
-        _transferUsds(CLOAKY_KOHLA_2, 11_000 * WAD);
+        // Remove PIP_MATIC from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_MATIC");
 
-        // ---------- Atlas Core Development SKY Payments for July 2025 ----------
-        // Forum: https://forum.sky.money/t/atlas-core-development-payment-requests-july-2025/26779
-        // Forum: https://forum.sky.money/t/atlas-core-development-payment-requests-july-2025/26779/6
+        // Remove PIP_PAX from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_PAX");
 
-        // BLUE - 330,000 SKY - 0xb6C09680D822F162449cdFB8248a7D3FC26Ec9Bf
-        GemAbstract(SKY).transfer(BLUE, 330_000 * WAD);
+        // Remove PIP_PAXUSD from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_PAXUSD");
 
-        // Cloaky - 288,000 SKY - 0x9244F47D70587Fa2329B89B6f503022b63Ad54A5
-        GemAbstract(SKY).transfer(CLOAKY_2, 288_000 * WAD);
+        // Remove PIP_RENBTC from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_RENBTC");
 
-        // ---------- HVB DAO Resolution ----------
-        // Resolution: https://ipfs.io/ipfs/bafkreidm3bqfiwv224m6w4zuabsiwqruy22sjfaxfvgx4kgcnu3wndxmva
-        // Forum: https://forum.sky.money/t/huntingdon-valley-bank-transaction-documents-on-permaweb/16264/28
+        // Remove PIP_RETH from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_RETH");
 
-        // Approve DAO Resolution with hash bafkreidm3bqfiwv224m6w4zuabsiwqruy22sjfaxfvgx4kgcnu3wndxmva
-        // Note: see `dao_resolutions` public variable declared above
+        // Remove PIP_RWA003 from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_RWA003");
 
-        // ---------- Spark <> Grove Token Transfers and Grove Proxy Spell Execution ----------
-        // Forum: https://forum.sky.money/t/july-24-2025-proposed-changes-to-spark-for-upcoming-spell/26796
-        // Forum: https://forum.sky.money/t/july-24-2025-proposed-onboardings-for-grove-in-upcoming-spell/26805
-        // Poll: https://vote.sky.money/polling/Qme5qebN
-        // Poll: https://vote.sky.money/polling/QmdkNnmE
-        // Poll: https://vote.sky.money/polling/QmdKd2se
+        // Remove PIP_RWA006 from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_RWA006");
 
-        // Increase ALLOCATOR-BLOOM-A DC-IAM gap by 1.2 billion USDS from 50 million USDS to 1.25 billion USDS
-        // line remains unchanged at 2.5 billion USDS
-        // ttl remains unchanged at 86400 seconds
-        DssExecLib.setIlkAutoLineParameters("ALLOCATOR-BLOOM-A", /* amount = */ 2_500 * MILLION, /* gap = */ 1_250 * MILLION, /* ttl = */ 86400 seconds);
+        // Remove PIP_RWA007 from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_RWA007");
 
-        // Apply ALLOCATOR-BLOOM-A auto-line changes
-        DssAutoLineAbstract(MCD_IAM_AUTO_LINE).exec("ALLOCATOR-BLOOM-A");
+        // Remove PIP_RWA008 from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_RWA008");
 
-        // Execute Grove Proxy Spell at 0xe069f56033Ed646aF3B4024501FF47BBce67CfD1
-        ProxyLike(GROVE_PROXY).exec(GROVE_SPELL, abi.encodeWithSignature("execute()"));
+        // Remove PIP_RWA010 from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_RWA010");
 
-        // Decrease ALLOCATOR-BLOOM-A gap by 1.2 billion USDS from 1.25 billion USDS to 50 million USDS
-        DssExecLib.setIlkAutoLineParameters("ALLOCATOR-BLOOM-A", /* amount = */ 2_500 * MILLION, /* gap = */ 50 * MILLION, /* ttl = */ 86400 seconds);
+        // Remove PIP_RWA011 from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_RWA011");
 
-        // ---------- Execute Spark Proxy Spell ----------
-        // Forum: https://forum.sky.money/t/july-24-2025-proposed-changes-to-spark-for-upcoming-spell/26796
-        // Poll: https://vote.sky.money/polling/QmUYJ9YQ
-        // Poll: https://vote.sky.money/polling/QmSnpq5K
-        // Poll: https://vote.sky.money/polling/Qme5qebN
-        // Poll: https://vote.sky.money/polling/QmaLxz19
-        // Poll: https://vote.sky.money/polling/QmP7RB2p
+        // Remove PIP_RWA012 from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_RWA012");
 
-        // Execute Spark Proxy Spell at 0x41EdbF09cd2f272175c7fACB857B767859543D15
+        // Remove PIP_RWA013 from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_RWA013");
+
+        // Remove PIP_RWA014 from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_RWA014");
+
+        // Remove PIP_RWA015 from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_RWA015");
+
+        // Remove PIP_TUSD from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_TUSD");
+
+        // Remove PIP_UNI from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_UNI");
+
+        // Remove PIP_UNIV2AAVEETH from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_UNIV2AAVEETH");
+
+        // Remove PIP_UNIV2DAIETH from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_UNIV2DAIETH");
+
+        // Remove PIP_UNIV2DAIUSDT from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_UNIV2DAIUSDT");
+
+        // Remove PIP_UNIV2ETHUSDT from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_UNIV2ETHUSDT");
+
+        // Remove PIP_UNIV2LINKETH from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_UNIV2LINKETH");
+
+        // Remove PIP_UNIV2UNIETH from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_UNIV2UNIETH");
+
+        // Remove PIP_UNIV2USDCETH from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_UNIV2USDCETH");
+
+        // Remove PIP_UNIV2WBTCDAI from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_UNIV2WBTCDAI");
+
+        // Remove PIP_UNIV2WBTCETH from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_UNIV2WBTCETH");
+
+        // Remove PIP_USDC from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_USDC");
+
+        // Remove PIP_USDT from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_USDT");
+
+        // Remove PIP_YFI from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_YFI");
+
+        // Remove PIP_ZRX from the Chainlog
+        ChainlogLike(CHAINLOG).removeAddress("PIP_ZRX");
+
+        // ----- Remove Offboarded ilks from the Ilk Registry -----
+        // Forum: https://forum.sky.money/t/phase-3-mkr-to-sky-migration-item-housekeeping-august-7th-spell/26919/3
+
+        // Remove AAVE-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("AAVE-A");
+
+        // Remove ADAI-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("ADAI-A");
+
+        // Remove BAL-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("BAL-A");
+
+        // Remove BAT-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("BAT-A");
+
+        // Remove COMP-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("COMP-A");
+
+        // Remove CRVV1ETHSTETH-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("CRVV1ETHSTETH-A");
+
+        // Remove GNO-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("GNO-A");
+
+        // Remove GUSD-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("GUSD-A");
+
+        // Remove KNC-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("KNC-A");
+
+        // Remove LINK-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("LINK-A");
+
+        // Remove LRC-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("LRC-A");
+
+        // Remove LSE-MKR-A from the ilk registry
+        // Note: Removed above
+
+        // Remove MANA-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("MANA-A");
+
+        // Remove MATIC-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("MATIC-A");
+
+        // Remove PAX-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("PAX-A");
+
+        // Remove PAXUSD-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("PAXUSD-A");
+
+        // Remove RENBTC-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("RENBTC-A");
+
+        // Remove RETH-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("RETH-A");
+
+        // Remove RWA003-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("RWA003-A");
+
+        // Remove RWA006-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("RWA006-A");
+
+        // Remove RWA007-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("RWA007-A");
+
+        // Remove RWA008-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("RWA008-A");
+
+        // Remove RWA010-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("RWA010-A");
+
+        // Remove RWA011-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("RWA011-A");
+
+        // Remove RWA012-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("RWA012-A");
+
+        // Remove RWA013-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("RWA013-A");
+
+        // Remove RWA014-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("RWA014-A");
+
+        // Remove RWA015-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("RWA015-A");
+
+        // Remove TUSD-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("TUSD-A");
+
+        // Remove UNI-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("UNI-A");
+
+        // Remove UNIV2AAVEETH-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("UNIV2AAVEETH-A");
+
+        // Remove UNIV2DAIETH-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("UNIV2DAIETH-A");
+
+        // Remove UNIV2DAIUSDT-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("UNIV2DAIUSDT-A");
+
+        // Remove UNIV2ETHUSDT-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("UNIV2ETHUSDT-A");
+
+        // Remove UNIV2LINKETH-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("UNIV2LINKETH-A");
+
+        // Remove UNIV2UNIETH-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("UNIV2UNIETH-A");
+
+        // Remove UNIV2USDCETH-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("UNIV2USDCETH-A");
+
+        // Remove UNIV2WBTCDAI-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("UNIV2WBTCDAI-A");
+
+        // Remove UNIV2WBTCETH-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("UNIV2WBTCETH-A");
+
+        // Remove USDC-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("USDC-A");
+
+        // Remove USDC-B from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("USDC-B");
+
+        // Remove USDT-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("USDT-A");
+
+        // Remove YFI-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("YFI-A");
+
+        // Remove ZRX-A from the ilk registry
+        IlkRegistryAbstract(ILK_REGISTRY).remove("ZRX-A");
+
+        // Note: Bump Chainlog version to ...
+
+        // ----- Execute Spark Proxy Spell -----
+        // Forum: https://forum.sky.money/t/august-7-2025-proposed-changes-to-spark-for-upcoming-spell/26896
+        // Poll: https://vote.sky.money/polling/QmXLExe7
+        // Poll: https://vote.sky.money/polling/QmVGr47c
+        // Poll: https://vote.sky.money/polling/QmUevv3W
+        // Poll: https://vote.sky.money/polling/QmU6L1gS
+        // Poll: https://vote.sky.money/polling/QmZu3tVL
+
+        // Execute Spark proxy spell at 0xb12057500EB57C3c43B91171D52b6DB141cCa01a
         ProxyLike(SPARK_PROXY).exec(SPARK_SPELL, abi.encodeWithSignature("execute()"));
+
+        // ----- Execute Grove Proxy Spell -----
+        // Forum: https://forum.sky.money/t/august-7-2025-proposed-changes-to-grove-for-upcoming-spell/26883
+        // Poll: https://vote.sky.money/polling/QmX2CAp2
+        // Poll: https://vote.sky.money/polling/QmNsimEt
+
+        // Execute Grove proxy spell at 0xa25127f759B6F07020bf2206D31bEb6Ed04D1550
+        ProxyLike(GROVE_PROXY).exec(GROVE_SPELL, abi.encodeWithSignature("execute()"));
     }
 
-    // ---------- Helper Functions ----------
-
-    /// @notice wraps the operations required to transfer USDS from the surplus buffer.
-    /// @param usr The USDS receiver.
-    /// @param wad The USDS amount in wad precision (10 ** 18).
-    function _transferUsds(address usr, uint256 wad) internal {
-        // Note: Enforce whole units to avoid rounding errors
-        require(wad % WAD == 0, "transferUsds/non-integer-wad");
-        // Note: DssExecLib currently only supports Dai transfers from the surplus buffer.
-        DssExecLib.sendPaymentFromSurplusBuffer(address(this), wad / WAD);
-        // Note: Approve DAI_USDS for the amount sent to be able to convert it.
-        GemAbstract(DAI).approve(DAI_USDS, wad);
-        // Note: Convert Dai to USDS for `usr`.
-        DaiUsdsLike(DAI_USDS).daiToUsds(usr, wad);
-    }
 }
 
 contract DssSpell is DssExec {

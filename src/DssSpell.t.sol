@@ -596,7 +596,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public { // add the `skipped` modifier to skip
+    function testVestSky() public skipped{ // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
         // uint256 FEB_01_2025 = 1738368000;
 
@@ -791,7 +791,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testYankSky() public { // add the `skipped` modifier to skip
+    function testYankSky() public skipped { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
         uint256 DEC_01_2025_14_47_35 = 1764600455;
 
@@ -886,7 +886,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public { // add the `skipped` modifier to skip
+    function testPayments() public skipped { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = true;
         bool ignoreTotalSupplyMkrSky = true;
@@ -1275,7 +1275,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(Art, 0, "GUSD-A Art is not 0");
     }
 
-    function testDaoResolutions() public view { // replace `view` with the `skipped` modifier to skip
+    function testDaoResolutions() public skipped { // replace `view` with the `skipped` modifier to skip
         // For each resolution, add IPFS hash as item to the resolutions array
         // Initialize the array with the number of resolutions
         string[1] memory resolutions = [
@@ -1294,7 +1294,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPARK TESTS
-    function testSparkSpellIsExecuted() public { // add the `skipped` modifier to skip
+    function testSparkSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
         address SPARK_PROXY = addr.addr('SPARK_PROXY');
         address SPARK_SPELL = address(0x41EdbF09cd2f272175c7fACB857B767859543D15); // Insert Spark spell address
 
@@ -1313,7 +1313,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // Grove/Bloom TESTS
-    function testGroveSpellIsExecuted() public {
+    function testGroveSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
         address GROVE_PROXY = addr.addr('ALLOCATOR_BLOOM_A_SUBPROXY');
         address GROVE_SPELL = address(0xe069f56033Ed646aF3B4024501FF47BBce67CfD1); // Insert Grove spell address
 
@@ -1333,111 +1333,5 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
-    function testGroveLineChanges() public {
-        bytes32 ilk = "ALLOCATOR-BLOOM-A";
-        (uint256 pAL_line, uint256 pAL_gap, uint256 pAL_ttl,,) = autoLine.ilks(ilk);
-        (,,, uint256 pLine,) = vat.ilks(ilk);
 
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        (uint256 aL_line, uint256 aL_gap, uint256 aL_ttl,,) = autoLine.ilks(ilk);
-        (,,, uint256 line,) = vat.ilks(ilk);
-
-        // Ensure all auto-line parameters stays the same
-        assertEq(pAL_line, aL_line, "testGroveLineChanges/unexpected-aL_line-change");
-        assertEq(pAL_gap, aL_gap, "testGroveLineChanges/unexpected-aL_gap-change");
-        assertEq(pAL_ttl, aL_ttl, "testGroveLineChanges/unexpected-paL_ttl-change");
-
-        // Ensure line actually increased
-        assertGt(line, pLine, "testGroveLineChanges/unchanged-line");
-        assertEq(line, 1_250 * MILLION * RAD, "testGroveLineChanges/invalid-gap");
-    }
-
-    function testUpdatedRewardsDistUsdsSky() public {
-        VestedRewardsDistributionLike dist = VestedRewardsDistributionLike(addr.addr("REWARDS_DIST_USDS_SKY"));
-        VestAbstract vest = VestAbstract(dist.dssVest());
-        uint256 oldVestId = dist.vestId();
-
-        // Vote, schedule and warp to the nextCastTime
-        _vote(address(spell));
-        DssSpell(spell).schedule();
-        vm.warp(DssSpell(spell).nextCastTime());
-
-        // Ensure there are some accumulated rewards
-        assertGt(vest.unpaid(oldVestId), 0, "testUsdsSkyRewardsDistributed/unexpected-no-unpaid");
-
-        // Execute spell
-        DssSpell(spell).cast();
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        // Check `.distribute()` was called
-        assertEq(vest.unpaid(oldVestId), 0, "testUsdsSkyRewardsDistributed/unexpected-unpaid");
-
-        // Check new vestId was filed
-        assertNotEq(oldVestId, dist.vestId(), "testUsdsSkyRewardsDistributed/same-vestId");
-    }
-
-    function testUsdsSkyRewardsIntegration() public {
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        StakingRewardsLike rewards = StakingRewardsLike(addr.addr("REWARDS_USDS_SKY"));
-        VestedRewardsDistributionLike dist = VestedRewardsDistributionLike(addr.addr("REWARDS_DIST_USDS_SKY"));
-
-        // Sanity checks
-        assertEq(rewards.rewardsDistribution(), address(dist), "testUsdsSkyRewards/rewards-rewards-dist-mismatch");
-        assertEq(rewards.stakingToken(), address(usds), "testUsdsSkyRewards/rewards-staking-token-mismatch");
-        assertEq(rewards.rewardsToken(), address(sky), "testUsdsSkyRewards/rewards-rewards-token-mismatch");
-        assertTrue(vestSky.valid(dist.vestId()), "testUsdsSkyRewards/invalid-dist-vest-id");
-        assertEq(dist.dssVest(), address(vestSky), "testUsdsSkyRewards/dist-vest-mismatch");
-        assertEq(dist.stakingRewards(), address(rewards), "testUsdsSkyRewards/dist-rewards-mismatch");
-
-        uint256 before = vm.snapshotState();
-        { // Check if users can stake and get rewards
-            uint256 stakingWad = 100_000 * WAD;
-            _giveTokens(address(usds), stakingWad);
-            usds.approve(address(rewards), stakingWad);
-            rewards.stake(stakingWad);
-            assertEq(rewards.balanceOf(address(this)), stakingWad, "testUsdsSkyRewards/rewards-invalid-staked-balance");
-
-            uint256 pbalance = sky.balanceOf(address(this));
-            skip(7 days);
-            rewards.getReward();
-            assertGt(sky.balanceOf(address(this)), pbalance);
-        }
-
-        vm.revertToState(before);
-        { // Check if distribute can be called again in the future
-            uint256 pbalance = sky.balanceOf(address(rewards));
-            skip(7 days);
-            dist.distribute();
-            assertGt(sky.balanceOf(address(rewards)), pbalance, "testUsdsSkyRewards/distribute-no-increase-balance");
-        }
-    }
-
-    function testSpellRevertEdgeCase() public {
-        _vote(address(spell));
-        DssSpell(spell).schedule();
-        vm.warp(DssSpell(spell).nextCastTime());
-
-        // The attack can be executed permissionlessly
-        vm.startPrank(address(0xB0B));
-
-        // If distribute() is called in the same block as the spell (using front-running)
-        VestedRewardsDistributionLike(addr.addr("REWARDS_DIST_USDS_SKY")).distribute();
-
-        // Spell casting would've revert with "VestedRewardsDistribution/no-pending-amount"
-        // Which would be handled by Pause and revert with "ds-pause-delegatecall-error"
-        // vm.expectRevert("ds-pause-delegatecall-error");
-        DssSpell(spell).cast();
-
-        // The same could've been done again in any other subsequent block (since there is no cooldown)
-        // vm.warp(DssSpell(spell).nextCastTime() + 1);
-        // VestedRewardsDistributionLike(addr.addr("REWARDS_DIST_USDS_SKY")).distribute();
-        // vm.expectRevert("ds-pause-delegatecall-error");
-        // DssSpell(spell).cast();
-    }
 }
