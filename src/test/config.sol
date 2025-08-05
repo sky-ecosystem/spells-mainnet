@@ -347,35 +347,6 @@ contract Config {
             SP_step:      4_00,
             offboarding:  false
         });
-        afterSpell.collaterals["USDT-A"] = CollateralValues({
-            aL_enabled:   false,
-            aL_line:      0,
-            aL_gap:       0,
-            aL_ttl:       0,
-            line:         0,
-            dust:         10 * THOUSAND,
-            pct:          800,
-            mat:          30000,
-            liqType:      "clip",
-            liqOn:        true,
-            chop:         0,
-            dog_hole:     15_000,
-            clip_buf:     10500,
-            clip_tail:    220 minutes,
-            clip_cusp:    9000,
-            clip_chip:    10,
-            clip_tip:     300,
-            clipper_mom:  1,
-            cm_tolerance: 9500,
-            calc_tau:     0,
-            calc_step:    120,
-            calc_cut:     9990,
-            SP_enabled:   false,
-            SP_min:       0,
-            SP_max:       0,
-            SP_step:      0,
-            offboarding:  false
-        });
         afterSpell.collaterals["PSM-USDC-A"] = CollateralValues({
             aL_enabled:   false,
             aL_line:      0,
