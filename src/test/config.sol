@@ -166,7 +166,7 @@ contract Config {
         afterSpell.SP_dsr_max             = 30_00;                                      // In basis points
         afterSpell.SP_dsr_step            = 4_00;                                       // In basis points
         afterSpell.sky_mkr_rate           = 24_000;                                     // In whole SKY/MKR units
-        afterSpell.ilk_count              = 28;                                         // Num expected in system
+        afterSpell.ilk_count              = 30;                                         // Num expected in system
         afterSpell.chainlog_version       = "1.20.3";                                   // String expected in system
 
         //

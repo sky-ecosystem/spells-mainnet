@@ -102,18 +102,18 @@ contract StarknetTests is DssSpellTestBase, ConfigStarknet {
         setStarknetValues();
     }
 
-    // function testStarknet() public {
+    function testStarknet() public {
 
-    //     _vote(address(spell));
-    //     _scheduleWaitAndCast(address(spell));
-    //     assertTrue(spell.done());
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done());
 
-    //     _checkStarknetEscrowMom();
-    //     _checkStarknetEscrow();
-    //     _checkStarknetDaiBridge();
-    //     _checkStarknetGovRelay();
-    //     _checkStarknetCore();
-    // }
+        _checkStarknetEscrowMom();
+        _checkStarknetEscrow();
+        _checkStarknetDaiBridge();
+        _checkStarknetGovRelay();
+        _checkStarknetCore();
+    }
 
     function testStarknetSpell() public {
 

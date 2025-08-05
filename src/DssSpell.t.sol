@@ -1338,7 +1338,7 @@ contract DssSpellTest is DssSpellTestBase {
     // SPARK TESTS
     function testSparkSpellIsExecuted() public { // add the `skipped` modifier to skip
         address SPARK_PROXY = addr.addr('SPARK_PROXY');
-        address SPARK_SPELL = address(0x41EdbF09cd2f272175c7fACB857B767859543D15); // Insert Spark spell address
+        address SPARK_SPELL = address(0xb12057500EB57C3c43B91171D52b6DB141cCa01a); // Insert Spark spell address
 
         vm.expectCall(
             SPARK_PROXY,
@@ -1357,7 +1357,7 @@ contract DssSpellTest is DssSpellTestBase {
     // Grove/Bloom TESTS
     function testGroveSpellIsExecuted() public { // add the `skipped` modifier to skip
         address GROVE_PROXY = addr.addr('ALLOCATOR_BLOOM_A_SUBPROXY');
-        address GROVE_SPELL = address(0xe069f56033Ed646aF3B4024501FF47BBce67CfD1); // Insert Grove spell address
+        address GROVE_SPELL = address(0xa25127f759B6F07020bf2206D31bEb6Ed04D1550); // Insert Grove spell address
 
         vm.expectCall(
             GROVE_PROXY,
@@ -1375,7 +1375,73 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
     function testIlkRegistryRemovals() public {
-        // TODO
+        bytes32[42] memory removedIlks = [
+            bytes32("AAVE-A"),
+            "BAL-A",
+            "BAT-A",
+            "COMP-A",
+            "CRVV1ETHSTETH-A",
+            "GNO-A",
+            "GUSD-A",
+            "KNC-A",
+            "LINK-A",
+            "LRC-A",
+            "LSE-MKR-A",
+            "MANA-A",
+            "MATIC-A",
+            "PAXUSD-A",
+            "RENBTC-A",
+            "RETH-A",
+            "RWA003-A",
+            "RWA006-A",
+            "RWA007-A",
+            "RWA008-A",
+            "RWA010-A",
+            "RWA011-A",
+            "RWA012-A",
+            "RWA013-A",
+            "RWA014-A",
+            "RWA015-A",
+            "TUSD-A",
+            "UNI-A",
+            "UNIV2AAVEETH-A",
+            "UNIV2DAIETH-A",
+            "UNIV2DAIUSDT-A",
+            "UNIV2ETHUSDT-A",
+            "UNIV2LINKETH-A",
+            "UNIV2UNIETH-A",
+            "UNIV2USDCETH-A",
+            "UNIV2WBTCDAI-A",
+            "UNIV2WBTCETH-A",
+            "USDC-A",
+            "USDC-B",
+            "USDT-A",
+            "YFI-A",
+            "ZRX-A"
+        ];
+
+        for (uint256 i = 0; i < removedIlks.length; i++) {
+            (uint256 pos , , , , , , , , ) = reg.ilkData(removedIlks[i]);
+
+            // Ensure all items are present in the registry.
+            assertTrue(pos != 0, "TestError/ilk-registry-position-zero");
+        }
+
+        uint256 initialLen = reg.count();
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        assertEq(reg.count(), initialLen - removedIlks.length, "TestError/ilk-registry-count-not-decreased");
+
+        for (uint256 i = 0; i < removedIlks.length; i++) {
+            (uint256 pos , , , , , , , , ) = reg.ilkData(removedIlks[i]);
+
+            // Ensure all items are removed from the registry.
+            assertTrue(pos == 0, "TestError/ilk-registry-position-not-zero");
+        }
+
     }
 
 }

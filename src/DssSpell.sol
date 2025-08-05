@@ -233,7 +233,7 @@ contract DssSpellAction is DssAction {
         IlkRegistryAbstract(ILK_REGISTRY).removeAuth("AAVE-A");
 
         // Remove ADAI-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("ADAI-A");
+        // Note: ADAI-A is not present on the ilk registry - TODO: To be removed from the exec sheet
 
         // Remove BAL-A from the ilk registry
         IlkRegistryAbstract(ILK_REGISTRY).removeAuth("BAL-A");
@@ -262,9 +262,6 @@ contract DssSpellAction is DssAction {
         // Remove LRC-A from the ilk registry
         IlkRegistryAbstract(ILK_REGISTRY).removeAuth("LRC-A");
 
-        // Remove LSE-MKR-A from the ilk registry
-        // Note: Removed above
-
         // Remove MANA-A from the ilk registry
         IlkRegistryAbstract(ILK_REGISTRY).removeAuth("MANA-A");
 
@@ -272,7 +269,7 @@ contract DssSpellAction is DssAction {
         IlkRegistryAbstract(ILK_REGISTRY).removeAuth("MATIC-A");
 
         // Remove PAX-A from the ilk registry
-        IlkRegistryAbstract(ILK_REGISTRY).removeAuth("PAX-A");
+        // Note: Item not present on the ilk registry - TODO: To be removed from the exec sheet
 
         // Remove PAXUSD-A from the ilk registry
         IlkRegistryAbstract(ILK_REGISTRY).removeAuth("PAXUSD-A");
