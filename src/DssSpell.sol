@@ -33,8 +33,8 @@ interface ProxyLike {
 contract DssSpellAction is DssAction {
     // Provides a descriptive tag for bot consumption
     // This should be modified weekly to provide a summary of the actions
-    // Hash: cast keccak -- "$(wget 'TODO' -q -O - 2>/dev/null)"
-    string public constant override description = "2025-07-08 MakerDAO Executive Spell | Hash: TODO";
+    // Hash: cast keccak -- "$(wget 'https://github.com/sky-ecosystem/executive-votes/blob/5f326b5158efd320d2ca1fe6c6cbaafa7664a70f/2025/executive-vote-2025-08-07-deactivate-morpho-ddm-chainlog-management.md' -q -O - 2>/dev/null)"
+    string public constant override description = "2025-08-07 MakerDAO Executive Spell | Hash: 0x5b098c468f55d6a3e48e91e94bb0e5cdd35b729488b51565c66efc72e8cc7ca5";
 
     // Set office hours according to the summary
     function officeHours() public pure override returns (bool) {
@@ -232,9 +232,6 @@ contract DssSpellAction is DssAction {
         // Remove AAVE-A from the ilk registry
         IlkRegistryAbstract(ILK_REGISTRY).removeAuth("AAVE-A");
 
-        // Remove ADAI-A from the ilk registry
-        // Note: ADAI-A is not present on the ilk registry - TODO: To be removed from the exec sheet
-
         // Remove BAL-A from the ilk registry
         IlkRegistryAbstract(ILK_REGISTRY).removeAuth("BAL-A");
 
@@ -267,9 +264,6 @@ contract DssSpellAction is DssAction {
 
         // Remove MATIC-A from the ilk registry
         IlkRegistryAbstract(ILK_REGISTRY).removeAuth("MATIC-A");
-
-        // Remove PAX-A from the ilk registry
-        // Note: Item not present on the ilk registry - TODO: To be removed from the exec sheet
 
         // Remove PAXUSD-A from the ilk registry
         IlkRegistryAbstract(ILK_REGISTRY).removeAuth("PAXUSD-A");
