@@ -1028,9 +1028,6 @@ contract DssSpellTestBase is Config, DssTest {
         }
     }
 
-    event DEBUG(uint256 val);
-    event DEBUG_S(string cal);
-
     function _checkCollateralValues(SystemValues storage values) internal {
         // Using an array to work around stack depth limitations.
         // sums[0] : sum of all lines
@@ -1087,8 +1084,6 @@ contract DssSpellTestBase is Config, DssTest {
             }
             // Convert whole Dai units to expected RAD
             uint256 normalizedTestLine = values.collaterals[ilk].line * RAD;
-            emit DEBUG_S(string(abi.encodePacked(ilk)));
-            emit DEBUG(line);
             sums[0] += line;
             (uint256 aL_line, uint256 aL_gap, uint256 aL_ttl,,) = autoLine.ilks(ilk);
             if (!values.collaterals[ilk].aL_enabled) {

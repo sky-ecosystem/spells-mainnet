@@ -1421,10 +1421,10 @@ contract DssSpellTest is DssSpellTestBase {
         ];
 
         for (uint256 i = 0; i < removedIlks.length; i++) {
-            (uint256 pos , , , , , , , , ) = reg.ilkData(removedIlks[i]);
+            (, , , , , , , string memory name, ) = reg.ilkData(removedIlks[i]);
 
-            // Ensure all items are present in the registry.
-            assertTrue(pos != 0, "TestError/ilk-registry-position-zero");
+            // Ensure all items have names, as a proxy to verify they are present in the registry.
+            assertNotEq(name, "", "TestError/ilk-registry-name-not-equal");
         }
 
         uint256 initialLen = reg.count();
@@ -1436,12 +1436,12 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(reg.count(), initialLen - removedIlks.length, "TestError/ilk-registry-count-not-decreased");
 
         for (uint256 i = 0; i < removedIlks.length; i++) {
-            (uint256 pos , , , , , , , , ) = reg.ilkData(removedIlks[i]);
+            (uint256 pos , , , , , , , string memory name , ) = reg.ilkData(removedIlks[i]);
 
             // Ensure all items are removed from the registry.
-            assertTrue(pos == 0, "TestError/ilk-registry-position-not-zero");
+            assertEq(pos, 0, "TestError/ilk-registry-position-not-zero");
+            assertEq(name, "", "TestError/ilk-registry-name-not-equal");
         }
 
     }
-
 }
