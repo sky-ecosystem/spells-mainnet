@@ -96,7 +96,7 @@ contract DssSpellAction is DssAction {
         IlkRegistryAbstract(ILK_REGISTRY).removeAuth("LSE-MKR-A");
 
         // ----- [Housekeeping] Retire Other Legacy Oracles -----
-        // Forum: https://forum.sky.money/t/phase-3-mkr-to-sky-migration-item-housekeeping-august-7th-spell/26919/3
+        // Forum: https://forum.sky.money/t/phase-3-mkr-to-sky-migration-item-housekeeping-august-7th-spell/26919
 
         // Remove PIP_AAVE from the Chainlog
         ChainlogAbstract(CHAINLOG).removeAddress("PIP_AAVE");
@@ -225,7 +225,7 @@ contract DssSpellAction is DssAction {
         ChainlogAbstract(CHAINLOG).removeAddress("PIP_ZRX");
 
         // ----- Remove Offboarded ilks from the Ilk Registry -----
-        // Forum: https://forum.sky.money/t/phase-3-mkr-to-sky-migration-item-housekeeping-august-7th-spell/26919/3
+        // Forum: https://forum.sky.money/t/phase-3-mkr-to-sky-migration-item-housekeeping-august-7th-spell/26919
 
         // Remove AAVE-A from the ilk registry
         IlkRegistryAbstract(ILK_REGISTRY).removeAuth("AAVE-A");
