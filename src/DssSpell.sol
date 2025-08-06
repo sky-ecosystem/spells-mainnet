@@ -19,12 +19,9 @@ pragma solidity 0.8.16;
 import "dss-exec-lib/DssExec.sol";
 import "dss-exec-lib/DssAction.sol";
 
-import { VatAbstract }         from "dss-interfaces/dss/VatAbstract.sol";
+import { VatAbstract } from "dss-interfaces/dss/VatAbstract.sol";
 import { IlkRegistryAbstract } from "dss-interfaces/dss/IlkRegistryAbstract.sol";
-
-interface ChainlogLike {
-    function removeAddress(bytes32) external;
-}
+import { ChainlogAbstract } from "dss-interfaces/dss/ChainlogAbstract.sol";
 
 interface ProxyLike {
     function exec(address target, bytes calldata args) external payable returns (bytes memory out);
@@ -33,7 +30,7 @@ interface ProxyLike {
 contract DssSpellAction is DssAction {
     // Provides a descriptive tag for bot consumption
     // This should be modified weekly to provide a summary of the actions
-    // Hash: cast keccak -- "$(wget 'https://github.com/sky-ecosystem/executive-votes/blob/5f326b5158efd320d2ca1fe6c6cbaafa7664a70f/2025/executive-vote-2025-08-07-deactivate-morpho-ddm-chainlog-management.md' -q -O - 2>/dev/null)"
+    // Hash: cast keccak -- "$(wget 'https://raw.githubusercontent.com/sky-ecosystem/executive-votes/5f326b5158efd320d2ca1fe6c6cbaafa7664a70f/2025/executive-vote-2025-08-07-deactivate-morpho-ddm-chainlog-management.md' -q -O - 2>/dev/null)"
     string public constant override description = "2025-08-07 MakerDAO Executive Spell | Hash: 0x5b098c468f55d6a3e48e91e94bb0e5cdd35b729488b51565c66efc72e8cc7ca5";
 
     // Set office hours according to the summary
@@ -89,10 +86,11 @@ contract DssSpellAction is DssAction {
         DssExecLib.decreaseGlobalDebtCeiling(line / RAD);
 
         // ----- Retire Legacy MKR Oracle -----
-        // Forum: https://forum.sky.money/t/phase-3-mkr-to-sky-migration-item-housekeeping-august-7th-spell/26919/3
+        // Forum: https://forum.sky.money/t/phase-3-mkr-to-sky-migration-item-housekeeping-august-7th-spell/26919
+        // Atlas: https://sky-atlas.powerhouse.io/A.4.1.2.1.4.2.2_Offboard_Borrowing_Against_Staked_MKR/1f1f2ff0-8d73-8024-bf88-f0a17374ceea|b341f4c0b83472dc1f9e1a3b
 
         // Remove PIP_MKR from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_MKR");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_MKR");
 
         // Remove LSE-MKR-A from the ilk registry
         IlkRegistryAbstract(ILK_REGISTRY).removeAuth("LSE-MKR-A");
@@ -101,130 +99,130 @@ contract DssSpellAction is DssAction {
         // Forum: https://forum.sky.money/t/phase-3-mkr-to-sky-migration-item-housekeeping-august-7th-spell/26919/3
 
         // Remove PIP_AAVE from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_AAVE");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_AAVE");
 
         // Remove PIP_ADAI from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_ADAI");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_ADAI");
 
         // Remove PIP_BAL from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_BAL");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_BAL");
 
         // Remove PIP_BAT from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_BAT");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_BAT");
 
         // Remove PIP_COMP from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_COMP");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_COMP");
 
         // Remove PIP_CRVV1ETHSTETH from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_CRVV1ETHSTETH");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_CRVV1ETHSTETH");
 
         // Remove PIP_GNO from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_GNO");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_GNO");
 
         // Remove PIP_GUSD from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_GUSD");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_GUSD");
 
         // Remove PIP_KNC from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_KNC");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_KNC");
 
         // Remove PIP_LINK from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_LINK");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_LINK");
 
         // Remove PIP_LRC from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_LRC");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_LRC");
 
         // Remove PIP_MANA from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_MANA");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_MANA");
 
         // Remove PIP_MATIC from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_MATIC");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_MATIC");
 
         // Remove PIP_PAX from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_PAX");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_PAX");
 
         // Remove PIP_PAXUSD from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_PAXUSD");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_PAXUSD");
 
         // Remove PIP_RENBTC from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_RENBTC");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_RENBTC");
 
         // Remove PIP_RETH from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_RETH");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_RETH");
 
         // Remove PIP_RWA003 from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_RWA003");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_RWA003");
 
         // Remove PIP_RWA006 from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_RWA006");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_RWA006");
 
         // Remove PIP_RWA007 from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_RWA007");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_RWA007");
 
         // Remove PIP_RWA008 from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_RWA008");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_RWA008");
 
         // Remove PIP_RWA010 from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_RWA010");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_RWA010");
 
         // Remove PIP_RWA011 from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_RWA011");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_RWA011");
 
         // Remove PIP_RWA012 from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_RWA012");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_RWA012");
 
         // Remove PIP_RWA013 from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_RWA013");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_RWA013");
 
         // Remove PIP_RWA014 from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_RWA014");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_RWA014");
 
         // Remove PIP_RWA015 from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_RWA015");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_RWA015");
 
         // Remove PIP_TUSD from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_TUSD");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_TUSD");
 
         // Remove PIP_UNI from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_UNI");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_UNI");
 
         // Remove PIP_UNIV2AAVEETH from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_UNIV2AAVEETH");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_UNIV2AAVEETH");
 
         // Remove PIP_UNIV2DAIETH from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_UNIV2DAIETH");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_UNIV2DAIETH");
 
         // Remove PIP_UNIV2DAIUSDT from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_UNIV2DAIUSDT");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_UNIV2DAIUSDT");
 
         // Remove PIP_UNIV2ETHUSDT from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_UNIV2ETHUSDT");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_UNIV2ETHUSDT");
 
         // Remove PIP_UNIV2LINKETH from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_UNIV2LINKETH");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_UNIV2LINKETH");
 
         // Remove PIP_UNIV2UNIETH from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_UNIV2UNIETH");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_UNIV2UNIETH");
 
         // Remove PIP_UNIV2USDCETH from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_UNIV2USDCETH");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_UNIV2USDCETH");
 
         // Remove PIP_UNIV2WBTCDAI from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_UNIV2WBTCDAI");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_UNIV2WBTCDAI");
 
         // Remove PIP_UNIV2WBTCETH from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_UNIV2WBTCETH");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_UNIV2WBTCETH");
 
         // Remove PIP_USDC from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_USDC");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_USDC");
 
         // Remove PIP_USDT from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_USDT");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_USDT");
 
         // Remove PIP_YFI from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_YFI");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_YFI");
 
         // Remove PIP_ZRX from the Chainlog
-        ChainlogLike(CHAINLOG).removeAddress("PIP_ZRX");
+        ChainlogAbstract(CHAINLOG).removeAddress("PIP_ZRX");
 
         // ----- Remove Offboarded ilks from the Ilk Registry -----
         // Forum: https://forum.sky.money/t/phase-3-mkr-to-sky-migration-item-housekeeping-august-7th-spell/26919/3
