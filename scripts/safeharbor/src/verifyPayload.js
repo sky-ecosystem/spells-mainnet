@@ -1,6 +1,5 @@
 import "dotenv/config";
-import { generatePayload } from "./src/generatePayload.js";
-import { parseCalldata } from "./src/parseCalldata.js";
+import { generatePayload } from "./generatePayload.js";
 
 // Check if ETH_RPC_URL is set
 if (!process.env.ETH_RPC_URL) {
@@ -24,42 +23,35 @@ if (!calldata) {
 }
 
 // Validate calldata format
-if (!calldata.startsWith('0x') || calldata.length < 10) {
-    console.error("Error: Invalid calldata format. Must start with '0x' and be at least 10 characters long.");
+if (!calldata.startsWith("0x")) {
+    console.error("Error: Invalid calldata format, must start with '0x' ");
     process.exit(1);
 }
 
 // Execute the verification
 try {
-    console.log("Starting calldata verification...");
-    console.log(`Calldata to verify: ${calldata}\n`);
-    
+    console.warn("Starting calldata verification...");
+    console.warn(`Calldata to verify: ${calldata}\n`);
+
     // 1. Generate expected updates (same as generate script)
-    console.log("Generating expected updates...");
+    console.warn("Generating expected updates...");
     const expectedUpdates = await generatePayload();
-    
+
     // 2. Compare the calldata with expected updates
-    console.log("\nComparing calldata with expected updates...");
+    console.warn("\nComparing calldata with expected updates...");
     const comparisonResult = expectedUpdates.calldata === calldata;
-    
-    // 4. Display results
-    console.log("VERIFICATION RESULTS");
 
     if (comparisonResult) {
         console.log("✅ VERIFICATION PASSED");
-        console.log("The provided calldata matches the expected updates.");
     } else {
         console.log("❌ VERIFICATION FAILED");
-        console.log("The provided calldata does NOT match the expected updates.");
-        
+
         // Show the calldatas for comparison
         console.log("\nExpected calldata:");
         console.log(expectedUpdates.calldata);
         console.log("\nProvided calldata:");
         console.log(calldata);
-
     }
-    
     process.exit(comparisonResult ? 0 : 1);
 } catch (error) {
     console.error("Failed to verify calldata:", error);

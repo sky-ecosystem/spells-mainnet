@@ -29,12 +29,12 @@ export const CHAIN_NAMES = Object.entries(CHAIN_IDS).reduce(
 
 // Get chain ID from chain name
 export function getChainId(chain) {
-    return CHAIN_IDS[chain] || 0;
+    return CHAIN_IDS[chain] ?? "unknown:0";
 }
 
 // Get chain name from chain ID
 export function getChainName(chainId) {
-    return CHAIN_NAMES[chainId] || "UNKNOWN";
+    return CHAIN_NAMES[chainId] ?? "UNKNOWN";
 }
 
 // Get asset recovery address for a chain

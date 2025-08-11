@@ -57,7 +57,9 @@ function generateAccountUpdates(onChainState, csvState, chainsToRemove = []) {
     for (const chainName of Object.keys(onChainState)) {
         // Skip chains that are being removed
         if (chainsToRemove.includes(chainName)) {
-            console.log(`Skipping account updates for chain ${chainName} - will be removed entirely`);
+            console.warn(
+                `Skipping account updates for chain ${chainName} - will be removed entirely`,
+            );
             continue;
         }
 
@@ -203,8 +205,15 @@ function wrapWithMulticall(
 }
 
 export function generateUpdates(onChainState, csvState) {
-    const { updates: chainUpdates, chainsToRemove } = generateChainUpdates(onChainState, csvState);
-    const accountUpdates = generateAccountUpdates(onChainState, csvState, chainsToRemove);
+    const { updates: chainUpdates, chainsToRemove } = generateChainUpdates(
+        onChainState,
+        csvState,
+    );
+    const accountUpdates = generateAccountUpdates(
+        onChainState,
+        csvState,
+        chainsToRemove,
+    );
     return wrapWithMulticall(
         [...chainUpdates, ...accountUpdates],
         AGREEMENT_ADDRESS,

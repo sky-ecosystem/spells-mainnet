@@ -16,7 +16,7 @@ if (!process.env.ETH_RPC_URL) {
 // Execute the main function
 try {
     await generatePayload();
-    console.log("Payload generation completed successfully.");
+    console.warn("Payload generation completed successfully.");
     process.exit(0);
 } catch (error) {
     console.error("Failed to generate payload:", error);

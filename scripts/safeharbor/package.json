@@ -6,7 +6,6 @@
   "description": "Safe Harbor contract interaction scripts",
   "main": "index.js",
   "scripts": {
-    "start": "node .",
     "generate": "node index.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
