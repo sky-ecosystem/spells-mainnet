@@ -27,17 +27,35 @@ export const CHAIN_NAMES = Object.entries(CHAIN_IDS).reduce(
     {},
 );
 
-// Get chain ID from chain name
+/**
+ * Return the canonical chain ID for a given chain name.
+ * If the name is not recognized, returns the sentinel "unknown:0".
+ * @param {string} chain - Chain name (e.g. "ETHEREUM", "SOLANA").
+ * @returns {string} The matching chain ID, or "unknown:0" when no match exists.
+ */
 export function getChainId(chain) {
     return CHAIN_IDS[chain] ?? "unknown:0";
 }
 
-// Get chain name from chain ID
+/**
+ * Return the canonical chain name for a given chain ID.
+ *
+ * @param {string} chainId - Chain identifier (e.g. "eip155:1", "solana:5eykt4UsF...").
+ * @return {string} The corresponding chain name (e.g. "ETHEREUM"), or `"UNKNOWN"` if the ID is not recognized.
+ */
 export function getChainName(chainId) {
     return CHAIN_NAMES[chainId] ?? "UNKNOWN";
 }
 
-// Get asset recovery address for a chain
+/**
+ * Return the asset-recovery address for a supported chain.
+ *
+ * Accepted chain names: "ETHEREUM", "BASE", "ARBITRUM", "SOLANA", "OPTIMISM", "UNICHAIN".
+ *
+ * @param {string} chain - Chain name (one of the accepted values).
+ * @returns {string} The asset recovery address for the specified chain.
+ * @throws {Error} If no address is defined for the provided chain.
+ */
 export function getAssetRecoveryAddress(chain) {
     switch (chain) {
         case "ETHEREUM":
