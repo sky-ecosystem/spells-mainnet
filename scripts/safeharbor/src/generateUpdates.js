@@ -6,7 +6,19 @@ import { AGREEMENT_ADDRESS, MULTICALL_ADDRESS } from "./constants.js";
 const agreementInterface = new ethers.utils.Interface(AGREEMENTV2_ABI);
 const multicallInterface = new ethers.utils.Interface(MULTICALL_ABI);
 
-// Account difference calculation
+/**
+ * Compute account additions and removals required to transform currentAccounts into desiredAccounts.
+ *
+ * Compares accounts by the composite key `${accountAddress}-${childContractScope}`. Returns
+ * `toAdd` as an array of account objects ({ accountAddress, childContractScope }) that are present
+ * in desiredAccounts but not in currentAccounts, and `toRemove` as an array of accountAddress strings
+ * that are present in currentAccounts but not in desiredAccounts.
+ *
+ * @param {Array<Object>} currentAccounts - Existing on-chain accounts. Each object must include
+ *   `accountAddress` (string) and `childContractScope` (string or value used to scope the account).
+ * @param {Array<Object>} desiredAccounts - Desired accounts state with the same object shape.
+ * @returns {{ toAdd: Array<{accountAddress: string, childContractScope: *}>, toRemove: string[] }}
+ */
 export function calculateAccountDifferences(currentAccounts, desiredAccounts) {
     // Create maps for easier lookup with composite keys
     const currentMap = new Map(
@@ -49,6 +61,20 @@ export function calculateAccountDifferences(currentAccounts, desiredAccounts) {
     return { toAdd, toRemove };
 }
 
+/**
+ * Build per-chain account update calls (add/remove) by comparing on-chain state to CSV state.
+ *
+ * For each chain present in onChainState (except those listed in chainsToRemove), computes account
+ * differences and returns encoded update objects for `removeAccounts` and `addAccounts` as needed.
+ *
+ * @param {Object<string, Array<Object>>} onChainState - Current on-chain account mapping keyed by chain name.
+ *   Each value is an array of account entries as stored on-chain.
+ * @param {Object<string, Array<Object>>} csvState - Desired account mapping keyed by chain name from CSV input.
+ *   Each value is an array of desired account entries (objects containing at least `accountAddress` and `childContractScope`).
+ * @param {Array<string>} [chainsToRemove=[]] - Chain names that will be removed entirely; account updates for these chains are skipped.
+ * @return {Array<Object>} Array of update objects. Each update includes `function`, `args`, and encoded `calldata`
+ *   suitable for submission to the Agreement contract.
+ */
 function generateAccountUpdates(onChainState, csvState, chainsToRemove = []) {
     const updates = [];
 
@@ -100,6 +126,19 @@ function generateAccountUpdates(onChainState, csvState, chainsToRemove = []) {
     return updates;
 }
 
+/**
+ * Compute chain-level on-chain updates needed to reconcile onChainState with csvState.
+ *
+ * Builds batched "removeChains" and "addChains" update entries (with encoded calldata)
+ * for chains that should be removed or added, respectively.
+ *
+ * @param {Object<string, any>} onChainState - Mapping of current chainName -> on-chain chain data.
+ * @param {Object<string, any>} csvState - Mapping of desired chainName -> desired chain data (accounts, etc.).
+ * @returns {{ updates: Array<Object>, chainsToRemove: string[] }} An object containing:
+ *   - updates: array of update objects (each has `function`, `args`, and `calldata`) for add/remove chain calls.
+ *   - chainsToRemove: list of chain names that will be removed.
+ * @throws {Error} If any account in a chain being added is missing an `accountAddress` or has an undefined/null `childContractScope`.
+ */
 function generateChainUpdates(onChainState, csvState) {
     const updates = [];
 
@@ -170,6 +209,18 @@ function generateChainUpdates(onChainState, csvState) {
     return { updates, chainsToRemove };
 }
 
+/**
+ * Wraps a list of encoded Agreement contract updates into a single Multicall aggregate call.
+ *
+ * If `updates` is empty, the same array is returned unchanged. Otherwise this returns a new
+ * array containing the original updates plus one additional update that calls the Multicall
+ * contract's `aggregate` with the individual updates' calldata targeted at the Agreement.
+ *
+ * @param {Array<Object>} updates - Array of update objects; each must include a `calldata` field (encoded Agreement call).
+ * @param {string} agreementContractAddress - Address of the Agreement contract; used as the target for aggregated calls.
+ * @param {string} multicallContractAddress - Address of the Multicall contract which will be called with the aggregated payload.
+ * @return {Array<Object>} A new array containing the original updates and a final multicall update (unless `updates` was empty).
+ */
 function wrapWithMulticall(
     updates,
     agreementContractAddress,
@@ -204,6 +255,16 @@ function wrapWithMulticall(
     return [...updates, multicallUpdate];
 }
 
+/**
+ * Build the set of on-chain update operations (chain and account changes) and wrap them in a multicall.
+ *
+ * Generates chain-level and account-level update calls by comparing the current on-chain state to the desired CSV state,
+ * then bundles all resulting calldata into a single multicall targeting the configured multicall contract.
+ *
+ * @param {Object} onChainState - Current on-chain representation keyed by chain name; values include existing accounts and chain metadata.
+ * @param {Object} csvState - Desired state parsed from CSV, keyed by chain name with account lists to apply.
+ * @return {Array<Object>} An array of update objects. If any updates exist they are additionally wrapped as a single multicall update; otherwise returns an empty array.
+ */
 export function generateUpdates(onChainState, csvState) {
     const { updates: chainUpdates, chainsToRemove } = generateChainUpdates(
         onChainState,

@@ -5,7 +5,15 @@ import { generateUpdates } from "./generateUpdates.js";
 // Constants
 import { CSV_URL_SHEET1 } from "./constants.js";
 
-// Main function
+/**
+ * Orchestrates creation of an update payload by combining CSV data with on-chain state.
+ *
+ * Downloads and normalizes data from a Google Sheet CSV, fetches normalized on-chain state,
+ * then computes and returns the updates produced by `generateUpdates`.
+ *
+ * @returns {Object|Array} The generated updates payload (structure depends on `generateUpdates`).
+ * @throws {Error} If downloading the CSV, fetching on-chain state, or generating updates fails.
+ */
 export async function generatePayload() {
     try {
         // 1. Download and parse CSV
