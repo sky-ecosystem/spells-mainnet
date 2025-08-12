@@ -1,10 +1,10 @@
-import { ethers } from "ethers";
+import { Interface } from "ethers";
 import { AGREEMENTV2_ABI, MULTICALL_ABI } from "./abis.js";
 import { getChainId, getAssetRecoveryAddress } from "./utils/chainUtils.js";
 import { AGREEMENT_ADDRESS, MULTICALL_ADDRESS } from "./constants.js";
 
-const agreementInterface = new ethers.utils.Interface(AGREEMENTV2_ABI);
-const multicallInterface = new ethers.utils.Interface(MULTICALL_ABI);
+const agreementInterface = new Interface(AGREEMENTV2_ABI);
+const multicallInterface = new Interface(MULTICALL_ABI);
 
 // Account difference calculation
 export function calculateAccountDifferences(currentAccounts, desiredAccounts) {

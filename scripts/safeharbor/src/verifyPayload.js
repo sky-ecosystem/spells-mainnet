@@ -39,7 +39,7 @@ try {
 
     // 2. Compare the calldata with expected updates
     console.warn("\nComparing calldata with expected updates...");
-    const comparisonResult = expectedUpdates.calldata === calldata;
+    const comparisonResult = expectedUpdates[expectedUpdates.length - 1].calldata === calldata;
 
     if (comparisonResult) {
         console.log("✅ VERIFICATION PASSED");
@@ -48,7 +48,7 @@ try {
 
         // Show the calldatas for comparison
         console.log("\nExpected calldata:");
-        console.log(expectedUpdates.calldata);
+        console.log(expectedUpdates[expectedUpdates.length - 1].calldata);
         console.log("\nProvided calldata:");
         console.log(calldata);
     }

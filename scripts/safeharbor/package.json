@@ -7,17 +7,17 @@
   "main": "index.js",
   "scripts": {
     "generate": "node index.js",
+    "verify": "node src/verifyPayload.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "vitest",
-    "test:watch": "node --test --watch"
+    "test": "vitest"
   },
   "dependencies": {
     "csv-parse": "^5.5.0",
     "dotenv": "^16.5.0",
-    "ethers": "^5.7.2",
+    "ethers": "^6.15.0",
     "node-fetch": "^3.3.2"
   },
   "devDependencies": {
