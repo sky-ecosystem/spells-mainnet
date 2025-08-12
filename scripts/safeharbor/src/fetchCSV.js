@@ -1,6 +1,6 @@
 import { parse } from "csv-parse/sync";
 
-async function downloadAndAParse(url) {
+async function downloadAndParse(url) {
     try {
         const response = await fetch(url);
         if (!response.ok) {
@@ -56,6 +56,6 @@ function normalize(records) {
 }
 
 export async function getNormalizedDataFromCSV(url) {
-    const records = await downloadAndAParse(url);
+    const records = await downloadAndParse(url);
     return normalize(records);
 }

@@ -18,23 +18,23 @@ import { getNormalizedDataFromOnchainState } from "../src/fetchOnchain.js";
 vi.mock("../src/utils/chainUtils.js", () => ({
     getChainId: vi.fn((chainName) => {
         const chainIds = {
-            ethereum: "eip155:1",
-            gnosis: "eip155:100",
-            arbitrum: "eip155:42161",
-            optimism: "eip155:10",
-            polygon: "eip155:137",
+            ETHEREUM: "eip155:1",
+            GNOSIS: "eip155:100",
+            ARBITRUM: "eip155:42161",
+            OPTIMISM: "eip155:10",
+            POLYGON: "eip155:137",
         };
         return chainIds[chainName] || "eip155:1";
     }),
     getChainName: vi.fn((chainId) => {
         const chainNames = {
-            "eip155:1": "ethereum",
-            "eip155:100": "gnosis",
-            "eip155:42161": "arbitrum",
-            "eip155:10": "optimism",
-            "eip155:137": "polygon",
+            "eip155:1": "ETHEREUM",
+            "eip155:100": "GNOSIS",
+            "eip155:42161": "ARBITRUM",
+            "eip155:10": "OPTIMISM",
+            "eip155:137": "POLYGON",
         };
-        return chainNames[chainId] || "ethereum";
+        return chainNames[chainId] || "ETHEREUM";
     }),
     getAssetRecoveryAddress: vi.fn(
         (chainName) => `0x${chainName.toUpperCase()}_RECOVERY_ADDRESS`,
@@ -48,12 +48,12 @@ describe("generatePayload E2E Tests", () => {
 
     // Test Fixtures
     const INITIAL_ONCHAIN_STATE = {
-        ethereum: [
+        ETHEREUM: [
             { accountAddress: "0xA1", childContractScope: 0 },
             { accountAddress: "0xA2", childContractScope: 2 },
         ],
-        gnosis: [{ accountAddress: "0xB1", childContractScope: 0 }],
-        arbitrum: [
+        GNOSIS: [{ accountAddress: "0xB1", childContractScope: 0 }],
+        ARBITRUM: [
             { accountAddress: "0xC1", childContractScope: 0 },
             { accountAddress: "0xC2", childContractScope: 0 },
         ],
@@ -63,12 +63,12 @@ describe("generatePayload E2E Tests", () => {
         test("should generate no updates when onchain and CSV data match", async () => {
             // Arrange - CSV data matches onchain exactly
             const csvData = {
-                ethereum: [
+                ETHEREUM: [
                     { accountAddress: "0xA1", childContractScope: 0 },
                     { accountAddress: "0xA2", childContractScope: 2 },
                 ],
-                gnosis: [{ accountAddress: "0xB1", childContractScope: 0 }],
-                arbitrum: [
+                GNOSIS: [{ accountAddress: "0xB1", childContractScope: 0 }],
+                ARBITRUM: [
                     { accountAddress: "0xC1", childContractScope: 0 },
                     { accountAddress: "0xC2", childContractScope: 0 },
                 ],
@@ -91,16 +91,16 @@ describe("generatePayload E2E Tests", () => {
         test("should generate addAccounts updates when new accounts are added to existing chains", async () => {
             // Arrange - Add new accounts to existing chains
             const csvData = {
-                ethereum: [
+                ETHEREUM: [
                     { accountAddress: "0xA1", childContractScope: 0 }, // existing
                     { accountAddress: "0xA2", childContractScope: 2 }, // existing
                     { accountAddress: "0xA3", childContractScope: 0 }, // new
                 ],
-                gnosis: [
+                GNOSIS: [
                     { accountAddress: "0xB1", childContractScope: 0 }, // existing
                     { accountAddress: "0xB2", childContractScope: 2 }, // new factory
                 ],
-                arbitrum: [
+                ARBITRUM: [
                     { accountAddress: "0xC1", childContractScope: 0 }, // existing
                     { accountAddress: "0xC2", childContractScope: 0 }, // existing
                 ],
@@ -169,14 +169,14 @@ describe("generatePayload E2E Tests", () => {
         test("should generate removeAccounts updates when accounts are removed", async () => {
             // Arrange - Remove some accounts
             const csvData = {
-                ethereum: [
+                ETHEREUM: [
                     { accountAddress: "0xA1", childContractScope: 0 }, // keep
                     // 0xA2 removed
                 ],
-                gnosis: [
+                GNOSIS: [
                     // 0xB1 removed - entire chain becomes empty but still exists
                 ],
-                arbitrum: [
+                ARBITRUM: [
                     { accountAddress: "0xC1", childContractScope: 0 }, // keep
                     // 0xC2 removed
                 ],
@@ -256,21 +256,21 @@ describe("generatePayload E2E Tests", () => {
         test("should generate addChains updates when new chains are introduced", async () => {
             // Arrange - Add new chains
             const csvData = {
-                ethereum: [
+                ETHEREUM: [
                     { accountAddress: "0xA1", childContractScope: 0 },
                     { accountAddress: "0xA2", childContractScope: 2 },
                 ],
-                gnosis: [{ accountAddress: "0xB1", childContractScope: 0 }],
-                arbitrum: [
+                GNOSIS: [{ accountAddress: "0xB1", childContractScope: 0 }],
+                ARBITRUM: [
                     { accountAddress: "0xC1", childContractScope: 0 },
                     { accountAddress: "0xC2", childContractScope: 0 },
                 ],
-                optimism: [
+                OPTIMISM: [
                     // new chain
                     { accountAddress: "0xD1", childContractScope: 0 },
                     { accountAddress: "0xD2", childContractScope: 2 },
                 ],
-                polygon: [
+                POLYGON: [
                     // new chain
                     { accountAddress: "0xE1", childContractScope: 0 },
                 ],
@@ -345,7 +345,7 @@ describe("generatePayload E2E Tests", () => {
             // Arrange - Add new empty chain
             const csvData = {
                 ...INITIAL_ONCHAIN_STATE,
-                optimism: [], // new empty chain
+                OPTIMISM: [], // new empty chain
             };
 
             getNormalizedDataFromOnchainState.mockResolvedValue(
@@ -390,7 +390,7 @@ describe("generatePayload E2E Tests", () => {
         test("should generate removeChains updates when chains are removed", async () => {
             // Arrange - Remove some chains
             const csvData = {
-                ethereum: [
+                ETHEREUM: [
                     { accountAddress: "0xA1", childContractScope: 0 },
                     { accountAddress: "0xA2", childContractScope: 2 },
                 ],
@@ -424,17 +424,17 @@ describe("generatePayload E2E Tests", () => {
         test("should handle simultaneous chain additions, removals, and account changes", async () => {
             // Arrange - Complex scenario
             const csvData = {
-                ethereum: [
+                ETHEREUM: [
                     { accountAddress: "0xA1", childContractScope: 0 }, // existing
                     { accountAddress: "0xA3", childContractScope: 0 }, // new (0xA2 removed)
                 ],
                 // gnosis removed entirely
-                arbitrum: [
+                ARBITRUM: [
                     { accountAddress: "0xC1", childContractScope: 0 }, // existing
                     { accountAddress: "0xC2", childContractScope: 0 }, // existing
                     { accountAddress: "0xC3", childContractScope: 2 }, // new
                 ],
-                optimism: [
+                OPTIMISM: [
                     // new chain
                     { accountAddress: "0xD1", childContractScope: 0 },
                 ],
@@ -569,11 +569,11 @@ describe("generatePayload E2E Tests", () => {
         test("should preserve childContractScope values correctly in complex scenarios", async () => {
             // Arrange - Focus on childContractScope handling
             const csvData = {
-                ethereum: [
+                ETHEREUM: [
                     { accountAddress: "0xFactory1", childContractScope: 2 }, // factory
                     { accountAddress: "0xNormal1", childContractScope: 0 }, // regular
                 ],
-                optimism: [
+                OPTIMISM: [
                     // new chain with mixed account types
                     { accountAddress: "0xFactory2", childContractScope: 2 }, // factory
                     { accountAddress: "0xNormal2", childContractScope: 0 }, // regular
@@ -616,7 +616,7 @@ describe("generatePayload E2E Tests", () => {
         test("should handle completely empty onchain state", async () => {
             // Arrange
             const csvData = {
-                ethereum: [{ accountAddress: "0xA1", childContractScope: 0 }],
+                ETHEREUM: [{ accountAddress: "0xA1", childContractScope: 0 }],
             };
 
             getNormalizedDataFromOnchainState.mockResolvedValue({});

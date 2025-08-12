@@ -61,7 +61,7 @@ To run the script, run the following command:
 required env variables:
 
 ```
-- RPC_URL: An endpoint to a node that has the registry and the agreement deployed.
+- ETH_RPC_URL: An endpoint to a node that has the registry and the agreement deployed.
 ```
 
 ```bash
