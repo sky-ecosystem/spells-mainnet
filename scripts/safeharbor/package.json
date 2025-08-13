@@ -6,8 +6,8 @@
   "description": "Safe Harbor contract interaction scripts",
   "main": "index.js",
   "scripts": {
-    "generate": "node index.js",
-    "verify": "node src/verifyPayload.js",
+    "generate": "node index.js generate",
+    "verify": "node index.js verify",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
