@@ -46,14 +46,6 @@ interface SequencerLike {
     function hasJob(address job) external view returns (bool);
 }
 
-interface VestedRewardsDistributionLike {
-    function distribute() external returns (uint256 amount);
-    function dssVest() external view returns (address);
-    function lastDistributedAt() external view returns (uint256);
-    function stakingRewards() external view returns (address);
-    function vestId() external view returns (uint256);
-}
-
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -217,7 +209,7 @@ contract DssSpellTest is DssSpellTestBase {
         //assertEq(OsmAbstract(0xF15993A5C5BE496b8e1c9657Fd2233b579Cd3Bc6).wards(ORACLE_WALLET01), 1);
     }
 
-    function testRemovedChainlogKeys() public { // add the `skipped` modifier to skip
+    function testRemovedChainlogKeys() public skipped { // add the `skipped` modifier to skip
         string[43] memory removedKeys = [
             "PIP_MKR",
             "PIP_AAVE",
@@ -1336,7 +1328,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPARK TESTS
-    function testSparkSpellIsExecuted() public { // add the `skipped` modifier to skip
+    function testSparkSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
         address SPARK_PROXY = addr.addr('SPARK_PROXY');
         address SPARK_SPELL = address(0xb12057500EB57C3c43B91171D52b6DB141cCa01a); // Insert Spark spell address
 
@@ -1355,7 +1347,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // Grove/Bloom TESTS
-    function testGroveSpellIsExecuted() public { // add the `skipped` modifier to skip
+    function testGroveSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
         address GROVE_PROXY = addr.addr('ALLOCATOR_BLOOM_A_SUBPROXY');
         address GROVE_SPELL = address(0xa25127f759B6F07020bf2206D31bEb6Ed04D1550); // Insert Grove spell address
 
@@ -1374,74 +1366,4 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
-    function testIlkRegistryRemovals() public {
-        bytes32[42] memory removedIlks = [
-            bytes32("AAVE-A"),
-            "BAL-A",
-            "BAT-A",
-            "COMP-A",
-            "CRVV1ETHSTETH-A",
-            "GNO-A",
-            "GUSD-A",
-            "KNC-A",
-            "LINK-A",
-            "LRC-A",
-            "LSE-MKR-A",
-            "MANA-A",
-            "MATIC-A",
-            "PAXUSD-A",
-            "RENBTC-A",
-            "RETH-A",
-            "RWA003-A",
-            "RWA006-A",
-            "RWA007-A",
-            "RWA008-A",
-            "RWA010-A",
-            "RWA011-A",
-            "RWA012-A",
-            "RWA013-A",
-            "RWA014-A",
-            "RWA015-A",
-            "TUSD-A",
-            "UNI-A",
-            "UNIV2AAVEETH-A",
-            "UNIV2DAIETH-A",
-            "UNIV2DAIUSDT-A",
-            "UNIV2ETHUSDT-A",
-            "UNIV2LINKETH-A",
-            "UNIV2UNIETH-A",
-            "UNIV2USDCETH-A",
-            "UNIV2WBTCDAI-A",
-            "UNIV2WBTCETH-A",
-            "USDC-A",
-            "USDC-B",
-            "USDT-A",
-            "YFI-A",
-            "ZRX-A"
-        ];
-
-        for (uint256 i = 0; i < removedIlks.length; i++) {
-            (, , , , , , , string memory name, ) = reg.ilkData(removedIlks[i]);
-
-            // Ensure all items have names, as a proxy to verify they are present in the registry.
-            assertNotEq(name, "", "TestError/ilk-registry-name-not-equal");
-        }
-
-        uint256 initialLen = reg.count();
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        assertEq(reg.count(), initialLen - removedIlks.length, "TestError/ilk-registry-count-not-decreased");
-
-        for (uint256 i = 0; i < removedIlks.length; i++) {
-            (uint256 pos , , , , , , , string memory name , ) = reg.ilkData(removedIlks[i]);
-
-            // Ensure all items are removed from the registry.
-            assertEq(pos, 0, "TestError/ilk-registry-position-not-zero");
-            assertEq(name, "", "TestError/ilk-registry-name-not-equal");
-        }
-
-    }
 }
