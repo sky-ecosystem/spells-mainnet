@@ -984,7 +984,7 @@ contract DssSpellTestBase is Config, DssTest {
             // check burn value
             uint256 normalizedTestBurn = values.split_burn * 10**14;
             assertEq(split.burn(), normalizedTestBurn, "TestError/split-burn");
-            assertTrue(split.burn() >= 50 * WAD / 100 && split.burn() <= 1 * WAD, "TestError/split-burn-range"); // gte 50% and lte 100%
+            assertTrue(split.burn() >= 25 * WAD / 100 && split.burn() <= 1 * WAD, "TestError/split-burn-range"); // gte 50% and lte 100%
             // check split.farm address to match config
             address split_farm = addr.addr(values.split_farm);
             assertEq(split.farm(), split_farm, "TestError/split-farm");
@@ -2743,8 +2743,12 @@ contract DssSpellTestBase is Config, DssTest {
         uint256 allowance = _gem.allowance(pauseProxy, address(vest));
         assertGe(allowance, vestableAmt, _concat(string("TestError/insufficient-transferrable-vest-allowance-"), _errSuffix));
 
-        uint256 balance = _gem.balanceOf(pauseProxy);
-        assertGe(balance, vestableAmt, _concat(string("TestError/insufficient-transferrable-vest-balance-"), _errSuffix));
+        // TODO: Remove after 2025-08-21
+        // Note: SKY streams will operate out of buybacks, the check is disabled
+        if (address(_gem) != address(sky)) {
+            uint256 balance = _gem.balanceOf(pauseProxy);
+            assertGe(balance, vestableAmt, _concat(string("TestError/insufficient-transferrable-vest-balance-"), _errSuffix));
+        }
     }
 
     function _getIlkMat(bytes32 _ilk) internal view returns (uint256 mat) {

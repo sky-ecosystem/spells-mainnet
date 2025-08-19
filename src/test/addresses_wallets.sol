@@ -156,6 +156,12 @@ contract Wallets {
         // Early Bird Rewards Multisig
         addr["EARLY_BIRD_REWARDS"]           = 0x14D98650d46BF7679BBD05D4f615A1547C87Bf68;
 
+        // Sky Frontier Foundation Grant
+        addr["SKY_FRONTIER_FOUNDATION"]      = 0xca5183FB9997046fbd9bA8113139bf5a5Af122A0;
+
+        // Fortification Foundation Grant
+        addr["FORTIFICATION_FOUNDATION"]     = 0x483413ccCD796Deddee88E4d3e202425d5E891C6;
+
         // Vest Managers
         addr["PULLUP_LABS_VEST_MGR"]         = 0x9B6213D350A4AFbda2361b6572A07C90c22002F1;
 
@@ -189,6 +195,7 @@ contract Wallets {
         addr["CLOAKY_KOHLA_2"]               = 0x73dFC091Ad77c03F2809204fCF03C0b9dccf8c7a;
         addr["EXCEL"]                        = 0x0F04a22B62A26e25A29Cba5a595623038ef7AcE7;
         addr["AEGIS_D"]                      = 0x78C180CF113Fe4845C325f44648b6567BC79d6E0;
+        addr["TANGO"]                        = 0xB2B86A130B1EC101e4Aed9a88502E08995760307;
 
         // Protocol Engineering Scope
         addr["GOV_SECURITY_ENGINEERING"]     = 0x569fAD613887ddd8c1815b56A00005BCA7FDa9C0;

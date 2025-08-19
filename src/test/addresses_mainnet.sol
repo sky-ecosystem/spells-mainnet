@@ -574,5 +574,7 @@ contract Addresses {
         addr["REWARDS_DIST_USDS_SPK"]            = 0x3959e23A63CA7ac12D658bb44F90cb1f7Ee4C02c;
         addr["REWARDS_LSSKY_SPK"]                = 0x99cBC0e4E6427F6939536eD24d1275B95ff77404;
         addr["REWARDS_DIST_LSSKY_SPK"]           = 0xa3Ee378BdD0b7DD403cEd3a0A65B2B389A2eaB7e;
+        addr["ENS"]                              = 0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72;
+        addr["STAAVE"]                           = 0x4da27a545c0c5B758a6BA100e3a049001de870f5;
     }
 }

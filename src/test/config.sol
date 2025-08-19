@@ -135,10 +135,10 @@ contract Config {
         afterSpell.vow_dump               = 250;                                        // In whole Dai units
         afterSpell.vow_sump               = type(uint256).max;                          // In whole Dai units
         afterSpell.vow_bump               = 10 * THOUSAND;                              // In whole Dai units
-        afterSpell.vow_hump_min           = 50 * MILLION;                               // In whole Dai units
-        afterSpell.vow_hump_max           = 50 * MILLION;                               // In whole Dai units
+        afterSpell.vow_hump_min           = 1 * MILLION;                                // In whole Dai units
+        afterSpell.vow_hump_max           = 1 * MILLION;                                // In whole Dai units
         afterSpell.split_hop              = 2_160 seconds;                              // In seconds
-        afterSpell.split_burn             = 50_00;                                      // In basis points
+        afterSpell.split_burn             = 25_00;                                      // In basis points
         afterSpell.split_farm             = "REWARDS_LSSKY_USDS";                       // Farm chainlog key
         afterSpell.flap_want              = 9800;                                       // In basis points
         afterSpell.dog_Hole               = 150 * MILLION;                              // In whole Dai units
@@ -413,16 +413,16 @@ contract Config {
             line:         0,
             dust:         15 * THOUSAND,
             pct:          2,
-            mat:          10200,
+            mat:          1000_00,
             liqType:      "clip",
-            liqOn:        false,
-            chop:         1300,
-            dog_hole:     0,
+            liqOn:        true,
+            chop:         0,
+            dog_hole:     400 * THOUSAND,
             clip_buf:     10500,
             clip_tail:    220 minutes,
             clip_cusp:    9000,
-            clip_chip:    10,
-            clip_tip:     300,
+            clip_chip:    0,
+            clip_tip:     0,
             clipper_mom:  0,
             cm_tolerance: 9500,
             calc_tau:     0,
@@ -432,7 +432,7 @@ contract Config {
             SP_min:       0,
             SP_max:       0,
             SP_step:      0,
-            offboarding:  false
+            offboarding:  true
         });
         afterSpell.collaterals["RWA001-A"] = CollateralValues({
             aL_enabled:   false,

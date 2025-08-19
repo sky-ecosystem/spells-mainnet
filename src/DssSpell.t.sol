@@ -46,6 +46,14 @@ interface SequencerLike {
     function hasJob(address job) external view returns (bool);
 }
 
+interface VestedRewardsDistributionLike {
+    function distribute() external returns (uint256 amount);
+    function dssVest() external view returns (address);
+    function lastDistributedAt() external view returns (uint256);
+    function stakingRewards() external view returns (address);
+    function vestId() external view returns (uint256);
+}
+
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -920,42 +928,54 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public skipped { // add the `skipped` modifier to skip
+    function testPayments() public { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = true;
-        bool ignoreTotalSupplyMkrSky = true;
+        bool ignoreTotalSupplyMkrSky = false;
+
+        // TODO: Remove after 2025-08-21
+        int256 daiBalancePauseProxy = int256(dai.balanceOf(pauseProxy));
+        int256 skyBalancePauseProxy = int256(sky.balanceOf(pauseProxy));
+        int256 skyFrontierFoundationTransferAmount = skyBalancePauseProxy - (16_000_000 + 200_000_000 + 330_000 + 288_000) * 1 ether; // Note: ether is only a keyword helper
+        int256 skyTotalTransferAmount = skyBalancePauseProxy - 16_000_000 ether; // Note: ether is only a keyword helper
 
         // For each payment, create a Payee object with:
         //    the address of the transferred token,
         //    the destination address,
         //    the amount to be paid
         // Initialize the array with the number of payees
-        Payee[11] memory payees = [
+        Payee[17] memory payees = [
+            Payee(address(usds), wallets.addr("FORTIFICATION_FOUNDATION"), 10_000_000 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("AAVE_V3_TREASURY"), 177_507 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("LIQUIDITY_BOOTSTRAPPING"), 2_000_000 ether), // Note: ether is only a keyword helper
             Payee(address(usds), wallets.addr("BLUE"), 4_000 ether + 50_167 ether), // Note: ether is only a keyword helper
             Payee(address(usds), wallets.addr("BONAPUBLICA"), 4_000 ether), // Note: ether is only a keyword helper
             Payee(address(usds), wallets.addr("CLOAKY_2"), 4_000 ether + 16_417 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("JULIACHANG"), 4_000 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("WBC"), 3_733 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("PBG"), 800 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("EXCEL"), 400 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("AEGIS_D"), 129 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("CLOAKY_KOHLA_2"), 11_000 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("EXCEL"), 4_000 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("PBG"), 4_000 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("WBC"), 3_871 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("TANGO"), 731 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CLOAKY_KOHLA_2"), 11_348 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("SKY_FRONTIER_FOUNDATION"), 50_000_000 ether), // Note: ether is only a keyword helper
+            Payee(address(sky), wallets.addr("FORTIFICATION_FOUNDATION"), 200_000_000 ether), // Note: ether is only a keyword helper
             Payee(address(sky), wallets.addr("BLUE"), 330_000 ether), // Note: ether is only a keyword helper
-            Payee(address(sky), wallets.addr("CLOAKY_2"), 288_000 ether) // Note: ether is only a keyword helper
+            Payee(address(sky), wallets.addr("CLOAKY_2"), 288_000 ether), // Note: ether is only a keyword helper
+            Payee(address(sky), wallets.addr("SKY_FRONTIER_FOUNDATION"), skyFrontierFoundationTransferAmount),
+            Payee(address(dai), wallets.addr("SKY_FRONTIER_FOUNDATION"), daiBalancePauseProxy)
         ];
 
         // Fill the total values from exec sheet
         PaymentAmounts memory expectedTotalPayments = PaymentAmounts({
-            dai:          0 ether, // Note: ether is only a keyword helper
-            mkr:          0 ether, // Note: ether is only a keyword helper
-            usds:          98_646 ether, // Note: ether is only a keyword helper
-            sky:          618_000 ether  // Note: ether is only a keyword helper
+            dai:   daiBalancePauseProxy,
+            mkr:                0 ether, // Note: ether is only a keyword helper
+            usds:      62_280_041 ether, // Note: ether is only a keyword helper
+            sky: skyTotalTransferAmount
         });
 
         // Fill the total values based on the source for the transfers above
         TreasuryAmounts memory expectedTreasuryBalancesDiff = TreasuryAmounts({
             mkr: 0 ether, // Note: ether is only a keyword helper
-            sky: 0 ether  // Note: ether is only a keyword helper
+            sky: -skyTotalTransferAmount
         });
 
         // Vote, schedule and warp, but not yet cast (to get correct surplus balance)
