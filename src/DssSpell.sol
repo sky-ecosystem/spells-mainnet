@@ -263,7 +263,7 @@ contract DssSpellAction is DssAction {
         // ---------- Execute Grove Proxy Spell ----------
         // Forum: https://forum.sky.money/t/august-21-2025-proposed-changes-to-grove-for-upcoming-spell/26993
 
-        // ---------- Execute Grove proxy spell at 0xFa533FEd0F065dEf8dcFA6699Aa3d73337302BED ----------
+        // Execute Grove proxy spell at 0xFa533FEd0F065dEf8dcFA6699Aa3d73337302BED ----------
         ProxyLike(GROVE_PROXY).exec(GROVE_SPELL, abi.encodeWithSignature("execute()"));
     }
 
