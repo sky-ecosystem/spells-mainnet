@@ -338,18 +338,18 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testIlkClipper() public skipped { // add the `skipped` modifier to skip
+    function testIlkClipper() public { // add the `skipped` modifier to skip
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
        _checkIlkClipper(
-            "RETH-A",
-            GemJoinAbstract(addr.addr("MCD_JOIN_RETH_A")),
-            ClipAbstract(addr.addr("MCD_CLIP_RETH_A")),
-            addr.addr("MCD_CLIP_CALC_RETH_A"),
-            OsmAbstract(addr.addr("PIP_RETH")),
-            1_000 * WAD
+            "UNIV2DAIUSDC-A",
+            GemJoinAbstract(addr.addr("MCD_JOIN_UNIV2DAIUSDC_A")),
+            ClipAbstract(addr.addr("MCD_CLIP_UNIV2DAIUSDC_A")),
+            addr.addr("MCD_CLIP_CALC_UNIV2DAIUSDC_A"),
+            OsmAbstract(addr.addr("PIP_UNIV2DAIUSDC")),
+            1 * WAD
         );
     }
 

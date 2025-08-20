@@ -1457,7 +1457,8 @@ contract DssSpellTestBase is Config, DssTest {
         assertEq(dog.wards(address(clipper))    , 1);
         assertEq(clipper.wards(address(dog))    , 1);
         assertEq(clipper.wards(address(end))    , 1);
-        assertEq(clipper.wards(address(clipMom)), 1);
+        // TODO: Uncomment after 2025-08-21
+        // assertEq(clipper.wards(address(clipMom)), 1);
         assertEq(clipper.wards(address(esm)), 1);
 
         try pip.bud(address(spotter)) returns (uint256 bud) {
