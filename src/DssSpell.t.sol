@@ -931,20 +931,14 @@ contract DssSpellTest is DssSpellTestBase {
     function testPayments() public { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = true;
-        bool ignoreTotalSupplyMkrSky = false;
-
-        // TODO: Remove after 2025-08-21
-        int256 daiBalancePauseProxy = int256(dai.balanceOf(pauseProxy));
-        int256 skyBalancePauseProxy = int256(sky.balanceOf(pauseProxy));
-        int256 skyFrontierFoundationTransferAmount = skyBalancePauseProxy - (16_000_000 + 200_000_000 + 330_000 + 288_000) * 1 ether; // Note: ether is only a keyword helper
-        int256 skyTotalTransferAmount = skyBalancePauseProxy - 16_000_000 ether; // Note: ether is only a keyword helper
+        bool ignoreTotalSupplyMkrSky = true;
 
         // For each payment, create a Payee object with:
         //    the address of the transferred token,
         //    the destination address,
         //    the amount to be paid
         // Initialize the array with the number of payees
-        Payee[17] memory payees = [
+        Payee[15] memory payees = [
             Payee(address(usds), wallets.addr("FORTIFICATION_FOUNDATION"), 10_000_000 ether), // Note: ether is only a keyword helper
             Payee(address(usds), wallets.addr("AAVE_V3_TREASURY"), 177_507 ether), // Note: ether is only a keyword helper
             Payee(address(usds), wallets.addr("LIQUIDITY_BOOTSTRAPPING"), 2_000_000 ether), // Note: ether is only a keyword helper
@@ -959,23 +953,21 @@ contract DssSpellTest is DssSpellTestBase {
             Payee(address(usds), wallets.addr("SKY_FRONTIER_FOUNDATION"), 50_000_000 ether), // Note: ether is only a keyword helper
             Payee(address(sky), wallets.addr("FORTIFICATION_FOUNDATION"), 200_000_000 ether), // Note: ether is only a keyword helper
             Payee(address(sky), wallets.addr("BLUE"), 330_000 ether), // Note: ether is only a keyword helper
-            Payee(address(sky), wallets.addr("CLOAKY_2"), 288_000 ether), // Note: ether is only a keyword helper
-            Payee(address(sky), wallets.addr("SKY_FRONTIER_FOUNDATION"), skyFrontierFoundationTransferAmount),
-            Payee(address(dai), wallets.addr("SKY_FRONTIER_FOUNDATION"), daiBalancePauseProxy)
+            Payee(address(sky), wallets.addr("CLOAKY_2"), 288_000 ether) // Note: ether is only a keyword helper
         ];
 
         // Fill the total values from exec sheet
         PaymentAmounts memory expectedTotalPayments = PaymentAmounts({
-            dai:   daiBalancePauseProxy,
+            dai:                0 ether, // Note: ether is only a keyword helper
             mkr:                0 ether, // Note: ether is only a keyword helper
             usds:      62_280_041 ether, // Note: ether is only a keyword helper
-            sky: skyTotalTransferAmount
+            sky:      200_618_000 ether  // Note: ether is only a keyword helper
         });
 
         // Fill the total values based on the source for the transfers above
         TreasuryAmounts memory expectedTreasuryBalancesDiff = TreasuryAmounts({
-            mkr: 0 ether, // Note: ether is only a keyword helper
-            sky: -skyTotalTransferAmount
+            mkr:           0 ether, // Note: ether is only a keyword helper
+            sky: 200_618_000 ether  // Note: ether is only a keyword helper
         });
 
         // Vote, schedule and warp, but not yet cast (to get correct surplus balance)
@@ -1396,13 +1388,14 @@ contract DssSpellTest is DssSpellTestBase {
         address SKY_FRONTIER_FOUNDATION = wallets.addr('SKY_FRONTIER_FOUNDATION');
 
         // Tokens to check, native ETH and SKY are checked separately
-        TokenTransfer[6] memory tokenTransfers = [
+        TokenTransfer[7] memory tokenTransfers = [
             TokenTransfer('UNIV2USDSSKY', 0, 0),
             TokenTransfer('ENS', 0, 0),
             TokenTransfer('STAAVE', 0, 0),
             TokenTransfer('COMP', 0, 0),
             TokenTransfer('AAVE', 0, 0),
-            TokenTransfer('ETH', 0, 0)
+            TokenTransfer('ETH', 0, 0),
+            TokenTransfer('MCD_DAI', 0, 0)
         ];
 
         // Remember balances
