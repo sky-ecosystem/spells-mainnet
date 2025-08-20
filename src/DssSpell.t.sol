@@ -1466,5 +1466,25 @@ contract DssSpellTest is DssSpellTestBase {
             "TestError/foundation-invalid-balance-after-SKY"
         );
     }
+
+    function testUniV2DaiUsdcOffboarding() public {
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        LPOsmAbstract pip = LPOsmAbstract(chainLog.getAddress("PIP_UNIV2DAIUSDC"));
+
+        _checkUNILPIntegration(
+            "UNIV2DAIUSDC-A",
+            GemJoinAbstract(chainLog.getAddress("MCD_JOIN_UNIV2DAIUSDC_A")),
+            ClipAbstract(chainLog.getAddress("MCD_CLIP_UNIV2DAIUSDC_A")),
+            pip,
+            pip.orb0(),
+            pip.orb1(),
+            false,
+            false,
+            true
+        );
+    }
 }
 

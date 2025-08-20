@@ -1899,7 +1899,7 @@ contract DssSpellTestBase is Config, DssTest {
 
         (,,,, uint256 dust) = vat.ilks(_ilk);
         dust /= RAY;
-        uint256 amount = 2 * dust * WAD / _getUNIV2LPPrice(address(pip));
+        uint256 amount = 100 * dust * WAD / _getUNIV2LPPrice(address(pip));
         _giveTokens(address(token), amount);
 
         assertEq(token.balanceOf(address(this)), amount);
@@ -1912,6 +1912,10 @@ contract DssSpellTestBase is Config, DssTest {
         // Tick the fees forward so that art != dai in wad units
         vm.warp(block.timestamp + 1);
         jug.drip(_ilk);
+
+        // Set max line to be able to create new vaults
+        vm.prank(pauseProxy);
+        vat.file(_ilk, "line", type(uint256).max);
 
         // Deposit collateral, generate DAI
         (,uint256 rate,,,) = vat.ilks(_ilk);
@@ -1946,6 +1950,20 @@ contract DssSpellTestBase is Config, DssTest {
 
         // Dump all dai for next run
         vat.move(address(this), address(0x0), vat.dai(address(this)));
+
+        // Take auction as a user
+        address randomUser = makeAddr("randomUser");
+        (, uint256 tab,,,,) = clip.sales(clip.kicks());
+        vm.store( // Ensure the user has enough DAI
+            address(vat),
+            keccak256(abi.encode(randomUser, uint256(5))),
+            bytes32(tab)
+        );
+        assertEq(vat.dai(randomUser), tab);
+        vm.startPrank(randomUser);
+        vat.hope(address(clip));
+        clip.take(clip.kicks(), type(uint256).max, type(uint256).max, address(this), "");
+        vm.stopPrank();
     }
 
     function _checkPsmIlkIntegration(
