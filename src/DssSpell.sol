@@ -31,8 +31,8 @@ interface ProxyLike {
 contract DssSpellAction is DssAction {
     // Provides a descriptive tag for bot consumption
     // This should be modified weekly to provide a summary of the actions
-    // Hash: cast keccak -- "$(wget 'TODO' -q -O - 2>/dev/null)"
-    string public constant override description = "2025-08-21 MakerDAO Executive Spell | Hash: TODO";
+    // Hash: cast keccak -- "$(wget 'https://raw.githubusercontent.com/sky-ecosystem/executive-votes/51170397cdb879918c477c9f0b27121802b5b963/2025/executive-vote-2025-08-21.md' -q -O - 2>/dev/null)"
+    string public constant override description = "2025-08-21 MakerDAO Executive Spell | Hash: 0xd625577ce9db75bac5c2f7d1e6bda646af402a2b43aee4865ba1f8c7eb641dae";
 
     // Set office hours according to the summary
     function officeHours() public pure override returns (bool) {
@@ -83,7 +83,6 @@ contract DssSpellAction is DssAction {
     address internal constant EXCEL                    = 0x0F04a22B62A26e25A29Cba5a595623038ef7AcE7;
     address internal constant FORTIFICATION_FOUNDATION = 0x483413ccCD796Deddee88E4d3e202425d5E891C6;
     address internal constant SKY_FRONTIER_FOUNDATION  = 0xca5183FB9997046fbd9bA8113139bf5a5Af122A0;
-    address internal constant JULIACHANG               = 0x252abAEe2F4f4b8D39E5F12b163eDFb7fac7AED7;
     address internal constant LIQUIDITY_BOOTSTRAPPING  = 0xD8507ef0A59f37d15B5D7b630FA6EEa40CE4AFdD;
     address internal constant PBG                      = 0x8D4df847dB7FfE0B46AF084fE031F7691C6478c2;
     address internal constant TANGO                    = 0xB2B86A130B1EC101e4Aed9a88502E08995760307;
@@ -263,7 +262,7 @@ contract DssSpellAction is DssAction {
         // ---------- Execute Grove Proxy Spell ----------
         // Forum: https://forum.sky.money/t/august-21-2025-proposed-changes-to-grove-for-upcoming-spell/26993
 
-        // Execute Grove proxy spell at 0xFa533FEd0F065dEf8dcFA6699Aa3d73337302BED ----------
+        // Execute Grove proxy spell at 0xFa533FEd0F065dEf8dcFA6699Aa3d73337302BED
         ProxyLike(GROVE_PROXY).exec(GROVE_SPELL, abi.encodeWithSignature("execute()"));
     }
 
