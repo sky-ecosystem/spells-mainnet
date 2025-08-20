@@ -970,8 +970,8 @@ contract DssSpellTest is DssSpellTestBase {
 
         // Fill the total values based on the source for the transfers above
         TreasuryAmounts memory expectedTreasuryBalancesDiff = TreasuryAmounts({
-            mkr:           0 ether, // Note: ether is only a keyword helper
-            sky: 200_618_000 ether  // Note: ether is only a keyword helper
+            mkr: 0 ether, // Note: ether is only a keyword helper
+            sky: 0 ether  // Note: ether is only a keyword helper
         });
 
         // Vote, schedule and warp, but not yet cast (to get correct surplus balance)
