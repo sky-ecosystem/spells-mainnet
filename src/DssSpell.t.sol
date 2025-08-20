@@ -1386,4 +1386,65 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
+    struct TokenTransfer {
+        bytes32 errorSuffix;
+        GemAbstract gem;
+        uint256 pauseProxyBalance;
+        uint256 foundationBalance;
+    }
+    function testTokenTransfers() public {
+        // Tokens to check, native ETH is checked separately
+        TokenTransfer[6] memory tokenTransfers = [
+            TokenTransfer('UNIV2USDSSKY', GemAbstract(addr.addr('UNIV2USDSSKY')), 0, 0),
+            TokenTransfer('ENS', GemAbstract(addr.addr('ENS')), 0, 0),
+            TokenTransfer('STAAVE', GemAbstract(addr.addr('STAAVE')), 0, 0),
+            TokenTransfer('COMP', GemAbstract(addr.addr('COMP')), 0, 0),
+            TokenTransfer('AAVE', GemAbstract(addr.addr('AAVE')), 0, 0),
+            TokenTransfer('ETH', GemAbstract(addr.addr('ETH')), 0, 0)
+        ];
+
+        // Sky Frontier Foundation wallet
+        address SKY_FRONTIER_FOUNDATION = wallets.addr('SKY_FRONTIER_FOUNDATION');
+
+        // Remember balances
+        for (uint256 i = 0; i < tokenTransfers.length; i++) {
+            tokenTransfers[i].pauseProxyBalance = tokenTransfers[i].gem.balanceOf(pauseProxy);
+            tokenTransfers[i].foundationBalance = tokenTransfers[i].gem.balanceOf(SKY_FRONTIER_FOUNDATION);
+        }
+
+        // Native ETH balances
+        uint256 pauseProxyEthBalanceBefore = pauseProxy.balance;
+        uint256 foundationEthBalanceBefore = SKY_FRONTIER_FOUNDATION.balance;
+
+        // Cast spell
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // Check balances
+        for (uint256 i = 0; i < tokenTransfers.length; i++) {
+            // Token balance of PauseProxy must be 0
+            assertEq(
+                tokenTransfers[i].gem.balanceOf(pauseProxy),
+                0,
+                _concat("TestError/pause-proxy-invalid-balance-after-", tokenTransfers[i].errorSuffix)
+            );
+
+            // Token balance of Foundation must increase by Pause Proxy balance
+            uint256 expectedBalance = tokenTransfers[i].foundationBalance + tokenTransfers[i].pauseProxyBalance;
+            assertEq(
+                tokenTransfers[i].gem.balanceOf(SKY_FRONTIER_FOUNDATION),
+                expectedBalance,
+                _concat("TestError/foundation-invalid-balance-after-", tokenTransfers[i].errorSuffix)
+            );
+        }
+
+        assertEq(pauseProxy.balance, 0, "TestError/pause-proxy-invalid-balance-after-native-eth");
+        assertEq(
+            SKY_FRONTIER_FOUNDATION.balance,
+            foundationEthBalanceBefore + pauseProxyEthBalanceBefore,
+            "TestError/foundation-invalid-balance-after-native-eth"
+        );
+    }
 }
+
