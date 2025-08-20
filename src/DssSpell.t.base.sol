@@ -833,7 +833,7 @@ contract DssSpellTestBase is Config, DssTest {
         DssSpell(spell_).cast();
     }
 
-    function _checkSystemValues(SystemValues storage values) internal view {
+    function _checkSystemValues(SystemValues storage values) internal {
         // dsr
         // make sure dsr is less than 100% APR
         // bc -l <<< 'scale=27; e( l(2.00)/(60 * 60 * 24 * 365) )'
@@ -2730,10 +2730,10 @@ contract DssSpellTestBase is Config, DssTest {
         string memory _errSuffix,
         GemAbstract _gem,
         VestAbstract vest
-    ) internal view {
+    ) internal {
         uint256 vestableAmt;
 
-        for(uint256 i = 1; i <= vest.ids(); i++) {
+        for (uint256 i = 1; i <= vest.ids(); i++) {
             if (vest.valid(i)) {
                 (,,,,,,uint128 tot, uint128 rxd) = vest.awards(i);
                 vestableAmt = vestableAmt + (tot - rxd);
@@ -2743,11 +2743,23 @@ contract DssSpellTestBase is Config, DssTest {
         uint256 allowance = _gem.allowance(pauseProxy, address(vest));
         assertGe(allowance, vestableAmt, _concat(string("TestError/insufficient-transferrable-vest-allowance-"), _errSuffix));
 
-        // TODO: Remove after 2025-08-21
-        // Note: SKY streams will operate out of buybacks, the check is disabled
+        uint256 balance = _gem.balanceOf(pauseProxy);
+
+        // TODO: Change after 2025-08-21
         if (address(_gem) != address(sky)) {
-            uint256 balance = _gem.balanceOf(pauseProxy);
             assertGe(balance, vestableAmt, _concat(string("TestError/insufficient-transferrable-vest-balance-"), _errSuffix));
+        } else {
+            // Note: SKY streams will operate out of buybacks, check that balance is sufficient for short term (22 days)
+            vm.warp(block.timestamp + 22 days);
+
+            uint256 requiredBalance;
+            for (uint256 i = 1; i <= vest.ids(); i++) {
+                if (vest.valid(i)) {
+                    requiredBalance = requiredBalance + vest.unpaid(i);
+                }
+            }
+
+            assertGe(balance, requiredBalance, _concat(string("TestError/insufficient-transferrable-vest-balance-for-30-days-"), _errSuffix));
         }
     }
 
