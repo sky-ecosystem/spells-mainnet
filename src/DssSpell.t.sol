@@ -940,7 +940,7 @@ contract DssSpellTest is DssSpellTestBase {
         // Initialize the array with the number of payees
         Payee[15] memory payees = [
             Payee(address(usds), wallets.addr("FORTIFICATION_FOUNDATION"), 10_000_000 ether), // Note: ether is only a keyword helper
-            // Note: Both core spell and Spark spell transfer to this address
+            // Note: Both core spell and Spark spell transfer to the same AAVE address
             // See forum post: https://forum.sky.money/t/august-21-2025-proposed-changes-to-spark-for-upcoming-spell/26997
             Payee(address(usds), wallets.addr("AAVE_V3_TREASURY"), 177_507 ether + 19_411.17 ether), // Note: ether is only a keyword helper
             Payee(address(usds), wallets.addr("LIQUIDITY_BOOTSTRAPPING"), 2_000_000 ether), // Note: ether is only a keyword helper
@@ -960,10 +960,12 @@ contract DssSpellTest is DssSpellTestBase {
 
         // Fill the total values from exec sheet
         PaymentAmounts memory expectedTotalPayments = PaymentAmounts({
-            dai:                0 ether, // Note: ether is only a keyword helper
-            mkr:                0 ether, // Note: ether is only a keyword helper
-            usds:   62_299_452.17 ether, // Note: ether is only a keyword helper
-            sky:      200_618_000 ether  // Note: ether is only a keyword helper
+            dai:                               0 ether, // Note: ether is only a keyword helper
+            mkr:                               0 ether, // Note: ether is only a keyword helper
+            // Note: Both core spell and Spark spell transfer to the same AAVE address
+            // See forum post: https://forum.sky.money/t/august-21-2025-proposed-changes-to-spark-for-upcoming-spell/26997
+            usds:   62_280_041 ether + 19_411.17 ether, // Note: ether is only a keyword helper
+            sky:                     200_618_000 ether  // Note: ether is only a keyword helper
         });
 
         // Fill the total values based on the source for the transfers above
