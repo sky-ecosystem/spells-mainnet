@@ -252,6 +252,7 @@ contract DssSpellAction is DssAction {
         // Poll: https://vote.sky.money/polling/QmefEkAi
         // Poll: https://vote.sky.money/polling/QmP8NVR5
         // Forum: https://forum.sky.money/t/spark-aave-revenue-share-calculations-payments-8-q2-2025/27005/2
+        // Forum: https://forum.sky.money/t/august-21-2025-proposed-changes-to-spark-for-upcoming-spell-2/27059
         // Atlas: https://sky-atlas.powerhouse.io/A.2.9.1.2.2.5.4.1_Initial_Cash_Grant_To_Spark_Foundation/21ff2ff0-8d73-8018-be75-c28cee3dddb7%7C9e1f80092582d59891b0d93ee881
         // Poll: https://vote.sky.money/polling/QmenCpHX
         // Poll: https://vote.sky.money/polling/Qme2x6AU
