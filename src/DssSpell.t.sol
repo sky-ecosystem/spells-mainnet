@@ -1393,7 +1393,7 @@ contract DssSpellTest is DssSpellTestBase {
         uint256 foundationBalance;
     }
     function testTokenTransfers() public {
-        // Tokens to check, native ETH is checked separately
+        // Tokens to check, native ETH and SKY are checked separately
         TokenTransfer[6] memory tokenTransfers = [
             TokenTransfer('UNIV2USDSSKY', GemAbstract(addr.addr('UNIV2USDSSKY')), 0, 0),
             TokenTransfer('ENS', GemAbstract(addr.addr('ENS')), 0, 0),
@@ -1415,6 +1415,10 @@ contract DssSpellTest is DssSpellTestBase {
         // Native ETH balances
         uint256 pauseProxyEthBalanceBefore = pauseProxy.balance;
         uint256 foundationEthBalanceBefore = SKY_FRONTIER_FOUNDATION.balance;
+
+        // SKY balances
+        uint256 pauseProxySkyBalanceBefore = sky.balanceOf(pauseProxy);
+        uint256 foundationSkyBalanceBefore = sky.balanceOf(SKY_FRONTIER_FOUNDATION);
 
         // Cast spell
         _vote(address(spell));
@@ -1439,11 +1443,28 @@ contract DssSpellTest is DssSpellTestBase {
             );
         }
 
+        // All native ETH should be transferred
         assertEq(pauseProxy.balance, 0, "TestError/pause-proxy-invalid-balance-after-native-eth");
         assertEq(
             SKY_FRONTIER_FOUNDATION.balance,
             foundationEthBalanceBefore + pauseProxyEthBalanceBefore,
             "TestError/foundation-invalid-balance-after-native-eth"
+        );
+
+        // Consider other SKY transfers in the spell
+        uint256 otherSkyTransfers = (200_000_000 + 330_000 + 288_000) * WAD;
+
+        // Pause proxy must have 16_000_000 SKY left
+        assertEq(
+            sky.balanceOf(pauseProxy),
+            16_000_000 * WAD,
+            "TestError/pause-proxy-invalid-balance-after-SKY"
+        );
+        // Foundation must receive all remaining balance of Pause Proxy, considering other transfers
+        assertEq(
+            sky.balanceOf(SKY_FRONTIER_FOUNDATION),
+            foundationSkyBalanceBefore + pauseProxySkyBalanceBefore - 16_000_000 * WAD - otherSkyTransfers,
+            "TestError/foundation-invalid-balance-after-SKY"
         );
     }
 }
