@@ -2,3 +2,5 @@
 /cache
 *.log
 .DS_Store
+/broadcast
+scripts/safeharbor/updates.json
