@@ -68,7 +68,20 @@ required env variables:
 npm run generate
 ```
 
-This will create a `updates.json` file in the `scripts/safeharbor` directory.
+This will output the calldata for the update call to the agreement.
+
+```bash
+npm run verify 0x...
+```
+This will take a given calldata and validate that if it matched the expected generated payload.
+
+```bash
+npm run inspect
+```
+
+Same as `generate` but it will output the full payload with all the updates.
+
+
 
 # Testing
 

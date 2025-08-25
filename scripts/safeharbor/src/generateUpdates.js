@@ -1,13 +1,11 @@
 import { Interface } from "ethers";
-import { AGREEMENTV2_ABI, MULTICALL_ABI } from "./abis.js";
+import { AGREEMENTV2_ABI } from "./abis.js";
 import { getChainId, getAssetRecoveryAddress } from "./utils/chainUtils.js";
-import { AGREEMENT_ADDRESS, MULTICALL_ADDRESS } from "./constants.js";
 
 const agreementInterface = new Interface(AGREEMENTV2_ABI);
-const multicallInterface = new Interface(MULTICALL_ABI);
 
 // Account difference calculation
-export function calculateAccountDifferences(currentAccounts, desiredAccounts) {
+function calculateAccountDifferences(currentAccounts, desiredAccounts) {
     // Create maps for easier lookup with composite keys
     const currentMap = new Map(
         currentAccounts.map((acc) => [
@@ -170,40 +168,6 @@ function generateChainUpdates(onChainState, csvState) {
     return { updates, chainsToRemove };
 }
 
-function wrapWithMulticall(
-    updates,
-    agreementContractAddress,
-    multicallContractAddress,
-) {
-    // If no updates, return the original array
-    if (updates.length === 0) {
-        return updates;
-    }
-
-    // Convert individual updates to multicall format
-    const calls = updates.map((update) => ({
-        target: agreementContractAddress,
-        callData: update.calldata,
-    }));
-
-    // Generate multicall calldata
-    const multicallCalldata = multicallInterface.encodeFunctionData(
-        "aggregate",
-        [calls],
-    );
-
-    // Add the multicall update to the array
-    const multicallUpdate = {
-        function: "multicall",
-        args: [calls],
-        calldata: multicallCalldata,
-        target: multicallContractAddress,
-    };
-
-    // Return original updates plus the multicall wrapper
-    return [...updates, multicallUpdate];
-}
-
 export function generateUpdates(onChainState, csvState) {
     const { updates: chainUpdates, chainsToRemove } = generateChainUpdates(
         onChainState,
@@ -214,9 +178,6 @@ export function generateUpdates(onChainState, csvState) {
         csvState,
         chainsToRemove,
     );
-    return wrapWithMulticall(
-        [...chainUpdates, ...accountUpdates],
-        AGREEMENT_ADDRESS,
-        MULTICALL_ADDRESS,
-    );
+
+    return [...chainUpdates, ...accountUpdates];
 }

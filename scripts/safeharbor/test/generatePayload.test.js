@@ -1,7 +1,7 @@
 import { test, describe, vi, beforeEach } from "vitest";
 import assert from "node:assert";
 import { generatePayload } from "../src/generatePayload.js";
-import { AGREEMENT_ADDRESS } from "../src/constants.js";
+import { AGREEMENT_ADDRESS, MULTICALL_ADDRESS } from "../src/constants.js";
 
 // Mock the dependencies
 vi.mock("../src/fetchCSV.js");
@@ -42,6 +42,7 @@ vi.mock("../src/utils/chainUtils.js", () => ({
 }));
 
 describe("generatePayload E2E Tests", () => {
+
     beforeEach(() => {
         vi.clearAllMocks();
     });
@@ -80,7 +81,7 @@ describe("generatePayload E2E Tests", () => {
             getNormalizedDataFromCSV.mockResolvedValue(csvData);
 
             // Act
-            const result = await generatePayload();
+            const result = await generatePayload({ csvUrl: "", agreementContract: "", inspect: true });
 
             // Assert - should have empty multicall since no changes needed
             assert.strictEqual(result.length, 0);
@@ -112,12 +113,19 @@ describe("generatePayload E2E Tests", () => {
             getNormalizedDataFromCSV.mockResolvedValue(csvData);
 
             // Act
-            const result = await generatePayload();
+            const result = await generatePayload({ csvUrl: "", agreementContract: "", inspect: true });
+
+            // Check multicall
+            assert.ok(result.calldata);
+            assert.strictEqual(result.target, MULTICALL_ADDRESS);
+            assert.strictEqual(result.args.length, 2);
+
+            const innerCalls = result.args;
 
             // Assert
-            assert.strictEqual(result.length, 3); // 2 additions and 1 multicall
+            assert.strictEqual(innerCalls.length, 2); // 2 additions and 1 multicall
 
-            const addAccountsUpdates = result.filter(
+            const addAccountsUpdates = innerCalls.filter(
                 (u) => u.function === "addAccounts",
             );
             assert.strictEqual(addAccountsUpdates.length, 2); // ethereum and gnosis
@@ -139,29 +147,6 @@ describe("generatePayload E2E Tests", () => {
             assert.deepStrictEqual(gnosisUpdate.args[1], [
                 { accountAddress: "0xB2", childContractScope: 2 },
             ]);
-
-            // Check multicall
-            const multicallUpdate = result.find(
-                (u) => u.function === "multicall",
-            );
-            assert.ok(multicallUpdate);
-            assert.strictEqual(multicallUpdate.args[0].length, 2);
-            assert.strictEqual(
-                multicallUpdate.args[0][0].target,
-                AGREEMENT_ADDRESS,
-            );
-            assert.strictEqual(
-                multicallUpdate.args[0][0].callData,
-                ethereumUpdate.calldata,
-            );
-            assert.strictEqual(
-                multicallUpdate.args[0][1].target,
-                AGREEMENT_ADDRESS,
-            );
-            assert.strictEqual(
-                multicallUpdate.args[0][1].callData,
-                gnosisUpdate.calldata,
-            );
         });
     });
 
@@ -188,12 +173,14 @@ describe("generatePayload E2E Tests", () => {
             getNormalizedDataFromCSV.mockResolvedValue(csvData);
 
             // Act
-            const result = await generatePayload();
+            const result = await generatePayload({ csvUrl: "", agreementContract: "", inspect: true });
 
-            // Assert
-            assert.strictEqual(result.length, 4);
+            // Check multicall
+            assert.ok(result.calldata);
+            assert.strictEqual(result.target, MULTICALL_ADDRESS);
+            assert.strictEqual(result.args.length, 3);
 
-            const removeAccountsUpdates = result.filter(
+            const removeAccountsUpdates = result.args.filter(
                 (u) => u.function === "removeAccounts",
             );
             assert.strictEqual(removeAccountsUpdates.length, 3); // all three chains have removals
@@ -218,37 +205,6 @@ describe("generatePayload E2E Tests", () => {
             );
             assert.ok(arbitrumUpdate);
             assert.deepStrictEqual(arbitrumUpdate.args[1], ["0xC2"]);
-
-            // Check multicall
-            const multicallUpdate = result.find(
-                (u) => u.function === "multicall",
-            );
-            assert.ok(multicallUpdate);
-            assert.strictEqual(multicallUpdate.args[0].length, 3);
-            assert.strictEqual(
-                multicallUpdate.args[0][0].target,
-                AGREEMENT_ADDRESS,
-            );
-            assert.strictEqual(
-                multicallUpdate.args[0][0].callData,
-                ethereumUpdate.calldata,
-            );
-            assert.strictEqual(
-                multicallUpdate.args[0][1].target,
-                AGREEMENT_ADDRESS,
-            );
-            assert.strictEqual(
-                multicallUpdate.args[0][1].callData,
-                gnosisUpdate.calldata,
-            );
-            assert.strictEqual(
-                multicallUpdate.args[0][2].target,
-                AGREEMENT_ADDRESS,
-            );
-            assert.strictEqual(
-                multicallUpdate.args[0][2].callData,
-                arbitrumUpdate.calldata,
-            );
         });
     });
 
@@ -282,12 +238,14 @@ describe("generatePayload E2E Tests", () => {
             getNormalizedDataFromCSV.mockResolvedValue(csvData);
 
             // Act
-            const result = await generatePayload();
+            const result = await generatePayload({ csvUrl: "", agreementContract: "", inspect: true });
 
-            // Assert
-            assert.strictEqual(result.length, 2);
+            // Assert Multicall
+            assert.ok(result.calldata);
+            assert.strictEqual(result.target, MULTICALL_ADDRESS);
+            assert.strictEqual(result.args.length, 1);
 
-            const addChainsUpdates = result.filter(
+            const addChainsUpdates = result.args.filter(
                 (u) => u.function === "addChains",
             );
             assert.strictEqual(addChainsUpdates.length, 1); // Should batch new chains together
@@ -324,21 +282,6 @@ describe("generatePayload E2E Tests", () => {
                 { accountAddress: "0xE1", childContractScope: 0 },
             ]);
 
-            // Check multicall
-            const multicallUpdate = result.find(
-                (u) => u.function === "multicall",
-            );
-
-            assert.ok(multicallUpdate);
-            assert.strictEqual(multicallUpdate.args[0].length, 1);
-            assert.strictEqual(
-                multicallUpdate.args[0][0].target,
-                AGREEMENT_ADDRESS,
-            );
-            assert.strictEqual(
-                multicallUpdate.args[0][0].callData,
-                addChainsUpdates[0].calldata,
-            );
         });
 
         test("should generate addChains with empty accounts for new empty chains", async () => {
@@ -354,12 +297,14 @@ describe("generatePayload E2E Tests", () => {
             getNormalizedDataFromCSV.mockResolvedValue(csvData);
 
             // Act
-            const result = await generatePayload();
+            const result = await generatePayload({ csvUrl: "", agreementContract: "", inspect: true });
+            
+            // Assert Multicall
+            assert.ok(result.calldata);
+            assert.strictEqual(result.target, MULTICALL_ADDRESS);
+            assert.strictEqual(result.args.length, 1);
 
-            // Assert
-            assert.strictEqual(result.length, 2);
-
-            const addChainsUpdates = result.filter(
+            const addChainsUpdates = result.args.filter(
                 (u) => u.function === "addChains",
             );
             assert.strictEqual(addChainsUpdates.length, 1);
@@ -368,21 +313,6 @@ describe("generatePayload E2E Tests", () => {
             assert.strictEqual(newChains.length, 1);
             assert.strictEqual(newChains[0].caip2ChainId, "eip155:10");
             assert.strictEqual(newChains[0].accounts.length, 0);
-
-            // Check multicall
-            const multicallUpdate = result.find(
-                (u) => u.function === "multicall",
-            );
-            assert.ok(multicallUpdate);
-            assert.strictEqual(multicallUpdate.args[0].length, 1);
-            assert.strictEqual(
-                multicallUpdate.args[0][0].target,
-                AGREEMENT_ADDRESS,
-            );
-            assert.strictEqual(
-                multicallUpdate.args[0][0].callData,
-                addChainsUpdates[0].calldata,
-            );
         });
     });
 
@@ -403,12 +333,14 @@ describe("generatePayload E2E Tests", () => {
             getNormalizedDataFromCSV.mockResolvedValue(csvData);
 
             // Act
-            const result = await generatePayload();
+            const result = await generatePayload({ csvUrl: "", agreementContract: "", inspect: true });
 
-            // Assert
-            assert.strictEqual(result.length, 2);
+            // Assert Multicall
+            assert.ok(result.calldata);
+            assert.strictEqual(result.target, MULTICALL_ADDRESS);
+            assert.strictEqual(result.args.length, 1);
 
-            const removeChainsUpdates = result.filter(
+            const removeChainsUpdates = result.args.filter(
                 (u) => u.function === "removeChains",
             );
             assert.strictEqual(removeChainsUpdates.length, 1); // Should batch removals
@@ -446,48 +378,35 @@ describe("generatePayload E2E Tests", () => {
             getNormalizedDataFromCSV.mockResolvedValue(csvData);
 
             // Act
-            const result = await generatePayload();
+            const result = await generatePayload({ csvUrl: "", agreementContract: "", inspect: true });
 
-            // Assert - check that we have all expected update types
-            // Included updates:
-            // 1. RemoveChains: Gnosis
-            // 2. AddChains: Optimism, Polygon
-            // 3. RemoveAccounts: Ethereum 0xA2
-            // 4. AddAccounts: Ethereum 0xA3
-            // 5. AddAccounts: Arbitrum 0xC3
-            // 6. Multicall
-            assert.strictEqual(result.length, 6);
+            // Assert Multicall
+            assert.ok(result.calldata);
+            assert.strictEqual(result.target, MULTICALL_ADDRESS);
+            assert.strictEqual(result.args.length, 5);
 
-            const chainUpdates = result.filter(
+            const chainUpdates = result.args.filter(
                 (u) =>
                     u.function === "removeChains" || u.function === "addChains",
             );
-            const accountUpdates = result.filter(
+            const accountUpdates = result.args.filter(
                 (u) =>
                     u.function === "removeAccounts" ||
                     u.function === "addAccounts",
             );
-            const multicallUpdate = result.filter(
-                (u) => u.function === "multicall",
-            );
 
             assert.ok(chainUpdates.length > 0, "Should have chain updates");
             assert.ok(accountUpdates.length > 0, "Should have account updates");
-            assert.strictEqual(
-                multicallUpdate.length,
-                1,
-                "Should have exactly one multicall wrapper",
-            );
 
             // Verify chain removal
-            const removeChainUpdate = result.find(
+            const removeChainUpdate = result.args.find(
                 (u) => u.function === "removeChains",
             );
             assert.ok(removeChainUpdate);
             assert.ok(removeChainUpdate.args[0].includes("eip155:100")); // gnosis removed
 
             // Verify chain addition
-            const addChainUpdate = result.find(
+            const addChainUpdate = result.args.find(
                 (u) => u.function === "addChains",
             );
             assert.ok(addChainUpdate);
@@ -497,14 +416,14 @@ describe("generatePayload E2E Tests", () => {
             assert.ok(newChain); // optimism added
 
             // Verify account changes
-            const removeAccountUpdate = result.find(
+            const removeAccountUpdate = result.args.find(
                 (u) =>
                     u.function === "removeAccounts" && u.args[0] === "eip155:1",
             );
             assert.ok(removeAccountUpdate);
             assert.ok(removeAccountUpdate.args[1].includes("0xA2")); // ethereum account removed
 
-            const addAccountUpdate = result.find(
+            const addAccountUpdate = result.args.find(
                 (u) => u.function === "addAccounts" && u.args[0] === "eip155:1",
             );
             assert.ok(addAccountUpdate);
@@ -512,7 +431,7 @@ describe("generatePayload E2E Tests", () => {
                 { accountAddress: "0xA3", childContractScope: 0 },
             ]);
 
-            const addAccountUpdate2 = result.find(
+            const addAccountUpdate2 = result.args.find(
                 (u) =>
                     u.function === "addAccounts" &&
                     u.args[0] === "eip155:42161",
@@ -521,49 +440,6 @@ describe("generatePayload E2E Tests", () => {
             assert.deepStrictEqual(addAccountUpdate2.args[1], [
                 { accountAddress: "0xC3", childContractScope: 2 },
             ]);
-
-            // Verify multicall
-            assert.strictEqual(multicallUpdate[0].args[0].length, 5);
-            assert.strictEqual(
-                multicallUpdate[0].args[0][0].target,
-                AGREEMENT_ADDRESS,
-            );
-            assert.strictEqual(
-                multicallUpdate[0].args[0][0].callData,
-                removeChainUpdate.calldata,
-            );
-            assert.strictEqual(
-                multicallUpdate[0].args[0][1].target,
-                AGREEMENT_ADDRESS,
-            );
-            assert.strictEqual(
-                multicallUpdate[0].args[0][1].callData,
-                addChainUpdate.calldata,
-            );
-            assert.strictEqual(
-                multicallUpdate[0].args[0][2].target,
-                AGREEMENT_ADDRESS,
-            );
-            assert.strictEqual(
-                multicallUpdate[0].args[0][2].callData,
-                removeAccountUpdate.calldata,
-            );
-            assert.strictEqual(
-                multicallUpdate[0].args[0][3].target,
-                AGREEMENT_ADDRESS,
-            );
-            assert.strictEqual(
-                multicallUpdate[0].args[0][3].callData,
-                addAccountUpdate.calldata,
-            );
-            assert.strictEqual(
-                multicallUpdate[0].args[0][4].target,
-                AGREEMENT_ADDRESS,
-            );
-            assert.strictEqual(
-                multicallUpdate[0].args[0][4].callData,
-                addAccountUpdate2.calldata,
-            );
         });
 
         test("should preserve childContractScope values correctly in complex scenarios", async () => {
@@ -587,10 +463,15 @@ describe("generatePayload E2E Tests", () => {
             getNormalizedDataFromCSV.mockResolvedValue(csvData);
 
             // Act
-            const result = await generatePayload();
+            const result = await generatePayload({ csvUrl: "", agreementContract: "", inspect: true });
+
+            // Assert Multicall
+            assert.ok(result.calldata);
+            assert.strictEqual(result.target, MULTICALL_ADDRESS);
+            assert.strictEqual(result.args.length, 4);
 
             // Assert - verify childContractScope preservation in all operations
-            const addChainUpdate = result.find(
+            const addChainUpdate = result.args.find(
                 (u) => u.function === "addChains",
             );
             assert.ok(addChainUpdate);
@@ -623,15 +504,20 @@ describe("generatePayload E2E Tests", () => {
             getNormalizedDataFromCSV.mockResolvedValue(csvData);
 
             // Act
-            const result = await generatePayload();
+            const result = await generatePayload({ csvUrl: "", agreementContract: "", inspect: true });
+
+            // Assert Multicall
+            assert.ok(result.calldata);
+            assert.strictEqual(result.target, MULTICALL_ADDRESS);
+            assert.strictEqual(result.args.length, 1);
 
             // Assert - should only have addChains
-            const addChainsUpdates = result.filter(
+            const addChainsUpdates = result.args.filter(
                 (u) => u.function === "addChains",
             );
             assert.strictEqual(addChainsUpdates.length, 1);
 
-            const removeUpdates = result.filter((u) =>
+            const removeUpdates = result.args.filter((u) =>
                 u.function.includes("remove"),
             );
             assert.strictEqual(removeUpdates.length, 0);
@@ -645,10 +531,15 @@ describe("generatePayload E2E Tests", () => {
             getNormalizedDataFromCSV.mockResolvedValue({});
 
             // Act
-            const result = await generatePayload();
+            const result = await generatePayload({ csvUrl: "", agreementContract: "", inspect: true });
+
+            // Assert Multicall
+            assert.ok(result.calldata);
+            assert.strictEqual(result.target, MULTICALL_ADDRESS);
+            assert.strictEqual(result.args.length, 1);
 
             // Assert - should only have removeChains (batched)
-            const removeChainsUpdates = result.filter(
+            const removeChainsUpdates = result.args.filter(
                 (u) => u.function === "removeChains",
             );
             assert.strictEqual(removeChainsUpdates.length, 1);
