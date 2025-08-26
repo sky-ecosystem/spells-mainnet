@@ -13,6 +13,6 @@ function normalize(details) {
 }
 
 export async function getNormalizedDataFromOnchainState(agreementContract) {
-    const details = await agreementContract.getDetails()
+    const details = await agreementContract.getDetails();
     return normalize(details);
 }

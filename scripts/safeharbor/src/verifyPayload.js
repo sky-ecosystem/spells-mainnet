@@ -15,7 +15,10 @@ export async function verifyPayload(calldata, csvUrl, agreementContract) {
 
         // 1. Generate expected updates (same as generate script)
         console.warn("Generating expected updates...");
-        const expectedUpdates = await generatePayload({ csvUrl, agreementContract });
+        const expectedUpdates = await generatePayload({
+            csvUrl,
+            agreementContract,
+        });
 
         // 2. Compare the calldata with expected updates
         console.warn("\nComparing calldata with expected updates...");

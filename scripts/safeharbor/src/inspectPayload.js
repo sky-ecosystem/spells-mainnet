@@ -5,7 +5,11 @@ import { wrapWithMulticall } from "./utils/multicallWrapper.js";
 import { AGREEMENT_ADDRESS, MULTICALL_ADDRESS } from "./constants.js";
 
 // Main function
-export async function generatePayload({ csvUrl, agreementContract }) {
+export async function inspectPayload({
+    csvUrl,
+    agreementContract,
+    inspect = false,
+}) {
     try {
         // 1. Download and parse CSV
         console.warn("Downloading Google Sheet CSV...");
@@ -20,6 +24,7 @@ export async function generatePayload({ csvUrl, agreementContract }) {
         console.warn("Generating updates...");
         const updates = generateUpdates(onChainState, csvState);
 
+        // Check if object is empty
         if (updates.length === 0) {
             return;
         }
@@ -30,9 +35,16 @@ export async function generatePayload({ csvUrl, agreementContract }) {
             updates,
             AGREEMENT_ADDRESS,
             MULTICALL_ADDRESS,
+            inspect,
         );
 
-        return wrappedUpdates;
+        // Remove the inner calldata from the updates to avoid confusion
+        const slimUpdates = updates.map((update) => {
+            delete update.calldata;
+            return update;
+        });
+
+        return { updates: slimUpdates, multicall: wrappedUpdates };
     } catch (error) {
         console.error("Error generating update payload:", error);
         throw error;

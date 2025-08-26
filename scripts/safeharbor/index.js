@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { generatePayload } from "./src/generatePayload.js";
+import { inspectPayload } from "./src/inspectPayload.js";
 import { verifyPayload } from "./src/verifyPayload.js";
 
 import { CSV_URL_SHEET1 } from "./src/constants.js";
@@ -28,13 +29,18 @@ const calldata = process.argv[3];
 try {
     if (command === "verify") {
         if (!calldata) {
-            console.error("Error: Calldata argument is required for verify command.");
+            console.error(
+                "Error: Calldata argument is required for verify command.",
+            );
             console.error("Usage: npm run verify <calldata>");
             console.error("Example: npm run verify 0x252dba42000000000...");
             process.exit(1);
         }
-        
-        const result = await verifyPayload(calldata, CSV_URL_SHEET1, agreementContract);
+        const result = await verifyPayload(
+            calldata,
+            CSV_URL_SHEET1,
+            agreementContract,
+        );
 
         if (result) {
             console.log("✅ VERIFICATION PASSED");
@@ -43,7 +49,7 @@ try {
 
             // Show the calldatas for comparison
             console.log("\nExpected calldata:");
-            console.log(expectedUpdates.calldata);
+            console.log(result.calldata);
             console.log("\nProvided calldata:");
             console.log(calldata);
         }
@@ -51,19 +57,33 @@ try {
         process.exit(result ? 0 : 1);
     } else if (command === "generate" || !command) {
         // Default to generate if no command or explicit generate command
-        const multicallUpdates = await generatePayload({ csvUrl: CSV_URL_SHEET1 , agreementContract: agreementContract});
+        const multicallUpdates = await generatePayload({
+            csvUrl: CSV_URL_SHEET1,
+            agreementContract: agreementContract,
+        });
 
-        console.log(JSON.stringify(multicallUpdates, null, 2));
-
-        console.warn("Payload generation completed successfully.");
-        process.exit(0);
+        if (multicallUpdates) {
+            console.log(JSON.stringify(multicallUpdates, null, 2));
+            console.warn("Payload generation completed successfully.");
+            process.exit(0);
+        } else {
+            console.error("No updates to generate");
+            process.exit(1);
+        }
     } else if (command === "inspect") {
-        const multicallUpdates = await generatePayload({ csvUrl: CSV_URL_SHEET1 , agreementContract: agreementContract, inspect: true });
+        const multicallUpdates = await inspectPayload({
+            csvUrl: CSV_URL_SHEET1,
+            agreementContract: agreementContract,
+        });
 
-        console.log(JSON.stringify(multicallUpdates, null, 2));
-
-        console.warn("Payload generation completed successfully.");
-        process.exit(0);
+        if (multicallUpdates) {
+            console.log(JSON.stringify(multicallUpdates, null, 2));
+            console.warn("Payload generation completed successfully.");
+            process.exit(0);
+        } else {
+            console.error("No updates to generate");
+            process.exit(1);
+        }
     } else {
         console.error(`Error: Unknown command '${command}'`);
         console.error("Available commands: generate, verify");
@@ -75,4 +95,3 @@ try {
     console.error("Failed to execute command:", error);
     process.exit(1);
 }
-

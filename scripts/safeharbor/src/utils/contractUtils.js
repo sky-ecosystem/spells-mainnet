@@ -5,10 +5,6 @@ import { AGREEMENTV2_ABI as AGREEMENT_ABI } from "../abis.js";
 export function createAgreementInstance(rpcUrl) {
     const provider = new JsonRpcProvider(rpcUrl);
 
-    const agreement = new Contract(
-        AGREEMENT_ADDRESS,
-        AGREEMENT_ABI,
-        provider,
-    );
+    const agreement = new Contract(AGREEMENT_ADDRESS, AGREEMENT_ABI, provider);
     return agreement;
 }
