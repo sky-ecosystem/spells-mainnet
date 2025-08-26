@@ -1,6 +1,18 @@
 import { generatePayload } from "./generatePayload.js";
 
-// Main verification function
+/**
+ * Verify that a provided calldata string matches the expected calldata generated from CSV and contract inputs.
+ *
+ * Validates that `calldata` starts with "0x" (exits the process with code 1 if not), generates the expected payload
+ * by calling `generatePayload({ csvUrl, agreementContract })`, and returns true if the generated `expectedUpdates.calldata`
+ * strictly equals the provided `calldata`.
+ *
+ * @param {string} calldata - Hex-encoded calldata to verify; must start with "0x".
+ * @param {string} csvUrl - URL or path to the CSV used to build the expected payload.
+ * @param {string} agreementContract - Identifier (e.g., address) of the agreement contract used when generating the payload.
+ * @returns {Promise<boolean>} Resolves to true if the provided calldata matches the generated calldata, otherwise false.
+ * @throws {*} Rethrows any error raised while generating the expected payload.
+ */
 export async function verifyPayload(calldata, csvUrl, agreementContract) {
     // Validate calldata format
     if (!calldata.startsWith("0x")) {

@@ -1,5 +1,14 @@
 import { parse } from "csv-parse/sync";
 
+/**
+ * Fetches CSV data from the provided URL, validates that the response is CSV, parses it, and returns records.
+ *
+ * @param {string} url - URL pointing to a CSV resource (e.g. a direct CSV file or a Google Sheets export URL).
+ * @return {Array<Object>} Parsed records (each row as an object with column names as keys).
+ * @throws {Error} If the HTTP response is not OK (non-2xx status).
+ * @throws {Error} If the response content-type does not include "text/csv".
+ * @throws {Error} If fetching or parsing fails; the original error is rethrown.
+ */
 async function downloadAndParse(url) {
     try {
         const response = await fetch(url);
@@ -34,6 +43,21 @@ async function downloadAndParse(url) {
     }
 }
 
+/**
+ * Group active CSV records by chain and map them to account entries.
+ *
+ * Filters input records to those with Status === "ACTIVE", groups them by the `Chain` field,
+ * and maps each record to an entry with `accountAddress` taken from `Address` and
+ * `childContractScope` set to 2 when the record indicates a factory, otherwise 0.
+ *
+ * @param {Array<Object>} records - Parsed CSV rows. Each record is expected to include:
+ *   - `Status` (string): record status, e.g., "ACTIVE".
+ *   - `Chain` (string): chain identifier used as the grouping key.
+ *   - `Address` (string): account address to emit as `accountAddress`.
+ *   - `isFactory` or `IsFactory` (string, optional): may be "TRUE" to mark factory records.
+ * @returns {Object<string, Array<{accountAddress: string, childContractScope: number}>>}
+ *   An object keyed by chain, each value is an array of mapped account entries.
+ */
 function normalize(records) {
     return records
         .filter((record) => record.Status === "ACTIVE")
@@ -55,6 +79,18 @@ function normalize(records) {
         }, {});
 }
 
+/**
+ * Fetches a CSV from the given URL, parses it, and returns normalized records grouped by chain.
+ *
+ * The CSV is parsed with header columns; only rows with `Status === "ACTIVE"` are kept.
+ * Records are grouped by their `Chain` value and mapped to objects with:
+ * - `accountAddress`: taken from the `Address` field
+ * - `childContractScope`: `2` if the row indicates a factory (`isFactory` or `IsFactory === "TRUE"`), otherwise `0`
+ *
+ * @param {string} url - URL of the CSV file to fetch and parse.
+ * @returns {Promise<Object<string, Array<{accountAddress: string, childContractScope: number}>>>} A promise resolving to an object keyed by chain containing arrays of normalized records.
+ * @throws Propagates errors from fetching or parsing the CSV (e.g., non-OK HTTP responses or invalid content).
+ */
 export async function getNormalizedDataFromCSV(url) {
     const records = await downloadAndParse(url);
     return normalize(records);
