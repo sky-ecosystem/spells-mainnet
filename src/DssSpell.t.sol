@@ -928,7 +928,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public { // add the `skipped` modifier to skip
+    function testPayments() public skipped { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = true;
         bool ignoreTotalSupplyMkrSky = true;
@@ -1344,7 +1344,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPARK TESTS
-    function testSparkSpellIsExecuted() public { // add the `skipped` modifier to skip
+    function testSparkSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
         address SPARK_PROXY = addr.addr('SPARK_PROXY');
         address SPARK_SPELL = address(0xa57d3ea3aBAbD57Ed1a1d91CD998a68FB490B95E); // Insert Spark spell address
 
@@ -1363,7 +1363,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // Grove/Bloom TESTS
-    function testGroveSpellIsExecuted() public { // add the `skipped` modifier to skip
+    function testGroveSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
         address GROVE_PROXY = addr.addr('ALLOCATOR_BLOOM_A_SUBPROXY');
         address GROVE_SPELL = address(0xFa533FEd0F065dEf8dcFA6699Aa3d73337302BED); // Insert Grove spell address
 
@@ -1382,109 +1382,4 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
-    struct TokenTransfer {
-        bytes32 gemSymbol;
-        uint256 pauseProxyBalance;
-        uint256 foundationBalance;
-    }
-    function testTokenTransfers() public {
-        // Sky Frontier Foundation wallet
-        address SKY_FRONTIER_FOUNDATION = wallets.addr('SKY_FRONTIER_FOUNDATION');
-
-        // Tokens to check, native ETH and SKY are checked separately
-        TokenTransfer[7] memory tokenTransfers = [
-            TokenTransfer('UNIV2USDSSKY', 0, 0),
-            TokenTransfer('ENS', 0, 0),
-            TokenTransfer('STAAVE', 0, 0),
-            TokenTransfer('COMP', 0, 0),
-            TokenTransfer('AAVE', 0, 0),
-            TokenTransfer('ETH', 0, 0),
-            TokenTransfer('MCD_DAI', 0, 0)
-        ];
-
-        // Remember balances
-        for (uint256 i = 0; i < tokenTransfers.length; i++) {
-            GemAbstract gem = GemAbstract(addr.addr(tokenTransfers[i].gemSymbol));
-            tokenTransfers[i].pauseProxyBalance = gem.balanceOf(pauseProxy);
-            tokenTransfers[i].foundationBalance = gem.balanceOf(SKY_FRONTIER_FOUNDATION);
-        }
-
-        // Native ETH balances
-        uint256 pauseProxyEthBalanceBefore = pauseProxy.balance;
-        uint256 foundationEthBalanceBefore = SKY_FRONTIER_FOUNDATION.balance;
-
-        // SKY balances
-        uint256 pauseProxySkyBalanceBefore = sky.balanceOf(pauseProxy);
-        uint256 foundationSkyBalanceBefore = sky.balanceOf(SKY_FRONTIER_FOUNDATION);
-
-        // Cast spell
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        // Check balances
-        for (uint256 i = 0; i < tokenTransfers.length; i++) {
-            GemAbstract gem = GemAbstract(addr.addr(tokenTransfers[i].gemSymbol));
-
-            // Token balance of PauseProxy must be 0
-            assertEq(
-                gem.balanceOf(pauseProxy),
-                0,
-                _concat("TestError/pause-proxy-invalid-balance-after-", tokenTransfers[i].gemSymbol)
-            );
-
-            // Token balance of Foundation must increase by Pause Proxy balance
-            uint256 expectedBalance = tokenTransfers[i].foundationBalance + tokenTransfers[i].pauseProxyBalance;
-            assertEq(
-                gem.balanceOf(SKY_FRONTIER_FOUNDATION),
-                expectedBalance,
-                _concat("TestError/foundation-invalid-balance-after-", tokenTransfers[i].gemSymbol)
-            );
-        }
-
-        // All native ETH should be transferred
-        assertEq(pauseProxy.balance, 0, "TestError/pause-proxy-invalid-balance-after-native-eth");
-        assertEq(
-            SKY_FRONTIER_FOUNDATION.balance,
-            foundationEthBalanceBefore + pauseProxyEthBalanceBefore,
-            "TestError/foundation-invalid-balance-after-native-eth"
-        );
-
-        // Consider other SKY transfers in the spell
-        uint256 otherSkyTransfers = (200_000_000 + 330_000 + 288_000) * WAD;
-
-        // Pause proxy must have 16_000_000 SKY left
-        assertEq(
-            sky.balanceOf(pauseProxy),
-            16_000_000 * WAD,
-            "TestError/pause-proxy-invalid-balance-after-SKY"
-        );
-        // Foundation must receive all remaining balance of Pause Proxy, considering other transfers
-        assertEq(
-            sky.balanceOf(SKY_FRONTIER_FOUNDATION),
-            foundationSkyBalanceBefore + pauseProxySkyBalanceBefore - 16_000_000 * WAD - otherSkyTransfers,
-            "TestError/foundation-invalid-balance-after-SKY"
-        );
-    }
-
-    function testUniV2DaiUsdcOffboarding() public {
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        LPOsmAbstract pip = LPOsmAbstract(chainLog.getAddress("PIP_UNIV2DAIUSDC"));
-
-        _checkUNILPIntegration(
-            "UNIV2DAIUSDC-A",
-            GemJoinAbstract(chainLog.getAddress("MCD_JOIN_UNIV2DAIUSDC_A")),
-            ClipAbstract(chainLog.getAddress("MCD_CLIP_UNIV2DAIUSDC_A")),
-            pip,
-            pip.orb0(),
-            pip.orb1(),
-            false,
-            false,
-            true
-        );
-    }
 }
-
