@@ -167,7 +167,7 @@ contract Config {
         afterSpell.SP_dsr_step            = 4_00;                                       // In basis points
         afterSpell.sky_mkr_rate           = 24_000;                                     // In whole SKY/MKR units
         afterSpell.ilk_count              = 30;                                         // Num expected in system
-        afterSpell.chainlog_version       = "1.20.3";                                   // String expected in system
+        afterSpell.chainlog_version       = "1.20.4";                                   // String expected in system
 
         //
         // Values for all collateral
@@ -957,7 +957,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["LSEV2-SKY-A"] = CollateralValues({
-            aL_enabled:   true,
+            aL_enabled:   false,
             aL_line:      50 * MILLION,
             aL_gap:       25 * MILLION,
             aL_ttl:       24 hours,

@@ -527,7 +527,7 @@ contract Addresses {
         addr["LOCKSTAKE_CLIP_CALC_OLD_V1"]       = 0xf13cF3b39823CcfaE6C2354dA56416C80768474e;
         addr["LOCKSTAKE_SKY"]                    = 0xf9A9cfD3229E985B91F99Bc866d42938044FFa1C;
         addr["LOCKSTAKE_ENGINE"]                 = 0xCe01C90dE7FD1bcFa39e237FE6D8D9F569e8A6a3;
-        addr["LOCKSTAKE_CLIP"]                   = 0x35526314F18FeB5b7F124e40D6A99d64F7D7e89a;
+        addr["LOCKSTAKE_CLIP"]                   = 0x836F56750517b1528B5078Cba4Ac4B94fBE4A399;
         addr["LOCKSTAKE_CLIP_CALC"]              = 0xB8f8c7caabFa320717E3e848948450e120F0D9BB;
         addr["LOCKSTAKE_MIGRATOR"]               = 0x473d777f608C3C24B441AB6bD4bBcA6b7F9AF90B;
         addr["BASE_GOV_RELAY"]                   = 0x1Ee0AE8A993F2f5abDB51EAF4AC2876202b65c3b;
@@ -576,5 +576,9 @@ contract Addresses {
         addr["REWARDS_DIST_LSSKY_SPK"]           = 0xa3Ee378BdD0b7DD403cEd3a0A65B2B389A2eaB7e;
         addr["ENS"]                              = 0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72;
         addr["STAAVE"]                           = 0x4da27a545c0c5B758a6BA100e3a049001de870f5;
+        addr["STUSDS"]                           = 0x99CD4Ec3f88A45940936F469E4bB72A2A701EEB9;
+        addr["STUSDS_IMP"]                       = 0x7A61B7adCFD493f7CF0F86dFCECB94b72c227F22;
+        addr["STUSDS_RATE_SETTER"]               = 0x30784615252B13E1DbE2bDf598627eaC297Bf4C5;
+        addr["STUSDS_MOM"]                       = 0xf5DEe2CeDC5ADdd85597742445c0bf9b9cAfc699;
     }
 }
