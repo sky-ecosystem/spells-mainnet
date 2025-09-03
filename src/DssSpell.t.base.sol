@@ -312,8 +312,11 @@ interface LockstakeEngineLike {
 interface LockstakeClipperLike {
     function vat() external view returns (address);
     function dog() external view returns (address);
+    function vow() external view returns (address);
+    function calc() external view returns (address);
     function spotter() external view returns (address);
     function engine() external view returns (address);
+    function cuttee() external view returns (address);
     function ilk() external view returns (bytes32);
     function rely(address) external;
     function file(bytes32, address) external;
@@ -324,6 +327,18 @@ interface LockstakeClipperLike {
         view
         returns (uint256 pos, uint256 tab, uint256 due, uint256 lot, uint256 tot, address usr, uint96 tic, uint256 top);
     function stopped() external view returns (uint256);
+    function kicks() external view returns (uint256);
+    function tail() external view returns (uint256);
+    function buf() external view returns (uint256);
+    function cusp() external view returns (uint256);
+    function chip() external view returns (uint64);
+    function tip() external view returns (uint192);
+    function chost() external view returns (uint192);
+    function getStatus(uint256) external view returns (bool, uint256, uint256, uint256);
+    function take(uint256, uint256, uint256, address, bytes calldata) external;
+    function redo(uint256, address) external;
+    function yank(uint256) external;
+    function wards(address) external view returns (uint256);
 }
 
 interface VoteDelegateFactoryLike {

@@ -54,6 +54,10 @@ interface VestedRewardsDistributionLike {
     function vestId() external view returns (uint256);
 }
 
+interface ClipperMomLike {
+    function tolerance(address) external view returns (uint256);
+}
+
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -1390,5 +1394,177 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(unpaidAmount, 0, "rewards-dist-usds-sky/unpaid-not-cleared");
 
         assertEq(StakingRewardsLike(REWARDS_USDS_SKY).lastUpdateTime(), block.timestamp, "rewards-usds-sky/invalid-last-update-time");
+    }
+
+    bytes32 ilk = "LSEV2-SKY-A";
+    LockstakeEngineLike engine = LockstakeEngineLike(addr.addr("LOCKSTAKE_ENGINE"));
+    OsmAbstract pip = OsmAbstract(addr.addr("PIP_SKY"));
+    LockstakeClipperLike clip = LockstakeClipperLike(chainLog.getAddress("LOCKSTAKE_CLIP"));
+    LockstakeClipperLike newClip = LockstakeClipperLike(addr.addr("LOCKSTAKE_CLIP"));
+    ClipperMomLike clipperMom = ClipperMomLike(addr.addr("CLIPPER_MOM"));
+    IlkRegistryAbstract ilkRegistry = IlkRegistryAbstract(addr.addr("ILK_REGISTRY"));
+    WardsAbstract stusds = WardsAbstract(addr.addr("STUSDS"));
+
+    function testLockstakeStUsdsInit() public {
+        string memory nameV;
+        string memory symbolV;
+        uint256 classV;
+        uint256 decV;
+        address gemV;
+        address pipV;
+        address joinV;
+
+        assertEq(vat.wards(address(clip)), 1);
+        assertEq(vat.wards(address(newClip)), 0);
+        assertEq(pip.bud(address(clip)), 1);
+        assertEq(pip.bud(address(newClip)), 0);
+        (address clipV,,,) = dog.ilks(ilk);
+        assertEq(clipV, address(clip));
+        assertEq(dog.wards(address(clip)), 1);
+        assertEq(dog.wards(address(newClip)), 0);
+        assertEq(engine.wards(address(clip)), 1);
+        assertEq(engine.wards(address(newClip)), 0);
+        assertEq(newClip.buf(), RAY);
+        assertEq(newClip.tail(), 0);
+        assertEq(newClip.cusp(), 0);
+        assertEq(newClip.chip(), 0);
+        assertEq(newClip.tip(), 0);
+        assertEq(newClip.stopped(), 0);
+        assertEq(newClip.vow(), address(0));
+        assertEq(newClip.calc(), address(0));
+        assertEq(newClip.cuttee(), address(0));
+        assertEq(newClip.chost(), 0);
+        assertEq(clip.wards(address(dog)), 1);
+        assertEq(newClip.wards(address(dog)), 0);
+        assertEq(clip.wards(address(end)), 1);
+        assertEq(newClip.wards(address(end)), 0);
+        assertEq(clip.wards(address(clipperMom)), 0);
+        assertEq(newClip.wards(address(clipperMom)), 0);
+        uint256 clipperMomToleranceClipper = clipperMom.tolerance(address(clip));
+        assertEq(clipperMom.tolerance(address(newClip)), 0);
+        nameV = ilkRegistry.name(ilk);
+        symbolV = ilkRegistry.symbol(ilk);
+        classV = ilkRegistry.class(ilk);
+        decV = ilkRegistry.dec(ilk);
+        gemV = ilkRegistry.gem(ilk);
+        pipV = ilkRegistry.pip(ilk);
+        joinV = ilkRegistry.join(ilk);
+        assertEq(ilkRegistry.xlip(ilk), address(clip));
+        assertEq(chainLog.getAddress("LOCKSTAKE_CLIP"), address(clip));
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        assertEq(vat.wards(address(clip)), 0);
+        assertEq(vat.wards(address(newClip)), 1);
+        assertEq(pip.bud(address(clip)), 0);
+        assertEq(pip.bud(address(newClip)), 1);
+        (clipV,,,) = dog.ilks(ilk);
+        assertEq(clipV, address(newClip));
+        assertEq(dog.wards(address(clip)), 0);
+        assertEq(dog.wards(address(newClip)), 1);
+        assertEq(engine.wards(address(clip)), 0);
+        assertEq(engine.wards(address(newClip)), 1);
+        assertEq(newClip.buf(), clip.buf());
+        assertEq(newClip.tail(), clip.tail());
+        assertEq(newClip.cusp(), clip.cusp());
+        assertEq(newClip.chip(), clip.chip());
+        assertEq(newClip.tip(), clip.tip());
+        assertEq(newClip.stopped(), 3);
+        assertEq(newClip.vow(), clip.vow());
+        assertEq(address(newClip.calc()), address(clip.calc()));
+        assertEq(newClip.cuttee(), address(stusds));
+        assertEq(newClip.chost(), clip.chost());
+        assertEq(clip.wards(address(dog)), 0);
+        assertEq(newClip.wards(address(dog)), 1);
+        assertEq(clip.wards(address(end)), 0);
+        assertEq(newClip.wards(address(end)), 1);
+        assertEq(clip.wards(address(clipperMom)), 0);
+        assertEq(newClip.wards(address(clipperMom)), 0);
+        assertEq(stusds.wards(address(newClip)), 1);
+        assertEq(clipperMom.tolerance(address(newClip)), clipperMomToleranceClipper);
+        assertEq(ilkRegistry.name(ilk), nameV);
+        assertEq(ilkRegistry.symbol(ilk), symbolV);
+        assertEq(ilkRegistry.class(ilk), classV);
+        assertEq(ilkRegistry.dec(ilk), decV);
+        assertEq(ilkRegistry.gem(ilk), gemV);
+        assertEq(ilkRegistry.pip(ilk), pipV);
+        assertEq(ilkRegistry.join(ilk), joinV);
+        assertEq(ilkRegistry.xlip(ilk), address(newClip));
+        assertEq(chainLog.getAddress("LOCKSTAKE_CLIP"), address(newClip));
+    }
+
+    function testLockstakeStUsdsIntegration() public {
+        uint256 dirt1;
+        uint256 dirt2;
+        uint256 dirt3;
+
+        vm.startPrank(pauseProxy);
+        vat.file(ilk, "line", 1_000_000_000e45);
+        vm.stopPrank();
+
+        (,,, dirt1) = dog.ilks(ilk);
+
+        address urn = engine.open(0);
+        deal(address(sky), address(this), 1_000_000 * 10**18);
+        sky.approve(address(engine), 1_000_000 * 10**18);
+        engine.lock(address(this), 0, 1_000_000 * 10**18, 5);
+        engine.draw(address(this), 0, address(this), 50_000 * 10**18);
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // update median price
+        vm.store(pip.src(), bytes32(uint256(4)), bytes32(abi.encodePacked(uint32(block.timestamp), uint96(0), uint128(0.04 * 10**18))));
+        vm.warp(block.timestamp + 1 hours);
+        pip.poke();
+        vm.warp(block.timestamp + 1 hours);
+        pip.poke();
+        vm.prank(pauseProxy);
+        pip.kiss(address(this));
+        assertEq(uint256(pip.read()), 0.04 * 10**18);
+
+        // unstop the clipper
+        vm.prank(pauseProxy);
+        newClip.file("stopped", 0);
+
+        spotter.poke(ilk);
+        assertEq(newClip.kicks(), 0);
+        assertEq(engine.urnAuctions(urn), 0);
+        emit log_named_uint("LockstakeClipper/stopped-incorrect", newClip.stopped());
+        uint256 salesId = dog.bark(ilk, address(urn), address(this));
+        assertEq(newClip.kicks(), 1);
+        assertEq(engine.urnAuctions(urn), 1);
+
+        (,,, dirt2) = dog.ilks(ilk);
+        assertGt(dirt2, dirt1);
+
+        uint256 snapshotId = vm.snapshotState();
+
+        (, uint256 tab,, uint256 lot,,,,) = newClip.sales(salesId);
+        vm.prank(pauseProxy); vat.suck(address(0), address(this), tab);
+        vat.hope(address(newClip));
+        newClip.take(salesId, lot, type(uint256).max, address(this), "");
+
+        (,,, dirt3) = dog.ilks(ilk);
+        assertEq(dirt3, dirt1);
+
+        vm.revertToState(snapshotId);
+
+        vm.warp(block.timestamp + clip.tail() + 1);
+
+        (bool needsRedo,,,) = newClip.getStatus(salesId);
+        assertTrue(needsRedo);
+
+        newClip.redo(salesId, address(this));
+
+        vm.startPrank(pauseProxy);
+        newClip.yank(salesId);
+        vm.stopPrank();
+
+        (,,, dirt3) = dog.ilks(ilk);
+        assertEq(dirt3, dirt1);
     }
 }
