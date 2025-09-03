@@ -32,11 +32,11 @@ interface ProxyLike {
 }
 
 interface RateSetterLike {
-    function maxLine() external returns (uint256);
+    function maxLine() external view returns (uint256);
 }
 
 interface VestedRewardsDistributionLike {
-    function distribute() external;
+    function distribute() external returns (uint256);
 }
 
 interface DssVestLike {
@@ -45,14 +45,14 @@ interface DssVestLike {
 }
 
 interface DaiUsdsLike {
-    function daiToUsds(address usr, uint256 wad) external;
+    function daiToUsds(address, uint256) external;
 }
 
 contract DssSpellAction is DssAction {
     // Provides a descriptive tag for bot consumption
     // This should be modified weekly to provide a summary of the actions
-    // Hash: cast keccak -- "$(wget 'TODO' -q -O - 2>/dev/null)"
-    string public constant override description = "2025-09-04 MakerDAO Executive Spell | Hash: TODO";
+    // Hash: cast keccak -- "$(wget 'https://raw.githubusercontent.com/sky-ecosystem/executive-votes/7201ee0a23b0c5a85e0c1ba44226900aa3bb45a8/2025/executive-vote-2025-09-04-stusds-onboarding.md' -q -O - 2>/dev/null)"
+    string public constant override description = "2025-09-04 MakerDAO Executive Spell | Hash: 0x4e5cc173855cacdb606cb69c57889ec7d3b5f95378b9c6ab786ce36c0de3c1a5";
 
     // Set office hours according to the summary
     function officeHours() public pure override returns (bool) {
@@ -84,13 +84,12 @@ contract DssSpellAction is DssAction {
     address internal constant STUSDS_MOM = 0xf5DEe2CeDC5ADdd85597742445c0bf9b9cAfc699;
     address internal constant STUSDS_RATE_SETTER_BUD = 0xBB865F94B8A92E57f79fCc89Dfd4dcf0D3fDEA16;
 
-    address internal immutable ILK_REGISTRY = DssExecLib.getChangelogAddress("ILK_REGISTRY");
-    address internal immutable MCD_VAT = DssExecLib.getChangelogAddress("MCD_VAT");
-    address internal immutable MCD_VEST_SKY = DssExecLib.getChangelogAddress("MCD_VEST_SKY");
+    address internal immutable ILK_REGISTRY = DssExecLib.reg();
+    address internal immutable MCD_VAT = DssExecLib.vat();
+    address internal immutable DAI = DssExecLib.dai();
     address internal immutable REWARDS_DIST_USDS_SKY = DssExecLib.getChangelogAddress("REWARDS_DIST_USDS_SKY");
     address internal immutable MCD_VEST_SKY_TREASURY = DssExecLib.getChangelogAddress("MCD_VEST_SKY_TREASURY");
     address internal immutable SKY = DssExecLib.getChangelogAddress("SKY");
-    address internal immutable DAI = DssExecLib.dai();
     address internal immutable DAI_USDS = DssExecLib.getChangelogAddress("DAI_USDS");
 
     // ---------- Wallets ----------
@@ -104,11 +103,15 @@ contract DssSpellAction is DssAction {
 
     function actions() public override {
         // ----- stUSDS Onboarding -----
+        // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2025-09-01/27122
+        // Poll: https://vote.sky.money/polling/QmQwTjgE
 
         // Note: Load DssInstance from chainlog
         DssInstance memory dss = MCD.loadFromChainlog(DssExecLib.LOG);
 
         // ----- Update LSEV2-SKY-A clipper by calling LockstakeInit.updateClipper with the following parameters: -----
+        // Forum: https://forum.sky.money/t/technical-scope-of-the-stusds-module-launch/27129
+
         LockstakeInit.updateClipper(
             dss,
             // clipper_ being LockstakeClipper at 0x836F56750517b1528B5078Cba4Ac4B94fBE4A399
@@ -118,9 +121,10 @@ contract DssSpellAction is DssAction {
         );
 
         // ----- Initialize stUSDS module by calling StUsdsInit.init with the following parameters: -----
+
         StUsdsInstance memory stUsdsInstance = StUsdsInstance({
             // instance.stUsds being ERC1967Proxy for StUsds at 0x99CD4Ec3f88A45940936F469E4bB72A2A701EEB9
-            stUsds: 0x99CD4Ec3f88A45940936F469E4bB72A2A701EEB9,
+            stUsds: STUSDS,
             // instance.stUsdsImp being StUsds implementation at 0x7A61B7adCFD493f7CF0F86dFCECB94b72c227F22
             stUsdsImp: STUSDS_IMP,
             // instance.rateSetter being StUsdsRateSetter at 0x30784615252B13E1DbE2bDf598627eaC297Bf4C5
@@ -176,14 +180,19 @@ contract DssSpellAction is DssAction {
         DssExecLib.setChangelogVersion("1.20.4");
 
         // ----- SKY Token Rewards Rebalance -----
+        // Forum: https://forum.sky.money/t/sky-token-rewards-usds-to-sky-rewards-normalization-configuration/26638/14
 
-        // Yank MCD_VEST_SKY vest with ID 5
-        VestAbstract(MCD_VEST_SKY_TREASURY).yank(5); // TODO: Confirm
+        // Yank MCD_VEST_SKY_TREASURY vest with ID 5
+        VestAbstract(MCD_VEST_SKY_TREASURY).yank(5);
 
         // VestedRewardsDistribution.distribute() on REWARDS_DIST_USDS_SKY
-        VestedRewardsDistributionLike(REWARDS_DIST_USDS_SKY).distribute();
+        // Note: `distribute()` only needs to be called if it wasn't already, otherwise it reverts
+        if (VestAbstract(MCD_VEST_SKY_TREASURY).unpaid(5) > 0) {
+            VestedRewardsDistributionLike(REWARDS_DIST_USDS_SKY).distribute();
+        }
 
         // ----- Deploy new MCD_VEST_SKY_TREASURY stream with the following parameters: -----
+
         // res: 1 (restricted)
         // Note: Action taken below, after stream creation
 
@@ -208,16 +217,30 @@ contract DssSpellAction is DssAction {
         DssExecLib.setValue(REWARDS_DIST_USDS_SKY, "vestId", vestId);
 
         // ----- Core Simplification Buffer Budget Transfer -----
+        // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2025-09-01/27122
+        // Poll: https://vote.sky.money/polling/QmQwTjgE
 
         // Transfer 8,000,000 USDS to 0xd8507ef0a59f37d15b5d7b630fa6eea40ce4afdd
         _transferUsds(LIQUIDITY_BOOTSTRAPPING, 8_000_000 * WAD);
 
         // ----- Accessibility Reward Budget Transfer -----
+        // Forum: https://forum.sky.money/t/utilization-of-the-accessibility-reward-budget-a-2-4/27131
+        // Poll: https://vote.sky.money/polling/QmXRwLEu
 
         // Transfer 3,000,000 USDS to 0x05F471262d15EECA4059DadE070e5BEd509a4e73
         _transferUsds(ECOSYSTEM_TEAM, 3_000_000 * WAD);
 
         // ----- Execute Spark Proxy Spell -----
+        // Forum: https://forum.sky.money/t/september-4-2025-proposed-changes-to-spark-for-upcoming-spell/27102
+        // Poll: https://vote.sky.money/polling/QmeLKi1N
+        // Poll: https://vote.sky.money/polling/QmXDwbcJ
+        // Poll: https://vote.sky.money/polling/QmRLrw8X
+        // Poll: https://vote.sky.money/polling/QmTS1Jw7
+        // Poll: https://vote.sky.money/polling/QmUKs4Lt
+        // Poll: https://vote.sky.money/polling/QmNbTb5v
+        // Poll: https://vote.sky.money/polling/QmbSeE7t
+        // Poll: https://vote.sky.money/polling/QmbHt4Vg
+        // Atlas: https://sky-atlas.powerhouse.io/A.2.9.1.2.2.5.4.1_Initial_Cash_Grant_To_Spark_Foundation/21ff2ff0-8d73-8018-be75-c28cee3dddb7%7C9e1f80092582d59891b0d93ee881
 
         // Execute Spark proxy spell at 0xe7782847eF825FF37662Ef2F426f2D8c5D904121
         ProxyLike(SPARK_PROXY).exec(SPARK_SPELL, abi.encodeWithSignature("execute()"));
@@ -227,7 +250,7 @@ contract DssSpellAction is DssAction {
 
     /// @notice Returns the global debt ceiling using the governance agreed formula
     /// @notice sum(max(debt, line)) for all other ilks + max(LSEV2-SKY-A debt, stUSDS BEAM maxLine)
-    function _calculateLine() internal returns (uint256 _line) {
+    function _calculateLine() internal view returns (uint256 _line) {
         bytes32[] memory ilks = IlkRegistryAbstract(ILK_REGISTRY).list();
 
         for (uint256 i; i < ilks.length; i++) {

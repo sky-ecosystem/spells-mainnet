@@ -47,10 +47,6 @@ interface SequencerLike {
 }
 
 interface VestedRewardsDistributionLike {
-    function distribute() external returns (uint256 amount);
-    function dssVest() external view returns (address);
-    function lastDistributedAt() external view returns (uint256);
-    function stakingRewards() external view returns (address);
     function vestId() external view returns (uint256);
 }
 
@@ -935,7 +931,7 @@ contract DssSpellTest is DssSpellTestBase {
 
     function testPayments() public { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
-        bool ignoreTotalSupplyDaiUsds = true;
+        bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
 
         // For each payment, create a Payee object with:
@@ -952,8 +948,6 @@ contract DssSpellTest is DssSpellTestBase {
         PaymentAmounts memory expectedTotalPayments = PaymentAmounts({
             dai:                               0 ether, // Note: ether is only a keyword helper
             mkr:                               0 ether, // Note: ether is only a keyword helper
-            // Note: Both core spell and Spark spell transfer to the same AAVE address
-            // See forum post: https://forum.sky.money/t/august-21-2025-proposed-changes-to-spark-for-upcoming-spell/26997
             usds:                     11_000_000 ether, // Note: ether is only a keyword helper
             sky:                               0 ether  // Note: ether is only a keyword helper
         });
