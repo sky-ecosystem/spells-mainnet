@@ -23,6 +23,7 @@ LICENSE_NUMBERS = {
     'GPL-3.0-or-later': 5,
     'AGPL-3.0-or-later': 13
 }
+SUPPORTED_CHAIN_IDS = ['1', '11155111']  # Mainnet and Sepolia
 
 
 class EtherscanVerifier:
@@ -35,7 +36,7 @@ class EtherscanVerifier:
     
     def is_available(self) -> bool:
         """Check if Etherscan supports this chain."""
-        return self.chain_id in ETHERSCAN_SUBDOMAINS
+        return self.chain_id in SUPPORTED_CHAIN_IDS
     
     def get_verification_url(self, contract_address: str) -> str:
         """Get Etherscan URL for the verified contract."""

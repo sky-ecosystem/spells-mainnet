@@ -155,11 +155,10 @@ The script automatically:
 
 ## Future Enhancements
 
-1. **Blockscout Support**: Add Blockscout verifier implementation
-2. **Configurable Retry**: Allow retry parameters via environment variables
-3. **Parallel Verification**: Verify on multiple explorers simultaneously
-4. **Verification Status**: Check if contract is already verified before attempting
-5. **Custom Verifiers**: Allow custom verifier implementations
+1. **Configurable Retry**: Allow retry parameters via environment variables
+2. **Parallel Verification**: Verify on multiple explorers simultaneously
+3. **Verification Status**: Check if contract is already verified before attempting
+4. **Custom Verifiers**: Allow custom verifier implementations
 
 ## Contributing
 

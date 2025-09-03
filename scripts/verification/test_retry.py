@@ -7,48 +7,8 @@ import random
 import unittest
 from unittest.mock import patch, MagicMock
 from typing import Tuple, Callable
-from functools import wraps
 
 from retry import retry_with_backoff, DEFAULT_MAX_RETRIES, DEFAULT_BASE_DELAY
-
-
-def retry_with_backoff_test(
-    max_retries: int = 3,
-    base_delay: float = 1,
-    max_delay: float = 10,
-    backoff_factor: float = 2,
-    jitter: float = 0.1,
-    exceptions: Tuple[Exception, ...] = (Exception,)
-):
-    """Test version of the retry decorator."""
-    def decorator(func: Callable) -> Callable:
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            last_exception = None
-            
-            for attempt in range(max_retries + 1):
-                try:
-                    return func(*args, **kwargs)
-                except exceptions as e:
-                    last_exception = e
-                    
-                    if attempt == max_retries:
-                        print(f"Failed after {max_retries + 1} attempts. Last error: {str(e)}")
-                        raise
-                    
-                    # Calculate delay with exponential backoff and jitter
-                    delay = min(base_delay * (backoff_factor ** attempt), max_delay)
-                    jitter_amount = delay * jitter * random.uniform(-1, 1)
-                    actual_delay = max(0, delay + jitter_amount)
-                    
-                    print(f"Attempt {attempt + 1} failed: {str(e)}")
-                    print(f"Retrying in {actual_delay:.2f} seconds... (attempt {attempt + 2}/{max_retries + 1})")
-                    
-                    time.sleep(actual_delay)
-            
-            raise last_exception
-        return wrapper
-    return decorator
 
 
 class TestRetryMechanism(unittest.TestCase):
@@ -60,7 +20,7 @@ class TestRetryMechanism(unittest.TestCase):
     
     def test_successful_retry(self):
         """Test that retry mechanism works when function eventually succeeds."""
-        @retry_with_backoff_test(max_retries=3, base_delay=0.1)
+        @retry_with_backoff(max_retries=3, base_delay=0.1)
         def test_function():
             self.call_count += 1
             if self.call_count < 3:
@@ -73,7 +33,7 @@ class TestRetryMechanism(unittest.TestCase):
     
     def test_max_retries_exceeded(self):
         """Test that retry mechanism fails after max retries."""
-        @retry_with_backoff_test(max_retries=2, base_delay=0.1)
+        @retry_with_backoff(max_retries=2, base_delay=0.1)
         def test_function():
             self.call_count += 1
             raise Exception(f"Persistent failure #{self.call_count}")
@@ -86,7 +46,7 @@ class TestRetryMechanism(unittest.TestCase):
     
     def test_no_retry_on_success(self):
         """Test that successful function doesn't retry."""
-        @retry_with_backoff_test(max_retries=3, base_delay=0.1)
+        @retry_with_backoff(max_retries=3, base_delay=0.1)
         def test_function():
             self.call_count += 1
             return "Success!"
@@ -99,7 +59,7 @@ class TestRetryMechanism(unittest.TestCase):
         """Test that delays increase exponentially."""
         delays = []
         
-        @retry_with_backoff_test(max_retries=3, base_delay=1, max_delay=10)
+        @retry_with_backoff(max_retries=3, base_delay=1, max_delay=10)
         def test_function():
             delays.append(time.time())
             raise Exception("Test failure")
@@ -118,7 +78,7 @@ class TestRetryMechanism(unittest.TestCase):
         """Test that jitter adds random variation to delays."""
         delays = []
         
-        @retry_with_backoff_test(max_retries=2, base_delay=1, jitter=0.2)
+        @retry_with_backoff(max_retries=2, base_delay=1, jitter=0.2)
         def test_function():
             delays.append(time.time())
             raise Exception("Test failure")
@@ -136,7 +96,7 @@ class TestRetryMechanism(unittest.TestCase):
     @patch('time.sleep')
     def test_specific_exception_handling(self, mock_sleep):
         """Test that only specified exceptions trigger retries."""
-        @retry_with_backoff_test(max_retries=2, base_delay=0.1, exceptions=(ValueError,))
+        @retry_with_backoff(max_retries=2, base_delay=0.1, exceptions=(ValueError,))
         def test_function():
             self.call_count += 1
             if self.call_count == 1:
@@ -160,7 +120,7 @@ class TestRetryIntegration(unittest.TestCase):
         """Test retry mechanism with simulated network failures."""
         failures = [True, True, False]  # Fail twice, succeed on third attempt
         
-        @retry_with_backoff_test(max_retries=3, base_delay=0.1)
+        @retry_with_backoff(max_retries=3, base_delay=0.1)
         def simulate_network_call():
             if failures.pop(0):
                 raise ConnectionError("Network timeout")
@@ -174,7 +134,7 @@ class TestRetryIntegration(unittest.TestCase):
         """Test retry mechanism with different types of exceptions."""
         exceptions = [ValueError("Bad value"), ConnectionError("Network error"), "Success"]
         
-        @retry_with_backoff_test(max_retries=3, base_delay=0.1, exceptions=(ValueError, ConnectionError))
+        @retry_with_backoff(max_retries=3, base_delay=0.1, exceptions=(ValueError, ConnectionError))
         def test_function():
             exception = exceptions.pop(0)
             if isinstance(exception, Exception):

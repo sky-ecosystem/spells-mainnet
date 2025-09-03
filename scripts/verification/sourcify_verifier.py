@@ -13,6 +13,7 @@ from .retry import retry_with_backoff
 
 # Block explorer configurations
 SOURCIFY_API_URL = 'https://sourcify.dev/server'
+SUPPORTED_CHAIN_IDS = ['1', '11155111']  # Mainnet and Sepolia
 
 
 class SourcifyVerifier:
@@ -23,7 +24,7 @@ class SourcifyVerifier:
     
     def is_available(self) -> bool:
         """Check if Sourcify supports this chain."""
-        return self.chain_id in ['1', '11155111']  # Mainnet and Sepolia
+        return self.chain_id in SUPPORTED_CHAIN_IDS
     
     def get_verification_url(self, contract_address: str) -> str:
         """Get Sourcify URL for the verified contract."""
@@ -82,28 +83,21 @@ class SourcifyVerifier:
         if constructor_args:
             verification_data["constructorArgs"] = constructor_args
         
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                response = self._send_api_request("verify", verification_data)
+        try:
+            response = self._send_api_request("verify", verification_data)
+            
+            if response.get("status") == "perfect":
+                print(f'Contract verified successfully on Sourcify')
+                print(f'View at: {self.get_verification_url(contract_address)}')
+                return True
+            elif response.get("status") == "partial":
+                print(f'Contract partially verified on Sourcify (some files missing)')
+                print(f'View at: {self.get_verification_url(contract_address)}')
+                return True
+            else:
+                print(f'Verification failed: {response.get("message", "Unknown error")}', file=sys.stderr)
+                return False
                 
-                if response.get("status") == "perfect":
-                    print(f'Contract verified successfully on Sourcify')
-                    print(f'View at: {self.get_verification_url(contract_address)}')
-                    return True
-                elif response.get("status") == "partial":
-                    print(f'Contract partially verified on Sourcify (some files missing)')
-                    print(f'View at: {self.get_verification_url(contract_address)}')
-                    return True
-                else:
-                    print(f'Verification failed: {response.get("message", "Unknown error")}', file=sys.stderr)
-                    return False
-                    
-            except Exception as e:
-                if attempt == max_retries - 1:
-                    print(f"Failed to verify on Sourcify after {max_retries} attempts: {str(e)}", file=sys.stderr)
-                    return False
-                print(f"Attempt {attempt + 1} failed, retrying...", file=sys.stderr)
-                time.sleep(2 ** attempt)
-        
-        return False
+        except Exception as e:
+            print(f"Failed to verify on Sourcify: {str(e)}", file=sys.stderr)
+            return False
