@@ -351,7 +351,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testLockstakeIlkIntegration() public skipped { // add the `skipped` modifier to skip
+    function testLockstakeIlkIntegration() public { // add the `skipped` modifier to skip
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");

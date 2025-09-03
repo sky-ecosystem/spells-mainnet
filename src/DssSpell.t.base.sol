@@ -322,7 +322,7 @@ interface LockstakeClipperLike {
     function sales(uint256)
         external
         view
-        returns (uint256 pos, uint256 tab, uint256 lot, uint256 tot, address usr, uint96 tic, uint256 top);
+        returns (uint256 pos, uint256 tab, uint256 due, uint256 lot, uint256 tot, address usr, uint96 tic, uint256 top);
     function stopped() external view returns (uint256);
 }
 
@@ -1746,7 +1746,8 @@ contract DssSpellTestBase is Config, DssTest {
 
     struct Sale {
         uint256 pos;  // Index in active array
-        uint256 tab;  // Dai to raise       [rad]
+        uint256 tab;  // Usds to raise      [rad]
+        uint256 due;  // Usds debt          [rad]
         uint256 lot;  // collateral to sell [wad]
         uint256 tot;  // static registry of total collateral to sell [wad]
         address usr;  // Liquidated CDP
@@ -1821,9 +1822,10 @@ contract DssSpellTestBase is Config, DssTest {
         assertEq(ClipAbstract(p.clip).kicks(), 1, "checkLockstakeTake/AfterBark/no-kicks");
         assertEq(engine.urnAuctions(urn), 1, "checkLockstakeTake/AfterBark/no-actions");
         Sale memory sale;
-        (sale.pos, sale.tab, sale.lot, sale.tot, sale.usr, sale.tic, sale.top) = LockstakeClipperLike(p.clip).sales(id);
+        (sale.pos, sale.tab, sale.due, sale.lot, sale.tot, sale.usr, sale.tic, sale.top) = LockstakeClipperLike(p.clip).sales(id);
         assertEq(sale.pos, 0, "checkLockstakeTake/AfterBark/invalid-sale.pos");
         assertGt(sale.tab, drawAmt * RAY, "checkLockstakeTake/AfterBark/invalid-sale.tab");
+        assertGt(sale.due, drawAmt * RAY * WAD / dog.chop(p.ilk), "checkLockstakeTake/AfterBark/invalid-sale.due");
         assertEq(sale.lot, lockAmt, "checkLockstakeTake/AfterBark/invalid-sale.lot");
         assertEq(sale.tot, lockAmt, "checkLockstakeTake/AfterBark/invalid-sale.tot");
         assertEq(sale.usr, urn, "checkLockstakeTake/AfterBark/invalid-sale.usr");
@@ -1847,7 +1849,7 @@ contract DssSpellTestBase is Config, DssTest {
         assertEq(sky.balanceOf(buyer), 0, "checkLockstakeTake/AfterBark/invalid-buyer-sky-balance");
         vm.prank(buyer); ClipAbstract(p.clip).take(id, lockAmt, type(uint256).max, buyer, "");
         assertGt(sky.balanceOf(buyer), 0, "checkLockstakeTake/AfterTake/invalid-buyer-sky-balance");
-        (sale.pos, sale.tab, sale.lot, sale.tot, sale.usr, sale.tic, sale.top) = LockstakeClipperLike(p.clip).sales(id);
+        (sale.pos, sale.tab,, sale.lot, sale.tot, sale.usr, sale.tic, sale.top) = LockstakeClipperLike(p.clip).sales(id);
         assertEq(sale.pos, 0, "checkLockstakeTake/AfterTake/invalid-sale.pos");
         assertEq(sale.tab, 0, "checkLockstakeTake/AfterTake/invalid-sale.tab");
         assertEq(sale.lot, 0, "checkLockstakeTake/AfterTake/invalid-sale.lot");
