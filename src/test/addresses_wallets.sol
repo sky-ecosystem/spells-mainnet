@@ -140,6 +140,7 @@ contract Wallets {
         addr["PULLUP_LABS"]                  = 0x42aD911c75d25E21727E45eCa2A9d999D5A7f94c;
         addr["CHRONICLE_LABS"]               = 0x68D0ca2d5Ac777F6A9b0d1be44332BB3d5981C2f;
         addr["JETSTREAM"]                    = 0xF478A08C41ad06E8D957d5e6B6Bcde7452cEE962;
+        addr["ECOSYSTEM_TEAM"]               = 0x05F471262d15EECA4059DadE070e5BEd509a4e73;
 
         // Ecosystem Scope
         addr["ECOSYSTEM_SCOPE_WALLET"]       = 0x6E51E0b5813152880C1389E3e860e69E06aD04D9;

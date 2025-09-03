@@ -24,6 +24,8 @@ import {LockstakeInit} from "./dependencies/lockstake/LockstakeInit.sol";
 import {StUsdsInit, StUsdsConfig, StUsdsInstance} from "./dependencies/stusds/StUsdsInit.sol";
 import {IlkRegistryAbstract} from "dss-interfaces/dss/IlkRegistryAbstract.sol";
 import {VatAbstract} from "dss-interfaces/dss/VatAbstract.sol";
+import {VestAbstract} from "dss-interfaces/dss/VestAbstract.sol";
+import {GemAbstract} from "dss-interfaces/ERC/GemAbstract.sol";
 
 interface ProxyLike {
     function exec(address target, bytes calldata args) external payable returns (bytes memory out);
@@ -31,6 +33,19 @@ interface ProxyLike {
 
 interface RateSetterLike {
     function maxLine() external returns (uint256);
+}
+
+interface VestedRewardsDistributionLike {
+    function distribute() external;
+}
+
+interface DssVestLike {
+    function create(address, uint256, uint256, uint256, uint256, address) external returns (uint256);
+    function restrict(uint256) external;
+}
+
+interface DaiUsdsLike {
+    function daiToUsds(address usr, uint256 wad) external;
 }
 
 contract DssSpellAction is DssAction {
@@ -60,8 +75,6 @@ contract DssSpellAction is DssAction {
     uint256 internal constant WAD = 10 ** 18;
     uint256 internal constant RAY = 10 ** 27;
     uint256 internal constant RAD = 10 ** 45;
-    uint256 internal constant MILLION = 10 ** 6;
-    uint256 internal constant BILLION = 10 ** 9;
 
     // ---------- Contracts ----------
     address internal constant LOCKSTAKE_CLIP = 0x836F56750517b1528B5078Cba4Ac4B94fBE4A399;
@@ -70,13 +83,29 @@ contract DssSpellAction is DssAction {
     address internal constant STUSDS_RATE_SETTER = 0x30784615252B13E1DbE2bDf598627eaC297Bf4C5;
     address internal constant STUSDS_MOM = 0xf5DEe2CeDC5ADdd85597742445c0bf9b9cAfc699;
     address internal constant STUSDS_RATE_SETTER_BUD = 0xBB865F94B8A92E57f79fCc89Dfd4dcf0D3fDEA16;
-    address internal constant ILK_REGISTRY = 0x5a464C28D19848f44199D003BeF5ecc87d090F87;
-    address internal constant MCD_VAT = 0x35D1b3F3D7966A1DFe207aa4514C12a259A0492B;
+
+    address internal immutable ILK_REGISTRY = DssExecLib.getChangelogAddress("ILK_REGISTRY");
+    address internal immutable MCD_VAT = DssExecLib.getChangelogAddress("MCD_VAT");
+    address internal immutable MCD_VEST_SKY = DssExecLib.getChangelogAddress("MCD_VEST_SKY");
+    address internal immutable REWARDS_DIST_USDS_SKY = DssExecLib.getChangelogAddress("REWARDS_DIST_USDS_SKY");
+    address internal immutable MCD_VEST_SKY_TREASURY = DssExecLib.getChangelogAddress("MCD_VEST_SKY_TREASURY");
+    address internal immutable SKY = DssExecLib.getChangelogAddress("SKY");
+    address internal immutable DAI = DssExecLib.dai();
+    address internal immutable DAI_USDS = DssExecLib.getChangelogAddress("DAI_USDS");
+
+    // ---------- Wallets ----------
+    address internal constant LIQUIDITY_BOOTSTRAPPING = 0xD8507ef0A59f37d15B5D7b630FA6EEa40CE4AFdD;
+    address internal constant ECOSYSTEM_TEAM = 0x05F471262d15EECA4059DadE070e5BEd509a4e73;
+
+    // ---------- Spark Proxy Spell ----------
+    // Note: Spark Proxy: https://github.com/sparkdotfi/sparklend-deployments/blob/bba4c57d54deb6a14490b897c12a949aa035a99b/script/output/1/primary-sce-latest.json#L2
+    address internal constant SPARK_PROXY = 0x3300f198988e4C9C63F75dF86De36421f06af8c4;
+    address internal constant SPARK_SPELL = 0xe7782847eF825FF37662Ef2F426f2D8c5D904121;
 
     function actions() public override {
         // ----- stUSDS Onboarding -----
 
-        // Note: load DssInstance from chainlog
+        // Note: Load DssInstance from chainlog
         DssInstance memory dss = MCD.loadFromChainlog(DssExecLib.LOG);
 
         // ----- Update LSEV2-SKY-A clipper by calling LockstakeInit.updateClipper with the following parameters: -----
@@ -89,7 +118,6 @@ contract DssSpellAction is DssAction {
         );
 
         // ----- Initialize stUSDS module by calling StUsdsInit.init with the following parameters: -----
-
         StUsdsInstance memory stUsdsInstance = StUsdsInstance({
             // instance.stUsds being ERC1967Proxy for StUsds at 0x99CD4Ec3f88A45940936F469E4bB72A2A701EEB9
             stUsds: 0x99CD4Ec3f88A45940936F469E4bB72A2A701EEB9,
@@ -111,15 +139,15 @@ contract DssSpellAction is DssAction {
             // cfg.str being 0 basis points
             str: RAY, // Note: 0 basis points == 1 RAY (per second rate)
             // cfg.cap being 200,000,000 USDS
-            cap: 200 * MILLION * WAD,
+            cap: 200_000_000 * WAD,
             // cfg.line being 200,000,000 USDS
-            line: 200 * MILLION * RAD,
+            line: 200_000_000 * RAD,
             // cfg.tau being 57,600 seconds
             tau: 57_600,
             // cfg.maxLine being 1,000,000,000 USDS
-            maxLine: 1 * BILLION * RAD,
+            maxLine: 1_000_000_000 * RAD,
             // cfg.maxCap being 1,000,000,000 USDS
-            maxCap: 1 * BILLION * WAD,
+            maxCap: 1_000_000_000 * WAD,
             // cfg.minStrBps being 200 basis points
             minStrBps: 200,
             // cfg.maxStrBps being 5,000 basis points
@@ -150,26 +178,49 @@ contract DssSpellAction is DssAction {
         // ----- SKY Token Rewards Rebalance -----
 
         // Yank MCD_VEST_SKY vest with ID 5
+        VestAbstract(MCD_VEST_SKY_TREASURY).yank(5); // TODO: Confirm
+
         // VestedRewardsDistribution.distribute() on REWARDS_DIST_USDS_SKY
+        VestedRewardsDistributionLike(REWARDS_DIST_USDS_SKY).distribute();
 
         // ----- Deploy new MCD_VEST_SKY_TREASURY stream with the following parameters: -----
-
         // res: 1 (restricted)
+        // Note: Action taken below, after stream creation
+
         // Increase SKY allowance for MCD_VEST_SKY_TREASURY to the sum of all streams
+        GemAbstract(SKY).approve(
+            MCD_VEST_SKY_TREASURY,
+            VestAbstract(MCD_VEST_SKY_TREASURY).tot(1) - VestAbstract(MCD_VEST_SKY_TREASURY).rxd(1)
+                + VestAbstract(MCD_VEST_SKY_TREASURY).tot(2) - VestAbstract(MCD_VEST_SKY_TREASURY).rxd(2)
+                + VestAbstract(MCD_VEST_SKY_TREASURY).tot(3) - VestAbstract(MCD_VEST_SKY_TREASURY).rxd(3)
+                + VestAbstract(MCD_VEST_SKY_TREASURY).tot(4) - VestAbstract(MCD_VEST_SKY_TREASURY).rxd(4) + 76_739_938 * WAD
+        );
+
         // MCD_VEST_SKY_TREASURY Vest Stream  | from 'block.timestamp' to 'block.timestamp + 15,724,800 seconds' | 76,739,938 * WAD SKY | REWARDS_DIST_USDS_SKY
+        uint256 vestId = DssVestLike(MCD_VEST_SKY_TREASURY).create(
+            REWARDS_DIST_USDS_SKY, 76_739_938 * WAD, block.timestamp, 15_724_800, 0, address(0)
+        );
+
+        // Note: Restrict = 1, per the instruction on the top of this section
+        DssVestLike(MCD_VEST_SKY_TREASURY).restrict(vestId);
+
         // File the new stream ID on REWARDS_DIST_USDS_SKY
+        DssExecLib.setValue(REWARDS_DIST_USDS_SKY, "vestId", vestId);
 
         // ----- Core Simplification Buffer Budget Transfer -----
 
         // Transfer 8,000,000 USDS to 0xd8507ef0a59f37d15b5d7b630fa6eea40ce4afdd
+        _transferUsds(LIQUIDITY_BOOTSTRAPPING, 8_000_000 * WAD);
 
         // ----- Accessibility Reward Budget Transfer -----
 
         // Transfer 3,000,000 USDS to 0x05F471262d15EECA4059DadE070e5BEd509a4e73
+        _transferUsds(ECOSYSTEM_TEAM, 3_000_000 * WAD);
 
         // ----- Execute Spark Proxy Spell -----
 
-        // Execute Spark proxy spell at TBD
+        // Execute Spark proxy spell at 0xe7782847eF825FF37662Ef2F426f2D8c5D904121
+        ProxyLike(SPARK_PROXY).exec(SPARK_SPELL, abi.encodeWithSignature("execute()"));
     }
 
     // ---------- Helper Functions ----------
@@ -190,8 +241,23 @@ contract DssSpellAction is DssAction {
         }
     }
 
+    /// @notice Returns max of two inputs
     function _max(uint256 a, uint256 b) internal pure returns (uint256) {
         return a > b ? a : b;
+    }
+
+    /// @notice Wraps the operations required to transfer USDS from the surplus buffer.
+    /// @param usr The USDS receiver.
+    /// @param wad The USDS amount in wad precision (10 ** 18).
+    function _transferUsds(address usr, uint256 wad) internal {
+        // Note: Enforce whole units to avoid rounding errors
+        require(wad % WAD == 0, "transferUsds/non-integer-wad");
+        // Note: DssExecLib currently only supports Dai transfers from the surplus buffer.
+        DssExecLib.sendPaymentFromSurplusBuffer(address(this), wad / WAD);
+        // Note: Approve DAI_USDS for the amount sent to be able to convert it.
+        GemAbstract(DAI).approve(DAI_USDS, wad);
+        // Note: Convert Dai to USDS for `usr`.
+        DaiUsdsLike(DAI_USDS).daiToUsds(usr, wad);
     }
 }
 

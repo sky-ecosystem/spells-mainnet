@@ -19,7 +19,7 @@ done
 DSS_EXEC_LIB=$(< DssExecLib.address)
 echo "Using DssExecLib at: $DSS_EXEC_LIB"
 export FOUNDRY_LIBRARIES="lib/dss-exec-lib/src/DssExecLib.sol:DssExecLib:$DSS_EXEC_LIB"
-export FOUNDRY_OPTIMIZER=false
+export FOUNDRY_OPTIMIZER=true
 export FOUNDRY_OPTIMIZER_RUNS=200
 export FOUNDRY_ROOT_CHAINID=1
 
