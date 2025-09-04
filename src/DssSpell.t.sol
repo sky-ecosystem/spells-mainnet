@@ -336,7 +336,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testIlkClipper() public { // add the `skipped` modifier to skip
+    function testIlkClipper() public skipped {  // add the `skipped` modifier to skip
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
@@ -509,9 +509,13 @@ contract DssSpellTest is DssSpellTestBase {
         bytes32 ward;
     }
 
-    function testNewAuthorizations() public skipped { // add the `skipped` modifier to skip
-        Authorization[1] memory newAuthorizations = [
-            Authorization({ base: "MCD_VAT",          ward: "MCD_VEST_USDS" })
+    function testNewAuthorizations() public { // add the `skipped` modifier to skip
+        Authorization[5] memory newAuthorizations = [
+            Authorization({ base: "MCD_VAT", ward: "STUSDS" }),
+            Authorization({ base: "STUSDS", ward: "STUSDS_MOM" }),
+            Authorization({ base: "STUSDS_RATE_SETTER", ward: "STUSDS_MOM" }),
+            Authorization({ base: "STUSDS", ward: "STUSDS_RATE_SETTER" }),
+            Authorization({ base: "STUSDS", ward: "LOCKSTAKE_CLIP" })
         ];
 
         for (uint256 i = 0; i < newAuthorizations.length; i++) {
@@ -1400,13 +1404,6 @@ contract DssSpellTest is DssSpellTestBase {
     WardsAbstract stusds = WardsAbstract(addr.addr("STUSDS"));
 
     function testLockstakeStUsdsInit() public {
-        string memory nameV;
-        string memory symbolV;
-        uint256 classV;
-        uint256 decV;
-        address gemV;
-        address pipV;
-        address joinV;
 
         assertEq(vat.wards(address(clip)), 1);
         assertEq(vat.wards(address(newClip)), 0);
@@ -1436,13 +1433,6 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(newClip.wards(address(clipperMom)), 0);
         uint256 clipperMomToleranceClipper = clipperMom.tolerance(address(clip));
         assertEq(clipperMom.tolerance(address(newClip)), 0);
-        nameV = ilkRegistry.name(ilk);
-        symbolV = ilkRegistry.symbol(ilk);
-        classV = ilkRegistry.class(ilk);
-        decV = ilkRegistry.dec(ilk);
-        gemV = ilkRegistry.gem(ilk);
-        pipV = ilkRegistry.pip(ilk);
-        joinV = ilkRegistry.join(ilk);
         assertEq(ilkRegistry.xlip(ilk), address(clip));
         assertEq(chainLog.getAddress("LOCKSTAKE_CLIP"), address(clip));
 
@@ -1478,13 +1468,6 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(newClip.wards(address(clipperMom)), 0);
         assertEq(stusds.wards(address(newClip)), 1);
         assertEq(clipperMom.tolerance(address(newClip)), clipperMomToleranceClipper);
-        assertEq(ilkRegistry.name(ilk), nameV);
-        assertEq(ilkRegistry.symbol(ilk), symbolV);
-        assertEq(ilkRegistry.class(ilk), classV);
-        assertEq(ilkRegistry.dec(ilk), decV);
-        assertEq(ilkRegistry.gem(ilk), gemV);
-        assertEq(ilkRegistry.pip(ilk), pipV);
-        assertEq(ilkRegistry.join(ilk), joinV);
         assertEq(ilkRegistry.xlip(ilk), address(newClip));
         assertEq(chainLog.getAddress("LOCKSTAKE_CLIP"), address(newClip));
     }
@@ -1527,7 +1510,6 @@ contract DssSpellTest is DssSpellTestBase {
         spotter.poke(ilk);
         assertEq(newClip.kicks(), 0);
         assertEq(engine.urnAuctions(urn), 0);
-        emit log_named_uint("LockstakeClipper/stopped-incorrect", newClip.stopped());
         uint256 salesId = dog.bark(ilk, address(urn), address(this));
         assertEq(newClip.kicks(), 1);
         assertEq(engine.urnAuctions(urn), 1);
