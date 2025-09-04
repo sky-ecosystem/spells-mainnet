@@ -1515,10 +1515,10 @@ contract DssSpellTest is DssSpellTestBase {
         (,,, dirt1) = dog.ilks(ilk);
 
         address urn = engine.open(0);
-        deal(address(sky), address(this), 1_000_000 * 10**18);
-        sky.approve(address(engine), 1_000_000 * 10**18);
-        engine.lock(address(this), 0, 1_000_000 * 10**18, 5);
-        engine.draw(address(this), 0, address(this), 50_000 * 10**18);
+        deal(address(sky), address(this), 1_000_000 * WAD);
+        sky.approve(address(engine), 1_000_000 * WAD);
+        engine.lock(address(this), 0, 1_000_000 * WAD, 5);
+        engine.draw(address(this), 0, address(this), 50_000 * WAD);
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
@@ -1532,7 +1532,7 @@ contract DssSpellTest is DssSpellTestBase {
         pip.poke();
         vm.prank(pauseProxy);
         pip.kiss(address(this));
-        assertEq(uint256(pip.read()), 0.04 * 10**18);
+        assertEq(uint256(pip.read()), 0.04 * WAD);
 
         // unstop the clipper
         vm.prank(pauseProxy);
