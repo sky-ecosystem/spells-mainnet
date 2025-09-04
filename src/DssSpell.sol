@@ -39,11 +39,6 @@ interface VestedRewardsDistributionLike {
     function distribute() external returns (uint256);
 }
 
-interface DssVestLike {
-    function create(address, uint256, uint256, uint256, uint256, address) external returns (uint256);
-    function restrict(uint256) external;
-}
-
 interface DaiUsdsLike {
     function daiToUsds(address, uint256) external;
 }
@@ -207,12 +202,12 @@ contract DssSpellAction is DssAction {
         );
 
         // MCD_VEST_SKY_TREASURY Vest Stream  | from 'block.timestamp' to 'block.timestamp + 15,724,800 seconds' | 76,739,938 * WAD SKY | REWARDS_DIST_USDS_SKY
-        uint256 vestId = DssVestLike(MCD_VEST_SKY_TREASURY).create(
+        uint256 vestId = VestAbstract(MCD_VEST_SKY_TREASURY).create(
             REWARDS_DIST_USDS_SKY, 76_739_938 * WAD, block.timestamp, 15_724_800, 0, address(0)
         );
 
         // Note: Restrict = 1, per the instruction on the top of this section
-        DssVestLike(MCD_VEST_SKY_TREASURY).restrict(vestId);
+        VestAbstract(MCD_VEST_SKY_TREASURY).restrict(vestId);
 
         // File the new stream ID on REWARDS_DIST_USDS_SKY
         DssExecLib.setValue(REWARDS_DIST_USDS_SKY, "vestId", vestId);
