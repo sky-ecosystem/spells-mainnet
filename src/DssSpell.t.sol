@@ -54,6 +54,33 @@ interface ClipperMomLike {
     function tolerance(address) external view returns (uint256);
 }
 
+interface StusdsLike is WardsAbstract {
+    function chi() external view returns (uint192);
+    function rho() external view returns (uint64);
+    function str() external view returns (uint256);
+    function line() external view returns (uint256);
+    function cap() external view returns (uint256);
+    function totalAssets() external view returns (uint256);
+    function ilk() external view returns (bytes32);
+    function version() external view returns (string calldata);
+    function getImplementation() external view returns (address);
+    function totalSupply() external view returns (uint256);
+    function balanceOf(address) external view returns (uint256);
+    function deposit(uint256, address) external returns (uint256);
+    function withdraw(uint256, address, address) external returns (uint256);
+    function file(bytes32, uint256) external;
+}
+
+interface StusdsRateSetterLike {
+    function tau() external view returns (uint64);
+    function maxLine() external view returns (uint256);
+    function maxCap() external view returns (uint256);
+    function strCfg() external view returns (uint16, uint16, uint16);
+    function dutyCfg() external view returns (uint16, uint16, uint16);
+    function buds(address) external view returns (uint256);
+    function set(uint256, uint256, uint256, uint256) external;
+}
+
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -1401,9 +1428,13 @@ contract DssSpellTest is DssSpellTestBase {
     LockstakeClipperLike newClip = LockstakeClipperLike(addr.addr("LOCKSTAKE_CLIP"));
     ClipperMomLike clipperMom = ClipperMomLike(addr.addr("CLIPPER_MOM"));
     IlkRegistryAbstract ilkRegistry = IlkRegistryAbstract(addr.addr("ILK_REGISTRY"));
-    WardsAbstract stusds = WardsAbstract(addr.addr("STUSDS"));
+    StusdsLike stusds = StusdsLike(addr.addr("STUSDS"));
+    address stUsdsImp = addr.addr("STUSDS_IMP");
+    StusdsRateSetterLike rateSetter = StusdsRateSetterLike(addr.addr("STUSDS_RATE_SETTER"));
+    ConvLike conv = ConvLike(0xea91A18dAFA1Cb1d2a19DFB205816034e6Fe7e52);
+    address bud = 0xBB865F94B8A92E57f79fCc89Dfd4dcf0D3fDEA16;
 
-    function testLockstakeStUsdsInit() public {
+    function testLockstakeStusdsInit() public {
 
         assertEq(vat.wards(address(clip)), 1);
         assertEq(vat.wards(address(newClip)), 0);
@@ -1472,7 +1503,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(chainLog.getAddress("LOCKSTAKE_CLIP"), address(newClip));
     }
 
-    function testLockstakeStUsdsIntegration() public {
+    function testLockstakeStusdsIntegration() public {
         uint256 dirt1;
         uint256 dirt2;
         uint256 dirt3;
@@ -1542,5 +1573,168 @@ contract DssSpellTest is DssSpellTestBase {
 
         (,,, dirt3) = dog.ilks(ilk);
         assertEq(dirt3, dirt1);
+    }
+
+    function testStusdsIntegration() public {
+        uint256 line1;
+        uint256 line2;
+        uint256 line3;
+        uint256 line4;
+        uint256 line5;
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // init
+        {
+            assertEq(stusds.chi(), RAY);
+            assertEq(stusds.rho(), block.timestamp);
+            assertEq(stusds.str(), RAY);
+            assertEq(vat.can(address(stusds), address(usdsJoin)), 1);
+            assertEq(stusds.wards(pauseProxy), 1);
+            assertEq(stusds.version(), "1");
+            assertEq(stusds.getImplementation(), stUsdsImp);
+            assertEq(jug.wards(address(rateSetter)), 1);
+            assertEq(stusds.wards(address(rateSetter)), 1);
+            assertEq(rateSetter.tau(), 57_600);
+            assertEq(rateSetter.maxLine(),  1_000_000_000 * RAD);
+            assertEq(rateSetter.maxCap(), 1_000_000_000 * WAD);
+            (uint16 minStr, uint16 maxStr, uint256 strStep) = rateSetter.strCfg();
+            assertEq(minStr, 200);
+            assertEq(maxStr, 5_000);
+            assertEq(strStep, 4_000);
+            (uint16 minDuty, uint16 maxDuty, uint256 dutyStep) = rateSetter.dutyCfg();
+            assertEq(minDuty, 210);
+            assertEq(maxDuty, 5_000);
+            assertEq(dutyStep, 4_000);
+            assertEq(rateSetter.buds(bud), 1);
+        }
+
+        deal(address(usds), address(this), 10e18);
+        usds.approve(address(stusds), 10e18);
+
+        uint256 prevSupply = stusds.totalSupply();
+        uint256 stusdsUsds = usds.balanceOf(address(stusds));
+
+        uint256 before = vm.snapshotState();
+        // deposit
+        {
+            (,,, line1,) = vat.ilks(stusds.ilk());
+
+            uint256 pie = 1e18 * RAY / stusds.chi();
+            stusds.deposit(1e18, address(0xBEEF));
+
+            assertEq(stusds.totalSupply(), prevSupply + pie);
+            assertLe(stusds.totalAssets(), stusdsUsds + 1e18);
+            assertGe(stusds.totalAssets(), stusdsUsds + 1e18 - 1);
+            assertEq(stusds.balanceOf(address(0xBEEF)), pie);
+            assertEq(usds.balanceOf(address(stusds)), stusdsUsds + _divup(pie * stusds.chi(), RAY));
+            (,,, line2,) = vat.ilks(stusds.ilk());
+            assertApproxEqRel(line2, line1 + 1e45, 10**14);
+
+            stusds.deposit(1e18, address(0xBEEF));
+
+            (,,, line3,) = vat.ilks(stusds.ilk());
+            assertApproxEqRel(line3, line2 + 1e45, 10**14);
+
+            stdstore
+                .target(address(newClip))
+                .sig("Due()")
+                .checked_write(0.3e45);
+
+            stusds.deposit(1e18, address(0xBEEF));
+
+            (,,, line4,) = vat.ilks(stusds.ilk());
+            assertApproxEqRel(line4, line3 + 0.7e45, 10**14); // Reduced by ongoing auction debt
+
+            vm.prank(pauseProxy);
+            stusds.file("line", line4 + 0.2e45);
+
+            stusds.deposit(1e18, address(0xBEEF));
+
+            (,,, line5,) = vat.ilks(stusds.ilk());
+            assertApproxEqRel(line5, line4 + 0.2e45, 10**14); // Limited by line
+        }
+
+        vm.revertToStateAndDelete(before);
+        // withdraw
+        {
+            // pushing totalSupply up to allow for withdrawals
+            stdstore
+                .target(address(stusds))
+                .sig("totalSupply()")
+                .checked_write(RAY);
+            // pushing cap up to allow for deposits with the new total supply
+            stdstore
+                .target(address(stusds))
+                .sig("cap()")
+                .checked_write(2 * RAY);
+
+            prevSupply = stusds.totalSupply();
+
+            stusds.deposit(10e18, address(0xBEEF));
+            uint256 pie = 10e18 * RAY / stusds.chi();
+            (,,, line1,) = vat.ilks(stusds.ilk());
+            uint256 shares = _divup(2e45, stusds.chi());
+
+            vm.prank(address(0xBEEF));
+            stusds.withdraw(2e18, address(0xAAA), address(0xBEEF));
+
+            assertEq(stusds.totalSupply(), prevSupply + pie - shares);
+            assertEq(stusds.balanceOf(address(0xBEEF)), pie - shares);
+            assertEq(usds.balanceOf(address(0xAAA)), 2e18);
+            assertEq(usds.balanceOf(address(stusds)), stusdsUsds + 10e18 - 2e18);
+            (,,, line2,) = vat.ilks(stusds.ilk());
+            assertApproxEqRel(line2, line1 - 2e45, 10**14);
+
+            vm.prank(address(0xBEEF));
+            stusds.withdraw(1e18, address(0xAAA), address(0xBEEF));
+
+            (,,, line3,) = vat.ilks(stusds.ilk());
+            assertApproxEqRel(line3, line2 - 1e45, 10**14);
+
+            stdstore
+                .target(address(newClip))
+                .sig("Due()")
+                .checked_write(0.3e45);
+
+            vm.prank(address(0xBEEF));
+            stusds.withdraw(1e18, address(0xAAA), address(0xBEEF));
+
+            (,,, line4,) = vat.ilks(stusds.ilk());
+            assertApproxEqRel(line4, line3 - 1.3e45, 10**14); // Also reduced by ongoing auction debt
+
+            vm.prank(pauseProxy);
+            stusds.file("line", line4 - 2e45);
+
+            vm.prank(address(0xBEEF));
+            stusds.withdraw(1e18, address(0xAAA), address(0xBEEF));
+
+            (,,, line5,) = vat.ilks(stusds.ilk());
+            assertApproxEqRel(line5, line4 - 2e45, 10**14); // Limited by line
+
+            uint256 rAssets = stusds.balanceOf(address(0xBEEF));
+            vm.prank(address(0xBEEF));
+            stusds.withdraw(rAssets, address(0xAAA), address(0xBEEF));
+            assertEq(stusds.totalSupply(), prevSupply);
+            assertEq(stusds.balanceOf(address(0xBEEF)), 0);
+            assertEq(usds.balanceOf(address(0xAAA)), 5e18 + rAssets);
+            assertEq(usds.balanceOf(address(stusds)), stusdsUsds + 10e18 - 5e18 - rAssets);
+        }
+
+        vm.revertToStateAndDelete(before);
+        // set rates
+        {
+            vm.prank(bud);
+            rateSetter.set(300, 300, 50_000_000 * RAD, 60_000_000 * WAD);
+
+            (uint256 duty, ) = jug.ilks(ilk);
+
+            assertEq(stusds.str(), conv.btor(300));
+            assertEq(duty, conv.btor(300));
+            assertEq(stusds.line(), 50_000_000 * RAD);
+            assertEq(stusds.cap(), 60_000_000 * WAD);
+        }
     }
 }
