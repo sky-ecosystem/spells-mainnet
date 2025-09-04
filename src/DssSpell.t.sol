@@ -1525,14 +1525,14 @@ contract DssSpellTest is DssSpellTestBase {
         assertTrue(spell.done(), "TestError/spell-not-done");
 
         // update median price
-        vm.store(pip.src(), bytes32(uint256(4)), bytes32(abi.encodePacked(uint32(block.timestamp), uint96(0), uint128(0.04 * 10**18))));
+        vm.store(pip.src(), bytes32(uint256(4)), bytes32(abi.encodePacked(uint32(block.timestamp), uint96(0), uint128(0.04 ether))));
         vm.warp(block.timestamp + 1 hours);
         pip.poke();
         vm.warp(block.timestamp + 1 hours);
         pip.poke();
         vm.prank(pauseProxy);
         pip.kiss(address(this));
-        assertEq(uint256(pip.read()), 0.04 * WAD);
+        assertEq(uint256(pip.read()), 0.04 ether);
 
         // unstop the clipper
         vm.prank(pauseProxy);
