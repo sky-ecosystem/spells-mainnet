@@ -181,6 +181,7 @@ contract DssSpellAction is DssAction {
 
         // ----- SKY Token Rewards Rebalance -----
         // Forum: https://forum.sky.money/t/sky-token-rewards-usds-to-sky-rewards-normalization-configuration/26638/14
+        // Forum: https://forum.sky.money/t/sky-token-rewards-usds-to-sky-rewards-normalization-configuration/26638/15
 
         // Yank MCD_VEST_SKY_TREASURY vest with ID 5
         VestAbstract(MCD_VEST_SKY_TREASURY).yank(5);
