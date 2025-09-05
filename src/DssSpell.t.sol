@@ -1629,7 +1629,7 @@ contract DssSpellTest is DssSpellTestBase {
             assertLe(stusds.totalAssets(), stusdsUsds + 1e18, "TestError/stusds-integration-deposit-totalassets-le");
             assertGe(stusds.totalAssets(), stusdsUsds + 1e18 - 1, "TestError/stusds-integration-deposit-totalassets-ge");
             assertEq(stusds.balanceOf(address(0xBEEF)), pie, "TestError/stusds-integration-deposit-balanceof");
-            assertEq(usds.balanceOf(address(stusds)), stusdsUsds + _divup(pie * stusds.chi(), RAY), "TestError/stusds-integration-deposit-usds-balanceof");
+            assertEq(usds.balanceOf(address(stusds)), stusdsUsds + 1e18, "TestError/stusds-integration-deposit-usds-balanceof");
             (,,, line2,) = vat.ilks(stusds.ilk());
             assertApproxEqRel(line2, line1 + 1e45, 10**14, "TestError/stusds-integration-deposit-line2");
 
@@ -1638,6 +1638,7 @@ contract DssSpellTest is DssSpellTestBase {
             (,,, line3,) = vat.ilks(stusds.ilk());
             assertApproxEqRel(line3, line2 + 1e45, 10**14, "TestError/stusds-integration-deposit-line3");
 
+            { // Reduced by ongoing auction debt
             stdstore
                 .target(address(newClip))
                 .sig("Due()")
@@ -1646,15 +1647,18 @@ contract DssSpellTest is DssSpellTestBase {
             stusds.deposit(1e18, address(0xBEEF));
 
             (,,, line4,) = vat.ilks(stusds.ilk());
-            assertApproxEqRel(line4, line3 + 0.7e45, 10**14, "TestError/stusds-integration-deposit-line4"); // Reduced by ongoing auction debt
+            assertApproxEqRel(line4, line3 + 0.7e45, 10**14, "TestError/stusds-integration-deposit-line4");
+            }
 
+            {  // Limited by line
             vm.prank(pauseProxy);
             stusds.file("line", line4 + 0.2e45);
 
             stusds.deposit(1e18, address(0xBEEF));
 
             (,,, line5,) = vat.ilks(stusds.ilk());
-            assertApproxEqRel(line5, line4 + 0.2e45, 10**14, "TestError/stusds-integration-deposit-line5"); // Limited by line
+            assertApproxEqRel(line5, line4 + 0.2e45, 10**14, "TestError/stusds-integration-deposit-line5");
+            }
         }
 
         vm.revertToStateAndDelete(before);
@@ -1694,6 +1698,7 @@ contract DssSpellTest is DssSpellTestBase {
             (,,, line3,) = vat.ilks(stusds.ilk());
             assertApproxEqRel(line3, line2 - 1e45, 10**14, "TestError/stusds-integration-withdraw-line3");
 
+            { // Also reduced by ongoing auction debt
             stdstore
                 .target(address(newClip))
                 .sig("Due()")
@@ -1703,8 +1708,10 @@ contract DssSpellTest is DssSpellTestBase {
             stusds.withdraw(1e18, address(0xAAA), address(0xBEEF));
 
             (,,, line4,) = vat.ilks(stusds.ilk());
-            assertApproxEqRel(line4, line3 - 1.3e45, 10**14, "TestError/stusds-integration-withdraw-line4"); // Also reduced by ongoing auction debt
+            assertApproxEqRel(line4, line3 - 1.3e45, 10**14, "TestError/stusds-integration-withdraw-line4");
+            }
 
+            { // Limited by line
             vm.prank(pauseProxy);
             stusds.file("line", line4 - 2e45);
 
@@ -1712,7 +1719,8 @@ contract DssSpellTest is DssSpellTestBase {
             stusds.withdraw(1e18, address(0xAAA), address(0xBEEF));
 
             (,,, line5,) = vat.ilks(stusds.ilk());
-            assertApproxEqRel(line5, line4 - 2e45, 10**14, "TestError/stusds-integration-withdraw-line5"); // Limited by line
+            assertApproxEqRel(line5, line4 - 2e45, 10**14, "TestError/stusds-integration-withdraw-line5");
+            }
 
             uint256 rAssets = stusds.balanceOf(address(0xBEEF));
             vm.prank(address(0xBEEF));
