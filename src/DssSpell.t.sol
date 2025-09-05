@@ -1668,12 +1668,12 @@ contract DssSpellTest is DssSpellTestBase {
             stdstore
                 .target(address(stusds))
                 .sig("totalSupply()")
-                .checked_write(RAY);
+                .checked_write(100_000_000 * WAD);
             // pushing cap up to allow for deposits with the new total supply
             stdstore
                 .target(address(stusds))
                 .sig("cap()")
-                .checked_write(2 * RAY);
+                .checked_write(200_000_000 * WAD);
 
             prevSupply = stusds.totalSupply();
 
