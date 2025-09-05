@@ -495,6 +495,33 @@ interface ChiefLike {
     function vote(address[] memory yays) external returns (bytes32 slate);
 }
 
+interface StusdsLike is WardsAbstract {
+    function chi() external view returns (uint192);
+    function rho() external view returns (uint64);
+    function str() external view returns (uint256);
+    function line() external view returns (uint256);
+    function cap() external view returns (uint256);
+    function totalAssets() external view returns (uint256);
+    function ilk() external view returns (bytes32);
+    function version() external view returns (string calldata);
+    function getImplementation() external view returns (address);
+    function totalSupply() external view returns (uint256);
+    function balanceOf(address) external view returns (uint256);
+    function deposit(uint256, address) external returns (uint256);
+    function withdraw(uint256, address, address) external returns (uint256);
+    function file(bytes32, uint256) external;
+}
+
+interface StusdsRateSetterLike {
+    function tau() external view returns (uint64);
+    function maxLine() external view returns (uint256);
+    function maxCap() external view returns (uint256);
+    function strCfg() external view returns (uint16, uint16, uint16);
+    function dutyCfg() external view returns (uint16, uint16, uint16);
+    function buds(address) external view returns (uint256);
+    function set(uint256, uint256, uint256, uint256) external;
+}
+
 contract DssSpellTestBase is Config, DssTest {
     using stdStorage for StdStorage;
 
@@ -555,6 +582,8 @@ contract DssSpellTestBase is Config, DssTest {
     SPBEAMLike                    spbeam = SPBEAMLike(         addr.addr("MCD_SPBEAM"));
     SPBEAMMomLike              spbeamMom = SPBEAMMomLike(      addr.addr("SPBEAM_MOM"));
     address          voteDelegateFactory =                     addr.addr("VOTE_DELEGATE_FACTORY");
+    StusdsRateSetterLike      rateSetter = StusdsRateSetterLike(addr.addr("STUSDS_RATE_SETTER"));
+    StusdsLike                    stusds = StusdsLike(         addr.addr("STUSDS"));
 
     DssSpell spell;
 
@@ -1040,6 +1069,26 @@ contract DssSpellTestBase is Config, DssTest {
             _checkTransferrableVestAllowanceAndBalance('sky', sky, vestSky);
             // check spk allowance and balance
             _checkTransferrableVestAllowanceAndBalance('spk', spk, vestSpk);
+        }
+
+        // stusds
+        {
+            assertEq(rateSetter.tau(), afterSpell.stusds_rate_setter_tau, "TestError/stusds-ratesetter-tau");
+            assertEq(rateSetter.maxLine(), afterSpell.stusds_rate_setter_maxLine, "TestError/stusds-ratesetter-maxline");
+            assertEq(rateSetter.maxCap(), afterSpell.stusds_rate_setter_maxCap, "TestError/stusds-ratesetter-maxcap");
+            (uint16 minStr, uint16 maxStr, uint256 strStep) = rateSetter.strCfg();
+            assertEq(minStr, afterSpell.stusds_rate_setter_minStr, "TestError/stusds-ratesetter-strcfg-minstr");
+            assertEq(maxStr, afterSpell.stusds_rate_setter_maxStr, "TestError/stusds-ratesetter-strcfg-maxstr");
+            assertEq(strStep, afterSpell.stusds_rate_setter_strStep, "TestError/stusds-ratesetter-strcfg-strstep");
+            (uint16 minDuty, uint16 maxDuty, uint256 dutyStep) = rateSetter.dutyCfg();
+            assertEq(afterSpell.stusds_rate_setter_minDuty, minDuty, "TestError/stusds-ratesetter-dutycfg-minduty");
+            assertEq(maxDuty, afterSpell.stusds_rate_setter_maxDuty, "TestError/stusds-ratesetter-dutycfg-maxduty");
+            assertEq(dutyStep, afterSpell.stusds_rate_setter_dutyStep, "TestError/stusds-ratesetter-dutycfg-dutystep");
+            assertEq(stusds.line(), afterSpell.stusds_line, "TestError/stusds-line");
+            assertEq(stusds.cap(), afterSpell.stusds_cap, "TestError/stusds-cap");
+
+            for (uint256 i; i < afterSpell.stusds_rate_setter_buds.length; i++)
+                assertEq(rateSetter.buds(afterSpell.stusds_rate_setter_buds[i]), 1, "TestError/stusds-ratesetter-buds");
         }
     }
 

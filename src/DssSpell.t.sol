@@ -54,33 +54,6 @@ interface ClipperMomLike {
     function tolerance(address) external view returns (uint256);
 }
 
-interface StusdsLike is WardsAbstract {
-    function chi() external view returns (uint192);
-    function rho() external view returns (uint64);
-    function str() external view returns (uint256);
-    function line() external view returns (uint256);
-    function cap() external view returns (uint256);
-    function totalAssets() external view returns (uint256);
-    function ilk() external view returns (bytes32);
-    function version() external view returns (string calldata);
-    function getImplementation() external view returns (address);
-    function totalSupply() external view returns (uint256);
-    function balanceOf(address) external view returns (uint256);
-    function deposit(uint256, address) external returns (uint256);
-    function withdraw(uint256, address, address) external returns (uint256);
-    function file(bytes32, uint256) external;
-}
-
-interface StusdsRateSetterLike {
-    function tau() external view returns (uint64);
-    function maxLine() external view returns (uint256);
-    function maxCap() external view returns (uint256);
-    function strCfg() external view returns (uint16, uint16, uint16);
-    function dutyCfg() external view returns (uint16, uint16, uint16);
-    function buds(address) external view returns (uint256);
-    function set(uint256, uint256, uint256, uint256) external;
-}
-
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -1428,9 +1401,7 @@ contract DssSpellTest is DssSpellTestBase {
     LockstakeClipperLike newClip = LockstakeClipperLike(addr.addr("LOCKSTAKE_CLIP"));
     ClipperMomLike clipperMom = ClipperMomLike(addr.addr("CLIPPER_MOM"));
     IlkRegistryAbstract ilkRegistry = IlkRegistryAbstract(addr.addr("ILK_REGISTRY"));
-    StusdsLike stusds = StusdsLike(addr.addr("STUSDS"));
     address stUsdsImp = addr.addr("STUSDS_IMP");
-    StusdsRateSetterLike rateSetter = StusdsRateSetterLike(addr.addr("STUSDS_RATE_SETTER"));
     ConvLike conv = ConvLike(0xea91A18dAFA1Cb1d2a19DFB205816034e6Fe7e52);
     address bud = 0xBB865F94B8A92E57f79fCc89Dfd4dcf0D3fDEA16;
 
@@ -1597,18 +1568,6 @@ contract DssSpellTest is DssSpellTestBase {
             assertEq(stusds.getImplementation(), stUsdsImp, "TestError/stusds-integration-init-stusds-getimplementation");
             assertEq(jug.wards(address(rateSetter)), 1, "TestError/stusds-integration-init-jug-wards-ratesetter");
             assertEq(stusds.wards(address(rateSetter)), 1, "TestError/stusds-integration-init-stusds-wards-ratesetter");
-            assertEq(rateSetter.tau(), 57_600, "TestError/stusds-integration-init-ratesetter-tau");
-            assertEq(rateSetter.maxLine(),  1_000_000_000 * RAD, "TestError/stusds-integration-init-ratesetter-maxline");
-            assertEq(rateSetter.maxCap(), 1_000_000_000 * WAD, "TestError/stusds-integration-init-ratesetter-maxcap");
-            (uint16 minStr, uint16 maxStr, uint256 strStep) = rateSetter.strCfg();
-            assertEq(minStr, 200, "TestError/stusds-integration-init-ratesetter-strcfg-minstr");
-            assertEq(maxStr, 5_000, "TestError/stusds-integration-init-ratesetter-strcfg-maxstr");
-            assertEq(strStep, 4_000, "TestError/stusds-integration-init-ratesetter-strcfg-strstep");
-            (uint16 minDuty, uint16 maxDuty, uint256 dutyStep) = rateSetter.dutyCfg();
-            assertEq(minDuty, 210, "TestError/stusds-integration-init-ratesetter-dutycfg-minduty");
-            assertEq(maxDuty, 5_000, "TestError/stusds-integration-init-ratesetter-dutycfg-maxduty");
-            assertEq(dutyStep, 4_000, "TestError/stusds-integration-init-ratesetter-dutycfg-dutystep");
-            assertEq(rateSetter.buds(bud), 1, "TestError/stusds-integration-init-ratesetter-buds");
         }
 
         deal(address(usds), address(this), 10e18);
