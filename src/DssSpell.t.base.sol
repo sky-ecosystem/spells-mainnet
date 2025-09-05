@@ -1018,6 +1018,9 @@ contract DssSpellTestBase is Config, DssTest {
         // check SPBEAMMom authority
         assertEq(spbeamMom.authority(), addr.addr(values.spbeam_mom_authority), "TestError/spbeamMom-authority");
 
+        // check StusdsMom authority
+        assertEq(stusdsMom.authority(), addr.addr(values.stusds_mom_authority), "TestError/stusdsMom-auth");
+
         // check number of ilks
         assertEq(reg.count(), values.ilk_count, "TestError/ilks-count");
 
@@ -1087,7 +1090,6 @@ contract DssSpellTestBase is Config, DssTest {
             assertEq(dutyStep, afterSpell.stusds_rate_setter_dutyStep, "TestError/stusds-ratesetter-dutycfg-dutystep");
             assertEq(stusds.line(), afterSpell.stusds_line, "TestError/stusds-line");
             assertEq(stusds.cap(), afterSpell.stusds_cap, "TestError/stusds-cap");
-            assertEq(stusdsMom.authority(), addr.addr("MCD_ADM"), "TestError/stusds-mom-auth");
 
             for (uint256 i; i < afterSpell.stusds_rate_setter_buds.length; i++)
                 assertEq(rateSetter.buds(afterSpell.stusds_rate_setter_buds[i]), 1, "TestError/stusds-ratesetter-buds");
