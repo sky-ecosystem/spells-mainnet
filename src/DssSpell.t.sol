@@ -1631,33 +1631,33 @@ contract DssSpellTest is DssSpellTestBase {
             assertEq(stusds.balanceOf(address(0xBEEF)), pie, "TestError/stusds-integration-deposit-balanceof");
             assertEq(usds.balanceOf(address(stusds)), stusdsUsds + 1e18, "TestError/stusds-integration-deposit-usds-balanceof");
             (,,, line2,) = vat.ilks(stusds.ilk());
-            assertApproxEqRel(line2, line1 + 1e45, 10**14, "TestError/stusds-integration-deposit-line2");
+            assertApproxEqRel(line2, line1 + 1e45, 10**14, "TestError/stusds-integration-deposit-line2"); // Note: Tolerance is applied due to rounding
 
             stusds.deposit(1e18, address(0xBEEF));
 
             (,,, line3,) = vat.ilks(stusds.ilk());
-            assertApproxEqRel(line3, line2 + 1e45, 10**14, "TestError/stusds-integration-deposit-line3");
+            assertApproxEqRel(line3, line2 + 1e45, 10**14, "TestError/stusds-integration-deposit-line3"); // Note: Tolerance is applied due to rounding
 
             { // Reduced by ongoing auction debt
-            stdstore
-                .target(address(newClip))
-                .sig("Due()")
-                .checked_write(0.3e45);
+                stdstore
+                    .target(address(newClip))
+                    .sig("Due()")
+                    .checked_write(0.3e45);
 
-            stusds.deposit(1e18, address(0xBEEF));
+                stusds.deposit(1e18, address(0xBEEF));
 
-            (,,, line4,) = vat.ilks(stusds.ilk());
-            assertApproxEqRel(line4, line3 + 0.7e45, 10**14, "TestError/stusds-integration-deposit-line4");
+                (,,, line4,) = vat.ilks(stusds.ilk());
+                assertApproxEqRel(line4, line3 + 0.7e45, 10**14, "TestError/stusds-integration-deposit-line4"); // Note: Tolerance is applied due to rounding
             }
 
             {  // Limited by line
-            vm.prank(pauseProxy);
-            stusds.file("line", line4 + 0.2e45);
+                vm.prank(pauseProxy);
+                stusds.file("line", line4 + 0.2e45);
 
-            stusds.deposit(1e18, address(0xBEEF));
+                stusds.deposit(1e18, address(0xBEEF));
 
-            (,,, line5,) = vat.ilks(stusds.ilk());
-            assertApproxEqRel(line5, line4 + 0.2e45, 10**14, "TestError/stusds-integration-deposit-line5");
+                (,,, line5,) = vat.ilks(stusds.ilk());
+                assertApproxEqRel(line5, line4 + 0.2e45, 10**14, "TestError/stusds-integration-deposit-line5"); // Note: Tolerance is applied due to rounding
             }
         }
 
@@ -1690,36 +1690,36 @@ contract DssSpellTest is DssSpellTestBase {
             assertEq(usds.balanceOf(address(0xAAA)), 2e18, "TestError/stusds-integration-withdraw-usds-balanceof-aaa");
             assertEq(usds.balanceOf(address(stusds)), stusdsUsds + 10e18 - 2e18, "TestError/stusds-integration-withdraw-usds-balanceof-stusds");
             (,,, line2,) = vat.ilks(stusds.ilk());
-            assertApproxEqRel(line2, line1 - 2e45, 10**14, "TestError/stusds-integration-withdraw-line2");
+            assertApproxEqRel(line2, line1 - 2e45, 10**14, "TestError/stusds-integration-withdraw-line2"); // Note: Tolerance is applied due to rounding
 
             vm.prank(address(0xBEEF));
             stusds.withdraw(1e18, address(0xAAA), address(0xBEEF));
 
             (,,, line3,) = vat.ilks(stusds.ilk());
-            assertApproxEqRel(line3, line2 - 1e45, 10**14, "TestError/stusds-integration-withdraw-line3");
+            assertApproxEqRel(line3, line2 - 1e45, 10**14, "TestError/stusds-integration-withdraw-line3"); // Note: Tolerance is applied due to rounding
 
             { // Also reduced by ongoing auction debt
-            stdstore
-                .target(address(newClip))
-                .sig("Due()")
-                .checked_write(0.3e45);
+                stdstore
+                    .target(address(newClip))
+                    .sig("Due()")
+                    .checked_write(0.3e45);
 
-            vm.prank(address(0xBEEF));
-            stusds.withdraw(1e18, address(0xAAA), address(0xBEEF));
+                vm.prank(address(0xBEEF));
+                stusds.withdraw(1e18, address(0xAAA), address(0xBEEF));
 
-            (,,, line4,) = vat.ilks(stusds.ilk());
-            assertApproxEqRel(line4, line3 - 1.3e45, 10**14, "TestError/stusds-integration-withdraw-line4");
+                (,,, line4,) = vat.ilks(stusds.ilk());
+                assertApproxEqRel(line4, line3 - 1.3e45, 10**14, "TestError/stusds-integration-withdraw-line4"); // Note: Tolerance is applied due to rounding
             }
 
             { // Limited by line
-            vm.prank(pauseProxy);
-            stusds.file("line", line4 - 2e45);
+                vm.prank(pauseProxy);
+                stusds.file("line", line4 - 2e45);
 
-            vm.prank(address(0xBEEF));
-            stusds.withdraw(1e18, address(0xAAA), address(0xBEEF));
+                vm.prank(address(0xBEEF));
+                stusds.withdraw(1e18, address(0xAAA), address(0xBEEF));
 
-            (,,, line5,) = vat.ilks(stusds.ilk());
-            assertApproxEqRel(line5, line4 - 2e45, 10**14, "TestError/stusds-integration-withdraw-line5");
+                (,,, line5,) = vat.ilks(stusds.ilk());
+                assertApproxEqRel(line5, line4 - 2e45, 10**14, "TestError/stusds-integration-withdraw-line5"); // Note: Tolerance is applied due to rounding
             }
 
             uint256 rAssets = stusds.balanceOf(address(0xBEEF));
