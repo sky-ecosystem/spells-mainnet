@@ -37,21 +37,21 @@ async function downloadAndParse(url) {
 function normalize(records) {
     return records
         .filter((record) => record.Status === "ACTIVE")
-        .reduce((groups, record) => {
+        .reduce((chains, record) => {
             const chain = record.Chain;
-            if (!groups[chain]) {
-                groups[chain] = [];
+            if (!chains[chain]) {
+                chains[chain] = [];
             }
 
             // Handle both possible column names for factory flag
             const isFactory =
                 record.isFactory === "TRUE" || record.IsFactory === "TRUE";
 
-            groups[chain].push({
+            chains[chain].push({
                 accountAddress: record.Address,
                 childContractScope: isFactory ? 2 : 0,
             });
-            return groups;
+            return chains;
         }, {});
 }
 
