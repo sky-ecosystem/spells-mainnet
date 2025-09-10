@@ -15,7 +15,7 @@ from .contract_data import (
 )
 
 __all__ = [
-    'EtherscanVerifier', 
+    'EtherscanVerifier',
     'SourcifyVerifier',
     'get_chain_id',
     'get_library_address',

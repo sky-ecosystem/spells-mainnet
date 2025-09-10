@@ -9,11 +9,9 @@ from typing import Dict, Any
 
 from .retry import retry_with_backoff
 
-
 # Block explorer configurations
 SOURCIFY_API_URL = 'https://sourcify.dev/server'
 SUPPORTED_CHAIN_IDS = ['1', '11155111']  # Mainnet and Sepolia
-
 
 class SourcifyVerifier:
     """Sourcify block explorer verifier."""
@@ -96,7 +94,7 @@ class SourcifyVerifier:
             else:
                 print(f'Verification failed: {response.get("message", "Unknown error")}', file=sys.stderr)
                 return False
-                
+
         except Exception as e:
             print(f"Failed to verify on Sourcify: {str(e)}", file=sys.stderr)
             return False

@@ -76,7 +76,7 @@ def flatten_source_code() -> None:
         SOURCE_FILE_PATH,
         '--output', FLATTEN_OUTPUT_PATH
     ], capture_output=True, text=True, check=True)
-    
+
     if result.returncode != 0:
         raise Exception(f"Forge flatten failed: {result.stderr}")
 

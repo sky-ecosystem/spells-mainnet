@@ -11,7 +11,6 @@ from typing import Dict, Any
 
 from .retry import retry_with_backoff
 
-
 # Block explorer configurations
 ETHERSCAN_API_URL = 'https://api.etherscan.io/v2/api'
 ETHERSCAN_SUBDOMAINS = {

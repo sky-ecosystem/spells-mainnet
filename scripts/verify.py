@@ -24,7 +24,7 @@ add_project_root_to_path()
 # Import verifiers and contract data utilities from the verification package
 
 from scripts.verification import (
-    EtherscanVerifier, 
+    EtherscanVerifier,
     SourcifyVerifier,
     get_chain_id,
     get_library_address,
@@ -38,11 +38,6 @@ from scripts.verification import (
 SOURCE_FILE_PATH = 'src/DssSpell.sol'
 
 
-
-
-
-
-
 def get_env_var(var_name: str, error_message: str) -> str:
     """Get environment variable with error handling."""
     try:
@@ -50,10 +45,6 @@ def get_env_var(var_name: str, error_message: str) -> str:
     except KeyError:
         print(f"  {error_message}", file=sys.stderr)
         sys.exit(1)
-
-
-
-
 
 
 def parse_command_line_args() -> Tuple[str, str, str]:
@@ -75,14 +66,6 @@ def parse_command_line_args() -> Tuple[str, str, str]:
         constructor_args = sys.argv[3]
 
     return contract_name, contract_address, constructor_args
-
-
-
-
-
-
-
-
 
 
 def setup_verifiers(chain_id: str) -> List[Any]:
