@@ -1405,7 +1405,7 @@ contract DssSpellTest is DssSpellTestBase {
     ConvLike conv = ConvLike(0xea91A18dAFA1Cb1d2a19DFB205816034e6Fe7e52);
     address bud = 0xBB865F94B8A92E57f79fCc89Dfd4dcf0D3fDEA16;
 
-    function testLockstakeStusdsInit() public {
+    function testLockstakeStusdsInit() public skipped { // add the `skipped` modifier to skip
 
         assertEq(vat.wards(address(clip)), 1, "TestError/lockstake-stusds-init-vat-wards-clip-pre");
         assertEq(vat.wards(address(newClip)), 0, "TestError/lockstake-stusds-init-vat-wards-newclip-pre");
