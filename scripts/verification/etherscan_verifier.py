@@ -2,7 +2,6 @@
 """
 Etherscan block explorer verifier implementation.
 """
-import os
 import sys
 import json
 import time
@@ -141,18 +140,12 @@ class EtherscanVerifier:
             data['libraryname1'] = 'DssExecLib'
             data['libraryaddress1'] = library_address
         
-        # Submit verification request with retry
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                verify_response = self._send_api_request(params, data)
-                break
-            except Exception as e:
-                if attempt == max_retries - 1:
-                    print(f"Failed to submit verification request after {max_retries} attempts: {str(e)}", file=sys.stderr)
-                    return False
-                print(f"Attempt {attempt + 1} failed, retrying...", file=sys.stderr)
-                time.sleep(2 ** attempt)
+        # Submit verification request (retry handled by decorator)
+        try:
+            verify_response = self._send_api_request(params, data)
+        except Exception as e:
+            print(f"Failed to submit verification request: {str(e)}", file=sys.stderr)
+            return False
         
         # Handle "contract not yet deployed" case
         max_deploy_retries = 5

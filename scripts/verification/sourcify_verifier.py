@@ -4,7 +4,6 @@ Sourcify block explorer verifier implementation.
 """
 import sys
 import json
-import time
 import requests
 from typing import Dict, Any
 

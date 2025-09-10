@@ -102,6 +102,32 @@ actual_delay = max(0, delay + jitter_amount)
 4. **Simplicity**: Single script with enhanced functionality
 5. **Compatibility**: Existing workflows continue to work unchanged
 
+## Testing
+
+### **Running Tests**
+
+The test suite uses relative imports and must be run as a module:
+
+```bash
+# ✅ Correct way - run as module
+python3 -m scripts.verification.test_retry
+
+# ❌ Incorrect way - direct execution fails
+python3 scripts/verification/test_retry.py
+```
+
+**Why?** The test file uses relative imports (`from .retry import retry_with_backoff`) which only work when the file is run as part of a package, not as a standalone script.
+
+### **Test Coverage**
+
+The test suite covers:
+- Successful retry scenarios
+- Maximum retry limit handling
+- Exponential backoff behavior
+- Jitter variation
+- Exception-specific retry logic
+- Network simulation scenarios
+
 ## Troubleshooting
 
 ### **Common Issues**
@@ -109,6 +135,7 @@ actual_delay = max(0, delay + jitter_amount)
 1. **"No verifiers available"**: Check chain ID support and API keys
 2. **"Verification failed on all verifiers"**: Check contract deployment and source code
 3. **"Etherscan API key not found"**: Set `ETHERSCAN_API_KEY` environment variable
+4. **"ImportError: attempted relative import with no known parent package"**: Run tests as a module using `python3 -m scripts.verification.test_retry`
 
 ### **Debug Mode**
 

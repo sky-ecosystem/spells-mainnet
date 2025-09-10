@@ -3,12 +3,10 @@
 Test suite for the retry mechanism with exponential backoff and jitter.
 """
 import time
-import random
 import unittest
-from unittest.mock import patch, MagicMock
-from typing import Tuple, Callable
+from unittest.mock import patch
 
-from retry import retry_with_backoff, DEFAULT_MAX_RETRIES, DEFAULT_BASE_DELAY
+from .retry import retry_with_backoff
 
 
 class TestRetryMechanism(unittest.TestCase):
