@@ -197,6 +197,7 @@ contract Wallets {
         addr["EXCEL"]                        = 0x0F04a22B62A26e25A29Cba5a595623038ef7AcE7;
         addr["AEGIS_D"]                      = 0x78C180CF113Fe4845C325f44648b6567BC79d6E0;
         addr["TANGO"]                        = 0xB2B86A130B1EC101e4Aed9a88502E08995760307;
+        addr["SKY_STAKING"]                  = 0x05c73AE49fF0ec654496bF4008d73274a919cB5C;
 
         // Protocol Engineering Scope
         addr["GOV_SECURITY_ENGINEERING"]     = 0x569fAD613887ddd8c1815b56A00005BCA7FDa9C0;
