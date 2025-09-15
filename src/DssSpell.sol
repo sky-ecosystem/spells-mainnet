@@ -96,6 +96,7 @@ contract DssSpellAction is DssAction {
     function actions() public override {
 
     // ---------- Delayed Upgrade Penalty ----------
+    // Atlas: https://sky-atlas.powerhouse.io/A.4.1.2.1.4.2.5_Set_Conversion_Fee_In_MKR_To_SKY_Conversion_Contract_To_1%/1f1f2ff0-8d73-804c-948b-fddc869fcb65%7Cb341f4c0b83472dc1f9e1a3b
 
     // File 1% fee on MKR_SKY
     DssExecLib.setValue(MKR_SKY, "fee", 1 * WAD / 100);
@@ -130,6 +131,8 @@ contract DssSpellAction is DssAction {
     WardsAbstract(ALLOCATOR_NOVA_A_BUFFER).deny(MCD_PAUSE_PROXY);
 
     // ---------- LSEV2-SKY-A Liquidation Ratio increase ----------
+    // Forum: https://forum.sky.money/t/september-18-2025-proposed-changes-to-lsev2-sky-a-liquidation-ratio/27160
+    // Forum: https://forum.sky.money/t/september-18-2025-proposed-changes-to-lsev2-sky-a-liquidation-ratio/27160/2
 
     // Increase LSEV2-SKY-A Liquidation Ratio for 20 percentage points, from 125% to 145%
     DssExecLib.setIlkLiquidationRatio("LSE-MKR-A", 145_00);
