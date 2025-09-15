@@ -46,14 +46,6 @@ interface SequencerLike {
     function hasJob(address job) external view returns (bool);
 }
 
-interface VestedRewardsDistributionLike {
-    function vestId() external view returns (uint256);
-}
-
-interface ClipperMomLike {
-    function tolerance(address) external view returns (uint256);
-}
-
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
