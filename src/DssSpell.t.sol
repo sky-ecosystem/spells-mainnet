@@ -293,7 +293,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
         string[4] memory addedKeys = [
             "STUSDS",
             "STUSDS_IMP",
@@ -351,7 +351,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testLockstakeIlkIntegration() public { // add the `skipped` modifier to skip
+    function testLockstakeIlkIntegration() public skipped { // add the `skipped` modifier to skip
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
@@ -509,7 +509,7 @@ contract DssSpellTest is DssSpellTestBase {
         bytes32 ward;
     }
 
-    function testNewAuthorizations() public { // add the `skipped` modifier to skip
+    function testNewAuthorizations() public skipped { // add the `skipped` modifier to skip
         Authorization[5] memory newAuthorizations = [
             Authorization({ base: "MCD_VAT", ward: "STUSDS" }),
             Authorization({ base: "STUSDS", ward: "STUSDS_MOM" }),
@@ -640,7 +640,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public { // add the `skipped` modifier to skip
+    function testVestSky() public skipped { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
         // uint256 FEB_01_2025 = 1738368000;
 
@@ -838,7 +838,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testYankSky() public { // add the `skipped` modifier to skip
+    function testYankSky() public skipped { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
         uint256 JAN_26_2026_16_11_47 = 1769443907;
 
@@ -933,7 +933,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public { // add the `skipped` modifier to skip
+    function testPayments() public skipped { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -1332,7 +1332,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPARK TESTS
-    function testSparkSpellIsExecuted() public { // add the `skipped` modifier to skip
+    function testSparkSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
         address SPARK_PROXY = addr.addr('SPARK_PROXY');
         address SPARK_SPELL = address(0xe7782847eF825FF37662Ef2F426f2D8c5D904121); // Insert Spark spell address
 
@@ -1370,338 +1370,4 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
-
-    function testRewardsDistUsdsSkyUpdatedVestIdAndDistribute() public {
-        address REWARDS_DIST_USDS_SKY = addr.addr("REWARDS_DIST_USDS_SKY");
-        address REWARDS_USDS_SKY = addr.addr("REWARDS_USDS_SKY");
-
-        uint256 vestId = VestedRewardsDistributionLike(REWARDS_DIST_USDS_SKY).vestId();
-        assertEq(vestId, 5, "TestError/rewards-dist-usds-sky-invalid-vest-id-before");
-
-        uint256 unpaidAmount = vestSky.unpaid(5);
-        assertTrue(unpaidAmount > 0, "TestError/rewards-dist-usds-sky-unpaid-zero-early");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        vestId = VestedRewardsDistributionLike(REWARDS_DIST_USDS_SKY).vestId();
-        assertEq(vestId, 6, "TestError/rewards-dist-usds-sky-invalid-vest-id-after");
-
-        unpaidAmount = vestSky.unpaid(5);
-        assertEq(unpaidAmount, 0, "TestError/rewards-dist-usds-sky-unpaid-not-cleared");
-
-        assertEq(StakingRewardsLike(REWARDS_USDS_SKY).lastUpdateTime(), block.timestamp, "TestError/rewards-usds-sky-invalid-last-update-time");
-    }
-
-    bytes32 ilk = "LSEV2-SKY-A";
-    LockstakeEngineLike engine = LockstakeEngineLike(addr.addr("LOCKSTAKE_ENGINE"));
-    OsmAbstract pip = OsmAbstract(addr.addr("PIP_SKY"));
-    LockstakeClipperLike clip = LockstakeClipperLike(chainLog.getAddress("LOCKSTAKE_CLIP"));
-    LockstakeClipperLike newClip = LockstakeClipperLike(addr.addr("LOCKSTAKE_CLIP"));
-    ClipperMomLike clipperMom = ClipperMomLike(addr.addr("CLIPPER_MOM"));
-    IlkRegistryAbstract ilkRegistry = IlkRegistryAbstract(addr.addr("ILK_REGISTRY"));
-    address stUsdsImp = addr.addr("STUSDS_IMP");
-    ConvLike conv = ConvLike(0xea91A18dAFA1Cb1d2a19DFB205816034e6Fe7e52);
-    address bud = 0xBB865F94B8A92E57f79fCc89Dfd4dcf0D3fDEA16;
-
-    function testLockstakeStusdsInit() public {
-
-        assertEq(vat.wards(address(clip)), 1, "TestError/lockstake-stusds-init-vat-wards-clip-pre");
-        assertEq(vat.wards(address(newClip)), 0, "TestError/lockstake-stusds-init-vat-wards-newclip-pre");
-        assertEq(pip.bud(address(clip)), 1, "TestError/lockstake-stusds-init-pip-bud-clip-pre");
-        assertEq(pip.bud(address(newClip)), 0, "TestError/lockstake-stusds-init-pip-bud-newclip-pre");
-        (address clipV,,,) = dog.ilks(ilk);
-        assertEq(clipV, address(clip), "TestError/lockstake-stusds-init-dog-ilks-clip-pre");
-        assertEq(dog.wards(address(clip)), 1, "TestError/lockstake-stusds-init-dog-wards-clip-pre");
-        assertEq(dog.wards(address(newClip)), 0, "TestError/lockstake-stusds-init-dog-wards-newclip-pre");
-        assertEq(engine.wards(address(clip)), 1, "TestError/lockstake-stusds-init-engine-wards-clip-pre");
-        assertEq(engine.wards(address(newClip)), 0, "TestError/lockstake-stusds-init-engine-wards-newclip-pre");
-        assertEq(newClip.buf(), RAY, "TestError/lockstake-stusds-init-newclip-buf-pre");
-        assertEq(newClip.tail(), 0, "TestError/lockstake-stusds-init-newclip-tail-pre");
-        assertEq(newClip.cusp(), 0, "TestError/lockstake-stusds-init-newclip-cusp-pre");
-        assertEq(newClip.chip(), 0, "TestError/lockstake-stusds-init-newclip-chip-pre");
-        assertEq(newClip.tip(), 0, "TestError/lockstake-stusds-init-newclip-tip-pre");
-        assertEq(newClip.stopped(), 0, "TestError/lockstake-stusds-init-newclip-stopped-pre");
-        assertEq(newClip.vow(), address(0), "TestError/lockstake-stusds-init-newclip-vow-pre");
-        assertEq(newClip.calc(), address(0), "TestError/lockstake-stusds-init-newclip-calc-pre");
-        assertEq(newClip.cuttee(), address(0), "TestError/lockstake-stusds-init-newclip-cuttee-pre");
-        assertEq(newClip.chost(), 0, "TestError/lockstake-stusds-init-newclip-chost-pre");
-        assertEq(clip.wards(address(dog)), 1, "TestError/lockstake-stusds-init-clip-wards-dog-pre");
-        assertEq(newClip.wards(address(dog)), 0, "TestError/lockstake-stusds-init-newclip-wards-dog-pre");
-        assertEq(clip.wards(address(end)), 1, "TestError/lockstake-stusds-init-clip-wards-end-pre");
-        assertEq(newClip.wards(address(end)), 0, "TestError/lockstake-stusds-init-newclip-wards-end-pre");
-        assertEq(clip.wards(address(clipperMom)), 0, "TestError/lockstake-stusds-init-clip-wards-clippermom-pre");
-        assertEq(newClip.wards(address(clipperMom)), 0, "TestError/lockstake-stusds-init-newclip-wards-clippermom-pre");
-        uint256 clipperMomToleranceClipper = clipperMom.tolerance(address(clip));
-        assertEq(clipperMom.tolerance(address(newClip)), 0, "TestError/lockstake-stusds-init-clippermom-tolerance-newclip-pre");
-        assertEq(ilkRegistry.xlip(ilk), address(clip), "TestError/lockstake-stusds-init-ilkregistry-xlip-pre");
-        assertEq(chainLog.getAddress("LOCKSTAKE_CLIP"), address(clip), "TestError/lockstake-stusds-init-chainlog-getaddress-pre");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        assertEq(vat.wards(address(clip)), 0, "TestError/lockstake-stusds-init-vat-wards-clip-post");
-        assertEq(vat.wards(address(newClip)), 1, "TestError/lockstake-stusds-init-vat-wards-newclip-post");
-        assertEq(pip.bud(address(clip)), 0, "TestError/lockstake-stusds-init-pip-bud-clip-post");
-        assertEq(pip.bud(address(newClip)), 1, "TestError/lockstake-stusds-init-pip-bud-newclip-post");
-        (clipV,,,) = dog.ilks(ilk);
-        assertEq(clipV, address(newClip), "TestError/lockstake-stusds-init-dog-ilks-clip-post");
-        assertEq(dog.wards(address(clip)), 0, "TestError/lockstake-stusds-init-dog-wards-clip-post");
-        assertEq(dog.wards(address(newClip)), 1, "TestError/lockstake-stusds-init-dog-wards-newclip-post");
-        assertEq(engine.wards(address(clip)), 0, "TestError/lockstake-stusds-init-engine-wards-clip-post");
-        assertEq(engine.wards(address(newClip)), 1, "TestError/lockstake-stusds-init-engine-wards-newclip-post");
-        assertEq(newClip.buf(), clip.buf(), "TestError/lockstake-stusds-init-newclip-buf-post");
-        assertEq(newClip.tail(), clip.tail(), "TestError/lockstake-stusds-init-newclip-tail-post");
-        assertEq(newClip.cusp(), clip.cusp(), "TestError/lockstake-stusds-init-newclip-cusp-post");
-        assertEq(newClip.chip(), clip.chip(), "TestError/lockstake-stusds-init-newclip-chip-post");
-        assertEq(newClip.tip(), clip.tip(), "TestError/lockstake-stusds-init-newclip-tip-post");
-        assertEq(newClip.stopped(), 3, "TestError/lockstake-stusds-init-newclip-stopped-post");
-        assertEq(newClip.vow(), clip.vow(), "TestError/lockstake-stusds-init-newclip-vow-post");
-        assertEq(address(newClip.calc()), address(clip.calc()), "TestError/lockstake-stusds-init-newclip-calc-post");
-        assertEq(newClip.cuttee(), address(stusds), "TestError/lockstake-stusds-init-newclip-cuttee-post");
-        assertEq(newClip.chost(), clip.chost(), "TestError/lockstake-stusds-init-newclip-chost-post");
-        assertEq(clip.wards(address(dog)), 0, "TestError/lockstake-stusds-init-clip-wards-dog-post");
-        assertEq(newClip.wards(address(dog)), 1, "TestError/lockstake-stusds-init-newclip-wards-dog-post");
-        assertEq(clip.wards(address(end)), 0, "TestError/lockstake-stusds-init-clip-wards-end-post");
-        assertEq(newClip.wards(address(end)), 1, "TestError/lockstake-stusds-init-newclip-wards-end-post");
-        assertEq(clip.wards(address(clipperMom)), 0, "TestError/lockstake-stusds-init-clip-wards-clippermom-post");
-        assertEq(newClip.wards(address(clipperMom)), 0, "TestError/lockstake-stusds-init-newclip-wards-clippermom-post");
-        assertEq(stusds.wards(address(newClip)), 1, "TestError/lockstake-stusds-init-stusds-wards-newclip-post");
-        assertEq(clipperMom.tolerance(address(newClip)), clipperMomToleranceClipper, "TestError/lockstake-stusds-init-clippermom-tolerance-newclip-post");
-        assertEq(ilkRegistry.xlip(ilk), address(newClip), "TestError/lockstake-stusds-init-ilkregistry-xlip-post");
-        assertEq(chainLog.getAddress("LOCKSTAKE_CLIP"), address(newClip), "TestError/lockstake-stusds-init-chainlog-getaddress-post");
-    }
-
-    function testLockstakeStusdsIntegration() public {
-        uint256 dirt1;
-        uint256 dirt2;
-        uint256 dirt3;
-
-        vm.startPrank(pauseProxy);
-        vat.file(ilk, "line", 1_000_000_000e45);
-        vm.stopPrank();
-
-        (,,, dirt1) = dog.ilks(ilk);
-
-        address urn = engine.open(0);
-        deal(address(sky), address(this), 1_000_000 * WAD);
-        sky.approve(address(engine), 1_000_000 * WAD);
-        engine.lock(address(this), 0, 1_000_000 * WAD, 5);
-        engine.draw(address(this), 0, address(this), 50_000 * WAD);
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        // update median price
-        vm.store(pip.src(), bytes32(uint256(4)), bytes32(abi.encodePacked(uint32(block.timestamp), uint96(0), uint128(0.04 ether))));
-        vm.warp(block.timestamp + 1 hours);
-        pip.poke();
-        vm.warp(block.timestamp + 1 hours);
-        pip.poke();
-        vm.prank(pauseProxy);
-        pip.kiss(address(this));
-        assertEq(uint256(pip.read()), 0.04 ether, "TestError/lockstake-stusds-integration-pip-read");
-
-        // unstop the clipper
-        vm.prank(pauseProxy);
-        newClip.file("stopped", 0);
-
-        spotter.poke(ilk);
-        assertEq(newClip.kicks(), 0, "TestError/lockstake-stusds-integration-newclip-kicks-pre-bark");
-        assertEq(engine.urnAuctions(urn), 0, "TestError/lockstake-stusds-integration-engine-urnauctions-pre-bark");
-        uint256 salesId = dog.bark(ilk, address(urn), address(this));
-        assertEq(newClip.kicks(), 1, "TestError/lockstake-stusds-integration-newclip-kicks-post-bark");
-        assertEq(engine.urnAuctions(urn), 1, "TestError/lockstake-stusds-integration-engine-urnauctions-post-bark");
-
-        (,,, dirt2) = dog.ilks(ilk);
-        assertGt(dirt2, dirt1, "TestError/lockstake-stusds-integration-dog-ilks-dirt-after-bark");
-
-        uint256 snapshotId = vm.snapshotState();
-
-        (, uint256 tab,, uint256 lot,,,,) = newClip.sales(salesId);
-        vm.prank(pauseProxy); vat.suck(address(0), address(this), tab);
-        vat.hope(address(newClip));
-        newClip.take(salesId, lot, type(uint256).max, address(this), "");
-
-        (,,, dirt3) = dog.ilks(ilk);
-        assertEq(dirt3, dirt1, "TestError/lockstake-stusds-integration-dog-ilks-dirt-after-take");
-
-        vm.revertToState(snapshotId);
-
-        vm.warp(block.timestamp + clip.tail() + 1);
-
-        (bool needsRedo,,,) = newClip.getStatus(salesId);
-        assertTrue(needsRedo, "TestError/lockstake-stusds-integration-newclip-getstatus-needsredo");
-
-        newClip.redo(salesId, address(this));
-
-        vm.startPrank(pauseProxy);
-        newClip.yank(salesId);
-        vm.stopPrank();
-
-        (,,, dirt3) = dog.ilks(ilk);
-        assertEq(dirt3, dirt1, "TestError/lockstake-stusds-integration-dog-ilks-dirt-after-yank");
-    }
-
-    function testStusdsIntegration() public {
-        uint256 line1;
-        uint256 line2;
-        uint256 line3;
-        uint256 line4;
-        uint256 line5;
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        // init
-        {
-            assertEq(stusds.chi(), RAY, "TestError/stusds-integration-init-chi");
-            assertEq(stusds.rho(), block.timestamp, "TestError/stusds-integration-init-rho");
-            assertEq(stusds.str(), RAY, "TestError/stusds-integration-init-str");
-            assertEq(vat.can(address(stusds), address(usdsJoin)), 1, "TestError/stusds-integration-init-vat-can");
-            assertEq(stusds.wards(pauseProxy), 1, "TestError/stusds-integration-init-stusds-wards-pauseproxy");
-            assertEq(stusds.version(), "1", "TestError/stusds-integration-init-stusds-version");
-            assertEq(stusds.getImplementation(), stUsdsImp, "TestError/stusds-integration-init-stusds-getimplementation");
-            assertEq(jug.wards(address(rateSetter)), 1, "TestError/stusds-integration-init-jug-wards-ratesetter");
-            assertEq(stusds.wards(address(rateSetter)), 1, "TestError/stusds-integration-init-stusds-wards-ratesetter");
-        }
-
-        deal(address(usds), address(this), 10e18);
-        usds.approve(address(stusds), 10e18);
-
-        uint256 prevSupply = stusds.totalSupply();
-        uint256 stusdsUsds = usds.balanceOf(address(stusds));
-
-        uint256 before = vm.snapshotState();
-        // deposit
-        {
-            (,,, line1,) = vat.ilks(stusds.ilk());
-
-            uint256 pie = 1e18 * RAY / stusds.chi();
-            stusds.deposit(1e18, address(0xBEEF));
-
-            assertEq(stusds.totalSupply(), prevSupply + pie, "TestError/stusds-integration-deposit-totalsupply");
-            assertLe(stusds.totalAssets(), stusdsUsds + 1e18, "TestError/stusds-integration-deposit-totalassets-le");
-            assertGe(stusds.totalAssets(), stusdsUsds + 1e18 - 1, "TestError/stusds-integration-deposit-totalassets-ge");
-            assertEq(stusds.balanceOf(address(0xBEEF)), pie, "TestError/stusds-integration-deposit-balanceof");
-            assertEq(usds.balanceOf(address(stusds)), stusdsUsds + 1e18, "TestError/stusds-integration-deposit-usds-balanceof");
-            (,,, line2,) = vat.ilks(stusds.ilk());
-            assertApproxEqRel(line2, line1 + 1e45, 10**14, "TestError/stusds-integration-deposit-line2"); // Note: Tolerance is applied due to rounding
-
-            stusds.deposit(1e18, address(0xBEEF));
-
-            (,,, line3,) = vat.ilks(stusds.ilk());
-            assertApproxEqRel(line3, line2 + 1e45, 10**14, "TestError/stusds-integration-deposit-line3"); // Note: Tolerance is applied due to rounding
-
-            { // Reduced by ongoing auction debt
-                stdstore
-                    .target(address(newClip))
-                    .sig("Due()")
-                    .checked_write(0.3e45);
-
-                stusds.deposit(1e18, address(0xBEEF));
-
-                (,,, line4,) = vat.ilks(stusds.ilk());
-                assertApproxEqRel(line4, line3 + 0.7e45, 10**14, "TestError/stusds-integration-deposit-line4"); // Note: Tolerance is applied due to rounding
-            }
-
-            {  // Limited by line
-                vm.prank(pauseProxy);
-                stusds.file("line", line4 + 0.2e45);
-
-                stusds.deposit(1e18, address(0xBEEF));
-
-                (,,, line5,) = vat.ilks(stusds.ilk());
-                assertApproxEqRel(line5, line4 + 0.2e45, 10**14, "TestError/stusds-integration-deposit-line5"); // Note: Tolerance is applied due to rounding
-            }
-        }
-
-        vm.revertToStateAndDelete(before);
-        // withdraw
-        {
-            // pushing totalSupply up to allow for withdrawals
-            stdstore
-                .target(address(stusds))
-                .sig("totalSupply()")
-                .checked_write(100_000_000 * WAD);
-            // pushing cap up to allow for deposits with the new total supply
-            stdstore
-                .target(address(stusds))
-                .sig("cap()")
-                .checked_write(200_000_000 * WAD);
-
-            prevSupply = stusds.totalSupply();
-
-            stusds.deposit(10e18, address(0xBEEF));
-            uint256 pie = 10e18 * RAY / stusds.chi();
-            (,,, line1,) = vat.ilks(stusds.ilk());
-            uint256 shares = _divup(2e45, stusds.chi());
-
-            vm.prank(address(0xBEEF));
-            stusds.withdraw(2e18, address(0xAAA), address(0xBEEF));
-
-            assertEq(stusds.totalSupply(), prevSupply + pie - shares, "TestError/stusds-integration-withdraw-totalsupply");
-            assertEq(stusds.balanceOf(address(0xBEEF)), pie - shares, "TestError/stusds-integration-withdraw-balanceof");
-            assertEq(usds.balanceOf(address(0xAAA)), 2e18, "TestError/stusds-integration-withdraw-usds-balanceof-aaa");
-            assertEq(usds.balanceOf(address(stusds)), stusdsUsds + 10e18 - 2e18, "TestError/stusds-integration-withdraw-usds-balanceof-stusds");
-            (,,, line2,) = vat.ilks(stusds.ilk());
-            assertApproxEqRel(line2, line1 - 2e45, 10**14, "TestError/stusds-integration-withdraw-line2"); // Note: Tolerance is applied due to rounding
-
-            vm.prank(address(0xBEEF));
-            stusds.withdraw(1e18, address(0xAAA), address(0xBEEF));
-
-            (,,, line3,) = vat.ilks(stusds.ilk());
-            assertApproxEqRel(line3, line2 - 1e45, 10**14, "TestError/stusds-integration-withdraw-line3"); // Note: Tolerance is applied due to rounding
-
-            { // Also reduced by ongoing auction debt
-                stdstore
-                    .target(address(newClip))
-                    .sig("Due()")
-                    .checked_write(0.3e45);
-
-                vm.prank(address(0xBEEF));
-                stusds.withdraw(1e18, address(0xAAA), address(0xBEEF));
-
-                (,,, line4,) = vat.ilks(stusds.ilk());
-                assertApproxEqRel(line4, line3 - 1.3e45, 10**14, "TestError/stusds-integration-withdraw-line4"); // Note: Tolerance is applied due to rounding
-            }
-
-            { // Limited by line
-                vm.prank(pauseProxy);
-                stusds.file("line", line4 - 2e45);
-
-                vm.prank(address(0xBEEF));
-                stusds.withdraw(1e18, address(0xAAA), address(0xBEEF));
-
-                (,,, line5,) = vat.ilks(stusds.ilk());
-                assertApproxEqRel(line5, line4 - 2e45, 10**14, "TestError/stusds-integration-withdraw-line5"); // Note: Tolerance is applied due to rounding
-            }
-
-            uint256 rAssets = stusds.balanceOf(address(0xBEEF));
-            vm.prank(address(0xBEEF));
-            stusds.withdraw(rAssets, address(0xAAA), address(0xBEEF));
-            assertEq(stusds.totalSupply(), prevSupply, "TestError/stusds-integration-withdraw-final-totalsupply");
-            assertEq(stusds.balanceOf(address(0xBEEF)), 0, "TestError/stusds-integration-withdraw-final-balanceof");
-            assertEq(usds.balanceOf(address(0xAAA)), 5e18 + rAssets, "TestError/stusds-integration-withdraw-final-usds-balanceof-aaa");
-            assertEq(usds.balanceOf(address(stusds)), stusdsUsds + 10e18 - 5e18 - rAssets, "TestError/stusds-integration-withdraw-final-usds-balanceof-stusds");
-        }
-
-        vm.revertToStateAndDelete(before);
-        // set rates
-        {
-            vm.prank(bud);
-            rateSetter.set(300, 300, 50_000_000 * RAD, 60_000_000 * WAD);
-
-            (uint256 duty, ) = jug.ilks(ilk);
-
-            assertEq(stusds.str(), conv.btor(300), "TestError/stusds-integration-setrates-str");
-            assertEq(duty, conv.btor(300), "TestError/stusds-integration-setrates-duty");
-            assertEq(stusds.line(), 50_000_000 * RAD, "TestError/stusds-integration-setrates-line");
-            assertEq(stusds.cap(), 60_000_000 * WAD, "TestError/stusds-integration-setrates-cap");
-        }
-    }
 }
