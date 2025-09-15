@@ -935,9 +935,19 @@ contract DssSpellTest is DssSpellTestBase {
         //    the destination address,
         //    the amount to be paid
         // Initialize the array with the number of payees
-        Payee[2] memory payees = [
-            Payee(address(usds), wallets.addr("LIQUIDITY_BOOTSTRAPPING"), 8_000_000 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("ECOSYSTEM_TEAM"), 3_000_000 ether) // Note: ether is only a keyword helper
+        Payee[12] memory payees = [
+            Payee(address(usds), wallets.addr("BLUE"), 4_000 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("BONAPUBLICA"), 4_000 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CLOAKY_2"), 4_000 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("WBC"), 4_000 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("TANGO"), 3_400 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("SKY_STAKING"), 2_854 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("AEGIS_D"), 645 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CLOAKY_KOHLA_2"), 11_140 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CLOAKY_2"), 16_417 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("BLUE"), 50_167 ether), // Note: ether is only a keyword helper
+            Payee(address(sky), wallets.addr("CLOAKY_2"), 288_000 ether), // Note: ether is only a keyword helper
+            Payee(address(sky), wallets.addr("BLUE"), 330_000 ether) // Note: ether is only a keyword helper
         ];
 
         // Fill the total values from exec sheet
@@ -1362,4 +1372,37 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
+
+    function testNovaOperatorOffboarding() public {
+        address roles    = addr.addr("ALLOCATOR_ROLES");
+        address buffer   = addr.addr("ALLOCATOR_NOVA_A_BUFFER");
+        address vault    = addr.addr("ALLOCATOR_NOVA_A_VAULT");
+        address operator = wallets.addr("NOVA_OPERATOR");
+
+        // Sanity check values before spell
+        assertEq(usds.allowance(buffer, operator), type(uint256).max, "invalid-allowance-before");
+        assertTrue(AllocatorRolesLike(roles).hasUserRole("ALLOCATOR-NOVA-A", operator, 0));
+        assertTrue(AllocatorRolesLike(roles).hasActionRole("ALLOCATOR-NOVA-A", vault, AllocatorVaultLike.draw.selector, 0));
+        assertTrue(AllocatorRolesLike(roles).hasActionRole("ALLOCATOR-NOVA-A", vault, AllocatorVaultLike.wipe.selector, 0));
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // Ensure that allowance and the roles are removed from the operator
+        assertEq(usds.allowance(buffer, operator), 0, "invalid-allowance-after");
+        assertFalse(AllocatorRolesLike(roles).hasUserRole("ALLOCATOR-NOVA-A", operator, 0));
+
+        // Ensure the rule is cleaned up
+        assertFalse(AllocatorRolesLike(roles).hasActionRole("ALLOCATOR-NOVA-A", vault, AllocatorVaultLike.draw.selector, 0));
+        assertFalse(AllocatorRolesLike(roles).hasActionRole("ALLOCATOR-NOVA-A", vault, AllocatorVaultLike.wipe.selector, 0));
+
+        // Sanity check operator is NOT be able to call draw() and wipe()
+        vm.startPrank(operator);
+        vm.expectRevert("AllocatorVault/not-authorized");
+        AllocatorVaultLike(vault).draw(1_000 * WAD);
+        vm.expectRevert("AllocatorVault/not-authorized");
+        AllocatorVaultLike(vault).wipe(1_000 * WAD);
+        vm.stopPrank();
+    }
 }
