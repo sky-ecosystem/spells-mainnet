@@ -1405,4 +1405,30 @@ contract DssSpellTest is DssSpellTestBase {
         AllocatorVaultLike(vault).wipe(1_000 * WAD);
         vm.stopPrank();
     }
+
+    function testMkrToSkyFeeIncreasingTake() public {
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        uint256 pTake = mkrSky.take();
+
+        address mkrHolder = address(0x42);
+        deal(address(mkr), mkrHolder, 1_000 * WAD);
+        address skyHolder = address(0x65);
+        uint256 mkrBalance = mkr.balanceOf(mkrHolder);
+
+        vm.startPrank(mkrHolder);
+        mkr.approve(address(mkrSky), type(uint256).max);
+        mkrSky.mkrToSky(skyHolder, mkrBalance);
+        vm.stopPrank();
+
+        uint256 expectedBalanceAfter = mkrBalance * afterSpell.sky_mkr_rate / WAD;
+        uint256 fee = mkrSky.fee();
+        uint256 expectedTakeIncrease = expectedBalanceAfter * fee;
+
+        uint256 take = mkrSky.take();
+
+        assertEq(take, pTake + expectedTakeIncrease, "MkrToSkyFee/take-not-increased");
+    }
 }
