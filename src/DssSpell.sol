@@ -186,22 +186,22 @@ contract DssSpellAction is DssAction {
         // Atlas: https://sky-atlas.powerhouse.io/Budget_And_Participation_Requirements/4c698938-1a11-4486-a568-e54fc6b0ce0c%7C0db3af4e
 
         // BLUE - 4,000 USDS - 0xb6C09680D822F162449cdFB8248a7D3FC26Ec9Bf
-        _transferUsds(BLUE, 4000 * WAD);
+        _transferUsds(BLUE, 4_000 * WAD);
 
         // Bonapublica - 4,000 USDS - 0x167c1a762B08D7e78dbF8f24e5C3f1Ab415021D3
-        _transferUsds(BONAPUBLICA, 4000 * WAD);
+        _transferUsds(BONAPUBLICA, 4_000 * WAD);
 
         // Cloaky - 4,000 USDS - 0x9244F47D70587Fa2329B89B6f503022b63Ad54A5
-        _transferUsds(CLOAKY_2, 4000 * WAD);
+        _transferUsds(CLOAKY_2, 4_000 * WAD);
 
         // WBC - 4,000 USDS - 0xeBcE83e491947aDB1396Ee7E55d3c81414fB0D47
-        _transferUsds(WBC, 4000 * WAD);
+        _transferUsds(WBC, 4_000 * WAD);
 
         // Tango - 3,400 USDS - 0xB2B86A130B1EC101e4Aed9a88502E08995760307
-        _transferUsds(TANGO, 3400 * WAD);
+        _transferUsds(TANGO, 3_400 * WAD);
 
         // Sky Staking - 2,854 USDS - 0x05c73AE49fF0ec654496bF4008d73274a919cB5C
-        _transferUsds(SKY_STAKING, 2854 * WAD);
+        _transferUsds(SKY_STAKING, 2_854 * WAD);
 
         // AegisD - 645 USDS - 0x78C180CF113Fe4845C325f44648b6567BC79d6E0
         _transferUsds(AEGIS_D, 645 * WAD);
@@ -210,22 +210,22 @@ contract DssSpellAction is DssAction {
         // Forum: https://forum.sky.money/t/atlas-core-development-payment-requests-september-2025/27139
 
         // Kohla - 11,140 USDS - 0x73dFC091Ad77c03F2809204fCF03C0b9dccf8c7a
-        _transferUsds(CLOAKY_KOHLA_2, 11140 * WAD);
+        _transferUsds(CLOAKY_KOHLA_2, 11_140 * WAD);
 
         // Cloaky - 16,417 USDS - 0x9244F47D70587Fa2329B89B6f503022b63Ad54A5
-        _transferUsds(CLOAKY_2, 16417 * WAD);
+        _transferUsds(CLOAKY_2, 16_417 * WAD);
 
         // Blue - 50,167 USDS - 0xb6C09680D822F162449cdFB8248a7D3FC26Ec9Bf
-        _transferUsds(BLUE, 50167 * WAD);
+        _transferUsds(BLUE, 50_167 * WAD);
 
         // ---------- Atlas Core Development SKY Payments for September 2025 ----------
         // Forum: https://forum.sky.money/t/atlas-core-development-payment-requests-september-2025/27139
 
         // Cloaky - 288,000 SKY - 0x9244F47D70587Fa2329B89B6f503022b63Ad54A5
-        GemAbstract(SKY).transfer(CLOAKY_2, 288000 * WAD);
+        GemAbstract(SKY).transfer(CLOAKY_2, 288_000 * WAD);
 
         // Blue - 330,000 SKY - 0xb6C09680D822F162449cdFB8248a7D3FC26Ec9Bf
-        GemAbstract(SKY).transfer(BLUE, 330000 * WAD);
+        GemAbstract(SKY).transfer(BLUE, 330_000 * WAD);
 
         // ---------- Execute Spark Proxy Spell ----------
         // Forum: https://forum.sky.money/t/september-18-2025-proposed-changes-to-spark-for-upcoming-spell/27153
