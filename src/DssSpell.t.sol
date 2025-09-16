@@ -46,6 +46,10 @@ interface SequencerLike {
     function hasJob(address job) external view returns (bool);
 }
 
+interface AllocatorBufferLike {
+    function wards(address) external view returns (uint256);
+}
+
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -925,7 +929,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public skipped { // add the `skipped` modifier to skip
+    function testPayments() public { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -936,26 +940,26 @@ contract DssSpellTest is DssSpellTestBase {
         //    the amount to be paid
         // Initialize the array with the number of payees
         Payee[12] memory payees = [
-            Payee(address(usds), wallets.addr("BLUE"), 4_000 ether), // Note: ether is only a keyword helper
             Payee(address(usds), wallets.addr("BONAPUBLICA"), 4_000 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("CLOAKY_2"), 4_000 ether), // Note: ether is only a keyword helper
             Payee(address(usds), wallets.addr("WBC"), 4_000 ether), // Note: ether is only a keyword helper
             Payee(address(usds), wallets.addr("TANGO"), 3_400 ether), // Note: ether is only a keyword helper
             Payee(address(usds), wallets.addr("SKY_STAKING"), 2_854 ether), // Note: ether is only a keyword helper
             Payee(address(usds), wallets.addr("AEGIS_D"), 645 ether), // Note: ether is only a keyword helper
             Payee(address(usds), wallets.addr("CLOAKY_KOHLA_2"), 11_140 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("CLOAKY_2"), 16_417 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("BLUE"), 50_167 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CLOAKY_2"), 20_417 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("BLUE"), 54_167 ether), // Note: ether is only a keyword helper
             Payee(address(sky), wallets.addr("CLOAKY_2"), 288_000 ether), // Note: ether is only a keyword helper
-            Payee(address(sky), wallets.addr("BLUE"), 330_000 ether) // Note: ether is only a keyword helper
+            Payee(address(sky), wallets.addr("BLUE"), 330_000 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), 0x1369f7b2b38c76B6478c0f0E66D94923421891Ba, 30_654 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), 0x3300f198988e4C9C63F75dF86De36421f06af8c4, 5_927_944 ether) // Note: ether is only a keyword helper
         ];
 
         // Fill the total values from exec sheet
         PaymentAmounts memory expectedTotalPayments = PaymentAmounts({
             dai:                               0 ether, // Note: ether is only a keyword helper
             mkr:                               0 ether, // Note: ether is only a keyword helper
-            usds:                     11_000_000 ether, // Note: ether is only a keyword helper
-            sky:                               0 ether  // Note: ether is only a keyword helper
+            usds:                      6_059_221 ether, // Note: ether is only a keyword helper
+            sky:                         618_000 ether  // Note: ether is only a keyword helper
         });
 
         // Fill the total values based on the source for the transfers above
@@ -1334,9 +1338,9 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPARK TESTS
-    function testSparkSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
+    function testSparkSpellIsExecuted() public { // add the `skipped` modifier to skip
         address SPARK_PROXY = addr.addr('SPARK_PROXY');
-        address SPARK_SPELL = address(0xe7782847eF825FF37662Ef2F426f2D8c5D904121); // Insert Spark spell address
+        address SPARK_SPELL = address(0x7B28F4Bdd7208fe80916EBC58611Eb72Fb6A09Ed); // Insert Spark spell address
 
         vm.expectCall(
             SPARK_PROXY,
@@ -1374,16 +1378,24 @@ contract DssSpellTest is DssSpellTestBase {
     // SPELL-SPECIFIC TESTS GO BELOW
 
     function testNovaOperatorOffboarding() public {
-        address roles    = addr.addr("ALLOCATOR_ROLES");
-        address buffer   = addr.addr("ALLOCATOR_NOVA_A_BUFFER");
-        address vault    = addr.addr("ALLOCATOR_NOVA_A_VAULT");
-        address operator = wallets.addr("NOVA_OPERATOR");
+        address roles     = addr.addr("ALLOCATOR_ROLES");
+        address buffer    = addr.addr("ALLOCATOR_NOVA_A_BUFFER");
+        address vault     = addr.addr("ALLOCATOR_NOVA_A_VAULT");
+        address operator  = wallets.addr("NOVA_OPERATOR");
+        address novaProxy = 0x355CD90Ecb1b409Fdf8b64c4473C3B858dA2c310;
+
 
         // Sanity check values before spell
         assertEq(usds.allowance(buffer, operator), type(uint256).max, "invalid-allowance-before");
         assertTrue(AllocatorRolesLike(roles).hasUserRole("ALLOCATOR-NOVA-A", operator, 0));
         assertTrue(AllocatorRolesLike(roles).hasActionRole("ALLOCATOR-NOVA-A", vault, AllocatorVaultLike.draw.selector, 0));
         assertTrue(AllocatorRolesLike(roles).hasActionRole("ALLOCATOR-NOVA-A", vault, AllocatorVaultLike.wipe.selector, 0));
+
+        assertEq(AllocatorVaultLike(vault).wards(pauseProxy), 1, "NovaOperatorOffboarding/pause-proxy-vault-wards-before");
+        assertEq(AllocatorVaultLike(vault).wards(novaProxy), 0, "NovaOperatorOffboarding/nova-proxy-vault-wards-before");
+
+        assertEq(AllocatorBufferLike(buffer).wards(pauseProxy), 1, "NovaOperatorOffboarding/pause-proxy-buffer-wards-before");
+        assertEq(AllocatorBufferLike(buffer).wards(novaProxy), 0, "NovaOperatorOffboarding/nova-proxy-buffer-wards-before");
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
@@ -1396,6 +1408,13 @@ contract DssSpellTest is DssSpellTestBase {
         // Ensure the rule is cleaned up
         assertFalse(AllocatorRolesLike(roles).hasActionRole("ALLOCATOR-NOVA-A", vault, AllocatorVaultLike.draw.selector, 0));
         assertFalse(AllocatorRolesLike(roles).hasActionRole("ALLOCATOR-NOVA-A", vault, AllocatorVaultLike.wipe.selector, 0));
+
+        // Ensure correct wards
+        assertEq(AllocatorVaultLike(vault).wards(pauseProxy), 0, "NovaOperatorOffboarding/pause-proxy-vault-wards-after");
+        assertEq(AllocatorVaultLike(vault).wards(novaProxy), 1, "NovaOperatorOffboarding/nova-proxy-vault-wards-after");
+
+        assertEq(AllocatorBufferLike(buffer).wards(pauseProxy), 0, "NovaOperatorOffboarding/pause-proxy-buffer-wards-before");
+        assertEq(AllocatorBufferLike(buffer).wards(novaProxy), 1, "NovaOperatorOffboarding/nova-proxy-buffer-wards-before");
 
         // Sanity check operator is NOT be able to call draw() and wipe()
         vm.startPrank(operator);
