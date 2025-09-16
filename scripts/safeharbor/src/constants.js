@@ -1,7 +1,7 @@
 // ADDRESSES
-export const FACTORY_ADDRESS = "0x9d211CaC1ce390F676d1cB1D2Eb681410EC47E47";
+export const FACTORY_ADDRESS = "0x9d211CaC1ce390F676d1cB1D2Eb681410EC47E47"; // V1.1 from https://github.com/security-alliance/safe-harbor?tab=readme-ov-file#registry-addresses
 export const AGREEMENT_ADDRESS = "__PLACEHOLDER_AGREEMENT_ADDRESS__";
-export const MULTICALL_ADDRESS = "0x5e227AD1969Ea493B43F840cfF78d08a6fc17796";
+export const MULTICALL_ADDRESS = "0x5e227AD1969Ea493B43F840cfF78d08a6fc17796";  // MULTICALL entry on Chainlog
 // TODO: Replace once incorporated on the sheet
 export const ARBITRUM_ASSET_RECOVERY_ADDRESS =
     "0x10E6593CDda8c58a1d0f14C5164B376352a55f2F"; // GovRelay
@@ -16,8 +16,8 @@ export const OPTIMISM_ASSET_RECOVERY_ADDRESS =
 export const UNICHAIN_ASSET_RECOVERY_ADDRESS =
     "0xb383070cf9f4f01c3a2cfd0ef6da4bc057b429b7"; // GovRelay
 
-// PUBLIC VIRTUAL TESTNET RPC URL = "https://virtual.mainnet.us-east.rpc.tenderly.co/5d232630-82fd-4629-863b-65c00faa1ccc"
-// Agreement address on virtual testnet = "0xeca050F53ee4eCBc039DD07CB4FB785641521707"
+// PUBLIC VIRTUAL TESTNET RPC URL = "https://virtual.mainnet.eu.rpc.tenderly.co/8c11c32e-6132-4b53-b777-f092c97a48bf"
+// Agreement address on virtual testnet = "0x585affccff9398afdb12bdff2e74182437f45af0"
 
 // CSV URLs
 export const CSV_URL_SHEET1 =
