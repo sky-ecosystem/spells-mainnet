@@ -121,7 +121,7 @@ contract DssSpellAction is DssAction {
     function actions() public override {
         // ---------- Delayed Upgrade Penalty ----------
         // Forum: https://forum.sky.money/t/phase-3-mkr-to-sky-migration-items-september-18th-spell/27178
-        // Atlas: https://sky-atlas.powerhouse.io/A.4.1.2.1.4.2.5_Set_Conversion_Fee_In_MKR_To_SKY_Conversion_Contract_To_1%/1f1f2ff0-8d73-804c-948b-fddc869fcb65%7Cb341f4c0b83472dc1f9e1a3b
+        // Atlas: https://sky-atlas.powerhouse.io/A.4.1.2.1.4.2.5_Set_Conversion_Fee_In_MKR_To_SKY_Conversion_Contract_To_1%25/1f1f2ff0-8d73-804c-948b-fddc869fcb65%7Cb341f4c0b83472dc1f9e1a3b
 
         // File 1% fee on MKR_SKY
         DssExecLib.setValue(MKR_SKY, "fee", 1 * WAD / 100);
