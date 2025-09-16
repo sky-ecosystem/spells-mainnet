@@ -3730,10 +3730,7 @@ contract DssSpellTestBase is Config, DssTest {
                 vm.stopPrank();
 
                 uint256 mkrSkyFee = mkrSky.fee();
-                uint256 expectedSkyBalance = pskyBalance + (pmkrBalance * afterSpell.sky_mkr_rate);
-                uint256 expectedSkyFee = expectedSkyBalance * mkrSkyFee / WAD;
-
-                expectedSkyBalance -= expectedSkyFee;
+                uint256 expectedSkyBalance = pskyBalance + ((pmkrBalance * afterSpell.sky_mkr_rate) - (pmkrBalance * afterSpell.sky_mkr_rate * mkrSkyFee / WAD));
 
                 assertEq(mkr.balanceOf(mkrHolder), 0,                  "TestError/MKR/bad-mkr-to-sky-conversion");
                 assertEq(sky.balanceOf(skyHolder), expectedSkyBalance, "TestError/Sky/bad-mkr-to-sky-conversion");

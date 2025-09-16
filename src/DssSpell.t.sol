@@ -1411,24 +1411,27 @@ contract DssSpellTest is DssSpellTestBase {
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        uint256 pTake = mkrSky.take();
+        uint256 prevTake = mkrSky.take();
 
-        address mkrHolder = address(0x42);
+        address mkrHolder = makeAddr("mkrHolder");
         deal(address(mkr), mkrHolder, 1_000 * WAD);
-        address skyHolder = address(0x65);
-        uint256 mkrBalance = mkr.balanceOf(mkrHolder);
+        address skyHolder = makeAddr("skyHolder");
+
+        uint256 prevMkrBalance = mkr.balanceOf(mkrHolder);
+        uint256 prevSkyBalance = sky.balanceOf(skyHolder);
 
         vm.startPrank(mkrHolder);
         mkr.approve(address(mkrSky), type(uint256).max);
-        mkrSky.mkrToSky(skyHolder, mkrBalance);
+        mkrSky.mkrToSky(skyHolder, prevMkrBalance);
         vm.stopPrank();
 
-        uint256 expectedBalanceAfter = mkrBalance * afterSpell.sky_mkr_rate / WAD;
-        uint256 fee = mkrSky.fee();
-        uint256 expectedTakeIncrease = expectedBalanceAfter * fee;
-
         uint256 take = mkrSky.take();
+        uint256 fee = mkrSky.fee();
+        uint256 expectedTakeAfter = prevTake + (prevMkrBalance * afterSpell.sky_mkr_rate * fee / WAD);
+        assertEq(take, expectedTakeAfter, "MkrToSkyFee/take-not-increased");
 
-        assertEq(take, pTake + expectedTakeIncrease, "MkrToSkyFee/take-not-increased");
+        uint256 expectedSkyBalance = prevSkyBalance + ((prevMkrBalance * afterSpell.sky_mkr_rate) - (prevMkrBalance * afterSpell.sky_mkr_rate * fee / WAD));
+        assertEq(mkr.balanceOf(mkrHolder), 0,                  "TestError/MKR/bad-mkr-to-sky-conversion");
+        assertEq(sky.balanceOf(skyHolder), expectedSkyBalance, "TestError/Sky/bad-mkr-to-sky-conversion");
     }
 }
