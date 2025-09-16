@@ -167,17 +167,17 @@ contract DssSpellAction is DssAction {
         // Forum: https://forum.sky.money/t/monthly-settlement-cycle-1-july-august-september-18-2025-spell/27173
         // Atlas: https://sky-atlas.powerhouse.io/A.2.5.1.2.2.1_Stage_1/241f2ff0-8d73-8014-b124-e76f5f5c91fc%7C9e1fcc279923ea16fa2d
 
-        // _takeAllocatorPayment(ALLOCATOR-BLOOM-A, ALLOCATOR_BLOOM_A_VAULT, 4_788_407e18);
-        _takeAllocatorPayment(ALLOCATOR_BLOOM_A_VAULT, 4_788_407e18);
+        // _takeAllocatorPayment(ALLOCATOR_BLOOM_A_VAULT, 4_788_407e18);
+        _takeAllocatorPayment(ALLOCATOR_BLOOM_A_VAULT, 4_788_407 * WAD);
 
         // _transferUsds(GROVE_PROXY: 0x1369f7b2b38c76B6478c0f0E66D94923421891Ba, 30_654e18);
-        _transferUsds(GROVE_PROXY, 30_654e18);
+        _transferUsds(GROVE_PROXY, 30_654 * WAD);
 
-        // _takeAllocatorPayment(ALLOCATOR-SPARK-A, ALLOCATOR_SPARK_A_VAULT, 1_603_952e18);
-        _takeAllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 1_603_952e18);
+        // _takeAllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 1_603_952e18);
+        _takeAllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 1_603_952 * WAD);
 
         // _transferUsds(SPARK_PROXY: 0x3300f198988e4C9C63F75dF86De36421f06af8c4, 5_927_944e18);
-        _transferUsds(SPARK_PROXY, 5_927_944e18);
+        _transferUsds(SPARK_PROXY, 5_927_944 * WAD);
 
         // ---------- AD compensation ----------
         // Forum: https://forum.sky.money/t/august-2025-aligned-delegate-compensation/27165
