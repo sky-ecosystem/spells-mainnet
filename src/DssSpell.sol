@@ -21,7 +21,8 @@ import "dss-exec-lib/DssAction.sol";
 
 import { GemAbstract } from "dss-interfaces/ERC/GemAbstract.sol";
 import { WardsAbstract } from "dss-interfaces/utils/WardsAbstract.sol";
-
+import { VatAbstract } from "dss-interfaces/dss/VatAbstract.sol";
+import { JugAbstract } from "dss-interfaces/dss/JugAbstract.sol";
 
 interface AllocatorBufferLike {
     function approve(address asset, address spender, uint256 amount) external;
@@ -40,6 +41,14 @@ interface VaultLike {
 
 interface DaiUsdsLike {
     function daiToUsds(address, uint256) external;
+}
+
+interface ProxyLike {
+    function exec(address target, bytes calldata args) external payable returns (bytes memory out);
+}
+
+interface AllocatorVaultLike {
+    function ilk() external view returns (bytes32);
 }
 
 contract DssSpellAction is DssAction {
@@ -67,9 +76,13 @@ contract DssSpellAction is DssAction {
 
     // ---------- Math ----------
     uint256 internal constant WAD = 10 ** 18;
+    uint256 internal constant RAY = 10 ** 27;
 
     // ---------- Contracts ----------
     address internal immutable DAI                      = DssExecLib.dai();
+    address internal immutable MCD_VAT                  = DssExecLib.vat();
+    address internal immutable MCD_JUG                  = DssExecLib.jug();
+    address internal immutable MCD_VOW                  = DssExecLib.vow();
     address internal immutable DAI_USDS                 = DssExecLib.getChangelogAddress("DAI_USDS");
     address internal immutable SKY                      = DssExecLib.getChangelogAddress("SKY");
     address internal immutable MKR_SKY                  = DssExecLib.getChangelogAddress("MKR_SKY");
@@ -77,6 +90,8 @@ contract DssSpellAction is DssAction {
     address internal immutable ALLOCATOR_ROLES          = DssExecLib.getChangelogAddress("ALLOCATOR_ROLES");
     address internal immutable ALLOCATOR_NOVA_A_VAULT   = DssExecLib.getChangelogAddress("ALLOCATOR_NOVA_A_VAULT");
     address internal immutable ALLOCATOR_NOVA_A_BUFFER  = DssExecLib.getChangelogAddress("ALLOCATOR_NOVA_A_BUFFER");
+    address internal immutable ALLOCATOR_BLOOM_A_VAULT  = DssExecLib.getChangelogAddress("ALLOCATOR_BLOOM_A_VAULT");
+    address internal immutable ALLOCATOR_SPARK_A_VAULT  = DssExecLib.getChangelogAddress("ALLOCATOR_SPARK_A_VAULT");
     address internal immutable MCD_PAUSE_PROXY          = DssExecLib.getChangelogAddress("MCD_PAUSE_PROXY");
 
     // ---------- Wallets ----------
@@ -90,103 +105,141 @@ contract DssSpellAction is DssAction {
     address internal constant CLOAKY_KOHLA_2 = 0x73dFC091Ad77c03F2809204fCF03C0b9dccf8c7a;
     address internal constant SKY_STAKING    = 0x05c73AE49fF0ec654496bF4008d73274a919cB5C;
 
+    // ---------- Grove Proxy ----------
+    address internal constant GROVE_PROXY = 0x1369f7b2b38c76B6478c0f0E66D94923421891Ba;
+
     // ---------- Nova Proxy ----------
     address internal constant NOVA_PROXY = 0x355CD90Ecb1b409Fdf8b64c4473C3B858dA2c310;
 
+    // ---------- Spark Proxy Spell ----------
+    // Note: Spark Proxy: https://github.com/sparkdotfi/sparklend-deployments/blob/bba4c57d54deb6a14490b897c12a949aa035a99b/script/output/1/primary-sce-latest.json#L2
+    address internal constant SPARK_PROXY = 0x3300f198988e4C9C63F75dF86De36421f06af8c4;
+    address internal constant SPARK_SPELL = 0x7B28F4Bdd7208fe80916EBC58611Eb72Fb6A09Ed;
+
     function actions() public override {
+        // ---------- Delayed Upgrade Penalty ----------
+        // Forum: https://forum.sky.money/t/phase-3-mkr-to-sky-migration-items-september-18th-spell/27178
+        // Atlas: https://sky-atlas.powerhouse.io/A.4.1.2.1.4.2.5_Set_Conversion_Fee_In_MKR_To_SKY_Conversion_Contract_To_1%/1f1f2ff0-8d73-804c-948b-fddc869fcb65%7Cb341f4c0b83472dc1f9e1a3b
 
-    // ---------- Delayed Upgrade Penalty ----------
-    // Atlas: https://sky-atlas.powerhouse.io/A.4.1.2.1.4.2.5_Set_Conversion_Fee_In_MKR_To_SKY_Conversion_Contract_To_1%/1f1f2ff0-8d73-804c-948b-fddc869fcb65%7Cb341f4c0b83472dc1f9e1a3b
+        // File 1% fee on MKR_SKY
+        DssExecLib.setValue(MKR_SKY, "fee", 1 * WAD / 100);
 
-    // File 1% fee on MKR_SKY
-    DssExecLib.setValue(MKR_SKY, "fee", 1 * WAD / 100);
+        // ---------- Replace Nova Operator ----------
+        // Forum: https://forum.sky.money/t/technical-scope-of-the-nova-allocator-adjustment/27175
+        // Forum: https://forum.sky.money/t/technical-scope-of-the-nova-allocator-adjustment/27175/2
+        // Poll: https://vote.sky.money/polling/QmYt7nbx
 
-    // ---------- Replace Nova Operator ----------
+        // AllocatorBufferLike(ALLOCATOR_NOVA_A_BUFFER).approve(USDS, NOVA_OPERATOR, 0);
+        AllocatorBufferLike(ALLOCATOR_NOVA_A_BUFFER).approve(USDS, NOVA_OPERATOR, 0);
 
-    // AllocatorBufferLike(ALLOCATOR_NOVA_A_BUFFER).approve(USDS, NOVA_OPERATOR, 0);
-    AllocatorBufferLike(ALLOCATOR_NOVA_A_BUFFER).approve(USDS, NOVA_OPERATOR, 0);
+        // AllocatorRolesLike(ALLOCATOR_ROLES).setUserRole("ALLOCATOR-NOVA-A", NOVA_OPERATOR, 0, false);
+        AllocatorRolesLike(ALLOCATOR_ROLES).setUserRole("ALLOCATOR-NOVA-A", NOVA_OPERATOR, 0, false);
 
-    // AllocatorRolesLike(ALLOCATOR_ROLES).setUserRole("ALLOCATOR-NOVA-A", NOVA_OPERATOR, 0, false);
-    AllocatorRolesLike(ALLOCATOR_ROLES).setUserRole("ALLOCATOR-NOVA-A", NOVA_OPERATOR, 0, false);
+        // AllocatorRolesLike(ALLOCATOR_ROLES).setRoleAction("ALLOCATOR-NOVA-A", 0, ALLOCATOR_NOVA_A_VAULT, VaultLike.draw.selector, false);
+        AllocatorRolesLike(ALLOCATOR_ROLES).setRoleAction("ALLOCATOR-NOVA-A", 0, ALLOCATOR_NOVA_A_VAULT, VaultLike.draw.selector, false);
 
-    // AllocatorRolesLike(ALLOCATOR_ROLES).setRoleAction("ALLOCATOR-NOVA-A", 0, ALLOCATOR_NOVA_A_VAULT, VaultLike.draw.selector, false);
-    AllocatorRolesLike(ALLOCATOR_ROLES).setRoleAction("ALLOCATOR-NOVA-A", 0, ALLOCATOR_NOVA_A_VAULT, VaultLike.draw.selector, false);
+        // AllocatorRolesLike(ALLOCATOR_ROLES).setRoleAction("ALLOCATOR-NOVA-A", 0, ALLOCATOR_NOVA_A_VAULT, VaultLike.wipe.selector, false);
+        AllocatorRolesLike(ALLOCATOR_ROLES).setRoleAction("ALLOCATOR-NOVA-A", 0, ALLOCATOR_NOVA_A_VAULT, VaultLike.wipe.selector, false);
 
-    // AllocatorRolesLike(ALLOCATOR_ROLES).setRoleAction("ALLOCATOR-NOVA-A", 0, ALLOCATOR_NOVA_A_VAULT, VaultLike.wipe.selector, false);
-    AllocatorRolesLike(ALLOCATOR_ROLES).setRoleAction("ALLOCATOR-NOVA-A", 0, ALLOCATOR_NOVA_A_VAULT, VaultLike.wipe.selector, false);
+        // AllocatorRolesLike(ALLOCATOR_ROLES).setIlkAdmin("ALLOCATOR-NOVA-A", NOVA_PROXY);
+        AllocatorRolesLike(ALLOCATOR_ROLES).setIlkAdmin("ALLOCATOR-NOVA-A", NOVA_PROXY);
 
-    // AllocatorRolesLike(ALLOCATOR_ROLES).setIlkAdmin("ALLOCATOR-NOVA-A", NOVA_PROXY);
-    AllocatorRolesLike(ALLOCATOR_ROLES).setIlkAdmin("ALLOCATOR-NOVA-A", NOVA_PROXY);
+        // WardsAbstract(ALLOCATOR_NOVA_A_VAULT).rely(NOVA_PROXY);
+        WardsAbstract(ALLOCATOR_NOVA_A_VAULT).rely(NOVA_PROXY);
 
-    // WardsAbstract(ALLOCATOR_NOVA_A_VAULT).rely(NOVA_PROXY);
-    WardsAbstract(ALLOCATOR_NOVA_A_VAULT).rely(NOVA_PROXY);
+        // WardsAbstract(ALLOCATOR_NOVA_A_VAULT).deny(MCD_PAUSE_PROXY);
+        WardsAbstract(ALLOCATOR_NOVA_A_VAULT).deny(MCD_PAUSE_PROXY);
 
-    // WardsAbstract(ALLOCATOR_NOVA_A_VAULT).deny(MCD_PAUSE_PROXY);
-    WardsAbstract(ALLOCATOR_NOVA_A_VAULT).deny(MCD_PAUSE_PROXY);
+        // WardsAbstract(ALLOCATOR_NOVA_A_BUFFER).rely(NOVA_PROXY);
+        WardsAbstract(ALLOCATOR_NOVA_A_BUFFER).rely(NOVA_PROXY);
 
-    // WardsAbstract(ALLOCATOR_NOVA_A_BUFFER).rely(NOVA_PROXY);
-    WardsAbstract(ALLOCATOR_NOVA_A_BUFFER).rely(NOVA_PROXY);
+        // WardsAbstract(ALLOCATOR_NOVA_A_BUFFER).deny(MCD_PAUSE_PROXY);
+        WardsAbstract(ALLOCATOR_NOVA_A_BUFFER).deny(MCD_PAUSE_PROXY);
 
-    // WardsAbstract(ALLOCATOR_NOVA_A_BUFFER).deny(MCD_PAUSE_PROXY);
-    WardsAbstract(ALLOCATOR_NOVA_A_BUFFER).deny(MCD_PAUSE_PROXY);
+        // ---------- LSEV2-SKY-A Liquidation Ratio increase ----------
+        // Forum: https://forum.sky.money/t/september-18-2025-proposed-changes-to-lsev2-sky-a-liquidation-ratio/27160
+        // Forum: https://forum.sky.money/t/september-18-2025-proposed-changes-to-lsev2-sky-a-liquidation-ratio/27160/2
 
-    // ---------- LSEV2-SKY-A Liquidation Ratio increase ----------
-    // Forum: https://forum.sky.money/t/september-18-2025-proposed-changes-to-lsev2-sky-a-liquidation-ratio/27160
-    // Forum: https://forum.sky.money/t/september-18-2025-proposed-changes-to-lsev2-sky-a-liquidation-ratio/27160/2
+        // Increase LSEV2-SKY-A Liquidation Ratio for 20 percentage points, from 125% to 145%
+        DssExecLib.setIlkLiquidationRatio("LSE-MKR-A", 145_00);
 
-    // Increase LSEV2-SKY-A Liquidation Ratio for 20 percentage points, from 125% to 145%
-    DssExecLib.setIlkLiquidationRatio("LSE-MKR-A", 145_00);
+        // ---------- First Settlement Cycle ----------
+        // Forum: https://forum.sky.money/t/monthly-settlement-cycle-1-july-august-september-18-2025-spell/27173
+        // Atlas: https://sky-atlas.powerhouse.io/A.2.5.1.2.2.1_Stage_1/241f2ff0-8d73-8014-b124-e76f5f5c91fc%7C9e1fcc279923ea16fa2d
 
-    // ---------- First Settlement Cycle ----------
+        // _takeAllocatorPayment(ALLOCATOR-BLOOM-A, ALLOCATOR_BLOOM_A_VAULT, 4_788_407e18);
+        _takeAllocatorPayment(ALLOCATOR_BLOOM_A_VAULT, 4_788_407e18);
 
-    // TBC
+        // _transferUsds(GROVE_PROXY: 0x1369f7b2b38c76B6478c0f0E66D94923421891Ba, 30_654e18);
+        _transferUsds(GROVE_PROXY, 30_654e18);
 
-    // ---------- AD compensation ----------
+        // _takeAllocatorPayment(ALLOCATOR-SPARK-A, ALLOCATOR_SPARK_A_VAULT, 1_603_952e18);
+        _takeAllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 1_603_952e18);
 
-    // BLUE - 4,000 USDS - 0xb6C09680D822F162449cdFB8248a7D3FC26Ec9Bf
-    _transferUsds(BLUE, 4000 * WAD);
+        // _transferUsds(SPARK_PROXY: 0x3300f198988e4C9C63F75dF86De36421f06af8c4, 5_927_944e18);
+        _transferUsds(SPARK_PROXY, 5_927_944e18);
 
-    // Bonapublica - 4,000 USDS - 0x167c1a762B08D7e78dbF8f24e5C3f1Ab415021D3
-    _transferUsds(BONAPUBLICA, 4000 * WAD);
+        // ---------- AD compensation ----------
+        // Forum: https://forum.sky.money/t/august-2025-aligned-delegate-compensation/27165
+        // Atlas: https://sky-atlas.powerhouse.io/Budget_And_Participation_Requirements/4c698938-1a11-4486-a568-e54fc6b0ce0c%7C0db3af4e
 
-    // Cloaky - 4,000 USDS - 0x9244F47D70587Fa2329B89B6f503022b63Ad54A5
-    _transferUsds(CLOAKY_2, 4000 * WAD);
+        // BLUE - 4,000 USDS - 0xb6C09680D822F162449cdFB8248a7D3FC26Ec9Bf
+        _transferUsds(BLUE, 4000 * WAD);
 
-    // WBC - 4,000 USDS - 0xeBcE83e491947aDB1396Ee7E55d3c81414fB0D47
-    _transferUsds(WBC, 4000 * WAD);
+        // Bonapublica - 4,000 USDS - 0x167c1a762B08D7e78dbF8f24e5C3f1Ab415021D3
+        _transferUsds(BONAPUBLICA, 4000 * WAD);
 
-    // Tango - 3,400 USDS - 0xB2B86A130B1EC101e4Aed9a88502E08995760307
-    _transferUsds(TANGO, 3400 * WAD);
+        // Cloaky - 4,000 USDS - 0x9244F47D70587Fa2329B89B6f503022b63Ad54A5
+        _transferUsds(CLOAKY_2, 4000 * WAD);
 
-    // Sky Staking - 2,854 USDS - 0x05c73AE49fF0ec654496bF4008d73274a919cB5C
-    _transferUsds(SKY_STAKING, 2854 * WAD);
+        // WBC - 4,000 USDS - 0xeBcE83e491947aDB1396Ee7E55d3c81414fB0D47
+        _transferUsds(WBC, 4000 * WAD);
 
-    // AegisD - 645 USDS - 0x78C180CF113Fe4845C325f44648b6567BC79d6E0
-    _transferUsds(AEGIS_D, 645 * WAD);
+        // Tango - 3,400 USDS - 0xB2B86A130B1EC101e4Aed9a88502E08995760307
+        _transferUsds(TANGO, 3400 * WAD);
 
-    // ---------- Atlas Core Development USDS Payments for September 2025 ----------
+        // Sky Staking - 2,854 USDS - 0x05c73AE49fF0ec654496bF4008d73274a919cB5C
+        _transferUsds(SKY_STAKING, 2854 * WAD);
 
-    // Kohla - 11,140 USDS - 0x73dFC091Ad77c03F2809204fCF03C0b9dccf8c7a
-    _transferUsds(CLOAKY_KOHLA_2, 11140 * WAD);
+        // AegisD - 645 USDS - 0x78C180CF113Fe4845C325f44648b6567BC79d6E0
+        _transferUsds(AEGIS_D, 645 * WAD);
 
-    // Cloaky - 16,417 USDS - 0x9244F47D70587Fa2329B89B6f503022b63Ad54A5
-    _transferUsds(CLOAKY_2, 16417 * WAD);
+        // ---------- Atlas Core Development USDS Payments for September 2025 ----------
+        // Forum: https://forum.sky.money/t/atlas-core-development-payment-requests-september-2025/27139
 
-    // Blue - 50,167 USDS - 0xb6C09680D822F162449cdFB8248a7D3FC26Ec9Bf
-    _transferUsds(BLUE, 50167 * WAD);
+        // Kohla - 11,140 USDS - 0x73dFC091Ad77c03F2809204fCF03C0b9dccf8c7a
+        _transferUsds(CLOAKY_KOHLA_2, 11140 * WAD);
 
-    // ---------- Atlas Core Development SKY Payments for September 2025 ----------
+        // Cloaky - 16,417 USDS - 0x9244F47D70587Fa2329B89B6f503022b63Ad54A5
+        _transferUsds(CLOAKY_2, 16417 * WAD);
 
-    // Cloaky - 288,000 SKY - 0x9244F47D70587Fa2329B89B6f503022b63Ad54A5
-    GemAbstract(SKY).transfer(CLOAKY_2, 288000 * WAD);
+        // Blue - 50,167 USDS - 0xb6C09680D822F162449cdFB8248a7D3FC26Ec9Bf
+        _transferUsds(BLUE, 50167 * WAD);
 
-    // Blue - 330,000 SKY - 0xb6C09680D822F162449cdFB8248a7D3FC26Ec9Bf
-    GemAbstract(SKY).transfer(BLUE, 330000 * WAD);
+        // ---------- Atlas Core Development SKY Payments for September 2025 ----------
+        // Forum: https://forum.sky.money/t/atlas-core-development-payment-requests-september-2025/27139
 
-    // ---------- Execute Spark Proxy Spell ----------
+        // Cloaky - 288,000 SKY - 0x9244F47D70587Fa2329B89B6f503022b63Ad54A5
+        GemAbstract(SKY).transfer(CLOAKY_2, 288000 * WAD);
 
-    // Execute Spark proxy spell at TBC
+        // Blue - 330,000 SKY - 0xb6C09680D822F162449cdFB8248a7D3FC26Ec9Bf
+        GemAbstract(SKY).transfer(BLUE, 330000 * WAD);
 
+        // ---------- Execute Spark Proxy Spell ----------
+        // Forum: https://forum.sky.money/t/september-18-2025-proposed-changes-to-spark-for-upcoming-spell/27153
+        // Poll: https://vote.sky.money/polling/QmUaV3Xj
+        // Poll: https://vote.sky.money/polling/QmPT2Ynb
+        // Poll: https://vote.sky.money/polling/QmVwqNSv
+        // Poll: https://vote.sky.money/polling/QmXzyYyJ
+        // Poll: https://vote.sky.money/polling/QmUv9fbY
+        // Poll: https://vote.sky.money/polling/Qme1KAbo
+        // Poll: https://vote.sky.money/polling/QmdX2eGt
+        // Poll: https://vote.sky.money/polling/QmeyqTyQ
+        // Poll: https://vote.sky.money/polling/Qmc8PHPC
+        // Poll: https://vote.sky.money/polling/QmbHt4Vg
+
+        // Execute Spark proxy spell at 0x7B28F4Bdd7208fe80916EBC58611Eb72Fb6A09Ed
+        ProxyLike(SPARK_PROXY).exec(SPARK_SPELL, abi.encodeWithSignature("execute()"));
     }
 
     // ---------- Helper Functions ----------
@@ -203,6 +256,18 @@ contract DssSpellAction is DssAction {
         GemAbstract(DAI).approve(DAI_USDS, wad);
         // Note: Convert Dai to USDS for `usr`.
         DaiUsdsLike(DAI_USDS).daiToUsds(usr, wad);
+    }
+
+    /// @notice Wraps the operations required to take a payment from a Prime agent
+    /// @param vault The address of the allocator vault
+    /// @param wad The amount in wad precision (10 ** 18)
+    function _takeAllocatorPayment(address vault, uint256 wad) internal {
+        bytes32 ilk = AllocatorVaultLike(vault).ilk();
+        uint256 rate = JugAbstract(MCD_JUG).drip(ilk);
+        uint256 dart = wad * RAY != 0 ? ((wad * RAY - 1) / rate) + 1 : 0;
+        require(dart <= uint256(type(int256).max));
+        VatAbstract(MCD_VAT).suck(MCD_VOW, MCD_VOW, dart * rate);
+        VatAbstract(MCD_VAT).grab(ilk, vault, address(0), MCD_VOW, 0, int256(dart));
     }
 }
 
