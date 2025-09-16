@@ -106,9 +106,11 @@ contract DssSpellAction is DssAction {
     address internal constant SKY_STAKING    = 0x05c73AE49fF0ec654496bF4008d73274a919cB5C;
 
     // ---------- Grove Proxy ----------
+    // Note: The deployment address of the Grove Proxy can be found at https://forum.sky.money/t/technical-scope-of-the-star-2-allocator-launch/26190
     address internal constant GROVE_PROXY = 0x1369f7b2b38c76B6478c0f0E66D94923421891Ba;
 
     // ---------- Nova Proxy ----------
+    // Note: The deployment address of the Nova Proxy can be found at https://forum.sky.money/t/technical-scope-of-the-nova-allocator-adjustment/27175
     address internal constant NOVA_PROXY = 0x355CD90Ecb1b409Fdf8b64c4473C3B858dA2c310;
 
     // ---------- Spark Proxy Spell ----------
