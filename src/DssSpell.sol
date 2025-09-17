@@ -92,8 +92,8 @@ abstract contract DssAction {
 contract DssSpellAction is DssAction {
     // Provides a descriptive tag for bot consumption
     // This should be modified weekly to provide a summary of the actions
-    // Hash: cast keccak -- "$(wget 'TODO' -q -O - 2>/dev/null)"
-    string public constant override description = "2025-09-18 MakerDAO Executive Spell | Hash: TODO";
+    // Hash: cast keccak -- "$(wget 'https://raw.githubusercontent.com/sky-ecosystem/executive-votes/bc3a1fef51159885cfcf6f8acba83db95fe3ea7d/2025/executive-vote-2025-09-18.md' -q -O - 2>/dev/null)"
+    string public constant override description = "2025-09-18 MakerDAO Executive Spell | Hash: 0xb512f90a3c64d73f39daed8ef595f631a6c802b3ddd0a816ffa6f8168568bc80";
 
     // Set office hours according to the summary
     function officeHours() public pure override returns (bool) {
