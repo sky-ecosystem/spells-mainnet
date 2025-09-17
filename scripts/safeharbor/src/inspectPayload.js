@@ -4,7 +4,19 @@ import { generateUpdates } from "./generateUpdates.js";
 import { wrapWithMulticall } from "./utils/multicallWrapper.js";
 import { AGREEMENT_ADDRESS, MULTICALL_ADDRESS } from "./constants.js";
 
-// Main function
+/**
+ * Build a sanitized update payload by comparing CSV data with on-chain state and (optionally) wrapping updates in a multicall.
+ *
+ * Downloads and normalizes CSV data from the provided URL, fetches the normalized on-chain state for the given agreement,
+ * generates any required updates, and — if updates exist — produces a multicall wrapper. The returned `updates` array has
+ * each update's `calldata` removed to keep the payload human-readable; the full multicall payload (including calldata)
+ * is returned as `multicall`.
+ *
+ * @param {string} csvUrl - URL of the CSV (typically a Google Sheet CSV) to download and normalize.
+ * @param {boolean} [inspect=false] - If true, the multicall wrapper may be generated in inspect/debug mode.
+ * @returns {{ updates: Array<object>, multicall: object }|undefined} An object containing `updates` (with `calldata` removed) and the full `multicall` payload, or `undefined` if no updates are required.
+ * @throws {Error} If CSV download, on-chain fetch, update generation, or multicall wrapping fails; the original error is rethrown.
+ */
 export async function inspectPayload({
     csvUrl,
     agreementContract,

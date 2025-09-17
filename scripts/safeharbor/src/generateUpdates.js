@@ -4,7 +4,18 @@ import { getChainId, getAssetRecoveryAddress } from "./utils/chainUtils.js";
 
 const agreementInterface = new Interface(AGREEMENTV2_ABI);
 
-// Account difference calculation
+/**
+ * Compute which accounts need to be added or removed to transform currentAccounts into desiredAccounts.
+ *
+ * Compares accounts by the composite key (accountAddress + childContractScope). Returns
+ * an object with `toAdd` — entries present in desiredAccounts but not in currentAccounts
+ * (each entry includes `accountAddress` and `childContractScope`) — and `toRemove` —
+ * an array of `accountAddress` values for entries present in currentAccounts but not in desiredAccounts.
+ *
+ * @param {Array<{accountAddress: string, childContractScope: string}>} currentAccounts - Current on-chain account records.
+ * @param {Array<{accountAddress: string, childContractScope: string}>} desiredAccounts - Desired target account records (from CSV).
+ * @return {{ toAdd: Array<{accountAddress: string, childContractScope: string}>, toRemove: string[] }}
+ */
 function calculateAccountDifferences(currentAccounts, desiredAccounts) {
     // Create maps for easier lookup with composite keys
     const currentMap = new Map(
@@ -47,6 +58,19 @@ function calculateAccountDifferences(currentAccounts, desiredAccounts) {
     return { toAdd, toRemove };
 }
 
+/**
+ * Build account-level update payloads (add/remove accounts) for each on-chain chain not slated for removal.
+ *
+ * Iterates over chains present in onChainState and computes per-chain account differences against csvState.
+ * For each chain (except those listed in `chainsToRemove`) it produces zero or more update objects:
+ * - removeAccounts: calldata and args to remove addresses for that chain (if any),
+ * - addAccounts: calldata and args to add accounts for that chain (if any).
+ *
+ * @param {Object<string, Array<Object>>} onChainState - Mapping of chainName → array of current account objects.
+ * @param {Object<string, Array<Object>>} csvState - Mapping of chainName → array of desired account objects from CSV.
+ * @param {Array<string>} [chainsToRemove=[]] - Chain names that will be removed; account updates for these chains are skipped.
+ * @returns {Array<Object>} Array of update objects. Each object has the shape { function: string, args: Array, calldata: string }.
+ */
 function generateAccountUpdates(onChainState, csvState, chainsToRemove = []) {
     const updates = [];
 
@@ -98,6 +122,23 @@ function generateAccountUpdates(onChainState, csvState, chainsToRemove = []) {
     return updates;
 }
 
+/**
+ * Generate chain-level update payloads to add/remove chains so on-chain state matches CSV state.
+ *
+ * Compares chains present in onChainState and csvState, producing encoded "addChains" and
+ * "removeChains" update objects (batched per operation) suitable for submission via the agreement ABI.
+ *
+ * Parameters:
+ * - onChainState: map of chainName -> array of existing chain accounts (current on-chain representation).
+ * - csvState: map of chainName -> array of desired chain accounts (desired CSV representation).
+ *
+ * Returns an object with:
+ * - updates: Array of update descriptors { function, args, calldata } for chain-level operations.
+ * - chainsToRemove: Array of chain names that were present on-chain but absent from csvState.
+ *
+ * Throws an Error if any account objects in newly added chains are missing required fields
+ * (missing `accountAddress` or undefined/null `childContractScope`).
+ */
 function generateChainUpdates(onChainState, csvState) {
     const updates = [];
 
@@ -168,6 +209,16 @@ function generateChainUpdates(onChainState, csvState) {
     return { updates, chainsToRemove };
 }
 
+/**
+ * Produce the ordered list of on-chain update payloads needed to reconcile on-chain state with CSV-defined desired state.
+ *
+ * Generates chain-level updates (add/remove chains) first, then account-level updates (add/remove accounts) for remaining chains,
+ * and returns the combined array of update objects ready for encoding/execution.
+ *
+ * @param {Object<string, Array>} onChainState - Current on-chain mapping from chain name to an array of account objects.
+ * @param {Object<string, Array>} csvState - Desired mapping from chain name to an array of account objects as parsed from CSV.
+ * @return {Array<Object>} Ordered array of update objects (each contains function name, args, and calldata) representing the changes to apply.
+ */
 export function generateUpdates(onChainState, csvState) {
     const { updates: chainUpdates, chainsToRemove } = generateChainUpdates(
         onChainState,
