@@ -141,9 +141,9 @@ contract DssSpellAction is DssAction {
     address internal immutable ALLOCATOR_NOVA_A_BUFFER  = DssExecLib.getChangelogAddress("ALLOCATOR_NOVA_A_BUFFER");
     address internal immutable ALLOCATOR_BLOOM_A_VAULT  = DssExecLib.getChangelogAddress("ALLOCATOR_BLOOM_A_VAULT");
     address internal immutable ALLOCATOR_SPARK_A_VAULT  = DssExecLib.getChangelogAddress("ALLOCATOR_SPARK_A_VAULT");
+    address internal constant NOVA_OPERATOR             = 0x0f72935f6de6C54Ce8056FD040d4Ddb012B7cd54;
 
     // ---------- Wallets ----------
-    address internal constant NOVA_OPERATOR  = 0x0f72935f6de6C54Ce8056FD040d4Ddb012B7cd54;
     address internal constant BLUE           = 0xb6C09680D822F162449cdFB8248a7D3FC26Ec9Bf;
     address internal constant BONAPUBLICA    = 0x167c1a762B08D7e78dbF8f24e5C3f1Ab415021D3;
     address internal constant CLOAKY_2       = 0x9244F47D70587Fa2329B89B6f503022b63Ad54A5;

@@ -1380,7 +1380,7 @@ contract DssSpellTest is DssSpellTestBase {
         address roles    = addr.addr("ALLOCATOR_ROLES");
         address buffer   = addr.addr("ALLOCATOR_NOVA_A_BUFFER");
         address vault    = addr.addr("ALLOCATOR_NOVA_A_VAULT");
-        address proxy    = addr.addr("ALLOCATOR_NOVA_A_SUBPROXY");
+        address subProxy = addr.addr("ALLOCATOR_NOVA_A_SUBPROXY");
         address operator = wallets.addr("NOVA_OPERATOR");
 
         // Sanity check values before spell
@@ -1390,10 +1390,10 @@ contract DssSpellTest is DssSpellTestBase {
         assertTrue(AllocatorRolesLike(roles).hasActionRole("ALLOCATOR-NOVA-A", vault, AllocatorVaultLike.wipe.selector, 0));
 
         assertEq(AllocatorVaultLike(vault).wards(pauseProxy), 1, "NovaOperatorOffboarding/pause-proxy-vault-wards-before");
-        assertEq(AllocatorVaultLike(vault).wards(proxy), 0, "NovaOperatorOffboarding/nova-proxy-vault-wards-before");
+        assertEq(AllocatorVaultLike(vault).wards(subProxy), 0, "NovaOperatorOffboarding/nova-proxy-vault-wards-before");
 
         assertEq(AllocatorBufferLike(buffer).wards(pauseProxy), 1, "NovaOperatorOffboarding/pause-proxy-buffer-wards-before");
-        assertEq(AllocatorBufferLike(buffer).wards(proxy), 0, "NovaOperatorOffboarding/nova-proxy-buffer-wards-before");
+        assertEq(AllocatorBufferLike(buffer).wards(subProxy), 0, "NovaOperatorOffboarding/nova-proxy-buffer-wards-before");
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
@@ -1409,10 +1409,10 @@ contract DssSpellTest is DssSpellTestBase {
 
         // Ensure correct wards
         assertEq(AllocatorVaultLike(vault).wards(pauseProxy), 0, "NovaOperatorOffboarding/pause-proxy-vault-wards-after");
-        assertEq(AllocatorVaultLike(vault).wards(proxy), 1, "NovaOperatorOffboarding/nova-proxy-vault-wards-after");
+        assertEq(AllocatorVaultLike(vault).wards(subProxy), 1, "NovaOperatorOffboarding/nova-proxy-vault-wards-after");
 
         assertEq(AllocatorBufferLike(buffer).wards(pauseProxy), 0, "NovaOperatorOffboarding/pause-proxy-buffer-wards-before");
-        assertEq(AllocatorBufferLike(buffer).wards(proxy), 1, "NovaOperatorOffboarding/nova-proxy-buffer-wards-before");
+        assertEq(AllocatorBufferLike(buffer).wards(subProxy), 1, "NovaOperatorOffboarding/nova-proxy-buffer-wards-before");
 
         // Sanity check operator is NOT able to call draw() and wipe()
         vm.startPrank(operator);
@@ -1444,10 +1444,11 @@ contract DssSpellTest is DssSpellTestBase {
 
         uint256 take = mkrSky.take();
         uint256 fee = mkrSky.fee();
-        uint256 expectedTakeAfter = prevTake + (prevMkrBalance * afterSpell.sky_mkr_rate * fee / WAD);
+        uint256 feeCut = (prevMkrBalance * afterSpell.sky_mkr_rate * fee) / WAD;
+        uint256 expectedTakeAfter = prevTake + feeCut;
         assertEq(take, expectedTakeAfter, "MkrToSkyFee/take-not-increased");
 
-        uint256 expectedSkyBalance = prevSkyBalance + ((prevMkrBalance * afterSpell.sky_mkr_rate) - (prevMkrBalance * afterSpell.sky_mkr_rate * fee / WAD));
+        uint256 expectedSkyBalance = prevSkyBalance + ((prevMkrBalance * afterSpell.sky_mkr_rate) - feeCut);
         assertEq(mkr.balanceOf(mkrHolder), 0,                  "TestError/MKR/bad-mkr-to-sky-conversion");
         assertEq(sky.balanceOf(skyHolder), expectedSkyBalance, "TestError/Sky/bad-mkr-to-sky-conversion");
     }
@@ -1491,7 +1492,6 @@ contract DssSpellTest is DssSpellTestBase {
     struct MscIlkValues {
         uint256 urnArt;
         uint256 ilkArt;
-        uint256 dart;
     }
 
     function testMscInflows() public {
@@ -1519,10 +1519,11 @@ contract DssSpellTest is DssSpellTestBase {
 
             totalPayments += payments[i].wad;
             totalDtab += dart * rate;
-            expectedValues[i] = MscIlkValues(urnArt, ilkArt, dart);
+            expectedValues[i] = MscIlkValues(urnArt + dart, ilkArt + dart);
         }
+        assertEq(totalPayments, expectedTotalAmount, "MSC/invalid-total-amount");
 
-        uint256 prevDaiVow = vat.dai(address(vow));
+        uint256 expectedDaiVow = vat.dai(address(vow)) + totalDtab;
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
@@ -1533,13 +1534,12 @@ contract DssSpellTest is DssSpellTestBase {
             (, uint256 urnArt) = vat.urns(ilk, address(payments[i].vault));
             (uint256 ilkArt,,,,) = vat.ilks(ilk);
 
-            assertEq(urnArt, expectedValues[i].urnArt + expectedValues[i].dart, "MSC/invalid-urn-art");
-            assertEq(ilkArt, expectedValues[i].ilkArt + expectedValues[i].dart, "MSC/invalid-ilk-art");
+            assertEq(urnArt, expectedValues[i].urnArt, "MSC/invalid-urn-art");
+            assertEq(ilkArt, expectedValues[i].ilkArt, "MSC/invalid-ilk-art");
         }
 
         uint256 daiVow = vat.dai(address(vow));
 
-        assertEq(totalPayments, expectedTotalAmount, "MSC/invalid-total-amount");
-        assertEq(daiVow, prevDaiVow + totalDtab, "MSC/invalid-dai-value");
+        assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 }
