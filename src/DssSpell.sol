@@ -103,7 +103,7 @@ contract DssSpellAction is DssAction {
     // ---------- Set earliest execution date September 22, 14:00 UTC ----------
 
     // Note: 2025-09-22 14:00:00 UTC
-    uint256 internal constant SEP_22_2025 = 1758549600;
+    uint256 internal constant SEP_22_2025_14_00_UTC = 1758549600;
 
     // Note: Override nextCastTime to inform keepers about the earliest execution time
     function nextCastTime(uint256 eta) external view override returns (uint256 castTime) {
@@ -111,7 +111,7 @@ contract DssSpellAction is DssAction {
         // Note: First calculate the standard office hours cast time
         castTime = DssExecLib.nextCastTime(uint40(eta), uint40(block.timestamp), officeHours());
         // Note: Then ensure it's not before our minimum date
-        return castTime < SEP_22_2025 ? SEP_22_2025 : castTime;
+        return castTime < SEP_22_2025_14_00_UTC ? SEP_22_2025_14_00_UTC : castTime;
     }
 
     // ---------- Rates ----------
@@ -174,7 +174,7 @@ contract DssSpellAction is DssAction {
         // Forum: https://forum.sky.money/t/phase-3-mkr-to-sky-migration-items-september-18th-spell/27178
         // Atlas: https://sky-atlas.powerhouse.io/A.4.1.2.1.4.2.5_Set_Conversion_Fee_In_MKR_To_SKY_Conversion_Contract_To_1%25/1f1f2ff0-8d73-804c-948b-fddc869fcb65%7Cb341f4c0b83472dc1f9e1a3b
 
-        require(block.timestamp >= SEP_22_2025, "Spell can only be cast after Sep 22, 2025, 14:00 UTC");
+        require(block.timestamp >= SEP_22_2025_14_00_UTC, "Spell can only be cast after Sep 22, 2025, 14:00 UTC");
 
         // ---------- Delayed Upgrade Penalty ----------
         // Forum: https://forum.sky.money/t/phase-3-mkr-to-sky-migration-items-september-18th-spell/27178
@@ -220,7 +220,7 @@ contract DssSpellAction is DssAction {
         // Forum: https://forum.sky.money/t/september-18-2025-proposed-changes-to-lsev2-sky-a-liquidation-ratio/27160/2
 
         // Increase LSEV2-SKY-A Liquidation Ratio for 20 percentage points, from 125% to 145%
-        DssExecLib.setIlkLiquidationRatio("LSE-MKR-A", 145_00);
+        DssExecLib.setIlkLiquidationRatio("LSEV2-SKY-A", 145_00);
 
         // ---------- First Settlement Cycle ----------
         // Forum: https://forum.sky.money/t/monthly-settlement-cycle-1-july-august-september-18-2025-spell/27173

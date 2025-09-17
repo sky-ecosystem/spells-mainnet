@@ -1414,7 +1414,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(AllocatorBufferLike(buffer).wards(pauseProxy), 0, "NovaOperatorOffboarding/pause-proxy-buffer-wards-before");
         assertEq(AllocatorBufferLike(buffer).wards(proxy), 1, "NovaOperatorOffboarding/nova-proxy-buffer-wards-before");
 
-        // Sanity check operator is NOT be able to call draw() and wipe()
+        // Sanity check operator is NOT able to call draw() and wipe()
         vm.startPrank(operator);
         vm.expectRevert("AllocatorVault/not-authorized");
         AllocatorVaultLike(vault).draw(1_000 * WAD);
@@ -1499,8 +1499,8 @@ contract DssSpellTest is DssSpellTestBase {
         address ALLOCATOR_SPARK_A_VAULT = addr.addr("ALLOCATOR_SPARK_A_VAULT");
 
         AllocatorPayment[2] memory payments = [
-            AllocatorPayment(ALLOCATOR_BLOOM_A_VAULT, 4_788_407 * WAD ),
-            AllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 1_603_952 * WAD )
+            AllocatorPayment(ALLOCATOR_BLOOM_A_VAULT, 4_788_407 * WAD),
+            AllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 1_603_952 * WAD)
         ];
 
         uint256 expectedTotalAmount = 6_392_359 * WAD;
