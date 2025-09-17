@@ -39,7 +39,7 @@ interface VaultLike {
 }
 
 interface DaiUsdsLike {
-    function daiToUsds(address, uint256) external;
+    function daiToUsds(address usr, uint256 wad) external;
 }
 
 interface ProxyLike {

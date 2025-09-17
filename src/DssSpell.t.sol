@@ -18,7 +18,6 @@ pragma solidity 0.8.16;
 
 import "./DssSpell.t.base.sol";
 import {ScriptTools} from "dss-test/DssTest.sol";
-import { DssExec } from "dss-exec-lib/DssExec.sol";
 
 interface L2Spell {
     function dstDomain() external returns (bytes32);
