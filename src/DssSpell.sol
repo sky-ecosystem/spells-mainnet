@@ -326,7 +326,7 @@ contract DssSpellAction is DssAction {
         bytes32 ilk = AllocatorVaultLike(vault).ilk();
         uint256 rate = JugAbstract(MCD_JUG).drip(ilk);
         uint256 dart = wad * RAY != 0 ? ((wad * RAY - 1) / rate) + 1 : 0;
-        require(dart <= uint256(type(int256).max));
+        require(dart <= uint256(type(int256).max), "takeAllocatorPayment/dart-too-large");
         VatAbstract(MCD_VAT).suck(MCD_VOW, MCD_VOW, dart * rate);
         VatAbstract(MCD_VAT).grab(ilk, vault, address(0), MCD_VOW, 0, int256(dart));
     }
