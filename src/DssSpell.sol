@@ -97,13 +97,13 @@ contract DssSpellAction is DssAction {
 
     // Set office hours according to the summary
     function officeHours() public pure override returns (bool) {
-        return false;
+        return true;
     }
 
     // ---------- Set earliest execution date September 22, 14:00 UTC ----------
 
     // Note: 2025-09-22 14:00:00 UTC
-    uint256 internal constant SEP_22_2025 = 1758542400;
+    uint256 internal constant SEP_22_2025 = 1758549600;
 
     // Note: Override nextCastTime to inform keepers about the earliest execution time
     function nextCastTime(uint256 eta) external view override returns (uint256 castTime) {

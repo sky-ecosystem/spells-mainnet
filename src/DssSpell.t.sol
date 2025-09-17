@@ -1454,7 +1454,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // 2025-09-22 14:00:00 UTC
-    uint256 constant MIN_ETA = 1758542400;
+    uint256 constant MIN_ETA = 1758549600;
 
     function testNextCastTimeMinEta() public {
         // Spell obtains approval for execution before MIN_ETA
@@ -1482,5 +1482,65 @@ contract DssSpellTest is DssSpellTestBase {
 
             vm.revertToStateAndDelete(before);
         }
+    }
+
+    struct AllocatorPayment {
+        address vault;
+        uint256 wad;
+    }
+
+    struct MscIlkValues {
+        uint256 urnArt;
+        uint256 ilkArt;
+        uint256 dart;
+    }
+
+    function testMscInflows() public {
+        address ALLOCATOR_BLOOM_A_VAULT = addr.addr("ALLOCATOR_BLOOM_A_VAULT");
+        address ALLOCATOR_SPARK_A_VAULT = addr.addr("ALLOCATOR_SPARK_A_VAULT");
+
+        AllocatorPayment[2] memory payments = [
+            AllocatorPayment(ALLOCATOR_BLOOM_A_VAULT, 4_788_407 * WAD ),
+            AllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 1_603_952 * WAD )
+        ];
+
+        uint256 expectedTotalAmount = 6_392_359 * WAD;
+
+        MscIlkValues[] memory expectedValues = new MscIlkValues[](payments.length);
+        uint256 totalDtab = 0;
+        uint256 totalPayments = 0;
+
+        for(uint256 i = 0; i < payments.length; i++) {
+            bytes32 ilk = AllocatorVaultLike(payments[i].vault).ilk();
+            (, uint256 urnArt) = vat.urns(ilk, address(payments[i].vault));
+            (uint256 ilkArt,,,,) = vat.ilks(ilk);
+
+            uint256 rate = jug.drip(ilk);
+            uint256 dart = payments[i].wad * RAY != 0 ? ((payments[i].wad * RAY - 1) / rate) + 1 : 0;
+
+            totalPayments += payments[i].wad;
+            totalDtab += dart * rate;
+            expectedValues[i] = MscIlkValues(urnArt, ilkArt, dart);
+        }
+
+        uint256 prevDaiVow = vat.dai(address(vow));
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        for(uint256 i = 0; i < payments.length; i++) {
+            bytes32 ilk = AllocatorVaultLike(payments[i].vault).ilk();
+            (, uint256 urnArt) = vat.urns(ilk, address(payments[i].vault));
+            (uint256 ilkArt,,,,) = vat.ilks(ilk);
+
+            assertEq(urnArt, expectedValues[i].urnArt + expectedValues[i].dart, "MSC/invalid-urn-art");
+            assertEq(ilkArt, expectedValues[i].ilkArt + expectedValues[i].dart, "MSC/invalid-ilk-art");
+        }
+
+        uint256 daiVow = vat.dai(address(vow));
+
+        assertEq(totalPayments, expectedTotalAmount, "MSC/invalid-total-amount");
+        assertEq(daiVow, prevDaiVow + totalDtab, "MSC/invalid-dai-value");
     }
 }
