@@ -17,8 +17,7 @@
 pragma solidity 0.8.16;
 
 import "dss-exec-lib/DssExec.sol";
-import "dss-exec-lib/DssAction.sol";
-
+import { DssExecLib } from "dss-exec-lib/DssExecLib.sol";
 import { GemAbstract } from "dss-interfaces/ERC/GemAbstract.sol";
 import { WardsAbstract } from "dss-interfaces/utils/WardsAbstract.sol";
 import { VatAbstract } from "dss-interfaces/dss/VatAbstract.sol";
@@ -51,6 +50,45 @@ interface AllocatorVaultLike {
     function ilk() external view returns (bytes32);
 }
 
+abstract contract DssAction {
+
+    using DssExecLib for *;
+
+    // Modifier used to limit execution time when office hours is enabled
+    modifier limited {
+        require(DssExecLib.canCast(uint40(block.timestamp), officeHours()), "Outside office hours");
+        _;
+    }
+
+    // Office Hours defaults to true by default.
+    //   To disable office hours, override this function and
+    //    return false in the inherited action.
+    function officeHours() public view virtual returns (bool) {
+        return true;
+    }
+
+    // DssExec calls execute. We limit this function subject to officeHours modifier.
+    function execute() external limited {
+        actions();
+    }
+
+    // DssAction developer must override `actions()` and place all actions to be called inside.
+    //   The DssExec function will call this subject to the officeHours limiter
+    //   By keeping this function public we allow simulations of `execute()` on the actions outside of the cast time.
+    function actions() public virtual;
+
+    // Provides a descriptive tag for bot consumption
+    // This should be modified weekly to provide a summary of the actions
+    // Hash: seth keccak -- "$(wget https://<executive-vote-canonical-post> -q -O - 2>/dev/null)"
+    function description() external view virtual returns (string memory);
+
+    // Returns the next available cast time
+    function nextCastTime(uint256 eta) external virtual view returns (uint256 castTime) {
+        require(eta <= type(uint40).max);
+        castTime = DssExecLib.nextCastTime(uint40(eta), uint40(block.timestamp), officeHours());
+    }
+}
+
 contract DssSpellAction is DssAction {
     // Provides a descriptive tag for bot consumption
     // This should be modified weekly to provide a summary of the actions
@@ -59,7 +97,21 @@ contract DssSpellAction is DssAction {
 
     // Set office hours according to the summary
     function officeHours() public pure override returns (bool) {
-        return true;
+        return false;
+    }
+
+    // ---------- Set earliest execution date September 22, 14:00 UTC ----------
+
+    // Note: 2025-09-22 14:00:00 UTC
+    uint256 internal constant SEP_22_2025 = 1758542400;
+
+    // Note: Override nextCastTime to inform keepers about the earliest execution time
+    function nextCastTime(uint256 eta) external view override returns (uint256 castTime) {
+        require(eta <= type(uint40).max);
+        // Note: First calculate the standard office hours cast time
+        castTime = DssExecLib.nextCastTime(uint40(eta), uint40(block.timestamp), officeHours());
+        // Note: Then ensure it's not before our minimum date
+        return castTime < SEP_22_2025 ? SEP_22_2025 : castTime;
     }
 
     // ---------- Rates ----------
@@ -92,7 +144,6 @@ contract DssSpellAction is DssAction {
     address internal immutable ALLOCATOR_NOVA_A_BUFFER  = DssExecLib.getChangelogAddress("ALLOCATOR_NOVA_A_BUFFER");
     address internal immutable ALLOCATOR_BLOOM_A_VAULT  = DssExecLib.getChangelogAddress("ALLOCATOR_BLOOM_A_VAULT");
     address internal immutable ALLOCATOR_SPARK_A_VAULT  = DssExecLib.getChangelogAddress("ALLOCATOR_SPARK_A_VAULT");
-    address internal immutable MCD_PAUSE_PROXY          = DssExecLib.getChangelogAddress("MCD_PAUSE_PROXY");
 
     // ---------- Wallets ----------
     address internal constant NOVA_OPERATOR  = 0x0f72935f6de6C54Ce8056FD040d4Ddb012B7cd54;
@@ -119,6 +170,12 @@ contract DssSpellAction is DssAction {
     address internal constant SPARK_SPELL = 0x7B28F4Bdd7208fe80916EBC58611Eb72Fb6A09Ed;
 
     function actions() public override {
+        // ---------- Set earliest execution date September 22, 14:00 UTC ----------
+        // Forum: https://forum.sky.money/t/phase-3-mkr-to-sky-migration-items-september-18th-spell/27178
+        // Atlas: https://sky-atlas.powerhouse.io/A.4.1.2.1.4.2.5_Set_Conversion_Fee_In_MKR_To_SKY_Conversion_Contract_To_1%25/1f1f2ff0-8d73-804c-948b-fddc869fcb65%7Cb341f4c0b83472dc1f9e1a3b
+
+        require(block.timestamp >= SEP_22_2025, "Spell can only be cast after Sep 22, 2025, 14:00 UTC");
+
         // ---------- Delayed Upgrade Penalty ----------
         // Forum: https://forum.sky.money/t/phase-3-mkr-to-sky-migration-items-september-18th-spell/27178
         // Atlas: https://sky-atlas.powerhouse.io/A.4.1.2.1.4.2.5_Set_Conversion_Fee_In_MKR_To_SKY_Conversion_Contract_To_1%25/1f1f2ff0-8d73-804c-948b-fddc869fcb65%7Cb341f4c0b83472dc1f9e1a3b
@@ -150,13 +207,13 @@ contract DssSpellAction is DssAction {
         WardsAbstract(ALLOCATOR_NOVA_A_VAULT).rely(NOVA_PROXY);
 
         // WardsAbstract(ALLOCATOR_NOVA_A_VAULT).deny(MCD_PAUSE_PROXY);
-        WardsAbstract(ALLOCATOR_NOVA_A_VAULT).deny(MCD_PAUSE_PROXY);
+        WardsAbstract(ALLOCATOR_NOVA_A_VAULT).deny(address(this));
 
         // WardsAbstract(ALLOCATOR_NOVA_A_BUFFER).rely(NOVA_PROXY);
         WardsAbstract(ALLOCATOR_NOVA_A_BUFFER).rely(NOVA_PROXY);
 
         // WardsAbstract(ALLOCATOR_NOVA_A_BUFFER).deny(MCD_PAUSE_PROXY);
-        WardsAbstract(ALLOCATOR_NOVA_A_BUFFER).deny(MCD_PAUSE_PROXY);
+        WardsAbstract(ALLOCATOR_NOVA_A_BUFFER).deny(address(this));
 
         // ---------- LSEV2-SKY-A Liquidation Ratio increase ----------
         // Forum: https://forum.sky.money/t/september-18-2025-proposed-changes-to-lsev2-sky-a-liquidation-ratio/27160
@@ -208,6 +265,7 @@ contract DssSpellAction is DssAction {
 
         // ---------- Atlas Core Development USDS Payments for September 2025 ----------
         // Forum: https://forum.sky.money/t/atlas-core-development-payment-requests-september-2025/27139
+        // Forum: https://forum.sky.money/t/atlas-core-development-payment-requests-september-2025/27139/6
 
         // Kohla - 11,140 USDS - 0x73dFC091Ad77c03F2809204fCF03C0b9dccf8c7a
         _transferUsds(CLOAKY_KOHLA_2, 11_140 * WAD);
@@ -220,6 +278,7 @@ contract DssSpellAction is DssAction {
 
         // ---------- Atlas Core Development SKY Payments for September 2025 ----------
         // Forum: https://forum.sky.money/t/atlas-core-development-payment-requests-september-2025/27139
+        // Forum: https://forum.sky.money/t/atlas-core-development-payment-requests-september-2025/27139/6
 
         // Cloaky - 288,000 SKY - 0x9244F47D70587Fa2329B89B6f503022b63Ad54A5
         GemAbstract(SKY).transfer(CLOAKY_2, 288_000 * WAD);

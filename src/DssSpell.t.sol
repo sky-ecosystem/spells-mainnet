@@ -950,8 +950,8 @@ contract DssSpellTest is DssSpellTestBase {
             Payee(address(usds), wallets.addr("BLUE"), 54_167 ether), // Note: ether is only a keyword helper
             Payee(address(sky), wallets.addr("CLOAKY_2"), 288_000 ether), // Note: ether is only a keyword helper
             Payee(address(sky), wallets.addr("BLUE"), 330_000 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), 0x1369f7b2b38c76B6478c0f0E66D94923421891Ba, 30_654 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), 0x3300f198988e4C9C63F75dF86De36421f06af8c4, 5_927_944 ether) // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("ALLOCATOR_BLOOM_A_SUBPROXY"), 30_654 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("SPARK_PROXY"), 5_927_944 ether) // Note: ether is only a keyword helper
         ];
 
         // Fill the total values from exec sheet
@@ -1378,12 +1378,11 @@ contract DssSpellTest is DssSpellTestBase {
     // SPELL-SPECIFIC TESTS GO BELOW
 
     function testNovaOperatorOffboarding() public {
-        address roles     = addr.addr("ALLOCATOR_ROLES");
-        address buffer    = addr.addr("ALLOCATOR_NOVA_A_BUFFER");
-        address vault     = addr.addr("ALLOCATOR_NOVA_A_VAULT");
-        address operator  = wallets.addr("NOVA_OPERATOR");
-        address novaProxy = 0x355CD90Ecb1b409Fdf8b64c4473C3B858dA2c310;
-
+        address roles    = addr.addr("ALLOCATOR_ROLES");
+        address buffer   = addr.addr("ALLOCATOR_NOVA_A_BUFFER");
+        address vault    = addr.addr("ALLOCATOR_NOVA_A_VAULT");
+        address proxy    = addr.addr("ALLOCATOR_NOVA_A_SUBPROXY");
+        address operator = wallets.addr("NOVA_OPERATOR");
 
         // Sanity check values before spell
         assertEq(usds.allowance(buffer, operator), type(uint256).max, "invalid-allowance-before");
@@ -1392,10 +1391,10 @@ contract DssSpellTest is DssSpellTestBase {
         assertTrue(AllocatorRolesLike(roles).hasActionRole("ALLOCATOR-NOVA-A", vault, AllocatorVaultLike.wipe.selector, 0));
 
         assertEq(AllocatorVaultLike(vault).wards(pauseProxy), 1, "NovaOperatorOffboarding/pause-proxy-vault-wards-before");
-        assertEq(AllocatorVaultLike(vault).wards(novaProxy), 0, "NovaOperatorOffboarding/nova-proxy-vault-wards-before");
+        assertEq(AllocatorVaultLike(vault).wards(proxy), 0, "NovaOperatorOffboarding/nova-proxy-vault-wards-before");
 
         assertEq(AllocatorBufferLike(buffer).wards(pauseProxy), 1, "NovaOperatorOffboarding/pause-proxy-buffer-wards-before");
-        assertEq(AllocatorBufferLike(buffer).wards(novaProxy), 0, "NovaOperatorOffboarding/nova-proxy-buffer-wards-before");
+        assertEq(AllocatorBufferLike(buffer).wards(proxy), 0, "NovaOperatorOffboarding/nova-proxy-buffer-wards-before");
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
@@ -1411,10 +1410,10 @@ contract DssSpellTest is DssSpellTestBase {
 
         // Ensure correct wards
         assertEq(AllocatorVaultLike(vault).wards(pauseProxy), 0, "NovaOperatorOffboarding/pause-proxy-vault-wards-after");
-        assertEq(AllocatorVaultLike(vault).wards(novaProxy), 1, "NovaOperatorOffboarding/nova-proxy-vault-wards-after");
+        assertEq(AllocatorVaultLike(vault).wards(proxy), 1, "NovaOperatorOffboarding/nova-proxy-vault-wards-after");
 
         assertEq(AllocatorBufferLike(buffer).wards(pauseProxy), 0, "NovaOperatorOffboarding/pause-proxy-buffer-wards-before");
-        assertEq(AllocatorBufferLike(buffer).wards(novaProxy), 1, "NovaOperatorOffboarding/nova-proxy-buffer-wards-before");
+        assertEq(AllocatorBufferLike(buffer).wards(proxy), 1, "NovaOperatorOffboarding/nova-proxy-buffer-wards-before");
 
         // Sanity check operator is NOT be able to call draw() and wipe()
         vm.startPrank(operator);
@@ -1452,5 +1451,36 @@ contract DssSpellTest is DssSpellTestBase {
         uint256 expectedSkyBalance = prevSkyBalance + ((prevMkrBalance * afterSpell.sky_mkr_rate) - (prevMkrBalance * afterSpell.sky_mkr_rate * fee / WAD));
         assertEq(mkr.balanceOf(mkrHolder), 0,                  "TestError/MKR/bad-mkr-to-sky-conversion");
         assertEq(sky.balanceOf(skyHolder), expectedSkyBalance, "TestError/Sky/bad-mkr-to-sky-conversion");
+    }
+
+    // 2025-09-22 14:00:00 UTC
+    uint256 constant MIN_ETA = 1758542400;
+
+    function testNextCastTimeMinEta() public {
+        // Spell obtains approval for execution before MIN_ETA
+        {
+            uint256 before = vm.snapshotState();
+
+            vm.warp(1748736000); // 2025-06-01 00:00:00 UTC - could be any date far enough in the past
+            _vote(address(spell));
+            spell.schedule();
+
+            assertEq(spell.nextCastTime(), MIN_ETA, "testNextCastTimeMinEta/min-eta-not-enforced");
+
+            vm.revertToStateAndDelete(before);
+        }
+
+        // Spell obtains approval for execution after MIN_ETA
+        {
+            uint256 before = vm.snapshotState();
+
+            vm.warp(MIN_ETA); // As we move closer to MIN_ETA, GSM delay is still applicable
+            _vote(address(spell));
+            spell.schedule();
+
+            assertEq(spell.nextCastTime(), MIN_ETA + pause.delay(), "testNextCastTimeMinEta/gsm-delay-not-enforced");
+
+            vm.revertToStateAndDelete(before);
+        }
     }
 }
