@@ -317,6 +317,8 @@ contract DssSpellAction is DssAction {
     }
 
     /// @notice Wraps the operations required to take a payment from a Prime agent
+    /// @dev This function effectively increases the debt of the associated Allocator Vault,
+    ///      regardless if there is enough room in its debt ceiling.
     /// @param vault The address of the allocator vault
     /// @param wad The amount in wad precision (10 ** 18)
     function _takeAllocatorPayment(address vault, uint256 wad) internal {
