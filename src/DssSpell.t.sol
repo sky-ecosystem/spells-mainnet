@@ -1509,13 +1509,15 @@ contract DssSpellTest is DssSpellTestBase {
         uint256 totalDtab = 0;
         uint256 totalPayments = 0;
 
+        uint256 before = vm.snapshotState();
+
         for(uint256 i = 0; i < payments.length; i++) {
             bytes32 ilk = AllocatorVaultLike(payments[i].vault).ilk();
             (, uint256 urnArt) = vat.urns(ilk, address(payments[i].vault));
             (uint256 ilkArt,,,,) = vat.ilks(ilk);
 
             uint256 rate = jug.drip(ilk);
-            uint256 dart = payments[i].wad * RAY != 0 ? ((payments[i].wad * RAY - 1) / rate) + 1 : 0;
+            uint256 dart = payments[i].wad > 0 ? ((payments[i].wad * RAY - 1) / rate) + 1 : 0;
 
             totalPayments += payments[i].wad;
             totalDtab += dart * rate;
@@ -1541,5 +1543,7 @@ contract DssSpellTest is DssSpellTestBase {
         uint256 daiVow = vat.dai(address(vow));
 
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
+
+        vm.revertToStateAndDelete(before);
     }
 }
