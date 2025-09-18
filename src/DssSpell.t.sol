@@ -1494,6 +1494,21 @@ contract DssSpellTest is DssSpellTestBase {
         uint256 ilkArt;
     }
 
+    function _testExpectedMscValues(AllocatorPayment[2] memory payments, MscIlkValues[] memory expectedValues, uint256 expectedDaiVow) internal view {
+        for(uint256 i = 0; i < payments.length; i++) {
+            bytes32 ilk = AllocatorVaultLike(payments[i].vault).ilk();
+            (, uint256 urnArt) = vat.urns(ilk, address(payments[i].vault));
+            (uint256 ilkArt,,,,) = vat.ilks(ilk);
+
+            assertEq(urnArt, expectedValues[i].urnArt, "MSC/invalid-urn-art");
+            assertEq(ilkArt, expectedValues[i].ilkArt, "MSC/invalid-ilk-art");
+        }
+
+        uint256 daiVow = vat.dai(address(vow));
+
+        assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
+    }
+
     function testMscInflows() public {
         address ALLOCATOR_BLOOM_A_VAULT = addr.addr("ALLOCATOR_BLOOM_A_VAULT");
         address ALLOCATOR_SPARK_A_VAULT = addr.addr("ALLOCATOR_SPARK_A_VAULT");
@@ -1508,6 +1523,8 @@ contract DssSpellTest is DssSpellTestBase {
         MscIlkValues[] memory expectedValues = new MscIlkValues[](payments.length);
         uint256 totalDtab = 0;
         uint256 totalPayments = 0;
+
+        uint256 before = vm.snapshotState();
 
         for(uint256 i = 0; i < payments.length; i++) {
             bytes32 ilk = AllocatorVaultLike(payments[i].vault).ilk();
@@ -1529,17 +1546,17 @@ contract DssSpellTest is DssSpellTestBase {
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        for(uint256 i = 0; i < payments.length; i++) {
-            bytes32 ilk = AllocatorVaultLike(payments[i].vault).ilk();
-            (, uint256 urnArt) = vat.urns(ilk, address(payments[i].vault));
-            (uint256 ilkArt,,,,) = vat.ilks(ilk);
+        // Test with MCD_JUG.drip() having been called in the same block
+        _testExpectedMscValues(payments, expectedValues, expectedDaiVow);
 
-            assertEq(urnArt, expectedValues[i].urnArt, "MSC/invalid-urn-art");
-            assertEq(ilkArt, expectedValues[i].ilkArt, "MSC/invalid-ilk-art");
-        }
+        vm.revertToStateAndDelete(before);
 
-        uint256 daiVow = vat.dai(address(vow));
 
-        assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // Test without prior MCD_JUG.drip()
+        _testExpectedMscValues(payments, expectedValues, expectedDaiVow);
     }
 }
