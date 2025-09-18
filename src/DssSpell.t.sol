@@ -1509,8 +1509,6 @@ contract DssSpellTest is DssSpellTestBase {
         uint256 totalDtab = 0;
         uint256 totalPayments = 0;
 
-        uint256 before = vm.snapshotState();
-
         for(uint256 i = 0; i < payments.length; i++) {
             bytes32 ilk = AllocatorVaultLike(payments[i].vault).ilk();
             (, uint256 urnArt) = vat.urns(ilk, address(payments[i].vault));
@@ -1543,7 +1541,5 @@ contract DssSpellTest is DssSpellTestBase {
         uint256 daiVow = vat.dai(address(vow));
 
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
-
-        vm.revertToStateAndDelete(before);
     }
 }
