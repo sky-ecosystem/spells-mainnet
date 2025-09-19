@@ -3,7 +3,7 @@ import { generatePayload } from "./src/generatePayload.js";
 import { inspectPayload } from "./src/inspectPayload.js";
 import { verifyPayload } from "./src/verifyPayload.js";
 
-import { CSV_URL_SHEET1 } from "./src/constants.js";
+import { CONTRACTS_IN_SCOPE_SHEET_URL, CHAIN_DETAILS_SHEET_URL } from "./src/constants.js";
 import { createAgreementInstance } from "./src/utils/contractUtils.js";
 
 // Check if ETH_RPC_URL is set
@@ -36,29 +36,32 @@ try {
             console.error("Example: npm run verify 0x252dba42000000000...");
             process.exit(1);
         }
+
         const result = await verifyPayload(
             calldata,
-            CSV_URL_SHEET1,
+            CONTRACTS_IN_SCOPE_SHEET_URL,
+            CHAIN_DETAILS_SHEET_URL,
             agreementContract,
         );
 
-        if (result) {
+        if (result.success) {
             console.log("✅ VERIFICATION PASSED");
         } else {
             console.log("❌ VERIFICATION FAILED");
 
             // Show the calldatas for comparison
             console.log("\nExpected calldata:");
-            console.log(result.calldata);
+            console.log(result.expectedUpdates);
             console.log("\nProvided calldata:");
-            console.log(calldata);
+            console.log(result.providedUpdates);
         }
 
-        process.exit(result ? 0 : 1);
+        process.exit(result.success ? 0 : 1);
     } else if (command === "generate" || !command) {
         // Default to generate if no command or explicit generate command
         const multicallUpdates = await generatePayload({
-            csvUrl: CSV_URL_SHEET1,
+            contractsInScopeUrl: CONTRACTS_IN_SCOPE_SHEET_URL,
+            chainDetailsUrl: CHAIN_DETAILS_SHEET_URL,
             agreementContract: agreementContract,
         });
 
@@ -72,7 +75,8 @@ try {
         }
     } else if (command === "inspect") {
         const multicallUpdates = await inspectPayload({
-            csvUrl: CSV_URL_SHEET1,
+            contractsInScopeUrl: CONTRACTS_IN_SCOPE_SHEET_URL,
+            chainDetailsUrl: CHAIN_DETAILS_SHEET_URL,
             agreementContract: agreementContract,
         });
 

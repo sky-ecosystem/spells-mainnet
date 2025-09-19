@@ -1,6 +1,5 @@
 import { Interface } from "ethers";
 import { AGREEMENTV2_ABI } from "./abis.js";
-import { getChainId, getAssetRecoveryAddress } from "./utils/chainUtils.js";
 
 const agreementInterface = new Interface(AGREEMENTV2_ABI);
 
@@ -47,7 +46,7 @@ function calculateAccountDifferences(currentAccounts, desiredAccounts) {
     return { toAdd, toRemove };
 }
 
-function generateAccountUpdates(onChainState, csvState, chainsToRemove = []) {
+function generateAccountUpdates(onChainState, csvState, chainDetails, chainsToRemove = []) {
     const updates = [];
 
     // Iterate through each chain that exists in onChainState
@@ -61,7 +60,7 @@ function generateAccountUpdates(onChainState, csvState, chainsToRemove = []) {
             continue;
         }
 
-        const chainId = getChainId(chainName);
+        const chainId = chainDetails.caip2ChainId[chainName];
         const currentAccounts = onChainState[chainName] || [];
         const desiredAccounts = csvState[chainName] || [];
 
@@ -98,7 +97,7 @@ function generateAccountUpdates(onChainState, csvState, chainsToRemove = []) {
     return updates;
 }
 
-function generateChainUpdates(onChainState, csvState) {
+function generateChainUpdates(onChainState, csvState, chainDetails) {
     const updates = [];
 
     const currentChainNames = Object.keys(onChainState);
@@ -115,7 +114,7 @@ function generateChainUpdates(onChainState, csvState) {
     // Remove chains that are no longer in CSV - batch them together
     if (chainsToRemove.length > 0) {
         const chainIdsToRemove = chainsToRemove.map((chainName) =>
-            getChainId(chainName),
+            chainDetails.caip2ChainId[chainName],
         );
         updates.push({
             function: "removeChains",
@@ -129,11 +128,11 @@ function generateChainUpdates(onChainState, csvState) {
     // Add new chains from CSV - batch them together
     if (chainsToAdd.length > 0) {
         const newChains = chainsToAdd.map((chainName) => {
-            const chainId = getChainId(chainName);
+            const chainId = chainDetails.caip2ChainId[chainName];
             const accounts = csvState[chainName] || [];
 
             return {
-                assetRecoveryAddress: getAssetRecoveryAddress(chainName),
+                assetRecoveryAddress: chainDetails.assetRecoveryAddress[chainName],
                 accounts: accounts,
                 caip2ChainId: chainId,
             };
@@ -168,14 +167,16 @@ function generateChainUpdates(onChainState, csvState) {
     return { updates, chainsToRemove };
 }
 
-export function generateUpdates(onChainState, csvState) {
+export function generateUpdates(onChainState, csvState, chainDetails) {
     const { updates: chainUpdates, chainsToRemove } = generateChainUpdates(
         onChainState,
         csvState,
+        chainDetails,
     );
     const accountUpdates = generateAccountUpdates(
         onChainState,
         csvState,
+        chainDetails,
         chainsToRemove,
     );
 
