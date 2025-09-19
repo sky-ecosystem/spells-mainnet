@@ -6,44 +6,43 @@ import { MULTICALL_ADDRESS } from "../src/constants.js";
 // Mock the dependencies
 vi.mock("../src/fetchCSV.js");
 vi.mock("../src/fetchOnchain.js");
-vi.mock("../src/utils/chainUtils.js");
 vi.mock("fs", () => ({
     writeFileSync: vi.fn(),
 }));
 
-import { getNormalizedDataFromCSV } from "../src/fetchCSV.js";
+import { getNormalizedContractsInScopeFromCSV, getChainDetailsFromCSV } from "../src/fetchCSV.js";
 import { getNormalizedDataFromOnchainState } from "../src/fetchOnchain.js";
 
-// Mock chain utilities
-vi.mock("../src/utils/chainUtils.js", () => ({
-    getChainId: vi.fn((chainName) => {
-        const chainIds = {
-            ETHEREUM: "eip155:1",
-            GNOSIS: "eip155:100",
-            ARBITRUM: "eip155:42161",
-            OPTIMISM: "eip155:10",
-            POLYGON: "eip155:137",
-        };
-        return chainIds[chainName] || "eip155:1";
-    }),
-    getChainName: vi.fn((chainId) => {
-        const chainNames = {
-            "eip155:1": "ETHEREUM",
-            "eip155:100": "GNOSIS",
-            "eip155:42161": "ARBITRUM",
-            "eip155:10": "OPTIMISM",
-            "eip155:137": "POLYGON",
-        };
-        return chainNames[chainId] || "ETHEREUM";
-    }),
-    getAssetRecoveryAddress: vi.fn(
-        (chainName) => `0x${chainName.toUpperCase()}_RECOVERY_ADDRESS`,
-    ),
-}));
+
+const CHAIN_DETAILS = {
+    caip2ChainId: {
+        ETHEREUM: "eip155:1",
+        GNOSIS: "eip155:100",
+        ARBITRUM: "eip155:42161",
+        OPTIMISM: "eip155:10",
+        POLYGON: "eip155:137",
+    },
+    assetRecoveryAddress: {
+        ETHEREUM: "0xETHEREUM_RECOVERY_ADDRESS",
+        GNOSIS: "0xGNOSIS_RECOVERY_ADDRESS",
+        ARBITRUM: "0xARBITRUM_RECOVERY_ADDRESS",
+        OPTIMISM: "0xOPTIMISM_RECOVERY_ADDRESS",
+        POLYGON: "0xPOLYGON_RECOVERY_ADDRESS",
+    },
+    name: {
+        "eip155:1": "ETHEREUM",
+        "eip155:100": "GNOSIS",
+        "eip155:42161": "ARBITRUM",
+        "eip155:10": "OPTIMISM",
+        "eip155:137": "POLYGON",
+    },
+};
 
 describe("inspectPayload E2E Tests", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+
+        getChainDetailsFromCSV.mockResolvedValue(CHAIN_DETAILS);
     });
 
     // Test Fixtures
@@ -77,11 +76,12 @@ describe("inspectPayload E2E Tests", () => {
             getNormalizedDataFromOnchainState.mockResolvedValue(
                 INITIAL_ONCHAIN_STATE,
             );
-            getNormalizedDataFromCSV.mockResolvedValue(csvData);
+            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
 
             // Act
             const result = await inspectPayload({
-                csvUrl: "",
+                contractsInScopeUrl: "",
+                chainDetailsUrl: "",
                 agreementContract: "",
             });
 
@@ -112,11 +112,12 @@ describe("inspectPayload E2E Tests", () => {
             getNormalizedDataFromOnchainState.mockResolvedValue(
                 INITIAL_ONCHAIN_STATE,
             );
-            getNormalizedDataFromCSV.mockResolvedValue(csvData);
+            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
 
             // Act
             const result = await inspectPayload({
-                csvUrl: "",
+                contractsInScopeUrl: "",
+                chainDetailsUrl: "",
                 agreementContract: "",
             });
 
@@ -172,11 +173,12 @@ describe("inspectPayload E2E Tests", () => {
             getNormalizedDataFromOnchainState.mockResolvedValue(
                 INITIAL_ONCHAIN_STATE,
             );
-            getNormalizedDataFromCSV.mockResolvedValue(csvData);
+            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
 
             // Act
             const result = await inspectPayload({
-                csvUrl: "",
+                contractsInScopeUrl: "",
+                chainDetailsUrl: "",
                 agreementContract: "",
             });
 
@@ -240,11 +242,12 @@ describe("inspectPayload E2E Tests", () => {
             getNormalizedDataFromOnchainState.mockResolvedValue(
                 INITIAL_ONCHAIN_STATE,
             );
-            getNormalizedDataFromCSV.mockResolvedValue(csvData);
+            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
 
             // Act
             const result = await inspectPayload({
-                csvUrl: "",
+                contractsInScopeUrl: "",
+                chainDetailsUrl: "",
                 agreementContract: "",
             });
 
@@ -301,11 +304,11 @@ describe("inspectPayload E2E Tests", () => {
             getNormalizedDataFromOnchainState.mockResolvedValue(
                 INITIAL_ONCHAIN_STATE,
             );
-            getNormalizedDataFromCSV.mockResolvedValue(csvData);
+            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
 
-            // Act
             const result = await inspectPayload({
-                csvUrl: "",
+                contractsInScopeUrl: "",
+                chainDetailsUrl: "",
                 agreementContract: "",
             });
 
@@ -340,11 +343,11 @@ describe("inspectPayload E2E Tests", () => {
             getNormalizedDataFromOnchainState.mockResolvedValue(
                 INITIAL_ONCHAIN_STATE,
             );
-            getNormalizedDataFromCSV.mockResolvedValue(csvData);
+            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
 
-            // Act
             const result = await inspectPayload({
-                csvUrl: "",
+                contractsInScopeUrl: "",
+                chainDetailsUrl: "",
                 agreementContract: "",
             });
 
@@ -388,11 +391,11 @@ describe("inspectPayload E2E Tests", () => {
             getNormalizedDataFromOnchainState.mockResolvedValue(
                 INITIAL_ONCHAIN_STATE,
             );
-            getNormalizedDataFromCSV.mockResolvedValue(csvData);
+            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
 
-            // Act
             const result = await inspectPayload({
-                csvUrl: "",
+                contractsInScopeUrl: "",
+                chainDetailsUrl: "",
                 agreementContract: "",
             });
 
@@ -476,11 +479,11 @@ describe("inspectPayload E2E Tests", () => {
             getNormalizedDataFromOnchainState.mockResolvedValue(
                 INITIAL_ONCHAIN_STATE,
             );
-            getNormalizedDataFromCSV.mockResolvedValue(csvData);
+            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
 
-            // Act
             const result = await inspectPayload({
-                csvUrl: "",
+                contractsInScopeUrl: "",
+                chainDetailsUrl: "",
                 agreementContract: "",
             });
 
@@ -520,11 +523,12 @@ describe("inspectPayload E2E Tests", () => {
             };
 
             getNormalizedDataFromOnchainState.mockResolvedValue({});
-            getNormalizedDataFromCSV.mockResolvedValue(csvData);
+            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
 
             // Act
             const result = await inspectPayload({
-                csvUrl: "",
+                contractsInScopeUrl: "",
+                chainDetailsUrl: "",
                 agreementContract: "",
             });
 
@@ -550,11 +554,11 @@ describe("inspectPayload E2E Tests", () => {
             getNormalizedDataFromOnchainState.mockResolvedValue(
                 INITIAL_ONCHAIN_STATE,
             );
-            getNormalizedDataFromCSV.mockResolvedValue({});
+            getNormalizedContractsInScopeFromCSV.mockResolvedValue({});
 
-            // Act
             const result = await inspectPayload({
-                csvUrl: "",
+                contractsInScopeUrl: "",
+                chainDetailsUrl: "",
                 agreementContract: "",
             });
 

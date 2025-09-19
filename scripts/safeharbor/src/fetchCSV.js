@@ -78,7 +78,7 @@ export async function getChainDetailsFromCSV(url) {
                 `Incomplete chain details in CSV: Name='${chainName}', Chain Id='${chainId}', Asset Recovery Address='${chainAssetRecoveryAddress}'`
             );
         }
-        
+
         caip2ChainId[chainName] = chainId;
         assetRecoveryAddress[chainName] = chainAssetRecoveryAddress;
         name[chainId] = chainName;
