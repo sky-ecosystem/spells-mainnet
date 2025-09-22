@@ -1,7 +1,12 @@
 import { generatePayload } from "./generatePayload.js";
 
 // Main verification function
-export async function verifyPayload(calldata, contractsInScopeUrl, chainDetailsUrl, agreementContract) {
+export async function verifyPayload(
+    calldata,
+    contractsInScopeUrl,
+    chainDetailsUrl,
+    agreementContract,
+) {
     // Validate calldata format
     if (!calldata.startsWith("0x")) {
         console.error("Error: Invalid calldata format, must start with '0x' ");
@@ -22,7 +27,7 @@ export async function verifyPayload(calldata, contractsInScopeUrl, chainDetailsU
         });
 
         if (!expectedUpdates) {
-            expectedUpdates = {calldata: "0x"};
+            expectedUpdates = { calldata: "0x" };
         }
 
         // 2. Compare the calldata with expected updates

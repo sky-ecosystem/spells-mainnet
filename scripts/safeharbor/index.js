@@ -3,7 +3,10 @@ import { generatePayload } from "./src/generatePayload.js";
 import { inspectPayload } from "./src/inspectPayload.js";
 import { verifyPayload } from "./src/verifyPayload.js";
 
-import { CONTRACTS_IN_SCOPE_SHEET_URL, CHAIN_DETAILS_SHEET_URL } from "./src/constants.js";
+import {
+    CONTRACTS_IN_SCOPE_SHEET_URL,
+    CHAIN_DETAILS_SHEET_URL,
+} from "./src/constants.js";
 import { createAgreementInstance } from "./src/utils/contractUtils.js";
 
 // Check if ETH_RPC_URL is set

@@ -1,4 +1,7 @@
-import { getChainDetailsFromCSV, getNormalizedContractsInScopeFromCSV } from "./fetchCSV.js";
+import {
+    getChainDetailsFromCSV,
+    getNormalizedContractsInScopeFromCSV,
+} from "./fetchCSV.js";
 import { getNormalizedDataFromOnchainState } from "./fetchOnchain.js";
 import { generateUpdates } from "./generateUpdates.js";
 import { wrapWithMulticall } from "./utils/multicallWrapper.js";
@@ -18,12 +21,15 @@ export async function inspectPayload({
 
         // 1. Download and parse CSV
         console.warn("Downloading Google Sheet CSV...");
-        const csvState = await getNormalizedContractsInScopeFromCSV(contractsInScopeUrl);
+        const csvState =
+            await getNormalizedContractsInScopeFromCSV(contractsInScopeUrl);
 
         // 2. Fetch on-chain state
         console.warn("Fetching on-chain state...");
-        const onChainState =
-            await getNormalizedDataFromOnchainState(agreementContract, chainDetails);
+        const onChainState = await getNormalizedDataFromOnchainState(
+            agreementContract,
+            chainDetails,
+        );
 
         // 3. Generate updates
         console.warn("Generating updates...");

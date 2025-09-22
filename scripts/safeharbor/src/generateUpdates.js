@@ -46,7 +46,12 @@ function calculateAccountDifferences(currentAccounts, desiredAccounts) {
     return { toAdd, toRemove };
 }
 
-function generateAccountUpdates(onChainState, csvState, chainDetails, chainsToRemove = []) {
+function generateAccountUpdates(
+    onChainState,
+    csvState,
+    chainDetails,
+    chainsToRemove = [],
+) {
     const updates = [];
 
     // Iterate through each chain that exists in onChainState
@@ -105,12 +110,14 @@ function generateChainUpdates(onChainState, csvState, chainDetails) {
     let desiredChainNames = Object.keys(csvState);
 
     // Filter out chains that don't have complete details
-    desiredChainNames = desiredChainNames.filter(chainName => {
+    desiredChainNames = desiredChainNames.filter((chainName) => {
         if (!chainDetailsChainNames.includes(chainName)) {
-            console.warn(`\n\n⚠️-----⚠️ \nUnknown chain details in CSV: name='${chainName}' \nInclude chain details to the chain details tab in the Google Sheet to add coverage to it. \n⚠️-----⚠️\n\n`);
+            console.warn(
+                `\n\n⚠️-----⚠️ \nUnknown chain details in CSV: name='${chainName}' \nInclude chain details to the chain details tab in the Google Sheet to add coverage to it. \n⚠️-----⚠️\n\n`,
+            );
             return false;
         }
-        
+
         return true;
     });
 
@@ -124,8 +131,8 @@ function generateChainUpdates(onChainState, csvState, chainDetails) {
 
     // Remove chains that are no longer in CSV - batch them together
     if (chainsToRemove.length > 0) {
-        const chainIdsToRemove = chainsToRemove.map((chainName) =>
-            chainDetails.caip2ChainId[chainName],
+        const chainIdsToRemove = chainsToRemove.map(
+            (chainName) => chainDetails.caip2ChainId[chainName],
         );
         updates.push({
             function: "removeChains",
@@ -143,7 +150,8 @@ function generateChainUpdates(onChainState, csvState, chainDetails) {
             const accounts = csvState[chainName] || [];
 
             return {
-                assetRecoveryAddress: chainDetails.assetRecoveryAddress[chainName],
+                assetRecoveryAddress:
+                    chainDetails.assetRecoveryAddress[chainName],
                 accounts: accounts,
                 caip2ChainId: chainId,
             };

@@ -1,4 +1,3 @@
-
 // Build internal representation from on-chain state
 function normalize(details, chainDetails) {
     return details.chains.reduce((groups, chain) => {
@@ -6,7 +5,7 @@ function normalize(details, chainDetails) {
 
         if (!chainName) {
             console.warn(
-                `\n\n⚠️-----⚠️ \nUnknown chain details in on-chain state: caip2ChainId='${chain.caip2ChainId}'. \nTo either remove or keep this chain, please add the chain details to the chain details tab in the Google Sheet. \n⚠️-----⚠️\n\n`
+                `\n\n⚠️-----⚠️ \nUnknown chain details in on-chain state: caip2ChainId='${chain.caip2ChainId}'. \nTo either remove or keep this chain, please add the chain details to the chain details tab in the Google Sheet. \n⚠️-----⚠️\n\n`,
             );
             return groups;
         }
@@ -19,7 +18,10 @@ function normalize(details, chainDetails) {
     }, {});
 }
 
-export async function getNormalizedDataFromOnchainState(agreementContract, chainDetails) {
+export async function getNormalizedDataFromOnchainState(
+    agreementContract,
+    chainDetails,
+) {
     const details = await agreementContract.getDetails();
     return normalize(details, chainDetails);
 }

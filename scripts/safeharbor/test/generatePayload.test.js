@@ -10,9 +10,11 @@ vi.mock("fs", () => ({
     writeFileSync: vi.fn(),
 }));
 
-import { getNormalizedContractsInScopeFromCSV, getChainDetailsFromCSV } from "../src/fetchCSV.js";
+import {
+    getNormalizedContractsInScopeFromCSV,
+    getChainDetailsFromCSV,
+} from "../src/fetchCSV.js";
 import { getNormalizedDataFromOnchainState } from "../src/fetchOnchain.js";
-
 
 const CHAIN_DETAILS = {
     caip2ChainId: {

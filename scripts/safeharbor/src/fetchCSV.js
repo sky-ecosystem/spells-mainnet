@@ -67,8 +67,8 @@ export async function getChainDetailsFromCSV(url) {
     const caip2ChainId = {};
     const assetRecoveryAddress = {};
     const name = {};
-    
-    records.forEach(record => {
+
+    records.forEach((record) => {
         const chainName = record["Name"];
         const chainId = record["Chain Id"];
         const chainAssetRecoveryAddress = record["Asset Recovery Address"];
@@ -77,12 +77,12 @@ export async function getChainDetailsFromCSV(url) {
             caip2ChainId[chainName] = chainId;
             assetRecoveryAddress[chainName] = chainAssetRecoveryAddress;
             name[chainId] = chainName;
-        } 
+        }
     });
 
     return {
         caip2ChainId,
         assetRecoveryAddress,
-        name
+        name,
     };
 }
