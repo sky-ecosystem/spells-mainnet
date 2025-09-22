@@ -57,7 +57,7 @@ deploy_logs = subprocess.run(deploy_cmd, stdout=subprocess.PIPE, text=True, chec
 print(deploy_logs)
 
 # Helper
-def parse_json(raw_data, error_type):
+def parse_json(raw_data: str, error_type: str):
     '''Parses the string as JSON'''
     try:
         return json.loads(raw_data)
