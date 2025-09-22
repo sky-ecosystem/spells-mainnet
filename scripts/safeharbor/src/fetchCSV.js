@@ -62,7 +62,7 @@ export async function getNormalizedContractsInScopeFromCSV(url) {
 
 export async function getChainDetailsFromCSV(url) {
     const records = await downloadAndParse(url);
-    
+
     // Normalize chain details data
     const caip2ChainId = {};
     const assetRecoveryAddress = {};
@@ -72,16 +72,12 @@ export async function getChainDetailsFromCSV(url) {
         const chainName = record["Name"];
         const chainId = record["Chain Id"];
         const chainAssetRecoveryAddress = record["Asset Recovery Address"];
-        
-        if (!chainName || !chainId || !chainAssetRecoveryAddress) {
-            throw new Error(
-                `Incomplete chain details in CSV: Name='${chainName}', Chain Id='${chainId}', Asset Recovery Address='${chainAssetRecoveryAddress}'`
-            );
-        }
 
-        caip2ChainId[chainName] = chainId;
-        assetRecoveryAddress[chainName] = chainAssetRecoveryAddress;
-        name[chainId] = chainName;
+        if (chainName && chainId && chainAssetRecoveryAddress) {
+            caip2ChainId[chainName] = chainId;
+            assetRecoveryAddress[chainName] = chainAssetRecoveryAddress;
+            name[chainId] = chainName;
+        } 
     });
 
     return {

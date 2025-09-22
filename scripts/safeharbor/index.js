@@ -70,8 +70,8 @@ try {
             console.warn("Payload generation completed successfully.");
             process.exit(0);
         } else {
-            console.error("No updates to generate");
-            process.exit(1);
+            console.warn("No updates to generate");
+            process.exit(0);
         }
     } else if (command === "inspect") {
         const multicallUpdates = await inspectPayload({
@@ -85,8 +85,8 @@ try {
             console.warn("Payload generation completed successfully.");
             process.exit(0);
         } else {
-            console.error("No updates to generate");
-            process.exit(1);
+            console.warn("No updates to generate");
+            process.exit(0);
         }
     } else {
         console.error(`Error: Unknown command '${command}'`);

@@ -101,7 +101,18 @@ function generateChainUpdates(onChainState, csvState, chainDetails) {
     const updates = [];
 
     const currentChainNames = Object.keys(onChainState);
-    const desiredChainNames = Object.keys(csvState);
+    const chainDetailsChainNames = Object.keys(chainDetails.caip2ChainId);
+    let desiredChainNames = Object.keys(csvState);
+
+    // Filter out chains that don't have complete details
+    desiredChainNames = desiredChainNames.filter(chainName => {
+        if (!chainDetailsChainNames.includes(chainName)) {
+            console.warn(`\n\n⚠️-----⚠️ \nUnknown chain details in CSV: name='${chainName}' \nInclude chain details to the chain details tab in the Google Sheet to add coverage to it. \n⚠️-----⚠️\n\n`);
+            return false;
+        }
+        
+        return true;
+    });
 
     // Find chains to add and remove
     const chainsToRemove = currentChainNames.filter(
