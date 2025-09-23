@@ -2,8 +2,7 @@ all                  :; forge build
 clean                :; forge clean
                         # Usage example: make test match=SpellIsCast
 test                 :; ./scripts/test-dssspell-forge.sh no-match="$(no-match)" match="$(match)" block="$(block)"
-test-forge           :; ./scripts/test-dssspell-forge.sh no-match="$(no-match)" match="$(match)" block="$(block)"
-estimate             :; ./scripts/estimate-deploy-gas.sh
+estimate             :; ./scripts/test-dssspell-forge.sh gas=true
 deploy               :; ./scripts/deploy.py
 deploy-info          :; ./scripts/get-deploy-info.sh tx=$(tx)
 verify               :; ./scripts/verify.py DssSpell $(addr)
