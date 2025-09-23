@@ -1,3 +1,4 @@
+all                  :; forge build
 clean                :; forge clean
                         # Usage example: make test match=SpellIsCast
 test                 :; ./scripts/test-dssspell-forge.sh no-match="$(no-match)" match="$(match)" block="$(block)"
