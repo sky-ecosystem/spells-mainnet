@@ -78,16 +78,11 @@ if not tx_hash:
 print(f'Extracted transaction hash: {tx_hash}')
 
 # Get deployed contract block number
-tx_info = subprocess.run(['cast', 'tx', '--json', tx_hash], stdout=subprocess.PIPE, text=True, check=True).stdout.strip()
-tx_data = parse_json(tx_info, "cast tx output")
-
-# Note: cast tx does not (yet) support `--field`, so we need to get the block number from JSON. The RPC might return a hex number in JSON mode, we convert it to decimal.
-tx_block_hex = tx_data.get("blockNumber")
-tx_block_dec = str(int(tx_block_hex, 16)) if isinstance(tx_block_hex, str) and tx_block_hex.startswith("0x") else tx_block_hex
-print(f'Fetched transaction block: {tx_block_dec}')
+tx_block = subprocess.run(['cast', 'tx', tx_hash, 'blockNumber'], stdout=subprocess.PIPE, text=True, check=True).stdout.strip()
+print(f'Fetched transaction block: {tx_block}')
 
 # Get deployed contract timestamp
-tx_timestamp = subprocess.run(['cast', 'block', '--field', 'timestamp', tx_block_dec], stdout=subprocess.PIPE, text=True, check=True).stdout.strip()
+tx_timestamp = subprocess.run(['cast', 'block', '--field', 'timestamp', tx_block], stdout=subprocess.PIPE, text=True, check=True).stdout.strip()
 print(f'Fetched transaction timestamp: {tx_timestamp}')
 
 # Read config
@@ -97,7 +92,7 @@ with open(PATH_TO_CONFIG, 'r', encoding='utf-8') as f:
 # Edit config
 print(f'Editing config file "{PATH_TO_CONFIG}"...')
 config_content = re.sub(r'(\s*deployed_spell:\s*).*(,)', r'\g<1>address(' + spell_address + r')\g<2>', config_content)
-config_content = re.sub(r'(\s*deployed_spell_block:\s*).*(,)', r'\g<1>' + tx_block_dec + r'\g<2>', config_content)
+config_content = re.sub(r'(\s*deployed_spell_block:\s*).*(,)', r'\g<1>' + tx_block + r'\g<2>', config_content)
 config_content = re.sub(r'(\s*deployed_spell_created:\s*).*(,)', r'\g<1>' + tx_timestamp + r'\g<2>', config_content)
 
 # Write back to config
@@ -114,7 +109,7 @@ subprocess.run([
 print('Re-running the tests...')
 test_logs = subprocess.run([
     'make', 'test',
-    f'block="{tx_block_dec}"',
+    f'block="{tx_block}"',
 ], capture_output=True, text=True, check=False)
 print(test_logs.stdout)
 
