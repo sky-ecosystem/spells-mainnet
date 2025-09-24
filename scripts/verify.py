@@ -57,28 +57,21 @@ def get_library_address() -> str:
     library_address = ''
 
     # Try to read from foundry.toml libraries
-    if not os.path.exists('foundry.toml'):
-        raise Exception('No foundry.toml found')
-
     try:
         with open('foundry.toml', 'r', encoding='utf-8') as f:
             config = f.read()
-
-        result = re.search(r':DssExecLib:(0x[0-9a-fA-F]{40})', config)
-        if result:
-            library_address = result.group(1)
-            print(
-                f'Using library {LIBRARY_NAME} at address {library_address}')
-            return library_address
-        else:
-            print('No DssExecLib configured in foundry.toml', file=sys.stderr)
-    except Exception as e:
+    except OSError as e:
         print(f'Error reading foundry.toml', file=sys.stderr)
         raise e
 
-    # If we get here, no library address was found
-    print('WARNING: Assuming this contract uses no libraries', file=sys.stderr)
-    return ''
+    result = re.search(r':DssExecLib:(0x[0-9a-fA-F]{40})', config)
+    if result:
+        library_address = result.group(1)
+        print(
+            f'Using library {LIBRARY_NAME} at address {library_address}')
+        return library_address
+    else:
+        raise Exception('No DssExecLib configured in foundry.toml')
 
 
 def parse_command_line_args() -> Tuple[str, str, str]:
