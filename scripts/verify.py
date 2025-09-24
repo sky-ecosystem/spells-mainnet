@@ -136,25 +136,19 @@ def verify_contract_with_verifiers(
             if success:
                 successful_verifications += 1
                 print(f"✓ Successfully verified on {verifier.__class__.__name__}")
-                
-                if successful_verifications >= 1:
-                    print(f"\n🎉 Contract verified successfully on {successful_verifications}/{total_verifiers} verifiers!")
-                    return True
             else:
                 print(f"✗ Verification failed on {verifier.__class__.__name__}")
                 
         except Exception as e:
             print(f"✗ Error during verification with {verifier.__class__.__name__}: {str(e)}", file=sys.stderr)
-        
-        if i < total_verifiers - 1:
-            print("Waiting 2 seconds before trying next verifier...")
-            time.sleep(2)
     
+    # Report final results after trying all verifiers
     if successful_verifications == 0:
         print(f"\n❌ Failed to verify contract on any verifier ({total_verifiers} attempted)")
         return False
-    
-    return True
+    else:
+        print(f"\n🎉 Contract verified successfully on {successful_verifications}/{total_verifiers} verifiers!")
+        return True
 
 
 def main():
