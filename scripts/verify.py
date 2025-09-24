@@ -73,7 +73,8 @@ def get_library_address() -> str:
         else:
             print('No DssExecLib configured in foundry.toml', file=sys.stderr)
     except Exception as e:
-        print(f'Error reading foundry.toml: {str(e)}', file=sys.stderr)
+        print(f'Error reading foundry.toml', file=sys.stderr)
+        raise e
 
     # If we get here, no library address was found
     print('WARNING: Assuming this contract uses no libraries', file=sys.stderr)
