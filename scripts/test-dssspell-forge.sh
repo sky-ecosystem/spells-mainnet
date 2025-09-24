@@ -17,6 +17,8 @@ do
     esac
 done
 
+export FOUNDRY_ROOT_CHAINID=1
+
 TEST_ARGS=''
 
 if [[ -n "$MATCH" ]]; then
