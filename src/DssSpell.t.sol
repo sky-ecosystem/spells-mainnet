@@ -65,8 +65,7 @@ contract DssSpellTest is DssSpellTestBase {
         _testCastOnTime();
     }
 
-    // NOTE: skipped due to the custom min ETA logic in the current spell
-    function testNextCastTime() public skipped {
+    function testNextCastTime() public {
         _testNextCastTime();
     }
 
@@ -928,7 +927,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public { // add the `skipped` modifier to skip
+    function testPayments() public skipped { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -1337,7 +1336,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPARK TESTS
-    function testSparkSpellIsExecuted() public { // add the `skipped` modifier to skip
+    function testSparkSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
         address SPARK_PROXY = addr.addr('SPARK_PROXY');
         address SPARK_SPELL = address(0x7B28F4Bdd7208fe80916EBC58611Eb72Fb6A09Ed); // Insert Spark spell address
 
@@ -1376,187 +1375,4 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
-    function testNovaOperatorOffboarding() public {
-        address roles    = addr.addr("ALLOCATOR_ROLES");
-        address buffer   = addr.addr("ALLOCATOR_NOVA_A_BUFFER");
-        address vault    = addr.addr("ALLOCATOR_NOVA_A_VAULT");
-        address subProxy = addr.addr("ALLOCATOR_NOVA_A_SUBPROXY");
-        address operator = wallets.addr("NOVA_OPERATOR");
-
-        // Sanity check values before spell
-        assertEq(usds.allowance(buffer, operator), type(uint256).max, "invalid-allowance-before");
-        assertTrue(AllocatorRolesLike(roles).hasUserRole("ALLOCATOR-NOVA-A", operator, 0));
-        assertTrue(AllocatorRolesLike(roles).hasActionRole("ALLOCATOR-NOVA-A", vault, AllocatorVaultLike.draw.selector, 0));
-        assertTrue(AllocatorRolesLike(roles).hasActionRole("ALLOCATOR-NOVA-A", vault, AllocatorVaultLike.wipe.selector, 0));
-
-        assertEq(AllocatorVaultLike(vault).wards(pauseProxy), 1, "NovaOperatorOffboarding/pause-proxy-vault-wards-before");
-        assertEq(AllocatorVaultLike(vault).wards(subProxy), 0, "NovaOperatorOffboarding/nova-proxy-vault-wards-before");
-
-        assertEq(AllocatorBufferLike(buffer).wards(pauseProxy), 1, "NovaOperatorOffboarding/pause-proxy-buffer-wards-before");
-        assertEq(AllocatorBufferLike(buffer).wards(subProxy), 0, "NovaOperatorOffboarding/nova-proxy-buffer-wards-before");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        // Ensure that allowance and the roles are removed from the operator
-        assertEq(usds.allowance(buffer, operator), 0, "invalid-allowance-after");
-        assertFalse(AllocatorRolesLike(roles).hasUserRole("ALLOCATOR-NOVA-A", operator, 0));
-
-        // Ensure the rule is cleaned up
-        assertFalse(AllocatorRolesLike(roles).hasActionRole("ALLOCATOR-NOVA-A", vault, AllocatorVaultLike.draw.selector, 0));
-        assertFalse(AllocatorRolesLike(roles).hasActionRole("ALLOCATOR-NOVA-A", vault, AllocatorVaultLike.wipe.selector, 0));
-
-        // Ensure correct wards
-        assertEq(AllocatorVaultLike(vault).wards(pauseProxy), 0, "NovaOperatorOffboarding/pause-proxy-vault-wards-after");
-        assertEq(AllocatorVaultLike(vault).wards(subProxy), 1, "NovaOperatorOffboarding/nova-proxy-vault-wards-after");
-
-        assertEq(AllocatorBufferLike(buffer).wards(pauseProxy), 0, "NovaOperatorOffboarding/pause-proxy-buffer-wards-before");
-        assertEq(AllocatorBufferLike(buffer).wards(subProxy), 1, "NovaOperatorOffboarding/nova-proxy-buffer-wards-before");
-
-        // Sanity check operator is NOT able to call draw() and wipe()
-        vm.startPrank(operator);
-        vm.expectRevert("AllocatorVault/not-authorized");
-        AllocatorVaultLike(vault).draw(1_000 * WAD);
-        vm.expectRevert("AllocatorVault/not-authorized");
-        AllocatorVaultLike(vault).wipe(1_000 * WAD);
-        vm.stopPrank();
-    }
-
-    function testMkrToSkyFeeIncreasingTake() public {
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        uint256 prevTake = mkrSky.take();
-
-        address mkrHolder = makeAddr("mkrHolder");
-        deal(address(mkr), mkrHolder, 1_000 * WAD);
-        address skyHolder = makeAddr("skyHolder");
-
-        uint256 prevMkrBalance = mkr.balanceOf(mkrHolder);
-        uint256 prevSkyBalance = sky.balanceOf(skyHolder);
-
-        vm.startPrank(mkrHolder);
-        mkr.approve(address(mkrSky), type(uint256).max);
-        mkrSky.mkrToSky(skyHolder, prevMkrBalance);
-        vm.stopPrank();
-
-        uint256 take = mkrSky.take();
-        uint256 fee = mkrSky.fee();
-        uint256 feeCut = (prevMkrBalance * afterSpell.sky_mkr_rate * fee) / WAD;
-        uint256 expectedTakeAfter = prevTake + feeCut;
-        assertEq(take, expectedTakeAfter, "MkrToSkyFee/take-not-increased");
-
-        uint256 expectedSkyBalance = prevSkyBalance + ((prevMkrBalance * afterSpell.sky_mkr_rate) - feeCut);
-        assertEq(mkr.balanceOf(mkrHolder), 0,                  "TestError/MKR/bad-mkr-to-sky-conversion");
-        assertEq(sky.balanceOf(skyHolder), expectedSkyBalance, "TestError/Sky/bad-mkr-to-sky-conversion");
-    }
-
-    // 2025-09-22 14:00:00 UTC
-    uint256 constant MIN_ETA = 1758549600;
-
-    function testNextCastTimeMinEta() public {
-        // Spell obtains approval for execution before MIN_ETA
-        {
-            uint256 before = vm.snapshotState();
-
-            vm.warp(1748736000); // 2025-06-01 00:00:00 UTC - could be any date far enough in the past
-            _vote(address(spell));
-            spell.schedule();
-
-            assertEq(spell.nextCastTime(), MIN_ETA, "testNextCastTimeMinEta/min-eta-not-enforced");
-
-            vm.revertToStateAndDelete(before);
-        }
-
-        // Spell obtains approval for execution after MIN_ETA
-        {
-            uint256 before = vm.snapshotState();
-
-            vm.warp(MIN_ETA); // As we move closer to MIN_ETA, GSM delay is still applicable
-            _vote(address(spell));
-            spell.schedule();
-
-            assertEq(spell.nextCastTime(), MIN_ETA + pause.delay(), "testNextCastTimeMinEta/gsm-delay-not-enforced");
-
-            vm.revertToStateAndDelete(before);
-        }
-    }
-
-    struct AllocatorPayment {
-        address vault;
-        uint256 wad;
-    }
-
-    struct MscIlkValues {
-        uint256 urnArt;
-        uint256 ilkArt;
-    }
-
-    function _testExpectedMscValues(AllocatorPayment[2] memory payments, MscIlkValues[] memory expectedValues, uint256 expectedDaiVow) internal view {
-        for(uint256 i = 0; i < payments.length; i++) {
-            bytes32 ilk = AllocatorVaultLike(payments[i].vault).ilk();
-            (, uint256 urnArt) = vat.urns(ilk, address(payments[i].vault));
-            (uint256 ilkArt,,,,) = vat.ilks(ilk);
-
-            assertEq(urnArt, expectedValues[i].urnArt, "MSC/invalid-urn-art");
-            assertEq(ilkArt, expectedValues[i].ilkArt, "MSC/invalid-ilk-art");
-        }
-
-        uint256 daiVow = vat.dai(address(vow));
-
-        assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
-    }
-
-    function testMscInflows() public {
-        address ALLOCATOR_BLOOM_A_VAULT = addr.addr("ALLOCATOR_BLOOM_A_VAULT");
-        address ALLOCATOR_SPARK_A_VAULT = addr.addr("ALLOCATOR_SPARK_A_VAULT");
-
-        AllocatorPayment[2] memory payments = [
-            AllocatorPayment(ALLOCATOR_BLOOM_A_VAULT, 4_788_407 * WAD),
-            AllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 1_603_952 * WAD)
-        ];
-
-        uint256 expectedTotalAmount = 6_392_359 * WAD;
-
-        MscIlkValues[] memory expectedValues = new MscIlkValues[](payments.length);
-        uint256 totalDtab = 0;
-        uint256 totalPayments = 0;
-
-        uint256 before = vm.snapshotState();
-
-        for(uint256 i = 0; i < payments.length; i++) {
-            bytes32 ilk = AllocatorVaultLike(payments[i].vault).ilk();
-            (, uint256 urnArt) = vat.urns(ilk, address(payments[i].vault));
-            (uint256 ilkArt,,,,) = vat.ilks(ilk);
-
-            uint256 rate = jug.drip(ilk);
-            uint256 dart = payments[i].wad > 0 ? ((payments[i].wad * RAY - 1) / rate) + 1 : 0;
-
-            totalPayments += payments[i].wad;
-            totalDtab += dart * rate;
-            expectedValues[i] = MscIlkValues(urnArt + dart, ilkArt + dart);
-        }
-        assertEq(totalPayments, expectedTotalAmount, "MSC/invalid-total-amount");
-
-        uint256 expectedDaiVow = vat.dai(address(vow)) + totalDtab;
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        // Test with MCD_JUG.drip() having been called in the same block
-        _testExpectedMscValues(payments, expectedValues, expectedDaiVow);
-
-        vm.revertToStateAndDelete(before);
-
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        // Test without prior MCD_JUG.drip()
-        _testExpectedMscValues(payments, expectedValues, expectedDaiVow);
-    }
 }
