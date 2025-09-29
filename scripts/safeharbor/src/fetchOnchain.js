@@ -10,10 +10,13 @@ function normalize(details, chainDetails) {
             return groups;
         }
 
-        groups[chainName] = chain.accounts.map((account) => ({
-            accountAddress: account[0],
-            childContractScope: account[1],
-        }));
+        groups[chainName] = {
+            accounts: chain.accounts.map((account) => ({
+                accountAddress: account[0],
+                childContractScope: account[1],
+            })),
+            assetRecoveryAddress: chain.assetRecoveryAddress,
+        };
         return groups;
     }, {});
 }

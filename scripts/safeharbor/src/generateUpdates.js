@@ -102,6 +102,32 @@ function generateAccountUpdates(
     return updates;
 }
 
+
+function validateRecoveryAddress(onChainState, csvState, chainDetails) {
+    const onChainChains = new Set(Object.keys(onChainState));
+    const csvChains = new Set(Object.keys(csvState));
+
+    const commonChains = [...onChainChains].filter((chain) =>
+        csvChains.has(chain),
+    );
+
+    for (const chainName of commonChains) {
+        const onchainRecoveryAddress = onChainState[chainName].assetRecoveryAddress;
+        const csvRecoveryAddress = chainDetails.assetRecoveryAddress[chainName];
+
+        if (
+            onchainRecoveryAddress &&
+            csvRecoveryAddress &&
+            onchainRecoveryAddress.toLowerCase() !== csvRecoveryAddress.toLowerCase()
+        ) {
+            console.warn(
+                `\n\n‼️-----‼️ \nAsset Recovery Address mismatch for chain '${chainName}'. \nOn-chain: ${onchainRecoveryAddress} \nCSV:      ${csvRecoveryAddress} \n‼️-----‼️\n\n`,
+            );
+        }
+
+    }
+}
+
 function generateChainUpdates(onChainState, csvState, chainDetails) {
     const updates = [];
 
@@ -187,6 +213,8 @@ function generateChainUpdates(onChainState, csvState, chainDetails) {
 }
 
 export function generateUpdates(onChainState, csvState, chainDetails) {
+    validateRecoveryAddress(onChainState, csvState, chainDetails);
+
     const { updates: chainUpdates, chainsToRemove } = generateChainUpdates(
         onChainState,
         csvState,

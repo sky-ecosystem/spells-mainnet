@@ -1,6 +1,6 @@
 import { test, describe, vi, beforeEach } from "vitest";
 import assert from "node:assert";
-import { inspectPayload } from "../src/inspectPayload.js";
+import { generatePayload } from "../src/generatePayload.js";
 import { MULTICALL_ADDRESS } from "../src/constants.js";
 
 // Mock the dependencies
@@ -81,11 +81,7 @@ describe("inspectPayload E2E Tests", () => {
             getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
 
             // Act
-            const result = await inspectPayload({
-                contractsInScopeUrl: "",
-                chainDetailsUrl: "",
-                agreementContract: "",
-            });
+            const result = await generatePayload("", true);
 
             // Assert - should have empty multicall since no changes needed
             assert.strictEqual(result, undefined);
@@ -117,15 +113,11 @@ describe("inspectPayload E2E Tests", () => {
             getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
 
             // Act
-            const result = await inspectPayload({
-                contractsInScopeUrl: "",
-                chainDetailsUrl: "",
-                agreementContract: "",
-            });
+            const result = await generatePayload("", true);
 
             // Check multicall
-            assert.ok(result.multicall.calldata);
-            assert.strictEqual(result.multicall.target, MULTICALL_ADDRESS);
+            assert.ok(result.wrappedUpdates.calldata);
+            assert.strictEqual(result.wrappedUpdates.target, MULTICALL_ADDRESS);
 
             // Assert
             assert.strictEqual(result.updates.length, 2); // 2 additions and 1 multicall
@@ -178,15 +170,11 @@ describe("inspectPayload E2E Tests", () => {
             getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
 
             // Act
-            const result = await inspectPayload({
-                contractsInScopeUrl: "",
-                chainDetailsUrl: "",
-                agreementContract: "",
-            });
+            const result = await generatePayload("", true);
 
             // Check multicall
-            assert.ok(result.multicall.calldata);
-            assert.strictEqual(result.multicall.target, MULTICALL_ADDRESS);
+            assert.ok(result.wrappedUpdates.calldata);
+            assert.strictEqual(result.wrappedUpdates.target, MULTICALL_ADDRESS);
             assert.strictEqual(result.updates.length, 3);
 
             const removeAccountsUpdates = result.updates.filter(
@@ -247,15 +235,11 @@ describe("inspectPayload E2E Tests", () => {
             getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
 
             // Act
-            const result = await inspectPayload({
-                contractsInScopeUrl: "",
-                chainDetailsUrl: "",
-                agreementContract: "",
-            });
+            const result = await generatePayload("", true);
 
             // Assert Multicall
-            assert.ok(result.multicall.calldata);
-            assert.strictEqual(result.multicall.target, MULTICALL_ADDRESS);
+            assert.ok(result.wrappedUpdates.calldata);
+            assert.strictEqual(result.wrappedUpdates.target, MULTICALL_ADDRESS);
             assert.strictEqual(result.updates.length, 1);
 
             const addChainsUpdates = result.updates.filter(
@@ -308,15 +292,11 @@ describe("inspectPayload E2E Tests", () => {
             );
             getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
 
-            const result = await inspectPayload({
-                contractsInScopeUrl: "",
-                chainDetailsUrl: "",
-                agreementContract: "",
-            });
+            const result = await generatePayload("", true);
 
             // Assert Multicall
-            assert.ok(result.multicall.calldata);
-            assert.strictEqual(result.multicall.target, MULTICALL_ADDRESS);
+            assert.ok(result.wrappedUpdates.calldata);
+            assert.strictEqual(result.wrappedUpdates.target, MULTICALL_ADDRESS);
             assert.strictEqual(result.updates.length, 1);
 
             const addChainsUpdates = result.updates.filter(
@@ -347,15 +327,11 @@ describe("inspectPayload E2E Tests", () => {
             );
             getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
 
-            const result = await inspectPayload({
-                contractsInScopeUrl: "",
-                chainDetailsUrl: "",
-                agreementContract: "",
-            });
+            const result = await generatePayload("", true);
 
             // Assert Multicall
-            assert.ok(result.multicall.calldata);
-            assert.strictEqual(result.multicall.target, MULTICALL_ADDRESS);
+            assert.ok(result.wrappedUpdates.calldata);
+            assert.strictEqual(result.wrappedUpdates.target, MULTICALL_ADDRESS);
             assert.strictEqual(result.updates.length, 1);
 
             const removeChainsUpdates = result.updates.filter(
@@ -395,15 +371,11 @@ describe("inspectPayload E2E Tests", () => {
             );
             getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
 
-            const result = await inspectPayload({
-                contractsInScopeUrl: "",
-                chainDetailsUrl: "",
-                agreementContract: "",
-            });
+            const result = await generatePayload("", true);
 
             // Assert Multicall
-            assert.ok(result.multicall.calldata);
-            assert.strictEqual(result.multicall.target, MULTICALL_ADDRESS);
+            assert.ok(result.wrappedUpdates.calldata);
+            assert.strictEqual(result.wrappedUpdates.target, MULTICALL_ADDRESS);
             assert.strictEqual(result.updates.length, 5);
 
             const chainUpdates = result.updates.filter(
@@ -483,15 +455,11 @@ describe("inspectPayload E2E Tests", () => {
             );
             getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
 
-            const result = await inspectPayload({
-                contractsInScopeUrl: "",
-                chainDetailsUrl: "",
-                agreementContract: "",
-            });
+            const result = await generatePayload("", true);
 
             // Assert Multicall
-            assert.ok(result.multicall.calldata);
-            assert.strictEqual(result.multicall.target, MULTICALL_ADDRESS);
+            assert.ok(result.wrappedUpdates.calldata);
+            assert.strictEqual(result.wrappedUpdates.target, MULTICALL_ADDRESS);
             assert.strictEqual(result.updates.length, 4);
 
             // Assert - verify childContractScope preservation in all operations
@@ -528,15 +496,11 @@ describe("inspectPayload E2E Tests", () => {
             getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
 
             // Act
-            const result = await inspectPayload({
-                contractsInScopeUrl: "",
-                chainDetailsUrl: "",
-                agreementContract: "",
-            });
+            const result = await generatePayload("", true);
 
             // Assert Multicall
-            assert.ok(result.multicall.calldata);
-            assert.strictEqual(result.multicall.target, MULTICALL_ADDRESS);
+            assert.ok(result.wrappedUpdates.calldata);
+            assert.strictEqual(result.wrappedUpdates.target, MULTICALL_ADDRESS);
             assert.strictEqual(result.updates.length, 1);
 
             // Assert - should only have addChains
@@ -558,15 +522,11 @@ describe("inspectPayload E2E Tests", () => {
             );
             getNormalizedContractsInScopeFromCSV.mockResolvedValue({});
 
-            const result = await inspectPayload({
-                contractsInScopeUrl: "",
-                chainDetailsUrl: "",
-                agreementContract: "",
-            });
+            const result = await generatePayload("", true);
 
             // Assert Multicall
-            assert.ok(result.multicall.calldata);
-            assert.strictEqual(result.multicall.target, MULTICALL_ADDRESS);
+            assert.ok(result.wrappedUpdates.calldata);
+            assert.strictEqual(result.wrappedUpdates.target, MULTICALL_ADDRESS);
             assert.strictEqual(result.updates.length, 1);
 
             // Assert - should only have removeChains (batched)

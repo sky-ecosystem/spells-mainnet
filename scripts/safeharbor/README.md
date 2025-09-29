@@ -36,8 +36,6 @@ Since the initial deployment will be done through an EOA, the following steps ne
 2. The owner of the `AgreementV2` contract is the PauseProxy.
 3. The existing scope of the `AgreementV2` contract is the initial state of the scope of the sheet. This can be verified running the `generatePayload.js` script.
 
-The full deployment procedure can be found [here](https://github.com/dewiz-xyz/safeharbor-init)
-
 # General Flow of `generatePayload.js`
 
 The script follows these steps:
@@ -52,13 +50,7 @@ The script follows these steps:
 
 5. Compares CSV vs on-chain state to identify differences
 
-6. Outputs human-readable diff summary for Exec Sheet review:
-
-   - Added accounts (with contract scope)
-   - Removed accounts
-   - Chain additions/removals
-
-7. Generates encoded payload for executing the changes (if any).
+6. Generates encoded payload for executing the changes (if any).
 
 # Running the script
 
@@ -96,5 +88,3 @@ required env variables:
 ```
 - ETH_RPC_URL: An endpoint to a node that contains the registry and the agreement deployed.
 ```
-
-For testing purposes, a public virtual testnet with a deployed and configured agreement is [here](https://dashboard.tenderly.co/dewiz-xyz/makerdao/testnet/07f7fbe4-ef01-46cf-a1f0-b8f5a8bf1afb)

@@ -1,12 +1,7 @@
 import "dotenv/config";
 import { generatePayload } from "./src/generatePayload.js";
-import { inspectPayload } from "./src/inspectPayload.js";
 import { verifyPayload } from "./src/verifyPayload.js";
 
-import {
-    CONTRACTS_IN_SCOPE_SHEET_URL,
-    CHAIN_DETAILS_SHEET_URL,
-} from "./src/constants.js";
 import { createAgreementInstance } from "./src/utils/contractUtils.js";
 
 // Check if ETH_RPC_URL is set
@@ -40,12 +35,7 @@ try {
             process.exit(1);
         }
 
-        const result = await verifyPayload(
-            calldata,
-            CONTRACTS_IN_SCOPE_SHEET_URL,
-            CHAIN_DETAILS_SHEET_URL,
-            agreementContract,
-        );
+        const result = await verifyPayload(calldata, agreementContract);
 
         if (result.success) {
             console.log("✅ VERIFICATION PASSED");
@@ -62,11 +52,7 @@ try {
         process.exit(result.success ? 0 : 1);
     } else if (command === "generate" || !command) {
         // Default to generate if no command or explicit generate command
-        const multicallUpdates = await generatePayload({
-            contractsInScopeUrl: CONTRACTS_IN_SCOPE_SHEET_URL,
-            chainDetailsUrl: CHAIN_DETAILS_SHEET_URL,
-            agreementContract: agreementContract,
-        });
+        const multicallUpdates = await generatePayload(agreementContract);
 
         if (multicallUpdates) {
             console.log(JSON.stringify(multicallUpdates, null, 2));
@@ -77,20 +63,25 @@ try {
             process.exit(0);
         }
     } else if (command === "inspect") {
-        const multicallUpdates = await inspectPayload({
-            contractsInScopeUrl: CONTRACTS_IN_SCOPE_SHEET_URL,
-            chainDetailsUrl: CHAIN_DETAILS_SHEET_URL,
-            agreementContract: agreementContract,
-        });
+        const result = await generatePayload(agreementContract, true);
 
-        if (multicallUpdates) {
-            console.log(JSON.stringify(multicallUpdates, null, 2));
+        if (result?.updates) {
+            // Only show function name and args
+            result.updates = result.updates.map(
+                (update) => ({
+                    function: update.function,
+                    args: update.args,
+                }),
+            );
+
+            console.log(JSON.stringify(result.updates, null, 2));
             console.warn("Payload generation completed successfully.");
             process.exit(0);
         } else {
             console.warn("No updates to generate");
             process.exit(0);
         }
+        
     } else {
         console.error(`Error: Unknown command '${command}'`);
         console.error("Available commands: generate, verify");

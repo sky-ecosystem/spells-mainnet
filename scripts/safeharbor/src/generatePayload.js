@@ -5,23 +5,25 @@ import {
 import { getNormalizedDataFromOnchainState } from "./fetchOnchain.js";
 import { generateUpdates } from "./generateUpdates.js";
 import { wrapWithMulticall } from "./utils/multicallWrapper.js";
-import { AGREEMENT_ADDRESS, MULTICALL_ADDRESS } from "./constants.js";
+import {
+    CONTRACTS_IN_SCOPE_SHEET_URL,
+    CHAIN_DETAILS_SHEET_URL,
+} from "./constants.js";
 
 // Main function
-export async function generatePayload({
-    contractsInScopeUrl,
-    chainDetailsUrl,
-    agreementContract,
-}) {
+export async function generatePayload(agreementContract, returnUpdates = false) {
     try {
         // 0. Fetch chain information once at the beginning
-        console.warn("Fetching chain information...");
-        const chainDetails = await getChainDetailsFromCSV(chainDetailsUrl);
+        console.warn("Fetching chains details CSV...");
+        const chainDetails = await getChainDetailsFromCSV(
+            CHAIN_DETAILS_SHEET_URL,
+        );
 
         // 1. Download and parse CSV
-        console.warn("Downloading Google Sheet CSV...");
-        const csvState =
-            await getNormalizedContractsInScopeFromCSV(contractsInScopeUrl);
+        console.warn("Downloading contracts in scope CSV...");
+        const csvState = await getNormalizedContractsInScopeFromCSV(
+            CONTRACTS_IN_SCOPE_SHEET_URL,
+        );
 
         // 2. Fetch on-chain state
         console.warn("Fetching on-chain state...");
@@ -40,14 +42,17 @@ export async function generatePayload({
 
         // 4. Wrap with multicall
         console.warn("Wrapping with multicall...");
-        const wrappedUpdates = wrapWithMulticall(
-            updates,
-            AGREEMENT_ADDRESS,
-            MULTICALL_ADDRESS,
-            chainDetails,
-        );
+        const wrappedUpdates = wrapWithMulticall(updates);
 
-        return wrappedUpdates;
+        if (returnUpdates) {
+            return {
+                updates,
+                wrappedUpdates,
+            };
+        } else {
+            return wrappedUpdates;
+        }
+
     } catch (error) {
         console.error("Error generating update payload:", error);
         throw error;

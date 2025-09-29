@@ -8,7 +8,6 @@ export default [
             ecmaVersion: "latest",
             sourceType: "module",
             globals: {
-                ...globals.js,
                 ...globals.node,
             },
         },

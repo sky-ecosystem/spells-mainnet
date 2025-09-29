@@ -1,6 +1,7 @@
 import { parse } from "csv-parse/sync";
 
 async function downloadAndParse(url) {
+    console.warn(`Fetching CSV from ${url}`);
     try {
         const response = await fetch(url);
         if (!response.ok) {
