@@ -45,10 +45,6 @@ interface SequencerLike {
     function hasJob(address job) external view returns (bool);
 }
 
-interface AllocatorBufferLike {
-    function wards(address) external view returns (uint256);
-}
-
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
