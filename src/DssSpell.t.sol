@@ -1205,10 +1205,10 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(SpellActionLike(spell.action()).dao_resolutions(), comma_separated_resolutions, "dao_resolutions/invalid-format");
     }
 
-    // SPARK TESTS
-    function testSparkSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
-        address SPARK_PROXY = addr.addr('SPARK_PROXY');
-        address SPARK_SPELL = address(0x7B28F4Bdd7208fe80916EBC58611Eb72Fb6A09Ed); // Insert Spark spell address
+    // Spark tests
+    function testSparkSpellIsExecuted() public { // add the `skipped` modifier to skip
+        address SPARK_PROXY = addr.addr('ALLOCATOR_SPARK_A_SUBPROXY');
+        address SPARK_SPELL = address(0xD1919a5D4d320c07ca55e7936d3C25bE831A9561); // Insert Spark spell address
 
         vm.expectCall(
             SPARK_PROXY,
@@ -1224,17 +1224,36 @@ contract DssSpellTest is DssSpellTestBase {
         assertTrue(spell.done(), "TestError/spell-not-done");
     }
 
-    // Grove/Bloom TESTS
-    function testGroveSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
-        address GROVE_PROXY = addr.addr('ALLOCATOR_BLOOM_A_SUBPROXY');
-        address GROVE_SPELL = address(0xFa533FEd0F065dEf8dcFA6699Aa3d73337302BED); // Insert Grove spell address
+    // Bloom/Grove tests
+    function testBloomSpellIsExecuted() public { // add the `skipped` modifier to skip
+        address BLOOM_PROXY = addr.addr('ALLOCATOR_BLOOM_A_SUBPROXY');
+        address BLOOM_SPELL = address(0x67e7b3bFAb1Fb6267baECEc034Bbf7592F6B4E9b); // Insert Bloom spell address
 
         vm.expectCall(
-            GROVE_PROXY,
+            BLOOM_PROXY,
             /* value = */ 0,
             abi.encodeCall(
-                ProxyLike(GROVE_PROXY).exec,
-                (GROVE_SPELL, abi.encodeWithSignature("execute()"))
+                ProxyLike(BLOOM_PROXY).exec,
+                (BLOOM_SPELL, abi.encodeWithSignature("execute()"))
+            )
+        );
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+    }
+
+    // Nova/Keel tests
+    function testNovaSpellIsExecuted() public { // add the `skipped` modifier to skip
+        address NOVA_PROXY = addr.addr('ALLOCATOR_NOVA_A_SUBPROXY');
+        address NOVA_SPELL = address(0x7ae136b7e677C6A9B909a0ef0a4E29f0a1c3c7fE); // Insert Nova spell address
+
+        vm.expectCall(
+            NOVA_PROXY,
+            /* value = */ 0,
+            abi.encodeCall(
+                ProxyLike(NOVA_PROXY).exec,
+                (NOVA_SPELL, abi.encodeWithSignature("execute()"))
             )
         );
 

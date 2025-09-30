@@ -70,18 +70,20 @@ contract DssSpellAction is DssAction {
 
     // ---------- Wallets ----------
 
-    // ---------- Grove Proxy ----------
-    // Note: The deployment address of the Grove Proxy can be found at https://forum.sky.money/t/technical-scope-of-the-star-2-allocator-launch/26190
-    address internal constant GROVE_PROXY = 0x1369f7b2b38c76B6478c0f0E66D94923421891Ba;
-
-    // ---------- Nova Proxy ----------
-    // Note: The deployment address of the Nova Proxy can be found at https://forum.sky.money/t/technical-scope-of-the-nova-allocator-adjustment/27175
-    address internal constant NOVA_PROXY = 0x355CD90Ecb1b409Fdf8b64c4473C3B858dA2c310;
-
     // ---------- Spark Proxy Spell ----------
     // Note: Spark Proxy: https://github.com/sparkdotfi/sparklend-deployments/blob/bba4c57d54deb6a14490b897c12a949aa035a99b/script/output/1/primary-sce-latest.json#L2
-    address internal constant SPARK_PROXY = address(0);
-    address internal constant SPARK_SPELL = address(0);
+    address internal constant SPARK_PROXY = 0x3300f198988e4C9C63F75dF86De36421f06af8c4;
+    address internal constant SPARK_SPELL = 0xD1919a5D4d320c07ca55e7936d3C25bE831A9561;
+
+    // ---------- Bloom/Grove Proxy ----------
+    // Note: The deployment address for the Grove Proxy can be found at https://forum.sky.money/t/technical-scope-of-the-star-2-allocator-launch/26190
+    address internal constant BLOOM_PROXY = 0x1369f7b2b38c76B6478c0f0E66D94923421891Ba;
+    address internal constant BLOOM_SPELL = 0x67e7b3bFAb1Fb6267baECEc034Bbf7592F6B4E9b;
+
+    // ---------- Nova/Keel Proxy ----------
+    // Note: The deployment address of the Nova Proxy can be found at https://forum.sky.money/t/technical-scope-of-the-nova-allocator-adjustment/27175
+    address internal constant NOVA_PROXY = 0x355CD90Ecb1b409Fdf8b64c4473C3B858dA2c310;
+    address internal constant NOVA_SPELL = 0x7ae136b7e677C6A9B909a0ef0a4E29f0a1c3c7fE;
 
     function actions() public override {
         // ---------- SKY Token Rewards Rebalance ----------
@@ -143,20 +145,22 @@ contract DssSpellAction is DssAction {
         // Poll: https://vote.sky.money/polling/QmXYRjmQ
 
         // Approve Spark proxy spell with address 0xD1919a5D4d320c07ca55e7936d3C25bE831A9561
-        // ProxyLike(SPARK_PROXY).exec(SPARK_SPELL, abi.encodeWithSignature("execute()"));
+        ProxyLike(SPARK_PROXY).exec(SPARK_SPELL, abi.encodeWithSignature("execute()"));
 
-        // ---------- Grove Spell ----------
+        // ---------- Bloom/Grove Spell ----------
         // Forum: https://forum.sky.money/t/october-2-2025-proposed-changes-to-grove-for-upcoming-spell/27190
         // Poll: https://vote.sky.money/polling/QmPsHirj
         // Poll: https://vote.sky.money/polling/QmTE1YTn
 
-        // Approve Grove proxy spell with address 0x67e7b3bFAb1Fb6267baECEc034Bbf7592F6B4E9b
+        // Approve Bloom/Grove proxy spell with address 0x67e7b3bFAb1Fb6267baECEc034Bbf7592F6B4E9b
+        ProxyLike(BLOOM_PROXY).exec(BLOOM_SPELL, abi.encodeWithSignature("execute()"));
 
-        // ---------- Keel Spell ----------
+        // ---------- Nova/Keel Spell ----------
         // Forum: https://forum.sky.money/t/october-02-2025-prime-technical-scope-keel-initialization-for-upcoming-spell/27192
         // Vote: https://vote.sky.money/polling/QmWfqZRS
 
-        // Approve Keel proxy spell with address 0x7ae136b7e677C6A9B909a0ef0a4E29f0a1c3c7fE
+        // Approve Nova/Keel proxy spell with address 0x7ae136b7e677C6A9B909a0ef0a4E29f0a1c3c7fE
+        ProxyLike(NOVA_PROXY).exec(NOVA_SPELL, abi.encodeWithSignature("execute()"));
     }
 }
 

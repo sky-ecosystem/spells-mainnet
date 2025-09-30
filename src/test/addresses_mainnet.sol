@@ -487,7 +487,7 @@ contract Addresses {
         addr["MCD_JOIN_GNO_A"]                   = 0x7bD3f01e24E0f0838788bC8f573CEA43A80CaBB5;
         addr["MCD_CLIP_GNO_A"]                   = 0xd9e758bd239e5d568f44D0A748633f6a8d52CBbb;
         addr["MCD_CLIP_CALC_GNO_A"]              = 0x17b6D0e4237ea7F880aF5F58257cd232a04171D9;
-        addr["SPARK_PROXY"]                      = 0x3300f198988e4C9C63F75dF86De36421f06af8c4;
+        addr["ALLOCATOR_SPARK_A_SUBPROXY"]       = 0x3300f198988e4C9C63F75dF86De36421f06af8c4;
         addr["CRON_SEQUENCER"]                   = 0x238b4E35dAed6100C6162fAE4510261f88996EC9;
         addr["CRON_AUTOLINE_JOB"]                = 0x67AD4000e73579B9725eE3A149F85C4Af0A61361;
         addr["CRON_LERP_JOB"]                    = 0x8F8f2FC1F0380B9Ff4fE5c3142d0811aC89E32fB;
@@ -581,6 +581,7 @@ contract Addresses {
         addr["STUSDS_IMP"]                       = 0x7A61B7adCFD493f7CF0F86dFCECB94b72c227F22;
         addr["STUSDS_RATE_SETTER"]               = 0x30784615252B13E1DbE2bDf598627eaC297Bf4C5;
         addr["STUSDS_MOM"]                       = 0xf5DEe2CeDC5ADdd85597742445c0bf9b9cAfc699;
+        addr["ALLOCATOR_NOVA_A_SUBPROXY"]        = 0x355CD90Ecb1b409Fdf8b64c4473C3B858dA2c310;
         addr["NOVA_ALM_PROXY"]                   = 0xa5139956eC99aE2e51eA39d0b57C42B6D8db0758;
     }
 }
