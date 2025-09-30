@@ -2746,7 +2746,7 @@ contract DssSpellTestBase is Config, DssTest {
         bool isTransferrable;
     }
 
-    struct VestStream {
+    struct NewVestStream {
         uint256 id;
         address usr;
         uint256 bgn;
@@ -2759,11 +2759,29 @@ contract DssSpellTestBase is Config, DssTest {
         uint256 rxd;
     }
 
-    function _checkVest(VestInst memory _vi, VestStream[] memory _ss) internal {
+    struct YankedVestStream {
+        uint256 id;
+        uint256 fin;
+    }
+
+    function _checkVest(
+        VestInst memory _vi,
+        NewVestStream[] memory _ns,
+        YankedVestStream[] memory _ys
+    ) internal {
         uint256 prevStreamCount = _vi.vest.ids();
         uint256 prevAllowance;
+        int256 expectedAllowanceChange;
+
         if (_vi.isTransferrable) {
             prevAllowance = _vi.gem.allowance(pauseProxy, address(_vi.vest));
+
+
+            for(uint256 i; i < _ys.length; i++) {
+                uint256 tot = _vi.vest.tot(_ys[i].id);
+                uint256 rxd = _vi.vest.rxd(_ys[i].id);
+                expectedAllowanceChange = expectedAllowanceChange - int256(tot - rxd);
+            }
         }
 
         _vote(address(spell));
@@ -2773,16 +2791,32 @@ contract DssSpellTestBase is Config, DssTest {
         // Check that all streams added in this spell are tested
         assertEq(
             _vi.vest.ids(),
-            prevStreamCount + _ss.length,
+            prevStreamCount + _ns.length,
             string.concat("TestError/Vest/", _vi.name,"/not-all-streams-tested-")
         );
 
-        for (uint256 i = 0; i < _ss.length; i++) {
-            _checkVestStream(_vi, _ss[i]);
+        if (_vi.isTransferrable) {
+            for(uint256 i; i < _ns.length; i++) {
+                uint256 tot = _ns[i].tot;
+                uint256 rxd = _ns[i].rxd;
+                expectedAllowanceChange = expectedAllowanceChange + int256(tot - rxd);
+            }
+
+            uint256 expectedAllowance = uint256(int256(prevAllowance) + expectedAllowanceChange);
+
+            assertEq(
+                _vi.gem.allowance(pauseProxy, address(_vi.vest)),
+                expectedAllowance,
+                string.concat("TestError/Vest/", _vi.name, "/insufficient-transferrable-vest-allowance-")
+            );
+        }
+
+        for (uint256 i = 0; i < _ns.length; i++) {
+            _checkVestStream(_vi, _ns[i]);
         }
     }
 
-    function _checkVestStream(VestInst memory _vi, VestStream memory _s) internal {
+    function _checkVestStream(VestInst memory _vi, NewVestStream memory _s) internal {
         assertEq(_vi.vest.usr(_s.id), _s.usr,          string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_s.id), "/invalid-usr"));
         assertEq(_vi.vest.bgn(_s.id), _s.bgn,          string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_s.id), "/invalid-bgn"));
         assertEq(_vi.vest.clf(_s.id), _s.clf,          string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_s.id), "/invalid-clf"));

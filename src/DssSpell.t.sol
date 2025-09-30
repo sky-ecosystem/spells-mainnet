@@ -45,6 +45,10 @@ interface SequencerLike {
     function hasJob(address job) external view returns (bool);
 }
 
+interface VestedRewardsDistributionLike {
+    function vestId() external view returns (uint256);
+}
+
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -532,8 +536,10 @@ contract DssSpellTest is DssSpellTestBase {
 
         // For each new stream, provide Stream object
         // and initialize the array with the corrent number of new streams
-        VestStream[] memory streams = new VestStream[](1);
-        streams[0] = VestStream({
+        NewVestStream[] memory newStreams = new NewVestStream[](1);
+        YankedVestStream[] memory yankedStreams = new YankedVestStream[](0);
+
+        newStreams[0] = NewVestStream({
             id:  39,
             usr: wallets.addr("JANSKY"),
             bgn: OCT_01_2024,
@@ -543,12 +549,13 @@ contract DssSpellTest is DssSpellTestBase {
             mgr: address(0),
             res: 1,
             tot: 168_000 * WAD,
-            rxd: 0
+            rxd: 0 // Amount already claimed
         });
 
         _checkVest(
             VestInst({vest: vestDai, gem: GemAbstract(address(dai)), name: "dai", isTransferrable: false}),
-            streams
+            newStreams,
+            yankedStreams
         );
     }
 
@@ -559,8 +566,10 @@ contract DssSpellTest is DssSpellTestBase {
 
         // For each new stream, provide Stream object
         // and initialize the array with the corrent number of new streams
-        VestStream[] memory streams = new VestStream[](1);
-        streams[0] = VestStream({
+        NewVestStream[] memory newStreams = new NewVestStream[](1);
+        YankedVestStream[] memory yankedStreams = new YankedVestStream[](0);
+
+        newStreams[0] = NewVestStream({
             id:  45,
             usr: wallets.addr("JANSKY"),
             bgn: OCT_01_2024,
@@ -570,12 +579,13 @@ contract DssSpellTest is DssSpellTestBase {
             mgr: address(0),
             res: 1,
             tot: 72 * WAD,
-            rxd: 0
+            rxd: 0 // Amount already claimed
         });
 
         _checkVest(
             VestInst({vest: vestMkr, gem: GemAbstract(address(mkr)), name: "mkr", isTransferrable: true}),
-            streams
+            newStreams,
+            yankedStreams
         );
     }
 
@@ -586,8 +596,10 @@ contract DssSpellTest is DssSpellTestBase {
 
         // For each new stream, provide Stream object
         // and initialize the array with the corrent number of new streams
-        VestStream[] memory streams = new VestStream[](3);
-        streams[0] = VestStream({
+        NewVestStream[] memory newStreams = new NewVestStream[](3);
+        YankedVestStream[] memory yankedStreams = new YankedVestStream[](0);
+
+        newStreams[0] = NewVestStream({
             id:  1,
             usr: wallets.addr("VOTEWIZARD"),
             bgn: FEB_01_2025,
@@ -597,9 +609,9 @@ contract DssSpellTest is DssSpellTestBase {
             mgr: address(0),
             res: 1,
             tot: 462_000 * WAD,
-            rxd: 0
+            rxd: 0 // Amount already claimed
         });
-        streams[1] = VestStream({
+        newStreams[1] = NewVestStream({
             id:  2,
             usr: wallets.addr("JANSKY"),
             bgn: FEB_01_2025,
@@ -609,9 +621,9 @@ contract DssSpellTest is DssSpellTestBase {
             mgr: address(0),
             res: 1,
             tot: 462_000 * WAD,
-            rxd: 0
+            rxd: 0 // Amount already claimed
         });
-        streams[2] = VestStream({
+        newStreams[2] = NewVestStream({
             id:  3,
             usr: wallets.addr("ECOSYSTEM_FACILITATOR"),
             bgn: FEB_01_2025,
@@ -621,27 +633,35 @@ contract DssSpellTest is DssSpellTestBase {
             mgr: address(0),
             res: 1,
             tot: 462_000 * WAD,
-            rxd: 0
+            rxd: 0 // Amount already claimed
         });
 
         _checkVest(
             VestInst({vest: vestUsds, gem: usds, name: "usds", isTransferrable: false}),
-            streams
+            newStreams,
+            yankedStreams
         );
     }
 
-    function testVestSky() public skipped { // add the `skipped` modifier to skip
+    function testVestSky() public { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
         // uint256 FEB_01_2025 = 1738368000;
 
         // Uncomment if contract does not yet have funds to fully pay the award
         deal(address(sky), pauseProxy, 100_000_000 * WAD);
 
-        VestStream[] memory streams = new VestStream[](1);
+        NewVestStream[] memory newStreams = new NewVestStream[](1);
+        YankedVestStream[] memory yankedStreams = new YankedVestStream[](1);
+
+        uint256 MAR_09_2026_16_41_11 = 1773074471;
+
+        yankedStreams[0] = YankedVestStream({
+            id:  6,
+            fin: MAR_09_2026_16_41_11
+        });
 
         // This stream is configured in relative to the spell casting time.
         {
-
             uint256 before = vm.snapshotState();
             _vote(address(spell));
             spell.schedule();
@@ -649,17 +669,17 @@ contract DssSpellTest is DssSpellTestBase {
 
             // For each new stream, provide Stream object
             // and initialize the array with the corrent number of new streams
-            streams[0] = VestStream({
-                id:  6,
+            newStreams[0] = NewVestStream({
+                id:  7,
                 usr: addr.addr("REWARDS_DIST_USDS_SKY"),
                 bgn: block.timestamp,
                 clf: block.timestamp,
-                fin: block.timestamp + 15_724_800 seconds,
-                tau: 15_724_800 seconds,
+                fin: block.timestamp + 182 days,
+                tau: 182 days,
                 mgr: address(0),
                 res: 1,
-                tot: 76_739_938 * WAD,
-                rxd: 0
+                tot: 68_379_376 * WAD,
+                rxd: 0 // Amount already claimed
             });
 
             vm.revertToStateAndDelete(before);
@@ -667,7 +687,8 @@ contract DssSpellTest is DssSpellTestBase {
 
         _checkVest(
             VestInst({vest: vestSky, gem: sky, name: "sky", isTransferrable: true}),
-            streams
+            newStreams,
+            yankedStreams
         );
     }
 
@@ -677,7 +698,8 @@ contract DssSpellTest is DssSpellTestBase {
 
         // For each new stream, provide Stream object
         // and initialize the array with the corrent number of new streams
-        VestStream[] memory streams = new VestStream[](1);
+        NewVestStream[] memory newStreams = new NewVestStream[](1);
+        YankedVestStream[] memory yankedStreams = new YankedVestStream[](0);
 
         // This stream is configured in relative to the spell casting time.
         {
@@ -686,7 +708,7 @@ contract DssSpellTest is DssSpellTestBase {
             spell.schedule();
             vm.warp(spell.nextCastTime());
 
-            streams[0] = VestStream({
+            newStreams[0] = NewVestStream({
                 id:  2,
                 usr: addr.addr("REWARDS_DIST_USDS_SKY"),
                 bgn: block.timestamp,
@@ -696,7 +718,7 @@ contract DssSpellTest is DssSpellTestBase {
                 mgr: address(0),
                 res: 1,
                 tot: 160_000_000 * WAD,
-                rxd: 0
+                rxd: 0 // Amount already claimed
             });
 
             vm.revertToStateAndDelete(before);
@@ -704,7 +726,8 @@ contract DssSpellTest is DssSpellTestBase {
 
         _checkVest(
             VestInst({vest: vestSkyMint, gem: sky, name: "skyMint", isTransferrable: false}),
-            streams
+            newStreams,
+            yankedStreams
         );
     }
 
@@ -721,8 +744,10 @@ contract DssSpellTest is DssSpellTestBase {
 
         // For each new stream, provide Stream object
         // and initialize the array with the corrent number of new streams
-        VestStream[] memory streams = new VestStream[](2);
-        streams[0] = VestStream({
+        NewVestStream[] memory newStreams = new NewVestStream[](2);
+        YankedVestStream[] memory yankedStreams = new YankedVestStream[](0);
+
+        newStreams[0] = NewVestStream({
             id:  1,
             usr: addr.addr("REWARDS_DIST_USDS_SPK"),
             bgn: CAST_TIME_MINUS_7_DAYS,
@@ -732,9 +757,9 @@ contract DssSpellTest is DssSpellTestBase {
             mgr: address(0),
             res: 1,
             tot: 2_275_000_000 * WAD,
-            rxd: 7 days * 2_275_000_000 * WAD / 730 days
+            rxd: 7 days * 2_275_000_000 * WAD / 730 days  // Amount already claimed
         });
-        streams[1] = VestStream({
+        newStreams[1] = NewVestStream({
             id:  2,
             usr: addr.addr("REWARDS_DIST_LSSKY_SPK"),
             bgn: CAST_TIME_MINUS_7_DAYS,
@@ -744,165 +769,14 @@ contract DssSpellTest is DssSpellTestBase {
             mgr: address(0),
             res: 1,
             tot: 975_000_000 * WAD,
-            rxd: 7 days * 975_000_000 * WAD / 730 days
+            rxd: 7 days * 975_000_000 * WAD / 730 days  // Amount already claimed
         });
 
         _checkVest(
             VestInst({vest: vestSpk, gem: spk, name: "spk", isTransferrable: true}),
-            streams
+            newStreams,
+            yankedStreams
         );
-    }
-
-    struct Yank {
-        uint256 streamId;
-        address addr;
-        uint256 finPlanned;
-    }
-
-    function testYankDAI() public skipped { // add the `skipped` modifier to skip
-        // Provide human-readable names for timestamps
-        uint256 FEB_29_2024 = 1709251199;
-        uint256 MAR_31_2024 = 1711929599;
-
-        // For each yanked stream, provide Yank object with:
-        //   the stream id
-        //   the address of the stream
-        //   the planned fin of the stream (via variable defined above)
-        // Initialize the array with the corrent number of yanks
-        Yank[2] memory yanks = [
-            Yank(20, wallets.addr("BA_LABS"), FEB_29_2024),
-            Yank(21, wallets.addr("BA_LABS"), MAR_31_2024)
-        ];
-
-        // Test stream id matches `addr` and `fin`
-        VestAbstract vest = VestAbstract(addr.addr("MCD_VEST_DAI")); // or "MCD_VEST_DAI_LEGACY"
-        for (uint256 i = 0; i < yanks.length; i++) {
-            assertEq(vest.usr(yanks[i].streamId), yanks[i].addr, "testYankDAI/unexpected-address");
-            assertEq(vest.fin(yanks[i].streamId), yanks[i].finPlanned, "testYankDAI/unexpected-fin-date");
-        }
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-        for (uint256 i = 0; i < yanks.length; i++) {
-            // Test stream.fin is set to the current block after the spell
-            assertEq(vest.fin(yanks[i].streamId), block.timestamp, "testYankDAI/steam-not-yanked");
-        }
-    }
-
-    function testYankMKR() public skipped { // add the `skipped` modifier to skip
-        // Provide human-readable names for timestamps
-        uint256 MAR_31_2024 = 1711929599;
-
-        // For each yanked stream, provide Yank object with:
-        //   the stream id
-        //   the address of the stream
-        //   the planned fin of the stream (via variable defined above)
-        // Initialize the array with the corrent number of yanks
-        Yank[1] memory yanks = [
-            Yank(35, wallets.addr("BA_LABS"), MAR_31_2024)
-        ];
-
-        // Test stream id matches `addr` and `fin`
-        VestAbstract vestTreasury = VestAbstract(addr.addr("MCD_VEST_MKR_TREASURY"));
-        for (uint256 i = 0; i < yanks.length; i++) {
-            assertEq(vestTreasury.usr(yanks[i].streamId), yanks[i].addr, "testYankMKR/unexpected-address");
-            assertEq(vestTreasury.fin(yanks[i].streamId), yanks[i].finPlanned, "testYankMKR/unexpected-fin-date");
-        }
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-        for (uint256 i = 0; i < yanks.length; i++) {
-            // Test stream.fin is set to the current block after the spell
-            assertEq(vestTreasury.fin(yanks[i].streamId), block.timestamp, "testYankMKR/steam-not-yanked");
-
-            // Give admin powers to test contract address and make the vesting unrestricted for testing
-            GodMode.setWard(address(vestTreasury), address(this), 1);
-
-            // Test vest can still be called, making stream "invalid" and not changing `fin` timestamp
-            vestTreasury.unrestrict(yanks[i].streamId);
-            vestTreasury.vest(yanks[i].streamId);
-            assertTrue(!vestTreasury.valid(yanks[i].streamId));
-            assertEq(vestTreasury.fin(yanks[i].streamId), block.timestamp, "testYankMKR/steam-fin-changed");
-        }
-    }
-
-    function testYankSky() public skipped { // add the `skipped` modifier to skip
-        // Provide human-readable names for timestamps
-        uint256 JAN_26_2026_16_11_47 = 1769443907;
-
-        // For each yanked stream, provide Yank object with:
-        //   the stream id
-        //   the address of the stream
-        //   the planned fin of the stream (via variable defined above)
-        // Initialize the array with the corrent number of yanks
-        Yank[1] memory yanks = [
-            Yank(5, chainLog.getAddress("REWARDS_DIST_USDS_SKY"), JAN_26_2026_16_11_47)
-        ];
-
-        // Test stream id matches `addr` and `fin`
-        VestAbstract vest = VestAbstract(addr.addr("MCD_VEST_SKY_TREASURY"));
-        for (uint256 i = 0; i < yanks.length; i++) {
-            assertEq(vest.usr(yanks[i].streamId), yanks[i].addr, "testYankSky/unexpected-address");
-            assertEq(vest.fin(yanks[i].streamId), yanks[i].finPlanned, "testYankSky/unexpected-fin-date");
-        }
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        for (uint256 i = 0; i < yanks.length; i++) {
-            // Test stream.fin is set to the current block after the spell
-            assertEq(vest.fin(yanks[i].streamId), block.timestamp, "testYankSky/steam-not-yanked");
-
-            // Give admin powers to test contract address and make the vesting unrestricted for testing
-            GodMode.setWard(address(vest), address(this), 1);
-
-            // Test vest can still be called, making stream "invalid" and not changing `fin` timestamp
-            vest.unrestrict(yanks[i].streamId);
-            vest.vest(yanks[i].streamId);
-            assertTrue(!vest.valid(yanks[i].streamId));
-            assertEq(vest.fin(yanks[i].streamId), block.timestamp, "testYankSky/steam-fin-changed");
-        }
-    }
-
-    function testYankSkyMint() public skipped { // add the `skipped` modifier to skip
-        // Provide human-readable names for timestamps
-        uint256 OCT_20_2025 = 1760968859;
-
-        // For each yanked stream, provide Yank object with:
-        //   the stream id
-        //   the address of the stream
-        //   the planned fin of the stream (via variable defined above)
-        // Initialize the array with the corrent number of yanks
-        Yank[1] memory yanks = [
-            Yank(2, chainLog.getAddress("REWARDS_DIST_USDS_SKY"), OCT_20_2025)
-        ];
-
-        // Test stream id matches `addr` and `fin`
-        VestAbstract vest = VestAbstract(addr.addr("MCD_VEST_SKY"));
-        for (uint256 i = 0; i < yanks.length; i++) {
-            assertEq(vest.usr(yanks[i].streamId), yanks[i].addr, "testYankSkyMint/unexpected-address");
-            assertEq(vest.fin(yanks[i].streamId), yanks[i].finPlanned, "testYankSkyMint/unexpected-fin-date");
-        }
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-        for (uint256 i = 0; i < yanks.length; i++) {
-            // Test stream.fin is set to the current block after the spell
-            assertEq(vest.fin(yanks[i].streamId), block.timestamp, "testYankSkyMint/steam-not-yanked");
-
-            // Give admin powers to test contract address and make the vesting unrestricted for testing
-            GodMode.setWard(address(vest), address(this), 1);
-
-            // Test vest can still be called, making stream "invalid" and not changing `fin` timestamp
-            vest.unrestrict(yanks[i].streamId);
-            vest.vest(yanks[i].streamId);
-            assertTrue(!vest.valid(yanks[i].streamId));
-            assertEq(vest.fin(yanks[i].streamId), block.timestamp, "testYankSkyMint/steam-fin-changed");
-        }
     }
 
     struct Payee {
@@ -1371,4 +1245,26 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
+    function testRewardsDistUsdsSkyUpdatedVestIdAndDistribute() public {
+        address REWARDS_DIST_USDS_SKY = addr.addr("REWARDS_DIST_USDS_SKY");
+        address REWARDS_USDS_SKY = addr.addr("REWARDS_USDS_SKY");
+
+        uint256 vestId = VestedRewardsDistributionLike(REWARDS_DIST_USDS_SKY).vestId();
+        assertEq(vestId, 6, "TestError/rewards-dist-usds-sky-invalid-vest-id-before");
+
+        uint256 unpaidAmount = vestSky.unpaid(6);
+        assertTrue(unpaidAmount > 0, "TestError/rewards-dist-usds-sky-unpaid-zero-early");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        vestId = VestedRewardsDistributionLike(REWARDS_DIST_USDS_SKY).vestId();
+        assertEq(vestId, 7, "TestError/rewards-dist-usds-sky-invalid-vest-id-after");
+
+        unpaidAmount = vestSky.unpaid(6);
+        assertEq(unpaidAmount, 0, "TestError/rewards-dist-usds-sky-unpaid-not-cleared");
+
+        assertEq(StakingRewardsLike(REWARDS_USDS_SKY).lastUpdateTime(), block.timestamp, "TestError/rewards-usds-sky-invalid-last-update-time");
+    }
 }

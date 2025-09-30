@@ -19,8 +19,15 @@ pragma solidity 0.8.16;
 import "dss-exec-lib/DssExec.sol";
 import "dss-exec-lib/DssAction.sol";
 
+import {GemAbstract} from "dss-interfaces/ERC/GemAbstract.sol";
+import {VestAbstract} from "dss-interfaces/dss/VestAbstract.sol";
+
 interface ProxyLike {
     function exec(address target, bytes calldata args) external payable returns (bytes memory out);
+}
+
+interface VestedRewardsDistributionLike {
+    function distribute() external returns (uint256 amount);
 }
 
 contract DssSpellAction is DssAction {
@@ -47,8 +54,12 @@ contract DssSpellAction is DssAction {
     // uint256 internal constant X_PCT_RATE = ;
 
     // ---------- Math ----------
+    uint256 internal constant WAD = 10 ** 18;
 
     // ---------- Contracts ----------
+    address internal immutable MCD_VEST_SKY_TREASURY = DssExecLib.getChangelogAddress("MCD_VEST_SKY_TREASURY");
+    address internal immutable REWARDS_DIST_USDS_SKY = DssExecLib.getChangelogAddress("REWARDS_DIST_USDS_SKY");
+    address internal immutable SKY = DssExecLib.getChangelogAddress("SKY");
 
     // ---------- Wallets ----------
 
@@ -66,15 +77,78 @@ contract DssSpellAction is DssAction {
     address internal constant SPARK_SPELL = address(0);
 
     function actions() public override {
-        // ---------- TODO ----------
-        // Forum: TODO
+        // ---------- SKY Token Rewards Rebalance ----------
+        // Forum: https://forum.sky.money/t/sky-token-rewards-usds-to-sky-rewards-normalization-configuration/26638/19
+        // Forum: https://forum.sky.money/t/sky-token-rewards-usds-to-sky-rewards-normalization-configuration/26638/20
+	    // Atlas: https://sky-atlas.powerhouse.io/A.4.3.2.1_SKY_Token_Rewards/1d6f2ff0-8d73-809b-9088-d11181182d17%7Cb3417d54eb16
 
-        // ---------- Execute Spark Proxy Spell ----------
-        // Forum: TODO
-        // Poll: TODO
+        // VestedRewardsDistribution.distribute() on REWARDS_DIST_USDS_SKY
+        // Note: `distribute()` only needs to be called if it wasn't already, otherwise it reverts
+        if (VestAbstract(MCD_VEST_SKY_TREASURY).unpaid(6) > 0) {
+            VestedRewardsDistributionLike(REWARDS_DIST_USDS_SKY).distribute();
+        }
 
-        // Execute Spark proxy spell at TODO
+        // TODO
+        uint256 ytot = VestAbstract(MCD_VEST_SKY_TREASURY).tot(6);
+        uint256 yrxd = VestAbstract(MCD_VEST_SKY_TREASURY).rxd(6);
+        uint256 pallowance = GemAbstract(SKY).allowance(address(this), MCD_VEST_SKY_TREASURY);
+        uint256 allowance = pallowance - (ytot - yrxd) + 68_379_376 * WAD;
+        GemAbstract(SKY).approve(MCD_VEST_SKY_TREASURY, allowance);
+
+        // Yank MCD_VEST_SKY_TREASURY vest with ID 6
+        VestAbstract(MCD_VEST_SKY_TREASURY).yank(6);
+
+        // MCD_VEST_SKY_TREASURY Vest Stream  | from: 'block.timestamp' | tau: 182 days | tot: 68,379,376 SKY | usr: REWARDS_DIST_USDS_SKY
+        uint256 vestId = VestAbstract(MCD_VEST_SKY_TREASURY).create(
+            /* usr: */ REWARDS_DIST_USDS_SKY,
+            /* tot: */ 68_379_376 * WAD,
+            /* bgn: */ block.timestamp,
+            /* tau: */ 182 days,
+            /* eta: */ 0,
+            /* mgr: */ address(0)
+        );
+
+        // res: 1 (restricted)
+        VestAbstract(MCD_VEST_SKY_TREASURY).restrict(vestId);
+
+        // File the new stream ID on REWARDS_DIST_USDS_SKY
+        DssExecLib.setValue(REWARDS_DIST_USDS_SKY, "vestId", vestId);
+
+        // ---------- Kiss Keel ALM Proxy on litePSM ----------
+        // Forum: https://forum.sky.money/t/october-02-2025-prime-technical-scope-keel-initialization-for-upcoming-spell/27192
+        // Poll: https://vote.sky.money/polling/QmWfqZRS
+
+        // Whitelist Keel ALM Proxy on the LitePSM with the following call:
+        // MCD_LITE_PSM_USDC_A.kiss(0xa5139956eC99aE2e51eA39d0b57C42B6D8db0758)
+
+        // ---------- Spark Spell ----------
+        // Forum: https://forum.sky.money/t/october-2-2025-proposed-changes-to-spark-for-upcoming-spell/27191
+        // Atlas: https://sky-atlas.powerhouse.io/A.2.9.1.1.2.9.1_Revenue_Share/248f2ff0-8d73-8039-a678-ce5cefe826d0|9e1f80092582d098de0cf76e
+        // Atlas: https://sky-atlas.powerhouse.io/A.AG1.3.2.1.2.1_SparkLend_Risk_Parameters_Modification/1c1f2ff0-8d73-819c-9641-d87ad5b7058b|7896ed3326389fe3553030cd0a822213
+        // Poll: https://vote.sky.money/polling/QmcuRr3c
+        // Poll: https://vote.sky.money/polling/QmdY24Cm
+        // Poll: https://vote.sky.money/polling/QmeKTbg6
+        // Poll: https://vote.sky.money/polling/QmerdKkX
+        // Poll: https://vote.sky.money/polling/QmREvn1i
+        // Poll: https://vote.sky.money/polling/QmSaMJWy
+        // Poll: https://vote.sky.money/polling/QmUn84ag
+        // Poll: https://vote.sky.money/polling/QmXYRjmQ
+
+        // Approve Spark proxy spell with address 0xD1919a5D4d320c07ca55e7936d3C25bE831A9561
         // ProxyLike(SPARK_PROXY).exec(SPARK_SPELL, abi.encodeWithSignature("execute()"));
+
+        // ---------- Grove Spell ----------
+        // Forum: https://forum.sky.money/t/october-2-2025-proposed-changes-to-grove-for-upcoming-spell/27190
+        // Poll: https://vote.sky.money/polling/QmPsHirj
+        // Poll: https://vote.sky.money/polling/QmTE1YTn
+
+        // Approve Grove proxy spell with address 0x67e7b3bFAb1Fb6267baECEc034Bbf7592F6B4E9b
+
+        // ---------- Keel Spell ----------
+        // Forum: https://forum.sky.money/t/october-02-2025-prime-technical-scope-keel-initialization-for-upcoming-spell/27192
+        // Vote: https://vote.sky.money/polling/QmWfqZRS
+
+        // Approve Keel proxy spell with address 0x7ae136b7e677C6A9B909a0ef0a4E29f0a1c3c7fE
     }
 }
 
