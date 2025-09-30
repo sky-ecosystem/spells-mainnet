@@ -581,5 +581,6 @@ contract Addresses {
         addr["STUSDS_IMP"]                       = 0x7A61B7adCFD493f7CF0F86dFCECB94b72c227F22;
         addr["STUSDS_RATE_SETTER"]               = 0x30784615252B13E1DbE2bDf598627eaC297Bf4C5;
         addr["STUSDS_MOM"]                       = 0xf5DEe2CeDC5ADdd85597742445c0bf9b9cAfc699;
+        addr["NOVA_ALM_PROXY"]                   = 0xa5139956eC99aE2e51eA39d0b57C42B6D8db0758;
     }
 }

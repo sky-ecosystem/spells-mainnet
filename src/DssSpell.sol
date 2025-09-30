@@ -30,6 +30,10 @@ interface VestedRewardsDistributionLike {
     function distribute() external returns (uint256 amount);
 }
 
+interface LitePsmLike {
+    function kiss(address usr) external;
+}
+
 contract DssSpellAction is DssAction {
     // Provides a descriptive tag for bot consumption
     // This should be modified weekly to provide a summary of the actions
@@ -59,7 +63,10 @@ contract DssSpellAction is DssAction {
     // ---------- Contracts ----------
     address internal immutable MCD_VEST_SKY_TREASURY = DssExecLib.getChangelogAddress("MCD_VEST_SKY_TREASURY");
     address internal immutable REWARDS_DIST_USDS_SKY = DssExecLib.getChangelogAddress("REWARDS_DIST_USDS_SKY");
-    address internal immutable SKY = DssExecLib.getChangelogAddress("SKY");
+    address internal immutable SKY                   = DssExecLib.getChangelogAddress("SKY");
+    address internal immutable MCD_LITE_PSM_USDC_A   = DssExecLib.getChangelogAddress("MCD_LITE_PSM_USDC_A");
+
+    address internal constant KEEL_ALM_PROXY = 0xa5139956eC99aE2e51eA39d0b57C42B6D8db0758;
 
     // ---------- Wallets ----------
 
@@ -118,8 +125,9 @@ contract DssSpellAction is DssAction {
         // Forum: https://forum.sky.money/t/october-02-2025-prime-technical-scope-keel-initialization-for-upcoming-spell/27192
         // Poll: https://vote.sky.money/polling/QmWfqZRS
 
-        // Whitelist Keel ALM Proxy on the LitePSM with the following call:
-        // MCD_LITE_PSM_USDC_A.kiss(0xa5139956eC99aE2e51eA39d0b57C42B6D8db0758)
+        // ---------- Kiss Keel ALM Proxy on litePSM ----------
+        // Whitelist Keel ALMProxy at 0xa5139956eC99aE2e51eA39d0b57C42B6D8db0758 on MCD_LITE_PSM_USDC_A
+        LitePsmLike(MCD_LITE_PSM_USDC_A).kiss(KEEL_ALM_PROXY);
 
         // ---------- Spark Spell ----------
         // Forum: https://forum.sky.money/t/october-2-2025-proposed-changes-to-spark-for-upcoming-spell/27191

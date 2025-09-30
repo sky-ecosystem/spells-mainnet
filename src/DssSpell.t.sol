@@ -1267,4 +1267,43 @@ contract DssSpellTest is DssSpellTestBase {
 
         assertEq(StakingRewardsLike(REWARDS_USDS_SKY).lastUpdateTime(), block.timestamp, "TestError/rewards-usds-sky-invalid-last-update-time");
     }
+
+
+    function testWhitelistNovaALMProxy() public {
+        address almProxy     = addr.addr("NOVA_ALM_PROXY");
+        LitePsmLike psmUsdcA = LitePsmLike(addr.addr("MCD_LITE_PSM_USDC_A"));
+        GemAbstract usdc     = GemAbstract(addr.addr("USDC"));
+
+        // bud is 0 before kiss
+        assertEq(psmUsdcA.bud(almProxy), 0, "TestError/MCD_LITE_PSM_USDC_A/invalid-bud");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done());
+
+        // bud is 1 after kiss
+        assertEq(psmUsdcA.bud(almProxy), 1, "TestError/MCD_LITE_PSM_USDC_A/invalid-bud");
+
+        // NOVA can call buyGemNoFee() on MCD_LITE_PSM_USDC_A
+        uint256 daiAmount  = 1_000 * WAD;
+        uint256 usdcAmount = 1_000 * 10**6;
+
+        // fund proxy
+        deal(address(dai), almProxy, daiAmount);
+        vm.startPrank(almProxy);
+
+        // buy gem with no fee
+        dai.approve(address(psmUsdcA), daiAmount);
+        psmUsdcA.buyGemNoFee(almProxy, usdcAmount);
+        assertEq(usdc.balanceOf(almProxy), usdcAmount);
+        assertEq(dai.balanceOf(almProxy), 0);
+
+        // now sell it back with no fee
+        usdc.approve(address(psmUsdcA), usdcAmount);
+        psmUsdcA.sellGemNoFee(almProxy, usdcAmount);
+        assertEq(usdc.balanceOf(almProxy), 0);
+        assertEq(dai.balanceOf(almProxy), daiAmount);
+
+        vm.stopPrank();
+    }
 }
