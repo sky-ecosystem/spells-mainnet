@@ -5,6 +5,7 @@ const agreementInterface = new Interface(AGREEMENTV2_ABI);
 
 // Account difference calculation
 function calculateAccountDifferences(currentAccounts, desiredAccounts) {
+
     // Create maps for easier lookup with composite keys
     const currentMap = new Map(
         currentAccounts.map((acc) => [
@@ -70,7 +71,7 @@ function generateAccountUpdates(
         const desiredAccounts = csvState[chainName] || [];
 
         const { toAdd, toRemove } = calculateAccountDifferences(
-            currentAccounts,
+            currentAccounts.accounts,
             desiredAccounts,
         );
 
