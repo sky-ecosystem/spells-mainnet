@@ -68,8 +68,6 @@ contract DssSpellAction is DssAction {
 
     address internal constant KEEL_ALM_PROXY = 0xa5139956eC99aE2e51eA39d0b57C42B6D8db0758;
 
-    // ---------- Wallets ----------
-
     // ---------- Spark Proxy Spell ----------
     // Note: Spark Proxy: https://github.com/sparkdotfi/sparklend-deployments/blob/bba4c57d54deb6a14490b897c12a949aa035a99b/script/output/1/primary-sce-latest.json#L2
     address internal constant SPARK_PROXY = 0x3300f198988e4C9C63F75dF86De36421f06af8c4;
@@ -97,12 +95,19 @@ contract DssSpellAction is DssAction {
             VestedRewardsDistributionLike(REWARDS_DIST_USDS_SKY).distribute();
         }
 
-        // TODO
-        uint256 ytot = VestAbstract(MCD_VEST_SKY_TREASURY).tot(6);
-        uint256 yrxd = VestAbstract(MCD_VEST_SKY_TREASURY).rxd(6);
-        uint256 pallowance = GemAbstract(SKY).allowance(address(this), MCD_VEST_SKY_TREASURY);
-        uint256 allowance = pallowance - (ytot - yrxd) + 68_379_376 * WAD;
-        GemAbstract(SKY).approve(MCD_VEST_SKY_TREASURY, allowance);
+        // Adjust the Sky allowance for MCD_VEST_SKY_TREASURY, reducing it by the remaining yanked stream amount and increasing it by the new stream total
+        {
+            // Note: Get the previous allowance
+            uint256 pallowance = GemAbstract(SKY).allowance(address(this), MCD_VEST_SKY_TREASURY);
+            // Note: Get the remaining allowance for the yanked stream
+            uint256 ytot = VestAbstract(MCD_VEST_SKY_TREASURY).tot(6);
+            uint256 yrxd = VestAbstract(MCD_VEST_SKY_TREASURY).rxd(6);
+            uint256 yallowance = ytot - yrxd;
+            // Note: Calculate the new allowance
+            uint256 allowance = pallowance - yallowance + 68_379_376 * WAD;
+            // Note: set the allowance
+            GemAbstract(SKY).approve(MCD_VEST_SKY_TREASURY, allowance);
+        }
 
         // Yank MCD_VEST_SKY_TREASURY vest with ID 6
         VestAbstract(MCD_VEST_SKY_TREASURY).yank(6);
@@ -123,12 +128,11 @@ contract DssSpellAction is DssAction {
         // File the new stream ID on REWARDS_DIST_USDS_SKY
         DssExecLib.setValue(REWARDS_DIST_USDS_SKY, "vestId", vestId);
 
-        // ---------- Kiss Keel ALM Proxy on litePSM ----------
+        // ---------- Kiss Nova/Keel ALM Proxy on litePSM ----------
         // Forum: https://forum.sky.money/t/october-02-2025-prime-technical-scope-keel-initialization-for-upcoming-spell/27192
         // Poll: https://vote.sky.money/polling/QmWfqZRS
 
-        // ---------- Kiss Keel ALM Proxy on litePSM ----------
-        // Whitelist Keel ALMProxy at 0xa5139956eC99aE2e51eA39d0b57C42B6D8db0758 on MCD_LITE_PSM_USDC_A
+        // Whitelist Nova/Keel ALMProxy at 0xa5139956eC99aE2e51eA39d0b57C42B6D8db0758 on MCD_LITE_PSM_USDC_A
         LitePsmLike(MCD_LITE_PSM_USDC_A).kiss(KEEL_ALM_PROXY);
 
         // ---------- Spark Spell ----------

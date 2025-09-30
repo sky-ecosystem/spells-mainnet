@@ -660,7 +660,7 @@ contract DssSpellTest is DssSpellTestBase {
             fin: MAR_09_2026_16_41_11
         });
 
-        // This stream is configured in relative to the spell casting time.
+        // This stream is configured relative to the spell casting time.
         {
             uint256 before = vm.snapshotState();
             _vote(address(spell));
