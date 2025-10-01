@@ -2821,7 +2821,7 @@ contract DssSpellTestBase is Config, DssTest {
             uint256 _fin = _ys[i].fin;
             uint256 _end = _ys[i].end < castTime ? castTime : _ys[i].end;
 
-            if (end < fin) {
+            if (_end < _fin) {
                 assertEq(_vi.vest.fin(_ys[i].id), _end, "TestError/Vest/invalid-fin-after-cast (end < fin)");
             } else {
                 assertEq(_vi.vest.fin(_ys[i].id), _fin, "TestError/Vest/invalid-fin-after-cast (fin <= end)");
