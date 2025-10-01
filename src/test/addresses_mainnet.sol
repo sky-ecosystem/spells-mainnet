@@ -530,6 +530,7 @@ contract Addresses {
         addr["LOCKSTAKE_CLIP"]                   = 0x836F56750517b1528B5078Cba4Ac4B94fBE4A399;
         addr["LOCKSTAKE_CLIP_CALC"]              = 0xB8f8c7caabFa320717E3e848948450e120F0D9BB;
         addr["LOCKSTAKE_MIGRATOR"]               = 0x473d777f608C3C24B441AB6bD4bBcA6b7F9AF90B;
+        addr["LOCKSTAKE_ORACLE"]                 = 0x0C13fF3DC02E85aC169c4099C09c9B388f2943Fd;
         addr["BASE_GOV_RELAY"]                   = 0x1Ee0AE8A993F2f5abDB51EAF4AC2876202b65c3b;
         addr["BASE_ESCROW"]                      = 0x7F311a4D48377030bD810395f4CCfC03bdbe9Ef3;
         addr["BASE_TOKEN_BRIDGE"]                = 0xA5874756416Fa632257eEA380CAbd2E87cED352A;

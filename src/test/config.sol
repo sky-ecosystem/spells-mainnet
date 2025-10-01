@@ -182,7 +182,7 @@ contract Config {
         afterSpell.SP_dsr_step                  = 4_00;                                       // In basis points
         afterSpell.sky_mkr_rate                 = 24_000;                                     // In whole SKY/MKR units
         afterSpell.ilk_count                    = 30;                                         // Num expected in system
-        afterSpell.chainlog_version             = "1.20.4";                                   // String expected in system
+        afterSpell.chainlog_version             = "1.20.5";                                   // String expected in system
         afterSpell.stusds_rate_setter_tau       = 57_600;                                     // Cooldown period between rate changes in seconds
         afterSpell.stusds_rate_setter_maxLine   = 1_000_000_000 * RAD;                        // RAD
         afterSpell.stusds_rate_setter_maxCap    = 1_000_000_000 * WAD;                        // WAD

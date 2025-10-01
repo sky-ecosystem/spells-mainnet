@@ -18,9 +18,10 @@ pragma solidity 0.8.16;
 
 import "dss-exec-lib/DssExec.sol";
 import "dss-exec-lib/DssAction.sol";
-
+import {MCD, DssInstance} from "dss-test/MCD.sol";
 import {GemAbstract} from "dss-interfaces/ERC/GemAbstract.sol";
 import {VestAbstract} from "dss-interfaces/dss/VestAbstract.sol";
+import {LockstakeInit} from "./dependencies/lockstake/LockstakeInit.sol";
 
 interface ProxyLike {
     function exec(address target, bytes calldata args) external payable returns (bytes memory out);
@@ -66,7 +67,8 @@ contract DssSpellAction is DssAction {
     address internal immutable SKY                   = DssExecLib.getChangelogAddress("SKY");
     address internal immutable MCD_LITE_PSM_USDC_A   = DssExecLib.getChangelogAddress("MCD_LITE_PSM_USDC_A");
 
-    address internal constant KEEL_ALM_PROXY = 0xa5139956eC99aE2e51eA39d0b57C42B6D8db0758;
+    address internal constant LOCKSTAKE_ORACLE = 0x0C13fF3DC02E85aC169c4099C09c9B388f2943Fd;
+    address internal constant KEEL_ALM_PROXY   = 0xa5139956eC99aE2e51eA39d0b57C42B6D8db0758;
 
     // ---------- Spark Proxy Spell ----------
     // Note: Spark Proxy: https://github.com/sparkdotfi/sparklend-deployments/blob/bba4c57d54deb6a14490b897c12a949aa035a99b/script/output/1/primary-sce-latest.json#L2
@@ -134,6 +136,13 @@ contract DssSpellAction is DssAction {
 
         // Whitelist Nova/Keel ALMProxy at 0xa5139956eC99aE2e51eA39d0b57C42B6D8db0758 on MCD_LITE_PSM_USDC_A
         LitePsmLike(MCD_LITE_PSM_USDC_A).kiss(KEEL_ALM_PROXY);
+
+        // TODO
+        DssInstance memory dss = MCD.loadFromChainlog(DssExecLib.LOG);
+        LockstakeInit.updateOsm(dss, LOCKSTAKE_ORACLE, /* TODO: TBD */ 1 * WAD);
+
+        // Note: Bump chainlog PATCH version
+        DssExecLib.setChangelogVersion("1.20.5");
 
         // ---------- Spark Spell ----------
         // Forum: https://forum.sky.money/t/october-2-2025-proposed-changes-to-spark-for-upcoming-spell/27191

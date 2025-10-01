@@ -49,6 +49,11 @@ interface VestedRewardsDistributionLike {
     function vestId() external view returns (uint256);
 }
 
+interface CappedOsmLike {
+    function cap() external view returns (uint256);
+    function osm() external view returns (address);
+}
+
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -287,12 +292,9 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
-        string[4] memory addedKeys = [
-            "STUSDS",
-            "STUSDS_IMP",
-            "STUSDS_RATE_SETTER",
-            "STUSDS_MOM"
+    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+        string[1] memory addedKeys = [
+            "LOCKSTAKE_ORACLE"
         ];
 
         for(uint256 i = 0; i < addedKeys.length; i++) {
@@ -1324,5 +1326,68 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(dai.balanceOf(almProxy), daiAmount);
 
         vm.stopPrank();
+    }
+
+    function testLockstakeCappedOsmOnboarding() public {
+        address cappedOsm = addr.addr("LOCKSTAKE_ORACLE");
+        address osm = addr.addr("PIP_SKY");
+        address spotter = addr.addr("MCD_SPOT");
+        address clipper = addr.addr("LOCKSTAKE_CLIP");
+        address clipperMom = addr.addr("CLIPPER_MOM");
+        address end = addr.addr("MCD_END");
+        address reg = addr.addr("ILK_REGISTRY");
+        bytes32 ilk = LockstakeClipperLike(clipper).ilk();
+
+        // Sanity checks
+        assertEq(CappedOsmLike(cappedOsm).osm(), osm, "before: cappedOsm-invalid-osm");
+        assertEq(CappedOsmLike(cappedOsm).cap(), 0,   "before: cappedOsm-invalid-cap");
+
+        // Initial state of the new capped OSM
+        assertEq(OsmAbstract(cappedOsm).bud(spotter),    0, "before: cappedOsm-invalid-bud-spotter");
+        assertEq(OsmAbstract(cappedOsm).bud(clipper),    0, "before: cappedOsm-invalid-bud-clipper");
+        assertEq(OsmAbstract(cappedOsm).bud(clipperMom), 0, "before: cappedOsm-invalid-bud-clipperMom");
+        assertEq(OsmAbstract(cappedOsm).bud(end),        0, "before: cappedOsm-invalid-bud-end");
+
+        // The key shouldn't exist in the chainlog
+        vm.expectRevert("dss-chain-log/invalid-key");
+        chainLog.getAddress("LOCKSTAKE_ORACLE");
+
+        // Initial state of the orignal OSM
+        assertEq(OsmAbstract(osm).bud(cappedOsm),  0, "before: osm-invalid-bud-cappedOsm");
+        assertEq(OsmAbstract(osm).bud(spotter),    1, "before: osm-invalid-bud-spotter");
+        assertEq(OsmAbstract(osm).bud(clipper),    1, "before: osm-invalid-bud-clipper");
+        assertEq(OsmAbstract(osm).bud(clipperMom), 1, "before: osm-invalid-bud-clipperMom");
+        assertEq(OsmAbstract(osm).bud(end),        1, "before: osm-invalid-bud-end");
+
+        (address spotPip, ) = SpotAbstract(spotter).ilks(ilk);
+        assertEq(spotPip, osm, "before: spotter-invalid-pip");
+        address regPip = IlkRegistryAbstract(reg).pip(ilk);
+        assertEq(regPip, osm, "before: ilkRegistry-invalid-pip");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done());
+
+        // Final state of the new capped OSM
+        assertEq(OsmAbstract(cappedOsm).bud(spotter),    1, "after: cappedOsm-invalid-bud-spotter");
+        assertEq(OsmAbstract(cappedOsm).bud(clipper),    1, "after: cappedOsm-invalid-bud-clipper");
+        assertEq(OsmAbstract(cappedOsm).bud(clipperMom), 1, "after: cappedOsm-invalid-bud-clipperMom");
+        assertEq(OsmAbstract(cappedOsm).bud(end),        1, "after: cappedOsm-invalid-bud-end");
+        // Note: The chainlog key setting is tested in `testAddedChainlogKeys`
+
+        // TODO: update with the final value
+        assertEq(CappedOsmLike(cappedOsm).cap(), 1 * WAD, "after: cappedOsm-invalid-cap");
+
+        (spotPip, ) = SpotAbstract(spotter).ilks(ilk);
+        assertEq(spotPip, cappedOsm, "after: spotter-invalid-pip");
+        regPip = IlkRegistryAbstract(reg).pip(ilk);
+        assertEq(regPip, cappedOsm, "after: ilkRegistry-invalid-pip");
+
+        // Final state of the orignal OSM
+        assertEq(OsmAbstract(osm).bud(cappedOsm),  1, "after: osm-invalid-bud-cappedOsm");
+        assertEq(OsmAbstract(osm).bud(spotter),    0, "after: osm-invalid-bud-spotter");
+        assertEq(OsmAbstract(osm).bud(clipper),    0, "after: osm-invalid-bud-clipper");
+        assertEq(OsmAbstract(osm).bud(clipperMom), 0, "after: osm-invalid-bud-clipperMom");
+        assertEq(OsmAbstract(osm).bud(end),        0, "after: osm-invalid-bud-end");
     }
 }
