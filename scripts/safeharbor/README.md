@@ -54,12 +54,13 @@ The script follows these steps:
 
 # Running the script
 
-To run the script, run the following command:
 required env variables:
 
 ```
 - ETH_RPC_URL: An endpoint to a node that has the registry and the agreement deployed.
 ```
+
+To run the script, run the following command:
 
 ```bash
 npm run generate
@@ -71,20 +72,10 @@ This will output the calldata for the update call to the agreement.
 npm run verify 0x...
 ```
 
-This will take a given calldata and validate that if it matched the expected generated payload.
+This will take a given calldata and validate that it matched the expected generated payload.
 
 ```bash
 npm run inspect
 ```
 
 Same as `generate` but it will output the full payload with all the updates.
-
-# Testing
-
-## Setting up the environment
-
-required env variables:
-
-```
-- ETH_RPC_URL: An endpoint to a node that contains the registry and the agreement deployed.
-```

@@ -92,7 +92,8 @@ describe("inspectPayload E2E Tests", () => {
             const result = await generatePayload("", true);
 
             // Assert - should have empty multicall since no changes needed
-            assert.strictEqual(result, undefined);
+            assert.strictEqual(result.updates, undefined);
+            assert.strictEqual(result.wrappedUpdates, undefined);
         });
     });
 
@@ -319,10 +320,7 @@ describe("inspectPayload E2E Tests", () => {
                     u.function === "addAccounts",
             );
             assert.ok(chainUpdates.length > 0, "Should have chain updates");
-            assert.ok(
-                accountUpdates.length > 0,
-                "Should have account updates",
-            );
+            assert.ok(accountUpdates.length > 0, "Should have account updates");
             const removeChainUpdate = result.updates.find(
                 (u) => u.function === "removeChains",
             );
@@ -446,11 +444,15 @@ describe("inspectPayload E2E Tests", () => {
             // Create a specific on-chain state for this test with a mismatch
             const onChainStateWithMismatch = {
                 ETHEREUM: {
-                    accounts: [{ accountAddress: "0xA1", childContractScope: 0 }],
+                    accounts: [
+                        { accountAddress: "0xA1", childContractScope: 0 },
+                    ],
                     assetRecoveryAddress: "0xDIFFERENT_ONCHAIN_ADDRESS", // Mismatch
                 },
                 GNOSIS: {
-                    accounts: [{ accountAddress: "0xB1", childContractScope: 0 }],
+                    accounts: [
+                        { accountAddress: "0xB1", childContractScope: 0 },
+                    ],
                     assetRecoveryAddress: "0xGNOSIS_RECOVERY_ADDRESS", // Match
                 },
             };

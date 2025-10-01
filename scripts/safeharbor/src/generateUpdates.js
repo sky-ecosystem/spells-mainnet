@@ -5,7 +5,6 @@ const agreementInterface = new Interface(AGREEMENTV2_ABI);
 
 // Account difference calculation
 function calculateAccountDifferences(currentAccounts, desiredAccounts) {
-
     // Create maps for easier lookup with composite keys
     const currentMap = new Map(
         currentAccounts.map((acc) => [
@@ -103,7 +102,6 @@ function generateAccountUpdates(
     return updates;
 }
 
-
 function validateRecoveryAddress(onChainState, csvState, chainDetails) {
     const onChainChains = new Set(Object.keys(onChainState));
     const csvChains = new Set(Object.keys(csvState));
@@ -113,19 +111,20 @@ function validateRecoveryAddress(onChainState, csvState, chainDetails) {
     );
 
     for (const chainName of commonChains) {
-        const onchainRecoveryAddress = onChainState[chainName].assetRecoveryAddress;
+        const onchainRecoveryAddress =
+            onChainState[chainName].assetRecoveryAddress;
         const csvRecoveryAddress = chainDetails.assetRecoveryAddress[chainName];
 
         if (
             onchainRecoveryAddress &&
             csvRecoveryAddress &&
-            onchainRecoveryAddress.toLowerCase() !== csvRecoveryAddress.toLowerCase()
+            onchainRecoveryAddress.toLowerCase() !==
+                csvRecoveryAddress.toLowerCase()
         ) {
             console.warn(
                 `\n\n‼️-----‼️ \nAsset Recovery Address mismatch for chain '${chainName}'. \nOn-chain: ${onchainRecoveryAddress} \nCSV:      ${csvRecoveryAddress} \n‼️-----‼️\n\n`,
             );
         }
-
     }
 }
 

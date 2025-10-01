@@ -11,7 +11,7 @@ import {
 } from "./constants.js";
 
 // Main function
-export async function generatePayload(agreementContract, returnUpdates = false) {
+export async function generatePayload(agreementContract) {
     try {
         // 0. Fetch chain information once at the beginning
         console.warn("Fetching chains details CSV...");
@@ -37,22 +37,17 @@ export async function generatePayload(agreementContract, returnUpdates = false) 
         const updates = generateUpdates(onChainState, csvState, chainDetails);
 
         if (updates.length === 0) {
-            return;
+            return {};
         }
 
         // 4. Wrap with multicall
         console.warn("Wrapping with multicall...");
         const wrappedUpdates = wrapWithMulticall(updates);
 
-        if (returnUpdates) {
-            return {
-                updates,
-                wrappedUpdates,
-            };
-        } else {
-            return wrappedUpdates;
-        }
-
+        return {
+            updates,
+            wrappedUpdates,
+        };
     } catch (error) {
         console.error("Error generating update payload:", error);
         throw error;

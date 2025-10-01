@@ -15,19 +15,19 @@ export async function verifyPayload(calldata, agreementContract) {
 
         // 1. Generate expected updates (same as generate script)
         console.warn("Generating expected updates...");
-        let expectedUpdates = await generatePayload(agreementContract);
+        let { wrappedUpdates } = await generatePayload(agreementContract);
 
-        if (!expectedUpdates) {
-            expectedUpdates = { calldata: "0x" };
+        if (!wrappedUpdates) {
+            wrappedUpdates = { calldata: "0x" };
         }
 
         // 2. Compare the calldata with expected updates
         console.warn("\nComparing calldata with expected updates...");
-        const comparisonResult = expectedUpdates.calldata === calldata;
+        const comparisonResult = wrappedUpdates.calldata === calldata;
 
         return {
             success: comparisonResult,
-            expectedUpdates: expectedUpdates.calldata,
+            wrappedUpdates: wrappedUpdates.calldata,
             providedUpdates: calldata,
         };
     } catch (error) {

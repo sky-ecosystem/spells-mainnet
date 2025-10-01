@@ -52,10 +52,10 @@ try {
         process.exit(result.success ? 0 : 1);
     } else if (command === "generate" || !command) {
         // Default to generate if no command or explicit generate command
-        const multicallUpdates = await generatePayload(agreementContract);
+        const { wrappedUpdates } = await generatePayload(agreementContract);
 
-        if (multicallUpdates) {
-            console.log(JSON.stringify(multicallUpdates, null, 2));
+        if (wrappedUpdates) {
+            console.log(JSON.stringify(wrappedUpdates, null, 2));
             console.warn("Payload generation completed successfully.");
             process.exit(0);
         } else {
@@ -65,23 +65,20 @@ try {
     } else if (command === "inspect") {
         const result = await generatePayload(agreementContract, true);
 
-        if (result?.updates) {
+        if (result.updates) {
             // Only show function name and args
-            result.updates = result.updates.map(
-                (update) => ({
-                    function: update.function,
-                    args: update.args,
-                }),
-            );
+            result.updates = result.updates.map((update) => ({
+                function: update.function,
+                args: update.args,
+            }));
 
-            console.log(JSON.stringify(result.updates, null, 2));
+            console.log(JSON.stringify(result, null, 2));
             console.warn("Payload generation completed successfully.");
             process.exit(0);
         } else {
             console.warn("No updates to generate");
             process.exit(0);
         }
-        
     } else {
         console.error(`Error: Unknown command '${command}'`);
         console.error("Available commands: generate, verify");
