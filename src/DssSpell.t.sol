@@ -657,35 +657,40 @@ contract DssSpellTest is DssSpellTestBase {
 
         uint256 MAR_09_2026_16_41_11 = 1773074471;
 
+        // Note: use this trick to get the next spell casting time
+        uint256 castTime;
+        {
+            uint256 beforeVote = vm.snapshotState();
+
+            _vote(address(spell));
+            spell.schedule();
+            castTime = spell.nextCastTime();
+
+            vm.revertToStateAndDelete(beforeVote);
+        }
+
         yankedStreams[0] = YankedVestStream({
             id:  6,
-            fin: MAR_09_2026_16_41_11
+            fin: MAR_09_2026_16_41_11,
+            end: castTime
         });
 
         // This stream is configured relative to the spell casting time.
-        {
-            uint256 before = vm.snapshotState();
-            _vote(address(spell));
-            spell.schedule();
-            vm.warp(spell.nextCastTime());
 
-            // For each new stream, provide Stream object
-            // and initialize the array with the corrent number of new streams
-            newStreams[0] = NewVestStream({
-                id:  7,
-                usr: addr.addr("REWARDS_DIST_USDS_SKY"),
-                bgn: block.timestamp,
-                clf: block.timestamp,
-                fin: block.timestamp + 182 days,
-                tau: 182 days,
-                mgr: address(0),
-                res: 1,
-                tot: 68_379_376 * WAD,
-                rxd: 0 // Amount already claimed
-            });
-
-            vm.revertToStateAndDelete(before);
-        }
+        // For each new stream, provide Stream object
+        // and initialize the array with the corrent number of new streams
+        newStreams[0] = NewVestStream({
+            id:  7,
+            usr: addr.addr("REWARDS_DIST_USDS_SKY"),
+            bgn: castTime,
+            clf: castTime,
+            fin: castTime + 182 days,
+            tau: 182 days,
+            mgr: address(0),
+            res: 1,
+            tot: 68_379_376 * WAD,
+            rxd: 0 // Amount already claimed
+        });
 
         _checkVest(
             VestInst({vest: vestSky, gem: sky, name: "sky", isTransferrable: true}),
@@ -1291,9 +1296,9 @@ contract DssSpellTest is DssSpellTestBase {
 
 
     function testWhitelistNovaALMProxy() public {
-        address almProxy     = addr.addr("NOVA_ALM_PROXY");
-        LitePsmLike psmUsdcA = LitePsmLike(addr.addr("MCD_LITE_PSM_USDC_A"));
-        GemAbstract usdc     = GemAbstract(addr.addr("USDC"));
+        address almProxy = addr.addr("NOVA_ALM_PROXY");
+        DssLitePsmLike psmUsdcA = DssLitePsmLike(addr.addr("MCD_LITE_PSM_USDC_A"));
+        GemAbstract usdc = GemAbstract(addr.addr("USDC"));
 
         // bud is 0 before kiss
         assertEq(psmUsdcA.bud(almProxy), 0, "TestError/MCD_LITE_PSM_USDC_A/invalid-bud");

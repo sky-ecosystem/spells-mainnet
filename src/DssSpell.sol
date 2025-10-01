@@ -31,7 +31,7 @@ interface VestedRewardsDistributionLike {
     function distribute() external returns (uint256 amount);
 }
 
-interface LitePsmLike {
+interface DssLitePsmLike {
     function kiss(address usr) external;
 }
 
@@ -97,6 +97,19 @@ contract DssSpellAction is DssAction {
             VestedRewardsDistributionLike(REWARDS_DIST_USDS_SKY).distribute();
         }
 
+        // MCD_VEST_SKY_TREASURY Vest Stream  | from: 'block.timestamp' | tau: 182 days | tot: 68,379,376 SKY | usr: REWARDS_DIST_USDS_SKY
+        uint256 vestId = VestAbstract(MCD_VEST_SKY_TREASURY).create(
+            /* usr: */ REWARDS_DIST_USDS_SKY,
+            /* tot: */ 68_379_376 * WAD,
+            /* bgn: */ block.timestamp,
+            /* tau: */ 182 days,
+            /* eta: */ 0,
+            /* mgr: */ address(0)
+        );
+
+        // res: 1 (restricted)
+        VestAbstract(MCD_VEST_SKY_TREASURY).restrict(vestId);
+
         // Adjust the Sky allowance for MCD_VEST_SKY_TREASURY, reducing it by the remaining yanked stream amount and increasing it by the new stream total
         {
             // Note: Get the previous allowance
@@ -114,19 +127,6 @@ contract DssSpellAction is DssAction {
         // Yank MCD_VEST_SKY_TREASURY vest with ID 6
         VestAbstract(MCD_VEST_SKY_TREASURY).yank(6);
 
-        // MCD_VEST_SKY_TREASURY Vest Stream  | from: 'block.timestamp' | tau: 182 days | tot: 68,379,376 SKY | usr: REWARDS_DIST_USDS_SKY
-        uint256 vestId = VestAbstract(MCD_VEST_SKY_TREASURY).create(
-            /* usr: */ REWARDS_DIST_USDS_SKY,
-            /* tot: */ 68_379_376 * WAD,
-            /* bgn: */ block.timestamp,
-            /* tau: */ 182 days,
-            /* eta: */ 0,
-            /* mgr: */ address(0)
-        );
-
-        // res: 1 (restricted)
-        VestAbstract(MCD_VEST_SKY_TREASURY).restrict(vestId);
-
         // File the new stream ID on REWARDS_DIST_USDS_SKY
         DssExecLib.setValue(REWARDS_DIST_USDS_SKY, "vestId", vestId);
 
@@ -135,7 +135,7 @@ contract DssSpellAction is DssAction {
         // Poll: https://vote.sky.money/polling/QmWfqZRS
 
         // Whitelist Nova/Keel ALMProxy at 0xa5139956eC99aE2e51eA39d0b57C42B6D8db0758 on MCD_LITE_PSM_USDC_A
-        LitePsmLike(MCD_LITE_PSM_USDC_A).kiss(KEEL_ALM_PROXY);
+        DssLitePsmLike(MCD_LITE_PSM_USDC_A).kiss(KEEL_ALM_PROXY);
 
         // TODO
         DssInstance memory dss = MCD.loadFromChainlog(DssExecLib.LOG);
@@ -170,7 +170,7 @@ contract DssSpellAction is DssAction {
 
         // ---------- Nova/Keel Spell ----------
         // Forum: https://forum.sky.money/t/october-02-2025-prime-technical-scope-keel-initialization-for-upcoming-spell/27192
-        // Vote: https://vote.sky.money/polling/QmWfqZRS
+        // Poll: https://vote.sky.money/polling/QmWfqZRS
 
         // Approve Nova/Keel proxy spell with address 0x7ae136b7e677C6A9B909a0ef0a4E29f0a1c3c7fE
         ProxyLike(NOVA_PROXY).exec(NOVA_SPELL, abi.encodeWithSignature("execute()"));

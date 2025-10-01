@@ -215,7 +215,7 @@ interface MkrSkyLike {
     function take() external view returns (uint256);
 }
 
-interface LitePsmLike {
+interface DssLitePsmLike {
     function bud(address) external view returns (uint256);
     function buf() external view returns (uint256);
     function buyGem(address usr, uint256 gemAmt) external returns (uint256 daiInWad);
@@ -870,10 +870,11 @@ contract DssSpellTestBase is Config, DssTest {
         assertEq(chief.hat(), spell_, "TestError/spell-is-not-hat");
     }
 
-    function _scheduleWaitAndCast(address spell_) internal {
+    function _scheduleWaitAndCast(address spell_) internal returns (uint256 castTime) {
         DssSpell(spell_).schedule();
 
-        vm.warp(DssSpell(spell_).nextCastTime());
+        castTime = DssSpell(spell_).nextCastTime();
+        vm.warp(castTime);
 
         DssSpell(spell_).cast();
     }
@@ -2133,10 +2134,10 @@ contract DssSpellTestBase is Config, DssTest {
     }
 
     function _checkLitePsmIlkIntegration(LitePsmIlkIntegrationParams memory p) internal {
-        uint256 tin         = p.tinBps  * WAD / 100_00;
-        uint256 tout        = p.toutBps * WAD / 100_00;
-        LitePsmLike litePsm = LitePsmLike(p.litePsm);
-        GemAbstract token   = GemAbstract(litePsm.gem());
+        uint256 tin = p.tinBps  * WAD / 100_00;
+        uint256 tout = p.toutBps * WAD / 100_00;
+        DssLitePsmLike litePsm = DssLitePsmLike(p.litePsm);
+        GemAbstract token = GemAbstract(litePsm.gem());
 
         // Authorization (check wards)
         assertEq(litePsm.wards(address(pauseProxy)), 1, _concat("checkLitePsmIlkIntegration/pauseProxy-not-ward-", p.ilk));
@@ -2539,7 +2540,7 @@ contract DssSpellTestBase is Config, DssTest {
         }
     }
 
-    function _to18ConversionFactor(LitePsmLike litePsm) internal view returns (uint256) {
+    function _to18ConversionFactor(DssLitePsmLike litePsm) internal view returns (uint256) {
         return litePsm.to18ConversionFactor();
     }
 
@@ -2762,6 +2763,7 @@ contract DssSpellTestBase is Config, DssTest {
     struct YankedVestStream {
         uint256 id;
         uint256 fin;
+        uint256 end;
     }
 
     function _checkVest(
@@ -2784,8 +2786,12 @@ contract DssSpellTestBase is Config, DssTest {
             }
         }
 
+        for(uint256 i; i < _ys.length; i++) {
+            assertEq(_vi.vest.fin(_ys[i].id), _ys[i].fin, "TestError/Vest/fin-mismatch");
+        }
+
         _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
+        uint256 castTime = _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
         // Check that all streams added in this spell are tested
@@ -2809,6 +2815,19 @@ contract DssSpellTestBase is Config, DssTest {
                 expectedAllowance,
                 string.concat("TestError/Vest/", _vi.name, "/insufficient-transferrable-vest-allowance-")
             );
+        }
+
+        for(uint256 i; i < _ys.length; i++) {
+            uint256 _fin = _ys[i].fin;
+            uint256 _end = _ys[i].end < castTime ? castTime : _ys[i].end;
+
+            if (end < fin) {
+                assertEq(_vi.vest.fin(_ys[i].id), _end, "TestError/Vest/invalid-fin-after-cast (end < fin)");
+            } else {
+                assertEq(_vi.vest.fin(_ys[i].id), _fin, "TestError/Vest/invalid-fin-after-cast (fin <= end)");
+            }
+
+            assertFalse(_vi.vest.valid(_ys[i].id), "TestError/Vest/stream-not-yanked-after-cast");
         }
 
         for (uint256 i = 0; i < _ns.length; i++) {
