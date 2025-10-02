@@ -73,7 +73,7 @@ contract DssSpellAction is DssAction {
     // ---------- Spark Proxy Spell ----------
     // Note: Spark Proxy: https://github.com/sparkdotfi/sparklend-deployments/blob/bba4c57d54deb6a14490b897c12a949aa035a99b/script/output/1/primary-sce-latest.json#L2
     address internal constant SPARK_PROXY = 0x3300f198988e4C9C63F75dF86De36421f06af8c4;
-    address internal constant SPARK_SPELL = 0xD1919a5D4d320c07ca55e7936d3C25bE831A9561;
+    address internal constant SPARK_SPELL = 0x4a3a40957CDc47552E2BE2012d127A5f4BD7f689;
 
     // ---------- Bloom/Grove Proxy ----------
     // Note: The deployment address for the Grove Proxy can be found at https://forum.sky.money/t/technical-scope-of-the-star-2-allocator-launch/26190
@@ -86,6 +86,24 @@ contract DssSpellAction is DssAction {
     address internal constant NOVA_SPELL = 0x7ae136b7e677C6A9B909a0ef0a4E29f0a1c3c7fE;
 
     function actions() public override {
+        // ---------- Launch Lockstake Capped OSM Wrapper ----------
+        // Forum: https://forum.sky.money/t/technical-scope-of-the-lockstake-capped-osm-wrapper-launch/27246
+        // Forum? https://forum.sky.money/t/technical-scope-of-the-lockstake-capped-osm-wrapper-launch/27246/4
+
+        // Update to Lockstake Capped OSM Wrapper by calling LockstakeInit.updateOSM with the following parameters:
+        LockstakeInit.updateOsm(
+            // dss: A DssInstance (from dss-test/MCD.sol)
+            MCD.loadFromChainlog(DssExecLib.LOG),
+            // cappedOSM: 0x0C13fF3DC02E85aC169c4099C09c9B388f2943Fd
+            LOCKSTAKE_ORACLE,
+            // cap: 0.083 USDS
+            // Note: ether is a keyword that represents 10**18, not the ETH token
+            0.083 ether
+        );
+
+        // Note: Bump chainlog PATCH version
+        DssExecLib.setChangelogVersion("1.20.5");
+
         // ---------- SKY Token Rewards Rebalance ----------
         // Forum: https://forum.sky.money/t/sky-token-rewards-usds-to-sky-rewards-normalization-configuration/26638/19
         // Forum: https://forum.sky.money/t/sky-token-rewards-usds-to-sky-rewards-normalization-configuration/26638/20
@@ -137,13 +155,6 @@ contract DssSpellAction is DssAction {
         // Whitelist Nova/Keel ALMProxy at 0xa5139956eC99aE2e51eA39d0b57C42B6D8db0758 on MCD_LITE_PSM_USDC_A
         DssLitePsmLike(MCD_LITE_PSM_USDC_A).kiss(KEEL_ALM_PROXY);
 
-        // TODO
-        DssInstance memory dss = MCD.loadFromChainlog(DssExecLib.LOG);
-        LockstakeInit.updateOsm(dss, LOCKSTAKE_ORACLE, /* TODO: TBD */ 1 * WAD);
-
-        // Note: Bump chainlog PATCH version
-        DssExecLib.setChangelogVersion("1.20.5");
-
         // ---------- Spark Spell ----------
         // Forum: https://forum.sky.money/t/october-2-2025-proposed-changes-to-spark-for-upcoming-spell/27191
         // Atlas: https://sky-atlas.powerhouse.io/A.2.9.1.1.2.9.1_Revenue_Share/248f2ff0-8d73-8039-a678-ce5cefe826d0|9e1f80092582d098de0cf76e
@@ -157,7 +168,7 @@ contract DssSpellAction is DssAction {
         // Poll: https://vote.sky.money/polling/QmUn84ag
         // Poll: https://vote.sky.money/polling/QmXYRjmQ
 
-        // Approve Spark proxy spell with address 0xD1919a5D4d320c07ca55e7936d3C25bE831A9561
+        // Approve Spark proxy spell with address 0x4a3a40957CDc47552E2BE2012d127A5f4BD7f689
         ProxyLike(SPARK_PROXY).exec(SPARK_SPELL, abi.encodeWithSignature("execute()"));
 
         // ---------- Bloom/Grove Spell ----------

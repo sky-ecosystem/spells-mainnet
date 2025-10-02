@@ -1215,7 +1215,7 @@ contract DssSpellTest is DssSpellTestBase {
     // Spark tests
     function testSparkSpellIsExecuted() public { // add the `skipped` modifier to skip
         address SPARK_PROXY = addr.addr('ALLOCATOR_SPARK_A_SUBPROXY');
-        address SPARK_SPELL = address(0xD1919a5D4d320c07ca55e7936d3C25bE831A9561); // Insert Spark spell address
+        address SPARK_SPELL = address(0x4a3a40957CDc47552E2BE2012d127A5f4BD7f689); // Insert Spark spell address
 
         vm.expectCall(
             SPARK_PROXY,
@@ -1380,8 +1380,8 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(OsmAbstract(cappedOsm).bud(end),        1, "after: cappedOsm-invalid-bud-end");
         // Note: The chainlog key setting is tested in `testAddedChainlogKeys`
 
-        // TODO: update with the final value
-        assertEq(CappedOsmLike(cappedOsm).cap(), 1 * WAD, "after: cappedOsm-invalid-cap");
+        // Note: ether below is a keyword that represents 10**18
+        assertEq(CappedOsmLike(cappedOsm).cap(), 0.083 ether, "after: cappedOsm-invalid-cap");
 
         (spotPip, ) = SpotAbstract(spotter).ilks(ilk);
         assertEq(spotPip, cappedOsm, "after: spotter-invalid-pip");
