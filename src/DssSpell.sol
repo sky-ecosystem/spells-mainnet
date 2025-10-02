@@ -88,7 +88,7 @@ contract DssSpellAction is DssAction {
     function actions() public override {
         // ---------- Launch Lockstake Capped OSM Wrapper ----------
         // Forum: https://forum.sky.money/t/technical-scope-of-the-lockstake-capped-osm-wrapper-launch/27246
-        // Forum? https://forum.sky.money/t/technical-scope-of-the-lockstake-capped-osm-wrapper-launch/27246/4
+        // Forum: https://forum.sky.money/t/technical-scope-of-the-lockstake-capped-osm-wrapper-launch/27246/4
 
         // Update to Lockstake Capped OSM Wrapper by calling LockstakeInit.updateOSM with the following parameters:
         LockstakeInit.updateOsm(
