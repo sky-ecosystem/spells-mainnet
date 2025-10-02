@@ -881,14 +881,14 @@ contract DssSpellTestBase is Config, DssTest {
     /**
      * @dev Gets the current spell cast time.
      *      It MUST be called before the spell is cast, otherwise it will revert.
-     * @return castTime
+     * @return spellCastTime
      */
-    function _getSpellCastTime() internal returns (uint256 castTime) {
+    function _getSpellCastTime() internal returns (uint256 spellCastTime) {
         uint256 beforeVote = vm.snapshotState();
 
         _vote(address(spell));
         spell.schedule();
-        castTime = spell.nextCastTime();
+        spellCastTime = spell.nextCastTime();
 
         vm.revertToStateAndDelete(beforeVote);
     }
@@ -2782,8 +2782,8 @@ contract DssSpellTestBase is Config, DssTest {
 
     function _checkVest(
         VestInst memory _vi,
-        NewVestStream[] memory _ns,
-        YankedVestStream[] memory _ys
+        NewVestStream[] memory _nss,
+        YankedVestStream[] memory _yss
     ) internal {
         uint256 prevStreamCount = _vi.vest.ids();
         uint256 prevAllowance;
@@ -2793,18 +2793,18 @@ contract DssSpellTestBase is Config, DssTest {
             prevAllowance = _vi.gem.allowance(pauseProxy, address(_vi.vest));
 
 
-            for(uint256 i; i < _ys.length; i++) {
-                uint256 tot = _vi.vest.tot(_ys[i].id);
-                uint256 rxd = _vi.vest.rxd(_ys[i].id);
+            for(uint256 i; i < _yss.length; i++) {
+                uint256 tot = _vi.vest.tot(_yss[i].id);
+                uint256 rxd = _vi.vest.rxd(_yss[i].id);
                 expectedAllowanceChange = expectedAllowanceChange - int256(tot - rxd);
             }
         }
 
-        for(uint256 i; i < _ys.length; i++) {
-            assertEq(_vi.vest.fin(_ys[i].id), _ys[i].fin, "TestError/Vest/fin-mismatch");
+        for(uint256 i; i < _yss.length; i++) {
+            assertEq(_vi.vest.fin(_yss[i].id), _yss[i].fin, "TestError/Vest/fin-mismatch");
         }
 
-        uint256 castTime = _getSpellCastTime();
+        uint256 spellCastTime = _getSpellCastTime();
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
@@ -2813,14 +2813,14 @@ contract DssSpellTestBase is Config, DssTest {
         // Check that all streams added in this spell are tested
         assertEq(
             _vi.vest.ids(),
-            prevStreamCount + _ns.length,
+            prevStreamCount + _nss.length,
             string.concat("TestError/Vest/", _vi.name,"/not-all-streams-tested-")
         );
 
         if (_vi.isTransferrable) {
-            for(uint256 i; i < _ns.length; i++) {
-                uint256 tot = _ns[i].tot;
-                uint256 rxd = _ns[i].rxd;
+            for(uint256 i; i < _nss.length; i++) {
+                uint256 tot = _nss[i].tot;
+                uint256 rxd = _nss[i].rxd;
                 expectedAllowanceChange = expectedAllowanceChange + int256(tot - rxd);
             }
 
@@ -2833,55 +2833,59 @@ contract DssSpellTestBase is Config, DssTest {
             );
         }
 
-        for(uint256 i; i < _ys.length; i++) {
-            uint256 _fin = _ys[i].fin;
-            uint256 _end = _ys[i].end > castTime ? _ys[i].end : castTime;
-
-            if (_end < _fin) {
-                assertEq(_vi.vest.fin(_ys[i].id), _end, "TestError/Vest/invalid-fin-after-cast (end < fin)");
-            } else {
-                assertEq(_vi.vest.fin(_ys[i].id), _fin, "TestError/Vest/invalid-fin-after-cast (fin <= end)");
-            }
-
-            assertFalse(_vi.vest.valid(_ys[i].id), "TestError/Vest/stream-not-yanked-after-cast");
+        for (uint256 i = 0; i < _nss.length; i++) {
+            _checkNewVestStream(_vi, _nss[i]);
         }
 
-        for (uint256 i = 0; i < _ns.length; i++) {
-            _checkVestStream(_vi, _ns[i]);
+        for(uint256 i; i < _yss.length; i++) {
+            _checkYankedVestStream(_vi, _yss[i], spellCastTime);
         }
     }
 
-    function _checkVestStream(VestInst memory _vi, NewVestStream memory _s) internal {
-        assertEq(_vi.vest.usr(_s.id), _s.usr,          string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_s.id), "/invalid-usr"));
-        assertEq(_vi.vest.bgn(_s.id), _s.bgn,          string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_s.id), "/invalid-bgn"));
-        assertEq(_vi.vest.clf(_s.id), _s.clf,          string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_s.id), "/invalid-clf"));
-        assertEq(_vi.vest.fin(_s.id), _s.fin,          string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_s.id), "/invalid-fin"));
-        assertEq(_vi.vest.fin(_s.id), _s.bgn + _s.tau, string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_s.id), "/invalid-fin (bgn + tau)"));
-        assertEq(_vi.vest.mgr(_s.id), _s.mgr,          string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_s.id), "/invalid-mgr"));
-        assertEq(_vi.vest.res(_s.id), _s.res,          string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_s.id), "/invalid-res"));
-        assertEq(_vi.vest.tot(_s.id), _s.tot,          string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_s.id), "/invalid-tot"));
-        assertEq(_vi.vest.rxd(_s.id), _s.rxd,          string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_s.id), "/invalid-rxd"));
+    function _checkNewVestStream(VestInst memory _vi, NewVestStream memory _ns) internal {
+        assertEq(_vi.vest.usr(_ns.id), _ns.usr,           string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_ns.id), "/invalid-usr"));
+        assertEq(_vi.vest.bgn(_ns.id), _ns.bgn,           string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_ns.id), "/invalid-bgn"));
+        assertEq(_vi.vest.clf(_ns.id), _ns.clf,           string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_ns.id), "/invalid-clf"));
+        assertEq(_vi.vest.fin(_ns.id), _ns.fin,           string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_ns.id), "/invalid-fin"));
+        assertEq(_vi.vest.fin(_ns.id), _ns.bgn + _ns.tau, string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_ns.id), "/invalid-fin (bgn + tau)"));
+        assertEq(_vi.vest.mgr(_ns.id), _ns.mgr,           string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_ns.id), "/invalid-mgr"));
+        assertEq(_vi.vest.res(_ns.id), _ns.res,           string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_ns.id), "/invalid-res"));
+        assertEq(_vi.vest.tot(_ns.id), _ns.tot,           string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_ns.id), "/invalid-tot"));
+        assertEq(_vi.vest.rxd(_ns.id), _ns.rxd,           string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_ns.id), "/invalid-rxd"));
 
         {
             uint256 before = vm.snapshotState();
 
             // Check each new stream is payable in the future
-            uint256 pbalance = _vi.gem.balanceOf(_s.usr);
+            uint256 pbalance = _vi.gem.balanceOf(_ns.usr);
             GodMode.setWard(address(_vi.vest), address(this), 1);
-            _vi.vest.unrestrict(_s.id);
+            _vi.vest.unrestrict(_ns.id);
 
-            vm.warp(_s.fin);
-            _vi.vest.vest(_s.id);
+            vm.warp(_ns.fin);
+            _vi.vest.vest(_ns.id);
             assertEq(
-                _vi.gem.balanceOf(_s.usr),
-                pbalance + _s.tot - _s.rxd,
-                string.concat("TestError/Vest/", _vi.name, ".", _uintToString(_s.id), "/invalid-received-amount")
+                _vi.gem.balanceOf(_ns.usr),
+                pbalance + _ns.tot - _ns.rxd,
+                string.concat("TestError/Vest/", _vi.name, ".", _uintToString(_ns.id), "/invalid-received-amount")
             );
 
             vm.revertToState(before);
         }
 
         vm.deleteStateSnapshots();
+    }
+
+    function _checkYankedVestStream(VestInst memory _vi, YankedVestStream memory _ys, uint256 spellCastTime) internal view {
+        uint256 _fin = _ys.fin;
+        uint256 _end = _ys.end > spellCastTime ? _ys.end : spellCastTime;
+
+        if (_end < _fin) {
+            assertEq(_vi.vest.fin(_ys.id), _end, "TestError/Vest/invalid-fin-after-cast (end < fin)");
+        } else {
+            assertEq(_vi.vest.fin(_ys.id), _fin, "TestError/Vest/invalid-fin-after-cast (fin <= end)");
+        }
+
+        assertFalse(_vi.vest.valid(_ys.id), "TestError/Vest/stream-not-yanked-after-cast");
     }
 
     function _checkTransferrableVestAllowanceAndBalance(
@@ -3118,16 +3122,16 @@ contract DssSpellTestBase is Config, DssTest {
 
             // Cast in the wrong day
             {
-                uint256 castTime = block.timestamp + pause.delay();
-                uint256 day = (castTime / 1 days + 3) % 7;
+                uint256 spellCastTime = block.timestamp + pause.delay();
+                uint256 day = (spellCastTime / 1 days + 3) % 7;
                 if (day < 5) {
-                    castTime += 5 days - day * 86400;
+                    spellCastTime += 5 days - day * 86400;
                 }
 
                 // Original revert reason is swallowed and "ds-pause-delegatecall-error" reason is given,
                 // so it's not worth bothering to check the revert reason.
                 vm.expectRevert();
-                vm.warp(castTime);
+                vm.warp(spellCastTime);
                 spell.cast();
             }
 
@@ -3136,14 +3140,14 @@ contract DssSpellTestBase is Config, DssTest {
             // Cast too early in the day
 
             {
-                uint256 castTime = block.timestamp + pause.delay() + 24 hours;
-                uint256 hour = castTime / 1 hours % 24;
+                uint256 spellCastTime = block.timestamp + pause.delay() + 24 hours;
+                uint256 hour = spellCastTime / 1 hours % 24;
                 if (hour >= 14) {
-                    castTime -= hour * 3600 - 13 hours;
+                    spellCastTime -= hour * 3600 - 13 hours;
                 }
 
                 vm.expectRevert();
-                vm.warp(castTime);
+                vm.warp(spellCastTime);
                 spell.cast();
             }
 
@@ -3152,14 +3156,14 @@ contract DssSpellTestBase is Config, DssTest {
             // Cast too late in the day
 
             {
-                uint256 castTime = block.timestamp + pause.delay();
-                uint256 hour = castTime / 1 hours % 24;
+                uint256 spellCastTime = block.timestamp + pause.delay();
+                uint256 hour = spellCastTime / 1 hours % 24;
                 if (hour < 21) {
-                    castTime += 21 hours - hour * 3600;
+                    spellCastTime += 21 hours - hour * 3600;
                 }
 
                 vm.expectRevert();
-                vm.warp(castTime);
+                vm.warp(spellCastTime);
                 spell.cast();
             }
 
@@ -3264,14 +3268,14 @@ contract DssSpellTestBase is Config, DssTest {
             assertEq(spell.nextCastTime(), monday_1400_UTC);           // Monday,   14:00 UTC
 
             // Time tests
-            uint256 castTime;
+            uint256 spellCastTime;
 
             for(uint256 i = 0; i < 5; i++) {
-                castTime = monday_1400_UTC + i * 1 days; // Next day at 14:00 UTC
-                vm.warp(castTime - 1 seconds); // 13:59:59 UTC
-                assertEq(spell.nextCastTime(), castTime);
+                spellCastTime = monday_1400_UTC + i * 1 days; // Next day at 14:00 UTC
+                vm.warp(spellCastTime - 1 seconds); // 13:59:59 UTC
+                assertEq(spell.nextCastTime(), spellCastTime);
 
-                vm.warp(castTime + 7 hours + 1 seconds); // 21:00:01 UTC
+                vm.warp(spellCastTime + 7 hours + 1 seconds); // 21:00:01 UTC
                 if (i < 4) {
                     assertEq(spell.nextCastTime(), monday_1400_UTC + (i + 1) * 1 days); // Next day at 14:00 UTC
                 } else {
@@ -3292,8 +3296,8 @@ contract DssSpellTestBase is Config, DssTest {
         _vote(address(spell));
         spell.schedule();
 
-        uint256 castTime = spell.nextCastTime();
-        assertGe(castTime, spell.eta());
+        uint256 spellCastTime = spell.nextCastTime();
+        assertGe(spellCastTime, spell.eta());
     }
 
     // Verifies that the bytecode of the action of the spell used for testing
