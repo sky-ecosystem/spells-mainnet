@@ -657,17 +657,7 @@ contract DssSpellTest is DssSpellTestBase {
 
         uint256 MAR_09_2026_16_41_11 = 1773074471;
 
-        // Note: use this trick to get the next spell casting time
-        uint256 castTime;
-        {
-            uint256 beforeVote = vm.snapshotState();
-
-            _vote(address(spell));
-            spell.schedule();
-            castTime = spell.nextCastTime();
-
-            vm.revertToStateAndDelete(beforeVote);
-        }
+        uint256 castTime = _getSpellCastTime();
 
         yankedStreams[0] = YankedVestStream({
             id:  6,

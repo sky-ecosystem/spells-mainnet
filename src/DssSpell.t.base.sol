@@ -870,13 +870,27 @@ contract DssSpellTestBase is Config, DssTest {
         assertEq(chief.hat(), spell_, "TestError/spell-is-not-hat");
     }
 
-    function _scheduleWaitAndCast(address spell_) internal returns (uint256 castTime) {
+    function _scheduleWaitAndCast(address spell_) internal {
         DssSpell(spell_).schedule();
 
-        castTime = DssSpell(spell_).nextCastTime();
-        vm.warp(castTime);
+        vm.warp(DssSpell(spell_).nextCastTime());
 
         DssSpell(spell_).cast();
+    }
+
+    /**
+     * @dev Gets the current spell cast time.
+     *      It MUST be called before the spell is cast, otherwise it will revert.
+     * @return castTime
+     */
+    function _getSpellCastTime() internal returns (uint256 castTime) {
+        uint256 beforeVote = vm.snapshotState();
+
+        _vote(address(spell));
+        spell.schedule();
+        castTime = spell.nextCastTime();
+
+        vm.revertToStateAndDelete(beforeVote);
     }
 
     function _checkSystemValues(SystemValues storage values) internal {
@@ -2790,8 +2804,10 @@ contract DssSpellTestBase is Config, DssTest {
             assertEq(_vi.vest.fin(_ys[i].id), _ys[i].fin, "TestError/Vest/fin-mismatch");
         }
 
+        uint256 castTime = _getSpellCastTime();
+
         _vote(address(spell));
-        uint256 castTime = _scheduleWaitAndCast(address(spell));
+        _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
         // Check that all streams added in this spell are tested
@@ -2819,7 +2835,7 @@ contract DssSpellTestBase is Config, DssTest {
 
         for(uint256 i; i < _ys.length; i++) {
             uint256 _fin = _ys[i].fin;
-            uint256 _end = _ys[i].end < castTime ? castTime : _ys[i].end;
+            uint256 _end = _ys[i].end > castTime ? _ys[i].end : castTime;
 
             if (_end < _fin) {
                 assertEq(_vi.vest.fin(_ys[i].id), _end, "TestError/Vest/invalid-fin-after-cast (end < fin)");
