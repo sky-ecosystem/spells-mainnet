@@ -38,8 +38,8 @@ interface DssLitePsmLike {
 contract DssSpellAction is DssAction {
     // Provides a descriptive tag for bot consumption
     // This should be modified weekly to provide a summary of the actions
-    // Hash: cast keccak -- "$(wget 'TODO' -q -O - 2>/dev/null)"
-    string public constant override description = "2025-10-02 MakerDAO Executive Spell | Hash: TODO";
+    // Hash: cast keccak -- "$(wget 'https://raw.githubusercontent.com/sky-ecosystem/executive-votes/071f7daed43a2912d719ef1e3d120eda34da38ba/2025/executive-vote-2025-10-06-lockstake-capped-osm-wrapper.md' -q -O - 2>/dev/null)"
+    string public constant override description = "2025-10-06 MakerDAO Executive Spell | Hash: 0x10f017865614b5e43a28e0422cb15c0b27add62242b25f99e522633e0f157e4a";
 
     // Set office hours according to the summary
     function officeHours() public pure override returns (bool) {
