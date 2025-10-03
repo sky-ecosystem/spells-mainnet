@@ -1354,8 +1354,8 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(OsmAbstract(cappedOsm).bud(end),        1, "after: cappedOsm-invalid-bud-end");
         // Note: The chainlog key setting is tested in `testAddedChainlogKeys`
 
-        // Note: ether below is a keyword that represents 10**18
-        assertEq(CappedOsmLike(cappedOsm).cap(), 0.083 ether, "after: cappedOsm-invalid-cap");
+        // Note: ether below is a keyword that represents 10**18, not the ETH token
+        assertEq(CappedOsmLike(cappedOsm).cap(), 0.04 ether, "after: cappedOsm-invalid-cap");
 
         (spotPip, ) = SpotAbstract(spotter).ilks(ilk);
         assertEq(spotPip, cappedOsm, "after: spotter-invalid-pip");

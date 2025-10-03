@@ -96,9 +96,9 @@ contract DssSpellAction is DssAction {
             MCD.loadFromChainlog(DssExecLib.LOG),
             // cappedOSM: 0x0C13fF3DC02E85aC169c4099C09c9B388f2943Fd
             LOCKSTAKE_ORACLE,
-            // cap: 0.083 USDS
+            // cap: 0.04 USDS
             // Note: ether is a keyword that represents 10**18, not the ETH token
-            0.083 ether
+            0.04 ether
         );
 
         // Note: Bump chainlog PATCH version
