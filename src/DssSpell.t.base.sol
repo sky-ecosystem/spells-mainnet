@@ -522,6 +522,10 @@ interface StusdsRateSetterLike {
     function set(uint256, uint256, uint256, uint256) external;
 }
 
+interface OsmWrapperLike {
+    function osm() external view returns (address);
+}
+
 contract DssSpellTestBase is Config, DssTest {
     using stdStorage for StdStorage;
 
@@ -1317,20 +1321,10 @@ contract DssSpellTestBase is Config, DssTest {
         // TODO: have a discussion about how we want to manage the global Line going forward.
     }
 
-    function _getOSMPrice(address pip) internal view returns (uint256) {
-        // vm.load is to pull the price from the LP Oracle storage bypassing the whitelist
-        uint256 price = uint256(vm.load(
-            pip,
-            bytes32(uint256(3))
-        )) & type(uint128).max;   // Price is in the second half of the 32-byte storage slot
-
-        // Price is bounded in the spot by around 10^23
-        // Give a 10^9 buffer for price appreciation over time
-        // Note: This currently can't be hit due to the uint112, but we want to backstop
-        //       once the PIP uint256 size is increased
-        assertLe(price, (10 ** 14) * WAD, "TestError/invalid-osm-price");
-
-        return price;
+    function _getOSMPrice(address pip) internal returns (uint256) {
+        vm.prank(pauseProxy);
+        OsmAbstract(pip).kiss(address(this));
+        return uint256(OsmAbstract(pip).read());
     }
 
     function _getUNIV2LPPrice(address pip) internal view returns (uint256) {
@@ -1664,6 +1658,7 @@ contract DssSpellTestBase is Config, DssTest {
     ) internal {
         LockstakeEngineLike engine = LockstakeEngineLike(p.engine);
         StakingRewardsLike farm = StakingRewardsLike(p.farm);
+        address underlyingPip = OsmWrapperLike(p.pip).osm();
 
         // Check relevant contracts are correctly configured
         {
@@ -1694,7 +1689,7 @@ contract DssSpellTestBase is Config, DssTest {
             assertEq(LockstakeClipperLike(p.clip).engine(),  p.engine,             "checkLockstakeIlkIntegration/invalid-clip-engine");
             // TODO after 2025-05-15: enable liquidations
             assertEq(LockstakeClipperLike(p.clip).stopped(), 3,                    "checkLockstakeIlkIntegration/invalid-clip-stopped");
-            assertEq(osmMom.osms(p.ilk),                     p.pip,                "checkLockstakeIlkIntegration/invalid-osmMom-pip");
+            assertEq(osmMom.osms(p.ilk),                     underlyingPip,        "checkLockstakeIlkIntegration/invalid-osmMom-pip");
             (address pip,) = spotter.ilks(p.ilk);
             assertEq(pip, p.pip, "checkLockstakeIlkIntegration/invalid-spot-pip");
         }
@@ -1721,16 +1716,16 @@ contract DssSpellTestBase is Config, DssTest {
         }
         // Check required authorizations
         {
-            assertEq(vat.wards(p.engine),                           1, "checkLockstakeIlkIntegration/missing-auth-vat-engine");
-            assertEq(vat.wards(p.clip),                             1, "checkLockstakeIlkIntegration/missing-auth-vat-clip");
-            assertEq(WardsAbstract(p.pip).wards(address(osmMom)),   1, "checkLockstakeIlkIntegration/missing-auth-pip-osmMom");
-            assertEq(dog.wards(p.clip),                             1, "checkLockstakeIlkIntegration/missing-auth-dog-clip");
-            assertEq(WardsAbstract(p.lssky).wards(p.engine),        1, "checkLockstakeIlkIntegration/missing-auth-lssky-engine");
-            assertEq(WardsAbstract(p.engine).wards(p.clip),         1, "checkLockstakeIlkIntegration/missing-auth-engine-clip");
-            assertEq(WardsAbstract(p.clip).wards(address(dog)),     1, "checkLockstakeIlkIntegration/missing-auth-clip-dog");
-            assertEq(WardsAbstract(p.clip).wards(address(end)),     1, "checkLockstakeIlkIntegration/missing-auth-clip-end");
+            assertEq(vat.wards(p.engine),                                 1, "checkLockstakeIlkIntegration/missing-auth-vat-engine");
+            assertEq(vat.wards(p.clip),                                   1, "checkLockstakeIlkIntegration/missing-auth-vat-clip");
+            assertEq(WardsAbstract(underlyingPip).wards(address(osmMom)), 1, "checkLockstakeIlkIntegration/missing-auth-pip-osmMom");
+            assertEq(dog.wards(p.clip),                                   1, "checkLockstakeIlkIntegration/missing-auth-dog-clip");
+            assertEq(WardsAbstract(p.lssky).wards(p.engine),              1, "checkLockstakeIlkIntegration/missing-auth-lssky-engine");
+            assertEq(WardsAbstract(p.engine).wards(p.clip),               1, "checkLockstakeIlkIntegration/missing-auth-engine-clip");
+            assertEq(WardsAbstract(p.clip).wards(address(dog)),           1, "checkLockstakeIlkIntegration/missing-auth-clip-dog");
+            assertEq(WardsAbstract(p.clip).wards(address(end)),           1, "checkLockstakeIlkIntegration/missing-auth-clip-end");
             // TODO after 2025-05-15: rely clipMom and update error message
-            assertEq(WardsAbstract(p.clip).wards(address(clipMom)), 0, "checkLockstakeIlkIntegration/unexpected-auth-clip-clipMom");
+            assertEq(WardsAbstract(p.clip).wards(address(clipMom)),       0, "checkLockstakeIlkIntegration/unexpected-auth-clip-clipMom");
         }
         // Check required OSM buds
         {
