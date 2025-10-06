@@ -18,7 +18,7 @@ pragma solidity 0.8.16;
 
 import "dss-exec-lib/DssExec.sol";
 import "dss-exec-lib/DssAction.sol";
-import {MCD, DssInstance} from "dss-test/MCD.sol";
+import {MCD} from "dss-test/MCD.sol";
 import {GemAbstract} from "dss-interfaces/ERC/GemAbstract.sol";
 import {VestAbstract} from "dss-interfaces/dss/VestAbstract.sol";
 import {LockstakeInit} from "./dependencies/lockstake/LockstakeInit.sol";

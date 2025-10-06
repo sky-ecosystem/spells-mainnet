@@ -536,7 +536,7 @@ contract DssSpellTest is DssSpellTestBase {
         uint256 OCT_01_2024 = 1727740800;
         uint256 JAN_31_2025 = 1738367999;
 
-        // For each new stream, provide Stream object and initialize the array with the corrent number of new streams
+        // For each new stream, provide Stream object and initialize the array with the current number of new streams
         NewVestStream[] memory newStreams = new NewVestStream[](1);
         newStreams[0] = NewVestStream({
             id:  39,
@@ -551,7 +551,7 @@ contract DssSpellTest is DssSpellTestBase {
             rxd: 0 // Amount already claimed
         });
 
-        // For each yanked stream, provide Stream object and initialize the array with the corrent number of yanked streams
+        // For each yanked stream, provide Stream object and initialize the array with the current number of yanked streams
         YankedVestStream[] memory yankedStreams = new YankedVestStream[](0);
 
         _checkVest(
@@ -566,7 +566,7 @@ contract DssSpellTest is DssSpellTestBase {
         uint256 OCT_01_2024 = 1727740800;
         uint256 JAN_31_2025 = 1738367999;
 
-        // For each new stream, provide Stream object and initialize the array with the corrent number of new streams
+        // For each new stream, provide Stream object and initialize the array with the current number of new streams
         NewVestStream[] memory newStreams = new NewVestStream[](1);
         newStreams[0] = NewVestStream({
             id:  45,
@@ -581,7 +581,7 @@ contract DssSpellTest is DssSpellTestBase {
             rxd: 0 // Amount already claimed
         });
 
-        // For each yanked stream, provide Stream object and initialize the array with the corrent number of yanked streams
+        // For each yanked stream, provide Stream object and initialize the array with the current number of yanked streams
         YankedVestStream[] memory yankedStreams = new YankedVestStream[](0);
 
         _checkVest(
@@ -596,7 +596,7 @@ contract DssSpellTest is DssSpellTestBase {
         uint256 FEB_01_2025 = 1738368000;
         uint256 DEC_31_2025 = 1767225599;
 
-        // For each new stream, provide Stream object and initialize the array with the corrent number of new streams
+        // For each new stream, provide Stream object and initialize the array with the current number of new streams
         NewVestStream[] memory newStreams = new NewVestStream[](3);
         newStreams[0] = NewVestStream({
             id:  1,
@@ -635,7 +635,7 @@ contract DssSpellTest is DssSpellTestBase {
             rxd: 0 // Amount already claimed
         });
 
-        // For each yanked stream, provide Stream object and initialize the array with the corrent number of yanked streams
+        // For each yanked stream, provide Stream object and initialize the array with the current number of yanked streams
         YankedVestStream[] memory yankedStreams = new YankedVestStream[](0);
 
         _checkVest(
@@ -654,7 +654,7 @@ contract DssSpellTest is DssSpellTestBase {
 
         uint256 spellCastTime = _getSpellCastTime();
 
-        // For each new stream, provide Stream object and initialize the array with the corrent number of new streams
+        // For each new stream, provide Stream object and initialize the array with the current number of new streams
         NewVestStream[] memory newStreams = new NewVestStream[](1);
         newStreams[0] = NewVestStream({
             id:  7,
@@ -669,7 +669,7 @@ contract DssSpellTest is DssSpellTestBase {
             rxd: 0 // Amount already claimed
         });
 
-        // For each yanked stream, provide Stream object and initialize the array with the corrent number of yanked streams
+        // For each yanked stream, provide Stream object and initialize the array with the current number of yanked streams
         YankedVestStream[] memory yankedStreams = new YankedVestStream[](1);
         yankedStreams[0] = YankedVestStream({
             id:  6,
@@ -690,7 +690,7 @@ contract DssSpellTest is DssSpellTestBase {
 
         uint256 spellCastTime = _getSpellCastTime();
 
-        // For each new stream, provide Stream object and initialize the array with the corrent number of new streams
+        // For each new stream, provide Stream object and initialize the array with the current number of new streams
         NewVestStream[] memory newStreams = new NewVestStream[](1);
         newStreams[0] = NewVestStream({
             id:  2,
@@ -705,7 +705,7 @@ contract DssSpellTest is DssSpellTestBase {
             rxd: 0 // Amount already claimed
         });
 
-        // For each yanked stream, provide Stream object and initialize the array with the corrent number of yanked streams
+        // For each yanked stream, provide Stream object and initialize the array with the current number of yanked streams
         YankedVestStream[] memory yankedStreams = new YankedVestStream[](0);
 
 
@@ -722,7 +722,7 @@ contract DssSpellTest is DssSpellTestBase {
         uint256 CAST_TIME_MINUS_7_DAYS = spellCastTime - 7 days;
         uint256 BGN_PLUS_730_DAYS = CAST_TIME_MINUS_7_DAYS + 730 days;
 
-        // For each new stream, provide Stream object and initialize the array with the corrent number of new streams
+        // For each new stream, provide Stream object and initialize the array with the current number of new streams
         NewVestStream[] memory newStreams = new NewVestStream[](2);
 
         newStreams[0] = NewVestStream({
@@ -750,7 +750,7 @@ contract DssSpellTest is DssSpellTestBase {
             rxd: 7 days * 975_000_000 * WAD / 730 days  // Amount already claimed
         });
 
-        // For each yanked stream, provide Stream object and initialize the array with the corrent number of yanked streams
+        // For each yanked stream, provide Stream object and initialize the array with the current number of yanked streams
         YankedVestStream[] memory yankedStreams = new YankedVestStream[](0);
 
         _checkVest(
@@ -1331,7 +1331,7 @@ contract DssSpellTest is DssSpellTestBase {
         vm.expectRevert("dss-chain-log/invalid-key");
         chainLog.getAddress("LOCKSTAKE_ORACLE");
 
-        // Initial state of the orignal OSM
+        // Initial state of the original OSM
         assertEq(OsmAbstract(osm).bud(cappedOsm),  0, "before: osm-invalid-bud-cappedOsm");
         assertEq(OsmAbstract(osm).bud(spotter),    1, "before: osm-invalid-bud-spotter");
         assertEq(OsmAbstract(osm).bud(clipper),    1, "before: osm-invalid-bud-clipper");
@@ -1362,7 +1362,7 @@ contract DssSpellTest is DssSpellTestBase {
         regPip = IlkRegistryAbstract(reg).pip(ilk);
         assertEq(regPip, cappedOsm, "after: ilkRegistry-invalid-pip");
 
-        // Final state of the orignal OSM
+        // Final state of the original OSM
         assertEq(OsmAbstract(osm).bud(cappedOsm),  1, "after: osm-invalid-bud-cappedOsm");
         assertEq(OsmAbstract(osm).bud(spotter),    0, "after: osm-invalid-bud-spotter");
         assertEq(OsmAbstract(osm).bud(clipper),    0, "after: osm-invalid-bud-clipper");
