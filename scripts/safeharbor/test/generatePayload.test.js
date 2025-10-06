@@ -1,7 +1,6 @@
 import { test, describe, vi, beforeEach } from "vitest";
 import assert from "node:assert";
 import { generatePayload } from "../src/generatePayload.js";
-import { MULTICALL_ADDRESS } from "../src/constants.js";
 
 // Mock the dependencies
 vi.mock("../src/fetchCSV.js");
@@ -91,9 +90,9 @@ describe("inspectPayload E2E Tests", () => {
             // Act
             const result = await generatePayload("", true);
 
-            // Assert - should have empty multicall since no changes needed
+            // Assert - should have empty result since no changes needed
             assert.strictEqual(result.updates, undefined);
-            assert.strictEqual(result.wrappedUpdates, undefined);
+            assert.strictEqual(result.solidityCode, undefined);
         });
     });
 
@@ -120,8 +119,8 @@ describe("inspectPayload E2E Tests", () => {
             );
             getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
             const result = await generatePayload("", true);
-            assert.ok(result.wrappedUpdates.calldata);
-            assert.strictEqual(result.wrappedUpdates.target, MULTICALL_ADDRESS);
+            assert.ok(result.solidityCode);
+            assert.ok(result.solidityCode.includes("_doSaferHarborUpdates"));
             assert.strictEqual(result.updates.length, 2);
             const addAccountsUpdates = result.updates.filter(
                 (u) => u.function === "addAccounts",
@@ -155,8 +154,8 @@ describe("inspectPayload E2E Tests", () => {
             );
             getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
             const result = await generatePayload("", true);
-            assert.ok(result.wrappedUpdates.calldata);
-            assert.strictEqual(result.wrappedUpdates.target, MULTICALL_ADDRESS);
+            assert.ok(result.solidityCode);
+            assert.ok(result.solidityCode.includes("_doSaferHarborUpdates"));
             assert.strictEqual(result.updates.length, 3);
             const removeAccountsUpdates = result.updates.filter(
                 (u) => u.function === "removeAccounts",
@@ -202,8 +201,9 @@ describe("inspectPayload E2E Tests", () => {
             );
             getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
             const result = await generatePayload("", true);
-            assert.ok(result.wrappedUpdates.calldata);
-            assert.strictEqual(result.wrappedUpdates.target, MULTICALL_ADDRESS);
+
+            assert.ok(result.solidityCode);
+            assert.ok(result.solidityCode.includes("_doSaferHarborUpdates"));
             assert.strictEqual(result.updates.length, 1);
             const addChainsUpdates = result.updates.filter(
                 (u) => u.function === "addChains",
@@ -249,8 +249,8 @@ describe("inspectPayload E2E Tests", () => {
             );
             getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
             const result = await generatePayload("", true);
-            assert.ok(result.wrappedUpdates.calldata);
-            assert.strictEqual(result.wrappedUpdates.target, MULTICALL_ADDRESS);
+            assert.ok(result.solidityCode);
+            assert.ok(result.solidityCode.includes("_doSaferHarborUpdates"));
             assert.strictEqual(result.updates.length, 1);
             const addChainsUpdates = result.updates.filter(
                 (u) => u.function === "addChains",
@@ -275,8 +275,8 @@ describe("inspectPayload E2E Tests", () => {
             );
             getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
             const result = await generatePayload("", true);
-            assert.ok(result.wrappedUpdates.calldata);
-            assert.strictEqual(result.wrappedUpdates.target, MULTICALL_ADDRESS);
+            assert.ok(result.solidityCode);
+            assert.ok(result.solidityCode.includes("_doSaferHarborUpdates"));
             assert.strictEqual(result.updates.length, 1);
             const removeChainsUpdates = result.updates.filter(
                 (u) => u.function === "removeChains",
@@ -307,8 +307,9 @@ describe("inspectPayload E2E Tests", () => {
             );
             getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
             const result = await generatePayload("", true);
-            assert.ok(result.wrappedUpdates.calldata);
-            assert.strictEqual(result.wrappedUpdates.target, MULTICALL_ADDRESS);
+            console.log(result.solidityCode);
+            assert.ok(result.solidityCode);
+            assert.ok(result.solidityCode.includes("_doSaferHarborUpdates"));
             assert.strictEqual(result.updates.length, 5);
             const chainUpdates = result.updates.filter(
                 (u) =>
@@ -374,8 +375,8 @@ describe("inspectPayload E2E Tests", () => {
             );
             getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
             const result = await generatePayload("", true);
-            assert.ok(result.wrappedUpdates.calldata);
-            assert.strictEqual(result.wrappedUpdates.target, MULTICALL_ADDRESS);
+            assert.ok(result.solidityCode);
+            assert.ok(result.solidityCode.includes("_doSaferHarborUpdates"));
             assert.strictEqual(result.updates.length, 4);
             const addChainUpdate = result.updates.find(
                 (u) => u.function === "addChains",
@@ -403,8 +404,8 @@ describe("inspectPayload E2E Tests", () => {
             getNormalizedDataFromOnchainState.mockResolvedValue({});
             getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
             const result = await generatePayload("", true);
-            assert.ok(result.wrappedUpdates.calldata);
-            assert.strictEqual(result.wrappedUpdates.target, MULTICALL_ADDRESS);
+            assert.ok(result.solidityCode);
+            assert.ok(result.solidityCode.includes("_doSaferHarborUpdates"));
             assert.strictEqual(result.updates.length, 1);
             const addChainsUpdates = result.updates.filter(
                 (u) => u.function === "addChains",
@@ -421,8 +422,8 @@ describe("inspectPayload E2E Tests", () => {
             );
             getNormalizedContractsInScopeFromCSV.mockResolvedValue({});
             const result = await generatePayload("", true);
-            assert.ok(result.wrappedUpdates.calldata);
-            assert.strictEqual(result.wrappedUpdates.target, MULTICALL_ADDRESS);
+            assert.ok(result.solidityCode);
+            assert.ok(result.solidityCode.includes("_doSaferHarborUpdates"));
             assert.strictEqual(result.updates.length, 1);
             const removeChainsUpdates = result.updates.filter(
                 (u) => u.function === "removeChains",

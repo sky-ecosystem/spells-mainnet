@@ -69,12 +69,6 @@ npm run generate
 This will output the calldata for the update call to the agreement.
 
 ```bash
-npm run verify 0x...
-```
-
-This will take a given calldata and validate that it matched the expected generated payload.
-
-```bash
 npm run inspect
 ```
 

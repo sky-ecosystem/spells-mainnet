@@ -4,7 +4,7 @@ import {
 } from "./fetchCSV.js";
 import { getNormalizedDataFromOnchainState } from "./fetchOnchain.js";
 import { generateUpdates } from "./generateUpdates.js";
-import { wrapWithMulticall } from "./utils/multicallWrapper.js";
+import { generateSolidityCode } from "./utils/generateSolidity.js";
 import {
     CONTRACTS_IN_SCOPE_SHEET_URL,
     CHAIN_DETAILS_SHEET_URL,
@@ -40,13 +40,12 @@ export async function generatePayload(agreementContract) {
             return {};
         }
 
-        // 4. Wrap with multicall
-        console.warn("Wrapping with multicall...");
-        const wrappedUpdates = wrapWithMulticall(updates);
+        // 4. Generate solidity code
+        const solidityCode = generateSolidityCode(updates);
 
         return {
             updates,
-            wrappedUpdates,
+            solidityCode,
         };
     } catch (error) {
         console.error("Error generating update payload:", error);

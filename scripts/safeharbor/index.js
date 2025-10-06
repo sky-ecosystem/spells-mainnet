@@ -1,6 +1,5 @@
 import "dotenv/config";
 import { generatePayload } from "./src/generatePayload.js";
-import { verifyPayload } from "./src/verifyPayload.js";
 
 import { createAgreementInstance } from "./src/utils/contractUtils.js";
 
@@ -21,41 +20,15 @@ const agreementContract = createAgreementInstance(process.env.ETH_RPC_URL);
 
 // Get command and arguments
 const command = process.argv[2];
-const calldata = process.argv[3];
 
 // Execute based on command
 try {
-    if (command === "verify") {
-        if (!calldata) {
-            console.error(
-                "Error: Calldata argument is required for verify command.",
-            );
-            console.error("Usage: npm run verify <calldata>");
-            console.error("Example: npm run verify 0x252dba42000000000...");
-            process.exit(1);
-        }
-
-        const result = await verifyPayload(calldata, agreementContract);
-
-        if (result.success) {
-            console.log("✅ VERIFICATION PASSED");
-        } else {
-            console.log("❌ VERIFICATION FAILED");
-
-            // Show the calldatas for comparison
-            console.log("\nExpected calldata:");
-            console.log(result.expectedUpdates);
-            console.log("\nProvided calldata:");
-            console.log(result.providedUpdates);
-        }
-
-        process.exit(result.success ? 0 : 1);
-    } else if (command === "generate" || !command) {
+    if (command === "generate" || !command) {
         // Default to generate if no command or explicit generate command
-        const { wrappedUpdates } = await generatePayload(agreementContract);
+        const result = await generatePayload(agreementContract);
 
-        if (wrappedUpdates) {
-            console.log(JSON.stringify(wrappedUpdates, null, 2));
+        if (result.updates && result.updates.length > 0) {
+            console.log(result.solidityCode);
             console.warn("Payload generation completed successfully.");
             process.exit(0);
         } else {
@@ -63,15 +36,9 @@ try {
             process.exit(0);
         }
     } else if (command === "inspect") {
-        const result = await generatePayload(agreementContract, true);
+        const result = await generatePayload(agreementContract);
 
-        if (result.updates) {
-            // Only show function name and args
-            result.updates = result.updates.map((update) => ({
-                function: update.function,
-                args: update.args,
-            }));
-
+        if (result.updates && result.updates.length > 0) {
             console.log(JSON.stringify(result, null, 2));
             console.warn("Payload generation completed successfully.");
             process.exit(0);
