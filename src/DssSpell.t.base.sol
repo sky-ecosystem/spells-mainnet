@@ -1097,8 +1097,8 @@ contract DssSpellTestBase is Config, DssTest {
         // stusds
         {
             assertEq(rateSetter.tau(), afterSpell.stusds_rate_setter_tau, "TestError/stusds-ratesetter-tau");
-            assertEq(rateSetter.maxLine(), afterSpell.stusds_rate_setter_maxLine, "TestError/stusds-ratesetter-maxline");
-            assertEq(rateSetter.maxCap(), afterSpell.stusds_rate_setter_maxCap, "TestError/stusds-ratesetter-maxcap");
+            assertEq(rateSetter.maxLine(), afterSpell.stusds_rate_setter_maxLine * RAD, "TestError/stusds-ratesetter-maxline");
+            assertEq(rateSetter.maxCap(), afterSpell.stusds_rate_setter_maxCap * WAD, "TestError/stusds-ratesetter-maxcap");
             (uint16 minStr, uint16 maxStr, uint256 strStep) = rateSetter.strCfg();
             assertEq(minStr, afterSpell.stusds_rate_setter_minStr, "TestError/stusds-ratesetter-strcfg-minstr");
             assertEq(maxStr, afterSpell.stusds_rate_setter_maxStr, "TestError/stusds-ratesetter-strcfg-maxstr");
@@ -1107,11 +1107,12 @@ contract DssSpellTestBase is Config, DssTest {
             assertEq(afterSpell.stusds_rate_setter_minDuty, minDuty, "TestError/stusds-ratesetter-dutycfg-minduty");
             assertEq(maxDuty, afterSpell.stusds_rate_setter_maxDuty, "TestError/stusds-ratesetter-dutycfg-maxduty");
             assertEq(dutyStep, afterSpell.stusds_rate_setter_dutyStep, "TestError/stusds-ratesetter-dutycfg-dutystep");
-            assertEq(stusds.line(), afterSpell.stusds_line, "TestError/stusds-line");
-            assertEq(stusds.cap(), afterSpell.stusds_cap, "TestError/stusds-cap");
+            assertEq(stusds.line(), afterSpell.stusds_line * RAD, "TestError/stusds-line");
+            assertEq(stusds.cap(), afterSpell.stusds_cap * WAD, "TestError/stusds-cap");
 
-            for (uint256 i; i < afterSpell.stusds_rate_setter_buds.length; i++)
+            for (uint256 i; i < afterSpell.stusds_rate_setter_buds.length; i++) {
                 assertEq(rateSetter.buds(afterSpell.stusds_rate_setter_buds[i]), 1, "TestError/stusds-ratesetter-buds");
+            }
         }
     }
 
@@ -1169,20 +1170,21 @@ contract DssSpellTestBase is Config, DssTest {
                 sums[1] += line - Art * rate;
             }
             }
-            // Convert whole Dai units to expected RAD
-            uint256 normalizedTestLine = values.collaterals[ilk].line * RAD;
             sums[0] += line;
             (uint256 aL_line, uint256 aL_gap, uint256 aL_ttl,,) = autoLine.ilks(ilk);
-            if (!values.collaterals[ilk].aL_enabled) {
-                assertTrue(aL_line == 0, _concat("TestError/al-Line-not-zero-", ilk));
-                assertEq(line, normalizedTestLine, _concat("TestError/vat-line-", ilk));
-                assertTrue((line >= RAD && line < 10 * BILLION * RAD) || line == 0, _concat("TestError/vat-line-range-", ilk));  // eq 0 or gt eq 1 RAD and lt 10B
-            } else {
-                assertTrue(aL_line > 0, _concat("TestError/al-Line-is-zero-", ilk));
-                assertEq(aL_line, values.collaterals[ilk].aL_line * RAD, _concat("TestError/al-line-", ilk));
-                assertEq(aL_gap, values.collaterals[ilk].aL_gap * RAD, _concat("TestError/al-gap-", ilk));
+            if (values.collaterals[ilk].lum == LineUpdateMethod.MANUAL) {
+                assertEq(aL_line, 0, _concat("TestError/Manual/al-Line-not-zero-", ilk));
+                assertEq(line, values.collaterals[ilk].line * RAD, _concat("TestError/Manual/vat-line-", ilk));
+                assertTrue((line >= RAD && line < 10 * BILLION * RAD) || line == 0, _concat("TestError/Manual/vat-line-range-", ilk));  // eq 0 or gt eq 1 RAD and lt 10B
+            } else if (values.collaterals[ilk].lum == LineUpdateMethod.AUTOLINE) {
+                assertGt(aL_line, 0, _concat("TestError/al-Line-is-zero-", ilk));
+                assertEq(aL_line, values.collaterals[ilk].aL_line * RAD, _concat("TestError/AutoLine/al-line-", ilk));
+                assertEq(aL_gap, values.collaterals[ilk].aL_gap * RAD, _concat("TestError/AutoLine/al-gap-", ilk));
                 assertEq(aL_ttl, values.collaterals[ilk].aL_ttl, _concat("TestError/al-ttl-", ilk));
-                assertTrue((aL_line >= RAD && aL_line < 20 * BILLION * RAD) || aL_line == 0, _concat("TestError/al-line-range-", ilk)); // eq 0 or gt eq 1 RAD and lt 10B
+                assertTrue((aL_line >= RAD && aL_line < 20 * BILLION * RAD) || aL_line == 0, _concat("TestError/AutoLine/al-line-range-", ilk)); // eq 0 or gt eq 1 RAD and lt 10B
+            } else {
+                assertEq(aL_line, 0, _concat("TestError/stUSDS/al-Line-not-zero-", ilk));
+                assertLe(line, stusds.line(), _concat("TestError/stUSDS/vat-line", ilk));
             }
             uint256 normalizedTestDust = values.collaterals[ilk].dust * RAD;
             assertEq(dust, normalizedTestDust, _concat("TestError/vat-dust-", ilk));
