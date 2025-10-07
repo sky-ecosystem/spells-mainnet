@@ -24,22 +24,33 @@ export function generateSolidityCode(updates) {
 }
 
 function getDescription(update) {
-    if (update.function === "addAccounts") {
-        return `AddAccounts - Adding ${update.args[1].length} account(s) to chain ${update.args[0]}`;
-    } else if (update.function === "removeAccounts") {
-        return `RemoveAccounts for chain ${update.args[0]} with ${update.args[1].length} accounts`;
-    } else if (update.function === "addChains") {
-        let chains = "";
-        for (const chain of update.args[0]) {
-            chains += `${chain.caip2ChainId}(${chain.accounts.length} accounts) `;
+    switch (update.function) {
+        case "removeChains": {
+            // Extracts and lists all chains to be removed.
+            const chains = update.args[0].join(", ");
+            return `Remove chains: ${chains}`;
         }
-        return `AddChains for chains ${chains}`;
-    } else if (update.function === "removeChains") {
-        let chains = "";
-        update.args[0].forEach((chain, index) => {
-            chains += `${index == 0 ? "" : ", "}${chain}`;
-        });
-
-        return `RemoveChains for chains ${chains}`;
+        case "addChains": {
+            // Describes adding contracts to new chains, listing addresses for each.
+            const descriptions = update.args[0].map(chainInfo => {
+                const accounts = chainInfo.accounts.map(acc => acc.accountAddress).join(", ");
+                return `Add new ${chainInfo.caip2ChainId} chain with accounts: ${accounts}`;
+            });
+            return descriptions.join('; ');
+        }
+        case "removeAccounts": {
+            // Lists accounts to be removed from a specific chain.
+            const chain = update.args[0];
+            const accounts = update.args[1].join(", ");
+            return `Remove accounts from ${chain} chain: ${accounts}`;
+        }
+        case "addAccounts": {
+            // Lists accounts to be added to a specific chain.
+            const chain = update.args[0];
+            const accounts = update.args[1].map(acc => acc.accountAddress).join(", ");
+            return `Add accounts to ${chain} chain: ${accounts}`;
+        }
+        default:
+            return "Unknown update";
     }
 }

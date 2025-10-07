@@ -201,7 +201,6 @@ describe("inspectPayload E2E Tests", () => {
             );
             getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
             const result = await generatePayload("", true);
-
             assert.ok(result.solidityCode);
             assert.ok(result.solidityCode.includes("_doSaferHarborUpdates"));
             assert.strictEqual(result.updates.length, 1);
@@ -307,7 +306,6 @@ describe("inspectPayload E2E Tests", () => {
             );
             getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
             const result = await generatePayload("", true);
-            console.log(result.solidityCode);
             assert.ok(result.solidityCode);
             assert.ok(result.solidityCode.includes("_doSaferHarborUpdates"));
             assert.strictEqual(result.updates.length, 5);
