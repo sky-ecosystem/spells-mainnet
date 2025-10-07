@@ -36,7 +36,7 @@ function getDescription(update) {
                 const accounts = chainInfo.accounts
                     .map((acc) => acc.accountAddress)
                     .join(", ");
-                return `Add new ${chainInfo.caip2ChainId} chain with accounts: ${accounts}`;
+                return `Add new ${chainInfo.caip2ChainId} with recovery address ${chainInfo.assetRecoveryAddress} and accounts: ${accounts}`;
             });
             return descriptions.join("; ");
         }
