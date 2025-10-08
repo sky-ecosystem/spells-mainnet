@@ -28,13 +28,16 @@ Before adoption, a single-time deploy and configuration needs to happen so Sky p
    - On a future spell, the pause proxy will call `safeharborRegistry.adoptSafeHarbor(agreementAddress)`
    - This officially accepts the terms and initiates the validity of SafeHarbor integration
 
-## Initial Deployment Verification
+## Validating the Agreement
 
-Since the initial deployment will be done through an EOA, the following steps need to be taken into consideration for spell crafters and reviewers to safely include the `adoptSafeHarbor` into a spell:
+There are a few steps to independently validate that a given agreement can be adopted by Sky protocol.
 
-1. The `create` function was called through the verified AgreementV2Factory contract by SafeHarbor.
-2. The owner of the `AgreementV2` contract is the PauseProxy.
-3. The existing scope of the `AgreementV2` contract is the initial state of the scope of the sheet. This can be verified running the `generatePayload.js` script.
+1. It has to be deployed to a transaction to known public factory.
+2. The owner of the agreement has to be PauseProxy.
+3. Agreement details (protocol name, agreement URI, contact details and bounty terms) has to match what's described in the Atlas.
+4. The output of `make-generate` command, on spells-mainnet repo, has to be "no updates".
+
+If all of these steps are done, the agreement can be adopted by Sky protocol.
 
 # General Flow of `generatePayload.js`
 
@@ -51,6 +54,8 @@ The script follows these steps:
 5. Compares CSV vs on-chain state to identify differences
 
 6. Generates encoded payload for executing the changes (if any).
+
+7. Generates the solidity code for the updates.
 
 # Running the script
 

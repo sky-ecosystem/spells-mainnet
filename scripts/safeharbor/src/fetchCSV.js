@@ -75,6 +75,20 @@ export async function getChainDetailsFromCSV(url) {
         const chainAssetRecoveryAddress = record["Asset Recovery Address"];
 
         if (chainName && chainId && chainAssetRecoveryAddress) {
+            // Check for duplicate names - if key already exists in object
+            if (chainName in caip2ChainId) {
+                console.warn(
+                    `⚠️  Warning: Duplicate chain name found in CSV: ${chainName} ⚠️`,
+                );
+            }
+
+            // Check for duplicate chain IDs - if key already exists in object
+            if (chainId in name) {
+                console.warn(
+                    `⚠️  Warning: Duplicate chain ID found in CSV: ${chainId} ⚠️`,
+                );
+            }
+
             caip2ChainId[chainName] = chainId;
             assetRecoveryAddress[chainName] = chainAssetRecoveryAddress;
             name[chainId] = chainName;

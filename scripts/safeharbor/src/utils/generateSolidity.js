@@ -12,15 +12,15 @@ export function generateSolidityCode(updates) {
         solidityCode += `
 
         // ${getDescription(update)}
-        calldatas[${index}] = "${update.calldata}";`;
+        calldatas[${index}] = hex'${update.calldata.slice(2)}';`;
     });
 
     solidityCode += `
 
-        _doSaferHarborUpdates(calldatas);
+        _updateSafeHarbor(calldatas);
     `;
 
-    return solidityCode.trim();
+    return solidityCode.trimEnd();
 }
 
 function getDescription(update) {
@@ -55,6 +55,6 @@ function getDescription(update) {
             return `Add accounts to ${chain} chain: ${accounts}`;
         }
         default:
-            return "Unknown update";
+            throw new Error("Unknown update");
     }
 }

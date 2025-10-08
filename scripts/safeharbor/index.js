@@ -48,9 +48,8 @@ try {
         }
     } else {
         console.error(`Error: Unknown command '${command}'`);
-        console.error("Available commands: generate, verify");
+        console.error("Available commands: generate, inspect");
         console.error("Usage: npm run generate");
-        console.error("Usage: npm run verify <calldata>");
         process.exit(1);
     }
 } catch (error) {
