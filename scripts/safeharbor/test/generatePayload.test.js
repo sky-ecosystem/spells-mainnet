@@ -97,8 +97,8 @@ describe("inspectPayload E2E Tests", () => {
             const result = await generatePayload("");
 
             // Assert - should have empty result since no changes needed
-            assert.strictEqual(result.updates, undefined);
-            assert.strictEqual(result.solidityCode, undefined);
+            assert.strictEqual(result.updates.length, 0);
+            assert.strictEqual(result.solidityCode, "");
         });
     });
 

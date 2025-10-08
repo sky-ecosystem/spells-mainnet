@@ -37,7 +37,10 @@ export async function generatePayload(agreementContract) {
         const updates = generateUpdates(onChainState, csvState, chainDetails);
 
         if (updates.length === 0) {
-            return {};
+            return {
+                updates: [],
+                solidityCode: "",
+            };
         }
 
         // 4. Generate solidity code
