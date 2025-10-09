@@ -76,14 +76,14 @@ export async function getChainDetailsFromCSV(url) {
 
         if (chainName && chainId && chainAssetRecoveryAddress) {
             // Check for duplicate names - if key already exists in object
-            if (chainName in caip2ChainId) {
+            if (caip2ChainId[chainName]) {
                 console.warn(
                     `⚠️  Warning: Duplicate chain name found in CSV: ${chainName} ⚠️`,
                 );
             }
 
             // Check for duplicate chain IDs - if key already exists in object
-            if (chainId in name) {
+            if (name[chainId]) {
                 console.warn(
                     `⚠️  Warning: Duplicate chain ID found in CSV: ${chainId} ⚠️`,
                 );

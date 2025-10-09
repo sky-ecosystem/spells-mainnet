@@ -35,7 +35,7 @@ There are a few steps to independently validate that a given agreement can be ad
 1. It has to be deployed to a transaction to known public factory.
 2. The owner of the agreement has to be PauseProxy.
 3. Agreement details (protocol name, agreement URI, contact details and bounty terms) has to match what's described in the Atlas.
-4. The output of `make-generate` command, on spells-mainnet repo, has to be "no updates".
+4. The output of `make safeharbor-generate` command, on spells-mainnet repo, has to be "no updates".
 
 If all of these steps are done, the agreement can be adopted by Sky protocol.
 

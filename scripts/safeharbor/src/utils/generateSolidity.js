@@ -12,7 +12,7 @@ export function generateSolidityCode(updates) {
         solidityCode += `
 
         // ${getDescription(update)}
-        calldatas[${index}] = hex'${update.calldata.slice(2)}';`;
+        calldatas[${index}] = hex'${update.calldata.replace(/^0x/, "")}';`;
     });
 
     solidityCode += `
