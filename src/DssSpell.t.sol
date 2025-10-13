@@ -45,15 +45,6 @@ interface SequencerLike {
     function hasJob(address job) external view returns (bool);
 }
 
-interface VestedRewardsDistributionLike {
-    function vestId() external view returns (uint256);
-}
-
-interface CappedOsmLike {
-    function cap() external view returns (uint256);
-    function osm() external view returns (address);
-}
-
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -292,7 +283,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
         string[1] memory addedKeys = [
             "LOCKSTAKE_ORACLE"
         ];
@@ -347,7 +338,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testLockstakeIlkIntegration() public { // add the `skipped` modifier to skip
+    function testLockstakeIlkIntegration() public skipped { // add the `skipped` modifier to skip
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
@@ -645,7 +636,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public { // add the `skipped` modifier to skip
+    function testVestSky() public skipped { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
         uint256 MAR_09_2026_16_41_11 = 1773074471;
 
@@ -1187,7 +1178,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // Spark tests
-    function testSparkSpellIsExecuted() public { // add the `skipped` modifier to skip
+    function testSparkSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
         address SPARK_PROXY = addr.addr('ALLOCATOR_SPARK_A_SUBPROXY');
         address SPARK_SPELL = address(0x4a3a40957CDc47552E2BE2012d127A5f4BD7f689); // Insert Spark spell address
 
@@ -1206,7 +1197,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // Bloom/Grove tests
-    function testBloomSpellIsExecuted() public { // add the `skipped` modifier to skip
+    function testBloomSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
         address BLOOM_PROXY = addr.addr('ALLOCATOR_BLOOM_A_SUBPROXY');
         address BLOOM_SPELL = address(0x67e7b3bFAb1Fb6267baECEc034Bbf7592F6B4E9b); // Insert Bloom spell address
 
@@ -1225,7 +1216,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // Nova/Keel tests
-    function testNovaSpellIsExecuted() public { // add the `skipped` modifier to skip
+    function testNovaSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
         address NOVA_PROXY = addr.addr('ALLOCATOR_NOVA_A_SUBPROXY');
         address NOVA_SPELL = address(0x7ae136b7e677C6A9B909a0ef0a4E29f0a1c3c7fE); // Insert Nova spell address
 
@@ -1245,128 +1236,4 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
-    function testRewardsDistUsdsSkyUpdatedVestIdAndDistribute() public {
-        address REWARDS_DIST_USDS_SKY = addr.addr("REWARDS_DIST_USDS_SKY");
-        address REWARDS_USDS_SKY = addr.addr("REWARDS_USDS_SKY");
-
-        uint256 vestId = VestedRewardsDistributionLike(REWARDS_DIST_USDS_SKY).vestId();
-        assertEq(vestId, 6, "TestError/rewards-dist-usds-sky-invalid-vest-id-before");
-
-        uint256 unpaidAmount = vestSky.unpaid(6);
-        assertTrue(unpaidAmount > 0, "TestError/rewards-dist-usds-sky-unpaid-zero-early");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        vestId = VestedRewardsDistributionLike(REWARDS_DIST_USDS_SKY).vestId();
-        assertEq(vestId, 7, "TestError/rewards-dist-usds-sky-invalid-vest-id-after");
-
-        unpaidAmount = vestSky.unpaid(6);
-        assertEq(unpaidAmount, 0, "TestError/rewards-dist-usds-sky-unpaid-not-cleared");
-
-        assertEq(StakingRewardsLike(REWARDS_USDS_SKY).lastUpdateTime(), block.timestamp, "TestError/rewards-usds-sky-invalid-last-update-time");
-    }
-
-
-    function testWhitelistNovaALMProxy() public {
-        address almProxy = addr.addr("NOVA_ALM_PROXY");
-        DssLitePsmLike psmUsdcA = DssLitePsmLike(addr.addr("MCD_LITE_PSM_USDC_A"));
-        GemAbstract usdc = GemAbstract(addr.addr("USDC"));
-
-        // bud is 0 before kiss
-        assertEq(psmUsdcA.bud(almProxy), 0, "TestError/MCD_LITE_PSM_USDC_A/invalid-bud");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done());
-
-        // bud is 1 after kiss
-        assertEq(psmUsdcA.bud(almProxy), 1, "TestError/MCD_LITE_PSM_USDC_A/invalid-bud");
-
-        // NOVA can call buyGemNoFee() on MCD_LITE_PSM_USDC_A
-        uint256 daiAmount  = 1_000 * WAD;
-        uint256 usdcAmount = 1_000 * 10**6;
-
-        // fund proxy
-        deal(address(dai), almProxy, daiAmount);
-        vm.startPrank(almProxy);
-
-        // buy gem with no fee
-        dai.approve(address(psmUsdcA), daiAmount);
-        psmUsdcA.buyGemNoFee(almProxy, usdcAmount);
-        assertEq(usdc.balanceOf(almProxy), usdcAmount);
-        assertEq(dai.balanceOf(almProxy), 0);
-
-        // now sell it back with no fee
-        usdc.approve(address(psmUsdcA), usdcAmount);
-        psmUsdcA.sellGemNoFee(almProxy, usdcAmount);
-        assertEq(usdc.balanceOf(almProxy), 0);
-        assertEq(dai.balanceOf(almProxy), daiAmount);
-
-        vm.stopPrank();
-    }
-
-    function testLockstakeCappedOsmOnboarding() public {
-        address cappedOsm = addr.addr("LOCKSTAKE_ORACLE");
-        address osm = addr.addr("PIP_SKY");
-        address spotter = addr.addr("MCD_SPOT");
-        address clipper = addr.addr("LOCKSTAKE_CLIP");
-        address clipperMom = addr.addr("CLIPPER_MOM");
-        address end = addr.addr("MCD_END");
-        address reg = addr.addr("ILK_REGISTRY");
-        bytes32 ilk = LockstakeClipperLike(clipper).ilk();
-
-        // Sanity checks
-        assertEq(CappedOsmLike(cappedOsm).osm(), osm, "before: cappedOsm-invalid-osm");
-        assertEq(CappedOsmLike(cappedOsm).cap(), 0,   "before: cappedOsm-invalid-cap");
-
-        // Initial state of the new capped OSM
-        assertEq(OsmAbstract(cappedOsm).bud(spotter),    0, "before: cappedOsm-invalid-bud-spotter");
-        assertEq(OsmAbstract(cappedOsm).bud(clipper),    0, "before: cappedOsm-invalid-bud-clipper");
-        assertEq(OsmAbstract(cappedOsm).bud(clipperMom), 0, "before: cappedOsm-invalid-bud-clipperMom");
-        assertEq(OsmAbstract(cappedOsm).bud(end),        0, "before: cappedOsm-invalid-bud-end");
-
-        // The key shouldn't exist in the chainlog
-        vm.expectRevert("dss-chain-log/invalid-key");
-        chainLog.getAddress("LOCKSTAKE_ORACLE");
-
-        // Initial state of the original OSM
-        assertEq(OsmAbstract(osm).bud(cappedOsm),  0, "before: osm-invalid-bud-cappedOsm");
-        assertEq(OsmAbstract(osm).bud(spotter),    1, "before: osm-invalid-bud-spotter");
-        assertEq(OsmAbstract(osm).bud(clipper),    1, "before: osm-invalid-bud-clipper");
-        assertEq(OsmAbstract(osm).bud(clipperMom), 1, "before: osm-invalid-bud-clipperMom");
-        assertEq(OsmAbstract(osm).bud(end),        1, "before: osm-invalid-bud-end");
-
-        (address spotPip, ) = SpotAbstract(spotter).ilks(ilk);
-        assertEq(spotPip, osm, "before: spotter-invalid-pip");
-        address regPip = IlkRegistryAbstract(reg).pip(ilk);
-        assertEq(regPip, osm, "before: ilkRegistry-invalid-pip");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done());
-
-        // Final state of the new capped OSM
-        assertEq(OsmAbstract(cappedOsm).bud(spotter),    1, "after: cappedOsm-invalid-bud-spotter");
-        assertEq(OsmAbstract(cappedOsm).bud(clipper),    1, "after: cappedOsm-invalid-bud-clipper");
-        assertEq(OsmAbstract(cappedOsm).bud(clipperMom), 1, "after: cappedOsm-invalid-bud-clipperMom");
-        assertEq(OsmAbstract(cappedOsm).bud(end),        1, "after: cappedOsm-invalid-bud-end");
-        // Note: The chainlog key setting is tested in `testAddedChainlogKeys`
-
-        // Note: ether below is a keyword that represents 10**18, not the ETH token
-        assertEq(CappedOsmLike(cappedOsm).cap(), 0.04 ether, "after: cappedOsm-invalid-cap");
-
-        (spotPip, ) = SpotAbstract(spotter).ilks(ilk);
-        assertEq(spotPip, cappedOsm, "after: spotter-invalid-pip");
-        regPip = IlkRegistryAbstract(reg).pip(ilk);
-        assertEq(regPip, cappedOsm, "after: ilkRegistry-invalid-pip");
-
-        // Final state of the original OSM
-        assertEq(OsmAbstract(osm).bud(cappedOsm),  1, "after: osm-invalid-bud-cappedOsm");
-        assertEq(OsmAbstract(osm).bud(spotter),    0, "after: osm-invalid-bud-spotter");
-        assertEq(OsmAbstract(osm).bud(clipper),    0, "after: osm-invalid-bud-clipper");
-        assertEq(OsmAbstract(osm).bud(clipperMom), 0, "after: osm-invalid-bud-clipperMom");
-        assertEq(OsmAbstract(osm).bud(end),        0, "after: osm-invalid-bud-end");
-    }
 }
