@@ -107,10 +107,7 @@ subprocess.run([
 
 # Re-run the tests
 print('Re-running the tests...')
-test_logs = subprocess.run([
-    'make', 'test',
-    f'block="{tx_block}"',
-], capture_output=True, text=True, check=False)
+test_logs = subprocess.run(['make', 'test'], capture_output=True, text=True, check=False)
 print(test_logs.stdout)
 
 if test_logs.returncode != 0:
