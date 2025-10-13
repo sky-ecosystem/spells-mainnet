@@ -779,19 +779,20 @@ contract DssSpellTest is DssSpellTestBase {
         //    the destination address,
         //    the amount to be paid
         // Initialize the array with the number of payees
-        Payee[12] memory payees = [
+        Payee[13] memory payees = [
+            Payee(address(usds), wallets.addr("AEGIS_D"), 4_000 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("BLUE"), 4_000 ether), // Note: ether is only a keyword helper
             Payee(address(usds), wallets.addr("BONAPUBLICA"), 4_000 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("WBC"), 4_000 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("TANGO"), 3_400 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("SKY_STAKING"), 2_854 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("AEGIS_D"), 645 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("CLOAKY_KOHLA_2"), 11_140 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("CLOAKY_2"), 20_417 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("BLUE"), 54_167 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CLOAKY_2"), 4_000 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("TANGO"), 4_000 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("SKY_STAKING"), 3_824 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CLOAKY_KOHLA_2"), 11_604 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CLOAKY_2"), 16_417 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("BLUE"), 50_167 ether), // Note: ether is only a keyword helper
             Payee(address(sky), wallets.addr("CLOAKY_2"), 288_000 ether), // Note: ether is only a keyword helper
             Payee(address(sky), wallets.addr("BLUE"), 330_000 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("ALLOCATOR_BLOOM_A_SUBPROXY"), 30_654 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("SPARK_PROXY"), 5_927_944 ether) // Note: ether is only a keyword helper
+            Payee(address(sky), addr.addr("ALLOCATOR_SPARK_A_SUBPROXY"), 3_827_201 ether), // Note: ether is only a keyword helper
+            Payee(address(sky), addr.addr("ALLOCATOR_BLOOM_A_SUBPROXY"), 104_924 ether) // Note: ether is only a keyword helper
         ];
 
         // Fill the total values from exec sheet
@@ -1175,6 +1176,82 @@ contract DssSpellTest is DssSpellTestBase {
         }
 
         assertEq(SpellActionLike(spell.action()).dao_resolutions(), comma_separated_resolutions, "dao_resolutions/invalid-format");
+    }
+
+    struct AllocatorPayment {
+        address vault;
+        uint256 wad;
+    }
+
+    struct MscIlkValues {
+        uint256 urnArt;
+        uint256 ilkArt;
+    }
+
+    function _testExpectedMscValues(AllocatorPayment[2] memory payments, MscIlkValues[] memory expectedValues, uint256 expectedDaiVow) internal view {
+        for(uint256 i = 0; i < payments.length; i++) {
+            bytes32 ilk = AllocatorVaultLike(payments[i].vault).ilk();
+            (, uint256 urnArt) = vat.urns(ilk, address(payments[i].vault));
+            (uint256 ilkArt,,,,) = vat.ilks(ilk);
+
+            assertEq(urnArt, expectedValues[i].urnArt, "MSC/invalid-urn-art");
+            assertEq(ilkArt, expectedValues[i].ilkArt, "MSC/invalid-ilk-art");
+        }
+
+        uint256 daiVow = vat.dai(address(vow));
+
+        assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
+    }
+
+    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
+        address ALLOCATOR_BLOOM_A_VAULT = addr.addr("ALLOCATOR_BLOOM_A_VAULT");
+        address ALLOCATOR_SPARK_A_VAULT = addr.addr("ALLOCATOR_SPARK_A_VAULT");
+
+        AllocatorPayment[2] memory payments = [
+            AllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 16_931_086 * WAD),
+            AllocatorPayment(ALLOCATOR_BLOOM_A_VAULT, 6_382_973 * WAD)
+        ];
+
+        uint256 expectedTotalAmount = 0 * WAD;
+
+        MscIlkValues[] memory expectedValues = new MscIlkValues[](payments.length);
+        uint256 totalDtab = 0;
+        uint256 totalPayments = 0;
+
+        uint256 before = vm.snapshotState();
+
+        for(uint256 i = 0; i < payments.length; i++) {
+            bytes32 ilk = AllocatorVaultLike(payments[i].vault).ilk();
+            (, uint256 urnArt) = vat.urns(ilk, address(payments[i].vault));
+            (uint256 ilkArt,,,,) = vat.ilks(ilk);
+
+            uint256 rate = jug.drip(ilk);
+            uint256 dart = payments[i].wad > 0 ? ((payments[i].wad * RAY - 1) / rate) + 1 : 0;
+
+            totalPayments += payments[i].wad;
+            totalDtab += dart * rate;
+            expectedValues[i] = MscIlkValues(urnArt + dart, ilkArt + dart);
+        }
+        assertEq(totalPayments, expectedTotalAmount, "MSC/invalid-total-amount");
+
+        uint256 expectedDaiVow = vat.dai(address(vow)) + totalDtab;
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // Test with MCD_JUG.drip() having been called in the same block
+        _testExpectedMscValues(payments, expectedValues, expectedDaiVow);
+
+        vm.revertToStateAndDelete(before);
+
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // Test without prior MCD_JUG.drip()
+        _testExpectedMscValues(payments, expectedValues, expectedDaiVow);
     }
 
     // Spark tests
