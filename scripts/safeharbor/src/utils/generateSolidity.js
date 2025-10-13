@@ -33,6 +33,9 @@ function getDescription(update) {
         case "addChains": {
             // Describes adding contracts to new chains, listing addresses for each.
             const descriptions = update.args[0].map((chainInfo) => {
+                if (chainInfo.accounts.length === 0) {
+                    return `Add new ${chainInfo.caip2ChainId} with recovery address ${chainInfo.assetRecoveryAddress} and no accounts`;
+                }
                 const accounts = chainInfo.accounts
                     .map((acc) => acc.accountAddress)
                     .join(", ");

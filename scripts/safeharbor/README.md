@@ -32,7 +32,7 @@ Before adoption, a single-time deploy and configuration needs to happen so Sky p
 
 There are a few steps to independently validate that a given agreement can be adopted by Sky protocol.
 
-1. It has to be deployed to a transaction to known public factory.
+1. It has to be deployed via a transaction to known public factory.
 2. The owner of the agreement has to be PauseProxy.
 3. Agreement details (protocol name, agreement URI, contact details and bounty terms) has to match what's described in the Atlas.
 4. The output of `make safeharbor-generate` command, on spells-mainnet repo, has to be "no updates".
@@ -59,7 +59,7 @@ The script follows these steps:
 
 # Running the script
 
-required env variables:
+Required env variables:
 
 ```
 - ETH_RPC_URL: An endpoint to a node that has the registry and the agreement deployed.
@@ -71,10 +71,22 @@ To run the script, run the following command:
 npm run generate
 ```
 
-This will output the calldata for the update call to the agreement.
+This will output a solidity snippet that contains the encoded calldatas calling the agreement contract to update it.
 
 ```bash
 npm run inspect
 ```
 
-Same as `generate` but it will output the full payload with all the updates.
+Returns a JSON object containing the individual updates and the solidity snippet. 
+
+In order to obtain machine-readable JSON output of the script, use the following command:
+
+```bash
+npm run --silent inspect > inspect.json
+```
+
+See the Solidity code to be used in the spell:
+
+```bash
+jq -r .solidityCode inspect.json
+```
