@@ -2,7 +2,7 @@ all                  :; forge build
 clean                :; forge clean
                         # Usage example: make test match=SpellIsCast
 test                 :; ./scripts/test-dssspell-forge.sh no-match="$(no-match)" match="$(match)" block="$(block)"
-estimate             :; ./scripts/test-dssspell-forge.sh gas=true
+estimate             :; forge build --quiet; BYTECODE=$$(jq -r '.bytecode.object' out/DssSpell.sol/DssSpell.json); GAS=$$(cast estimate --create $$BYTECODE); echo "Estimated gas: $$GAS"
 deploy               :; ./scripts/deploy.py
 deploy-info          :; ./scripts/get-deploy-info.sh tx=$(tx)
 verify               :; ./scripts/verify.py DssSpell $(addr)
