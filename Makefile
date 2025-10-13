@@ -25,5 +25,4 @@ opt-cost             :; ./scripts/get-opt-relay-cost.sh $(spell)
 arb-cost             :; ./scripts/get-arb-relay-cost.sh $(spell)
 rates                :; ./scripts/rates.sh $(pct)
 safeharbor-generate  :; cd scripts/safeharbor && npm ci && npm run generate; cd -
-safeharbor-verify    :; cd scripts/safeharbor && npm ci && npm run verify -- $(calldata); cd -
 safeharbor-inspect   :; cd scripts/safeharbor && npm ci && npm run inspect; cd -

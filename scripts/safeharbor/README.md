@@ -25,7 +25,7 @@ Before adoption, a single-time deploy and configuration needs to happen so Sky p
    - This enables the PauseProxy to modify the scope in the future
 
 4. **Adoption**
-   - On a future spell, the pause proxy will call `safeharborRegistry.adoptSafeHarbor(agreementAddress)`
+   - In a future spell, the pause proxy will call `safeharborRegistry.adoptSafeHarbor(agreementAddress)`
    - This officially accepts the terms and initiates the validity of SafeHarbor integration
 
 ## Validating the Agreement
