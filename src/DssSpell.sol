@@ -22,7 +22,6 @@ import { GemAbstract } from "dss-interfaces/ERC/GemAbstract.sol";
 import { VatAbstract } from "dss-interfaces/dss/VatAbstract.sol";
 import { JugAbstract } from "dss-interfaces/dss/JugAbstract.sol";
 import { DssInstance, MCD } from "dss-test/MCD.sol";
-import { TreasuryFundedFarmingInit, FarmingInitParams } from "./dependencies/endgame-toolkit/treasury-funded-farms/TreasuryFundedFarmingInit.sol";
 import { AllocatorSharedInstance, AllocatorIlkInstance } from "./dependencies/dss-allocator/AllocatorInstances.sol";
 import { AllocatorInit, AllocatorIlkConfig } from "./dependencies/dss-allocator/AllocatorInit.sol";
 
@@ -82,10 +81,6 @@ contract DssSpellAction is DssAction {
     address internal immutable MCD_PAUSE_PROXY         = DssExecLib.pauseProxy();
     address internal immutable ILK_REGISTRY            = DssExecLib.reg();
     address internal immutable SKY                     = DssExecLib.getChangelogAddress("SKY");
-    address internal immutable LOCKSTAKE_SKY           = DssExecLib.getChangelogAddress("LOCKSTAKE_SKY");
-    address internal immutable CRON_REWARDS_DIST_JOB   = DssExecLib.getChangelogAddress("CRON_REWARDS_DIST_JOB");
-    address internal immutable MCD_VEST_SKY_TREASURY   = DssExecLib.getChangelogAddress("MCD_VEST_SKY_TREASURY");
-    address internal immutable LOCKSTAKE_ENGINE        = DssExecLib.getChangelogAddress("LOCKSTAKE_ENGINE");
     address internal immutable DAI_USDS                = DssExecLib.getChangelogAddress("DAI_USDS");
     address internal immutable ALLOCATOR_SPARK_A_VAULT = DssExecLib.getChangelogAddress("ALLOCATOR_SPARK_A_VAULT");
     address internal immutable ALLOCATOR_BLOOM_A_VAULT = DssExecLib.getChangelogAddress("ALLOCATOR_BLOOM_A_VAULT");
@@ -94,8 +89,6 @@ contract DssSpellAction is DssAction {
     address internal immutable ALLOCATOR_REGISTRY      = DssExecLib.getChangelogAddress("ALLOCATOR_REGISTRY");
     address internal immutable LINE_MOM                = DssExecLib.getChangelogAddress("LINE_MOM");
 
-    address internal constant REWARDS_LSSKY_SKY         = 0xB44C2Fb4181D7Cb06bdFf34A46FdFe4a259B40Fc;
-    address internal constant REWARDS_DIST_LSSKY_SKY    = 0x675671A8756dDb69F7254AFB030865388Ef699Ee;
     address internal constant ALLOCATOR_OBEX_A_VAULT    = 0xF275110dFE7B80df66a762f968f59B70BABE2b29;
     address internal constant ALLOCATOR_OBEX_A_BUFFER   = 0x51E9681D7a05abFD33EfaFd43e5dd3Afc0093F1D;
     address internal constant ALLOCATOR_OBEX_A_SUBPROXY = 0x8be042581f581E3620e29F213EA8b94afA1C8071;
@@ -119,40 +112,6 @@ contract DssSpellAction is DssAction {
     address internal constant GROVE_PROXY = 0x1369f7b2b38c76B6478c0f0E66D94923421891Ba;
 
     function actions() public override {
-        // ---------- Lssky-SKY Farm Initialization ----------
-        // Forum: https://forum.sky.money/t/technical-scope-lssky-sky-farm/27312
-
-        // Call TreasuryFundedFarmingInit.initLockstakeFarm with the following parameters:
-        TreasuryFundedFarmingInit.initLockstakeFarm(
-            FarmingInitParams({
-                // stakingToken: LOCKSTAKE_SKY
-                stakingToken: LOCKSTAKE_SKY,
-                // rewardsToken: SKY
-                rewardsToken: SKY,
-                // rewards: 0xB44C2Fb4181D7Cb06bdFf34A46FdFe4a259B40Fc
-                rewards: REWARDS_LSSKY_SKY,
-                // rewardsKey: REWARDS_LSSKY_SKY
-                rewardsKey: "REWARDS_LSSKY_SKY",
-                // dist: 0x675671A8756dDb69F7254AFB030865388Ef699Ee
-                dist: REWARDS_DIST_LSSKY_SKY,
-                // distKey: REWARDS_DIST_LSSKY_SKY
-                distKey: "REWARDS_DIST_LSSKY_SKY",
-                // distJob: CRON_REWARDS_DIST_JOB
-                distJob: CRON_REWARDS_DIST_JOB,
-                // distJobInterval: 7 days - 1 hours
-                distJobInterval: 7 days - 1 hours,
-                // vest: MDC_VEST_SKY_TREASURY
-                vest: MCD_VEST_SKY_TREASURY,
-                // vestTot: TBD
-                vestTot: 2_400_000 * WAD,
-                // vestBgn: block.timestamp - 7 days
-                vestBgn: block.timestamp - 7 days,
-                // vestTau: TBD
-                vestTau: 365 days
-            }),
-            LOCKSTAKE_ENGINE
-        );
-
         // ---------- Obex Allocator Initialization ----------
         // Forum: https://forum.sky.money/t/technical-scope-launch-of-the-agent-4-allocation-system/27314
 
