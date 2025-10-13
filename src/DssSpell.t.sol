@@ -283,9 +283,12 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
-        string[1] memory addedKeys = [
-            "LOCKSTAKE_ORACLE"
+    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+        string[4] memory addedKeys = [
+            "REWARDS_LSSKY_SKY",
+            "REWARDS_DIST_LSSKY_SKY",
+            "ALLOCATOR_OBEX_A_VAULT",
+            "ALLOCATOR_OBEX_A_BUFFER"
         ];
 
         for(uint256 i = 0; i < addedKeys.length; i++) {
@@ -338,7 +341,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testLockstakeIlkIntegration() public skipped { // add the `skipped` modifier to skip
+    function testLockstakeIlkIntegration() public { // add the `skipped` modifier to skip
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
@@ -352,23 +355,23 @@ contract DssSpellTest is DssSpellTestBase {
                 engine: addr.addr("LOCKSTAKE_ENGINE"),
                 clip:   addr.addr("LOCKSTAKE_CLIP"),
                 calc:   addr.addr("LOCKSTAKE_CLIP_CALC"),
-                farm:   addr.addr("REWARDS_LSSKY_SPK"),
-                rToken: addr.addr("SPK"),
-                rDistr: addr.addr("REWARDS_DIST_LSSKY_SPK"),
+                farm:   addr.addr("REWARDS_LSSKY_SKY"),
+                rToken: addr.addr("SKY"),
+                rDistr: addr.addr("REWARDS_DIST_LSSKY_SKY"),
                 rDur:   7 days
             })
         );
     }
 
-    function testAllocatorIntegration() public skipped { // add the `skipped` modifier to skip
+    function testAllocatorIntegration() public { // add the `skipped` modifier to skip
         AllocatorIntegrationParams memory p = AllocatorIntegrationParams({
-            ilk:            "ALLOCATOR-BLOOM-A",
+            ilk:            "ALLOCATOR-OBEX-A",
             pip:            addr.addr("PIP_ALLOCATOR"),
             registry:       addr.addr("ALLOCATOR_REGISTRY"),
             roles:          addr.addr("ALLOCATOR_ROLES"),
-            buffer:         addr.addr("ALLOCATOR_BLOOM_A_BUFFER"),
-            vault:          addr.addr("ALLOCATOR_BLOOM_A_VAULT"),
-            allocatorProxy: addr.addr("ALLOCATOR_BLOOM_A_SUBPROXY")
+            buffer:         addr.addr("ALLOCATOR_OBEX_A_BUFFER"),
+            vault:          addr.addr("ALLOCATOR_OBEX_A_VAULT"),
+            allocatorProxy: addr.addr("ALLOCATOR_OBEX_A_SUBPROXY")
         });
 
         // Sanity checks
@@ -392,14 +395,14 @@ contract DssSpellTest is DssSpellTestBase {
         // assertTrue(AllocatorRolesLike(p.roles).hasActionRole("ALLOCATOR-BLOOM-A", p.vault, AllocatorVaultLike.wipe.selector, 0));
 
         // The allocator proxy should be able to call draw() wipe()
-        vm.prank(addr.addr("ALLOCATOR_BLOOM_A_SUBPROXY"));
+        vm.prank(p.allocatorProxy);
         AllocatorVaultLike(p.vault).draw(1_000 * WAD);
         assertEq(usds.balanceOf(p.buffer), 1_000 * WAD);
 
         vm.warp(block.timestamp + 1);
         jug.drip(p.ilk);
 
-        vm.prank(addr.addr("ALLOCATOR_BLOOM_A_SUBPROXY"));
+        vm.prank(p.allocatorProxy);
         AllocatorVaultLike(p.vault).wipe(1_000 * WAD);
         assertEq(usds.balanceOf(p.buffer), 0);
     }
@@ -769,7 +772,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public skipped { // add the `skipped` modifier to skip
+    function testPayments() public { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -779,27 +782,25 @@ contract DssSpellTest is DssSpellTestBase {
         //    the destination address,
         //    the amount to be paid
         // Initialize the array with the number of payees
-        Payee[13] memory payees = [
+        Payee[11] memory payees = [
             Payee(address(usds), wallets.addr("AEGIS_D"), 4_000 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("BLUE"), 4_000 ether), // Note: ether is only a keyword helper
             Payee(address(usds), wallets.addr("BONAPUBLICA"), 4_000 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("CLOAKY_2"), 4_000 ether), // Note: ether is only a keyword helper
             Payee(address(usds), wallets.addr("TANGO"), 4_000 ether), // Note: ether is only a keyword helper
             Payee(address(usds), wallets.addr("SKY_STAKING"), 3_824 ether), // Note: ether is only a keyword helper
             Payee(address(usds), wallets.addr("CLOAKY_KOHLA_2"), 11_604 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("CLOAKY_2"), 16_417 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("BLUE"), 50_167 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CLOAKY_2"), 20_417 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("BLUE"), 54_167 ether), // Note: ether is only a keyword helper
             Payee(address(sky), wallets.addr("CLOAKY_2"), 288_000 ether), // Note: ether is only a keyword helper
             Payee(address(sky), wallets.addr("BLUE"), 330_000 ether), // Note: ether is only a keyword helper
-            Payee(address(sky), addr.addr("ALLOCATOR_SPARK_A_SUBPROXY"), 3_827_201 ether), // Note: ether is only a keyword helper
-            Payee(address(sky), addr.addr("ALLOCATOR_BLOOM_A_SUBPROXY"), 104_924 ether) // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("ALLOCATOR_SPARK_A_SUBPROXY"), 3_827_201 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("ALLOCATOR_BLOOM_A_SUBPROXY"), 104_924 ether) // Note: ether is only a keyword helper
         ];
 
         // Fill the total values from exec sheet
         PaymentAmounts memory expectedTotalPayments = PaymentAmounts({
             dai:                               0 ether, // Note: ether is only a keyword helper
             mkr:                               0 ether, // Note: ether is only a keyword helper
-            usds:                      6_059_221 ether, // Note: ether is only a keyword helper
+            usds:                      4_034_137 ether, // Note: ether is only a keyword helper
             sky:                         618_000 ether  // Note: ether is only a keyword helper
         });
 
@@ -1203,7 +1204,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 
-    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
+    function testMonthlySettlementCycleInflows() public { // add the `skipped` modifier to skip
         address ALLOCATOR_BLOOM_A_VAULT = addr.addr("ALLOCATOR_BLOOM_A_VAULT");
         address ALLOCATOR_SPARK_A_VAULT = addr.addr("ALLOCATOR_SPARK_A_VAULT");
 
@@ -1212,7 +1213,7 @@ contract DssSpellTest is DssSpellTestBase {
             AllocatorPayment(ALLOCATOR_BLOOM_A_VAULT, 6_382_973 * WAD)
         ];
 
-        uint256 expectedTotalAmount = 0 * WAD;
+        uint256 expectedTotalAmount = 23_314_059 * WAD;
 
         MscIlkValues[] memory expectedValues = new MscIlkValues[](payments.length);
         uint256 totalDtab = 0;
@@ -1255,9 +1256,9 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // Spark tests
-    function testSparkSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
+    function testSparkSpellIsExecuted() public { // add the `skipped` modifier to skip
         address SPARK_PROXY = addr.addr('ALLOCATOR_SPARK_A_SUBPROXY');
-        address SPARK_SPELL = address(0x4a3a40957CDc47552E2BE2012d127A5f4BD7f689); // Insert Spark spell address
+        address SPARK_SPELL = address(0x4924e46935F6706d08413d44dF5C31a9d40F6a64); // Insert Spark spell address
 
         vm.expectCall(
             SPARK_PROXY,

@@ -18,10 +18,13 @@ pragma solidity 0.8.16;
 
 import "dss-exec-lib/DssExec.sol";
 import "dss-exec-lib/DssAction.sol";
-
 import { GemAbstract } from "dss-interfaces/ERC/GemAbstract.sol";
 import { VatAbstract } from "dss-interfaces/dss/VatAbstract.sol";
 import { JugAbstract } from "dss-interfaces/dss/JugAbstract.sol";
+import { DssInstance, MCD } from "dss-test/MCD.sol";
+import { TreasuryFundedFarmingInit, FarmingInitParams } from "./dependencies/endgame-toolkit/treasury-funded-farms/TreasuryFundedFarmingInit.sol";
+import { AllocatorSharedInstance, AllocatorIlkInstance } from "./dependencies/dss-allocator/AllocatorInstances.sol";
+import { AllocatorInit, AllocatorIlkConfig } from "./dependencies/dss-allocator/AllocatorInit.sol";
 
 interface DaiUsdsLike {
     function daiToUsds(address usr, uint256 wad) external;
@@ -29,6 +32,18 @@ interface DaiUsdsLike {
 
 interface AllocatorVaultLike {
     function ilk() external view returns (bytes32);
+}
+
+interface ProxyLike {
+    function exec(address target, bytes calldata args) external payable returns (bytes memory out);
+}
+
+interface ChainlogLike {
+    function removeAddress(bytes32) external;
+}
+
+interface LineMomLike {
+    function addIlk(bytes32 ilk) external;
 }
 
 contract DssSpellAction is DssAction {
@@ -57,16 +72,33 @@ contract DssSpellAction is DssAction {
     // ---------- Math ----------
     uint256 internal constant WAD = 10 ** 18;
     uint256 internal constant RAY = 10 ** 27;
+    uint256 internal constant RAD = 10 ** 45;
 
     // ---------- Contracts ----------
     address internal immutable DAI                     = DssExecLib.dai();
     address internal immutable MCD_VAT                 = DssExecLib.vat();
     address internal immutable MCD_JUG                 = DssExecLib.jug();
     address internal immutable MCD_VOW                 = DssExecLib.vow();
+    address internal immutable MCD_PAUSE_PROXY         = DssExecLib.pauseProxy();
+    address internal immutable ILK_REGISTRY            = DssExecLib.reg();
     address internal immutable SKY                     = DssExecLib.getChangelogAddress("SKY");
+    address internal immutable LOCKSTAKE_SKY           = DssExecLib.getChangelogAddress("LOCKSTAKE_SKY");
+    address internal immutable CRON_REWARDS_DIST_JOB   = DssExecLib.getChangelogAddress("CRON_REWARDS_DIST_JOB");
+    address internal immutable MCD_VEST_SKY_TREASURY   = DssExecLib.getChangelogAddress("MCD_VEST_SKY_TREASURY");
+    address internal immutable LOCKSTAKE_ENGINE        = DssExecLib.getChangelogAddress("LOCKSTAKE_ENGINE");
     address internal immutable DAI_USDS                = DssExecLib.getChangelogAddress("DAI_USDS");
     address internal immutable ALLOCATOR_SPARK_A_VAULT = DssExecLib.getChangelogAddress("ALLOCATOR_SPARK_A_VAULT");
     address internal immutable ALLOCATOR_BLOOM_A_VAULT = DssExecLib.getChangelogAddress("ALLOCATOR_BLOOM_A_VAULT");
+    address internal immutable PIP_ALLOCATOR           = DssExecLib.getChangelogAddress("PIP_ALLOCATOR");
+    address internal immutable ALLOCATOR_ROLES         = DssExecLib.getChangelogAddress("ALLOCATOR_ROLES");
+    address internal immutable ALLOCATOR_REGISTRY      = DssExecLib.getChangelogAddress("ALLOCATOR_REGISTRY");
+    address internal immutable LINE_MOM                = DssExecLib.getChangelogAddress("LINE_MOM");
+
+    address internal constant REWARDS_LSSKY_SKY         = 0xB44C2Fb4181D7Cb06bdFf34A46FdFe4a259B40Fc;
+    address internal constant REWARDS_DIST_LSSKY_SKY    = 0x675671A8756dDb69F7254AFB030865388Ef699Ee;
+    address internal constant ALLOCATOR_OBEX_A_VAULT    = 0xF275110dFE7B80df66a762f968f59B70BABE2b29;
+    address internal constant ALLOCATOR_OBEX_A_BUFFER   = 0x51E9681D7a05abFD33EfaFd43e5dd3Afc0093F1D;
+    address internal constant ALLOCATOR_OBEX_A_SUBPROXY = 0x8be042581f581E3620e29F213EA8b94afA1C8071;
 
     // ---------- Wallets ----------
     address internal constant AEGIS_D        = 0x78C180CF113Fe4845C325f44648b6567BC79d6E0;
@@ -80,6 +112,7 @@ contract DssSpellAction is DssAction {
     // ---------- Spark Spell ----------
     // Note: Spark Proxy: https://github.com/sparkdotfi/sparklend-deployments/blob/bba4c57d54deb6a14490b897c12a949aa035a99b/script/output/1/primary-sce-latest.json#L2
     address internal constant SPARK_PROXY = 0x3300f198988e4C9C63F75dF86De36421f06af8c4;
+    address internal constant SPARK_SPELL = 0x4924e46935F6706d08413d44dF5C31a9d40F6a64;
 
     // ---------- Bloom/Grove Spell ----------
     // Note: The deployment address of the Grove Proxy can be found at https://forum.sky.money/t/technical-scope-of-the-star-2-allocator-launch/26190
@@ -87,8 +120,95 @@ contract DssSpellAction is DssAction {
 
     function actions() public override {
         // ---------- Lssky-SKY Farm Initialization ----------
+        // Forum: https://forum.sky.money/t/technical-scope-lssky-sky-farm/27312
+
+        // Call TreasuryFundedFarmingInit.initLockstakeFarm with the following parameters:
+        TreasuryFundedFarmingInit.initLockstakeFarm(
+            FarmingInitParams({
+                // stakingToken: LOCKSTAKE_SKY
+                stakingToken: LOCKSTAKE_SKY,
+                // rewardsToken: SKY
+                rewardsToken: SKY,
+                // rewards: 0xB44C2Fb4181D7Cb06bdFf34A46FdFe4a259B40Fc
+                rewards: REWARDS_LSSKY_SKY,
+                // rewardsKey: REWARDS_LSSKY_SKY
+                rewardsKey: "REWARDS_LSSKY_SKY",
+                // dist: 0x675671A8756dDb69F7254AFB030865388Ef699Ee
+                dist: REWARDS_DIST_LSSKY_SKY,
+                // distKey: REWARDS_DIST_LSSKY_SKY
+                distKey: "REWARDS_DIST_LSSKY_SKY",
+                // distJob: CRON_REWARDS_DIST_JOB
+                distJob: CRON_REWARDS_DIST_JOB,
+                // distJobInterval: 7 days - 1 hours
+                distJobInterval: 7 days - 1 hours,
+                // vest: MDC_VEST_SKY_TREASURY
+                vest: MCD_VEST_SKY_TREASURY,
+                // vestTot: TBD
+                vestTot: 2_400_000 * WAD,
+                // vestBgn: block.timestamp - 7 days
+                vestBgn: block.timestamp - 7 days,
+                // vestTau: TBD
+                vestTau: 365 days
+            }),
+            LOCKSTAKE_ENGINE
+        );
 
         // ---------- Obex Allocator Initialization ----------
+        // Forum: https://forum.sky.money/t/technical-scope-launch-of-the-agent-4-allocation-system/27314
+
+        // Call AllocatorInit.initIIk with the following parameters:
+        // Note: Create SharedInstance with the following parameters:
+        AllocatorSharedInstance memory obexAllocatorSharedInstance = AllocatorSharedInstance({
+            // sharedInstance.oracle: PIP_ALLOCATOR from chainlog;
+            oracle: PIP_ALLOCATOR,
+            // sharedInstance.roles: ALLOCATOR_ROLES from chainlog;
+            roles: ALLOCATOR_ROLES,
+            // sharedInstance.registry: ALLOCATOR_REGISTRY from chainlog;
+            registry: ALLOCATOR_REGISTRY
+        });
+
+        // Note: Create IlkInstance with the following parameters:
+        AllocatorIlkInstance memory obexAllocatorIlkInstance = AllocatorIlkInstance({
+            // ilkInstance.owner: MCD_PAUSE_PROXY from chainlog;
+            owner: MCD_PAUSE_PROXY,
+            // ilkInstance.vault: 0xF275110dFE7B80df66a762f968f59B70BABE2b29 (AllocatorVault contract);
+            vault: ALLOCATOR_OBEX_A_VAULT,
+            // ilkInstance.buffer: 0x51E9681D7a05abFD33EfaFd43e5dd3Afc0093F1D (AllocatorBuffer contract);
+            buffer: ALLOCATOR_OBEX_A_BUFFER
+        });
+
+        // Note: Create AllocatorIlkConfig with the following parameters:
+        AllocatorIlkConfig memory obexAllocatorIlkCfg = AllocatorIlkConfig({
+            // cfg.ilk: ALLOCATOR-OBEX-A;
+            ilk: "ALLOCATOR-OBEX-A",
+            // cfg.duty: 1 * 10**27 (0%0\%0%) (Note: to be confirmed);
+            duty: 1 * RAY,
+            // cfg.gap: TBD (Note: to be provided; can be any value, including 0);
+            gap: 10_000_000  * RAD,
+            // cfg.maxLine: TBD (Note: to be provided; must be > 0);
+            maxLine: 10_000_000 * RAD,
+            // cfg.ttl: TBD (Note: to be provided; must be < type(uint48).max);
+            ttl: 24 hours,
+            // cfg.allocatorProxy: 0x8be042581f581E3620e29F213EA8b94afA1C8071 (SubProxy contract);
+            allocatorProxy: ALLOCATOR_OBEX_A_SUBPROXY,
+            // cfg.ilkRegistry: ILK_REGISTRY from chainlog;
+            ilkRegistry: ILK_REGISTRY
+        });
+
+        // Note: We also need dss as an input parameter for initIlk
+        DssInstance memory dss = MCD.loadFromChainlog(DssExecLib.LOG);
+
+        // Note: Call AllocatorInit.initIlk with the parameters created above:
+        AllocatorInit.initIlk(dss, obexAllocatorSharedInstance, obexAllocatorIlkInstance, obexAllocatorIlkCfg);
+
+        // Remove newly created PIP_ALLOCATOR_OBEX_A from chainlog;
+        ChainlogLike(DssExecLib.LOG).removeAddress("PIP_ALLOCATOR_OBEX_A");
+
+        // Add ALLOCATOR-OBEX-A ilk to the LINE_MOM.
+        LineMomLike(LINE_MOM).addIlk("ALLOCATOR-OBEX-A");
+
+        // Note: Bump chainlog patch version as new keys are being added
+        DssExecLib.setChangelogVersion("1.20.6");
 
         // ---------- Monthly Settlement Cycle #2 ----------
         // Forum: https://forum.sky.money/t/msc-2-settlement-summary-september-2025-spark-only-initial-calculations/27286/2
@@ -163,7 +283,8 @@ contract DssSpellAction is DssAction {
         // Forum: https://forum.sky.money/t/spark-aave-revenue-share-calculations-payments-9-q3-2025/27296
         // Poll: https://vote.sky.money/polling/QmTNrfXk
 
-        // Approve Spark proxy spell with address TBD
+        // Approve Spark proxy spell with address 0x4924e46935F6706d08413d44dF5C31a9d40F6a64
+        ProxyLike(SPARK_PROXY).exec(SPARK_SPELL, abi.encodeWithSignature("execute()"));
 
         // ---------- Bloom/Grove Spell ----------
         // Forum: https://forum.sky.money/t/october-16-2025-proposed-changes-to-grove-for-upcoming-spell/27266
