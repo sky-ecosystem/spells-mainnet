@@ -45,6 +45,10 @@ interface SequencerLike {
     function hasJob(address job) external view returns (bool);
 }
 
+interface LineMomLike {
+    function ilks(bytes32 ilk) external view returns (uint256);
+}
+
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -284,9 +288,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
-        string[4] memory addedKeys = [
-            "REWARDS_LSSKY_SKY",
-            "REWARDS_DIST_LSSKY_SKY",
+        string[2] memory addedKeys = [
             "ALLOCATOR_OBEX_A_VAULT",
             "ALLOCATOR_OBEX_A_BUFFER"
         ];
@@ -1314,4 +1316,49 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
+    function testNewLineMomIlks() public {
+        string[1] memory ilks = [
+            "ALLOCATOR-OBEX-A"
+        ];
+
+        for (uint256 i = 0; i < ilks.length; i++) {
+            assertEq(
+                LineMomLike(address(lineMom)).ilks(_stringToBytes32(ilks[i])),
+                0,
+                _concat("testNewLineMomIlks/before-ilk-already-in-lineMom-", ilks[i])
+            );
+        }
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        for (uint256 i = 0; i < ilks.length; i++) {
+            assertEq(
+                LineMomLike(address(lineMom)).ilks(_stringToBytes32(ilks[i])),
+                1,
+                _concat("testNewLineMomIlks/after-ilk-not-added-to-lineMom-", ilks[i])
+            );
+        }
+    }
+
+    function testAllocatorObexASubProxy() public {
+        address allocatorObexAProxy = addr.addr("ALLOCATOR_OBEX_A_SUBPROXY");
+        address subProxySpell = address(new MockSubProxySpell());
+
+        vm.prank(addr.addr("MCD_PAUSE_PROXY"));
+        vm.expectEmit();
+        emit Exec();
+        ProxyLike(allocatorObexAProxy).exec(subProxySpell, abi.encodeWithSignature("execute()"));
+    }
+
+    event Exec();
+}
+
+contract MockSubProxySpell {
+    event Exec();
+
+    function execute() public {
+        emit Exec();
+    }
 }
