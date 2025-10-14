@@ -110,10 +110,12 @@ contract DssSpellAction is DssAction {
     // ---------- Bloom/Grove Spell ----------
     // Note: The deployment address of the Grove Proxy can be found at https://forum.sky.money/t/technical-scope-of-the-star-2-allocator-launch/26190
     address internal constant GROVE_PROXY = 0x1369f7b2b38c76B6478c0f0E66D94923421891Ba;
+    address internal constant GROVE_SPELL = 0xF2A28fb43D5d3093904B889538277fB175B42Ece;
 
     function actions() public override {
-        // ---------- Obex Allocator Initialization ----------
+        // ---------- Allocator 4 Initialization ----------
         // Forum: https://forum.sky.money/t/technical-scope-launch-of-the-agent-4-allocation-system/27314
+        // Forum: https://forum.sky.money/t/technical-scope-launch-of-the-agent-4-allocation-system/27314/4
 
         // Call AllocatorInit.initIIk with the following parameters:
         // Note: Create SharedInstance with the following parameters:
@@ -140,14 +142,14 @@ contract DssSpellAction is DssAction {
         AllocatorIlkConfig memory obexAllocatorIlkCfg = AllocatorIlkConfig({
             // cfg.ilk: ALLOCATOR-OBEX-A;
             ilk: "ALLOCATOR-OBEX-A",
-            // cfg.duty: 1 * 10**27 (0%0\%0%) (Note: to be confirmed);
+            // cfg.duty: 1 * 10**27 (0%);
             duty: 1 * RAY,
-            // cfg.gap: TBD (Note: to be provided; can be any value, including 0);
+            // cfg.gap: 10 million USDS;
             gap: 10_000_000  * RAD,
-            // cfg.maxLine: TBD (Note: to be provided; must be > 0);
+            // cfg.maxLine: 10 million USDS;
             maxLine: 10_000_000 * RAD,
-            // cfg.ttl: TBD (Note: to be provided; must be < type(uint48).max);
-            ttl: 24 hours,
+            // cfg.ttl: 86,400 seconds;
+            ttl: 86_400,
             // cfg.allocatorProxy: 0x8be042581f581E3620e29F213EA8b94afA1C8071 (SubProxy contract);
             allocatorProxy: ALLOCATOR_OBEX_A_SUBPROXY,
             // cfg.ilkRegistry: ILK_REGISTRY from chainlog;
@@ -213,7 +215,7 @@ contract DssSpellAction is DssAction {
         // Sky Staking - 3,824 USDS - 0x05c73AE49fF0ec654496bF4008d73274a919cB5C
         _transferUsds(SKY_STAKING, 3_824 * WAD);
 
-        // ---------- Atlas Devolopment USDS Compensation ----------
+        // ---------- Atlas Development USDS Compensation ----------
         // Forum: https://forum.sky.money/t/atlas-core-development-payment-requests-october-2025/27293
         // Atlas: https://sky-atlas.powerhouse.io/A.2.2.1_Atlas_Core_Development/1542d2db-be91-46f5-9d13-3a86c78b9af1|9e1f3b56
 
@@ -226,7 +228,7 @@ contract DssSpellAction is DssAction {
         // Blue - 50,167 USDS - 0xb6C09680D822F162449cdFB8248a7D3FC26Ec9Bf
         _transferUsds(BLUE, 50_167 * WAD);
 
-        // ---------- Atlas Devolopment SKY Compensation ----------
+        // ---------- Atlas Development SKY Compensation ----------
         // Forum: https://forum.sky.money/t/atlas-core-development-payment-requests-october-2025/27293
         // Atlas: https://sky-atlas.powerhouse.io/A.2.2.1_Atlas_Core_Development/1542d2db-be91-46f5-9d13-3a86c78b9af1|9e1f3b56
 
@@ -248,7 +250,8 @@ contract DssSpellAction is DssAction {
         // ---------- Bloom/Grove Spell ----------
         // Forum: https://forum.sky.money/t/october-16-2025-proposed-changes-to-grove-for-upcoming-spell/27266
 
-        // Approve Bloom/Grove proxy spell with address TBD
+        // Approve Bloom/Grove proxy spell with address 0xF2A28fb43D5d3093904B889538277fB175B42Ece
+        ProxyLike(GROVE_PROXY).exec(GROVE_SPELL, abi.encodeWithSignature("execute()"));
     }
 
     // ---------- Helper Functions ----------

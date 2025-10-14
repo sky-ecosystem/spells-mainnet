@@ -1277,9 +1277,9 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // Bloom/Grove tests
-    function testBloomSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
+    function testBloomSpellIsExecuted() public { // add the `skipped` modifier to skip
         address BLOOM_PROXY = addr.addr('ALLOCATOR_BLOOM_A_SUBPROXY');
-        address BLOOM_SPELL = address(0x67e7b3bFAb1Fb6267baECEc034Bbf7592F6B4E9b); // Insert Bloom spell address
+        address BLOOM_SPELL = address(0xF2A28fb43D5d3093904B889538277fB175B42Ece); // Insert Bloom spell address
 
         vm.expectCall(
             BLOOM_PROXY,
