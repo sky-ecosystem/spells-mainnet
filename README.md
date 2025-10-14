@@ -44,10 +44,6 @@ Then run:
 make deploy
 ```
 
-#### Automated deployment
-
-Normal deployment process will prompt for a keystore password and this is generally the intended way. However, in some scenarios you may want to delegate deployment to an automated workflow (e.g. CI). It is possible to run the deployment in a non-interactive manner by additionally setting `ETH_KEYSTORE_PASSWORD` (a password to the keystore file). Please note that this environment variable is highly sensitive and should only ever be set in a trusted temporary environment (e.g. GitHub Actions) and only for the deployment step.
-
 #### Estimating gas needed for deployment
 
 Gas estimation is generally handled by Foundry automatically. However, manual limits can be specified as well, refer to the [`forge create` documentation](https://getfoundry.sh/forge/reference/create/).

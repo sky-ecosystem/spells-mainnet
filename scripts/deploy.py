@@ -41,15 +41,9 @@ deploy_cmd = [
     '--broadcast',
     '--json',
     '--keystore', ETH_KEYSTORE,
+    # Last argument is the contract itself
+    f'{PATH_TO_SPELL}:{SPELL_CONTRACT_NAME}'
 ]
-
-# Add keystore password when environment variable was set, e.g. for non-interactive mode
-ETH_KEYSTORE_PASSWORD = os.environ.get('ETH_KEYSTORE_PASSWORD')
-if ETH_KEYSTORE_PASSWORD:
-    deploy_cmd.extend(["--password", ETH_KEYSTORE_PASSWORD])
-
-# Last argument is the contract itself
-deploy_cmd.append(f'{PATH_TO_SPELL}:{SPELL_CONTRACT_NAME}')
 
 # Deploy the spell
 print('Deploying a spell...')
