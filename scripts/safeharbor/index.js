@@ -25,6 +25,10 @@ const command = process.argv[2];
 try {
     if (command === "generate" || !command) {
         // Default to generate if no command or explicit generate command
+        /**
+         * Result object containing updates and generated Solidity code
+         * @type {{updates: Array<{function: string, args: Array<any>, calldata: string}>, solidityCode: string}}
+         */
         const result = await generatePayload(agreementContract);
 
         if (result.updates && result.updates.length > 0) {
