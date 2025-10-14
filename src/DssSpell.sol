@@ -242,6 +242,9 @@ contract DssSpellAction is DssAction {
         // Forum: https://forum.sky.money/t/october-16-2025-proposed-changes-to-spark-for-upcoming-spell/27215
         // Forum: https://forum.sky.money/t/october-2-2025-proposed-changes-to-spark-for-upcoming-spell/27191
         // Forum: https://forum.sky.money/t/spark-aave-revenue-share-calculations-payments-9-q3-2025/27296
+        // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0x56cbdcf3f29f3b3f03c65ebb779106ebfe34e4582a177b5987c90cc5cf5a37ea
+        // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0x56cbdcf3f29f3b3f03c65ebb779106ebfe34e4582a177b5987c90cc5cf5a37ea
+        // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0x56cbdcf3f29f3b3f03c65ebb779106ebfe34e4582a177b5987c90cc5cf5a37ea
         // Poll: https://vote.sky.money/polling/QmTNrfXk
 
         // Approve Spark proxy spell with address 0x4924e46935F6706d08413d44dF5C31a9d40F6a64
