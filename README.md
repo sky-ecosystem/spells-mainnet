@@ -21,7 +21,7 @@ make
 
 #### Prerequisites
 
-Install [Foundry](https://github.com/foundry-rs/foundry).
+Install [Foundry](https://github.com/foundry-rs/foundry) latest stable version.
 
 #### Operation
 Set `ETH_RPC_URL` to a Mainnet node.
@@ -36,7 +36,6 @@ make test
 Provide the following environment variables:
 - `ETH_RPC_URL` - a Mainnet RPC URL
 - `ETH_KEYSTORE` - a location to the keystore file, e.g. `~/.foundry/keystores/deploy`
-- `ETH_KEYSTORE_PASSWORD` - a password to the keystore file. Prefer omitting it so that you are prompted during deploy
 - `ETHERSCAN_API_KEY` - an Etherscan API key for spell verification
 
 Then run:
@@ -45,15 +44,17 @@ Then run:
 make deploy
 ```
 
+#### Automated deployment
+
+Normal deployment process will prompt for a keystore password and this is generally the intended way. However, in some scenarios you may want to delegate deployment to an automated workflow (e.g. CI). It is possible to run the deployment in a non-interactive manner by additionally setting `ETH_KEYSTORE_PASSWORD` (a password to the keystore file). Please note that this environment variable is highly sensitive and should only ever be set in a trusted temporary environment (e.g. GitHub Actions) and only for the deployment step.
+
 #### Estimating gas needed for deployment
 
 Gas estimation is generally handled by Foundry automatically. However, manual limits can be specified as well, refer to the [`forge create` documentation](https://getfoundry.sh/forge/reference/create/).
 
-A few helpful tips to estimate gas. You can use the following to get a
-gas estimate for the deploy.
+You can use the following to get a gas estimate for the deploy:
 
 ```bash
-make all
 make estimate
 ```
 
