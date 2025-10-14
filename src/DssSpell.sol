@@ -145,7 +145,7 @@ contract DssSpellAction is DssAction {
             // cfg.duty: 1 * 10**27 (0%);
             duty: 1 * RAY,
             // cfg.gap: 10 million USDS;
-            gap: 10_000_000  * RAD,
+            gap: 10_000_000 * RAD,
             // cfg.maxLine: 10 million USDS;
             maxLine: 10_000_000 * RAD,
             // cfg.ttl: 86,400 seconds;
@@ -240,10 +240,7 @@ contract DssSpellAction is DssAction {
 
         // ---------- Spark Spell ----------
         // Forum: https://forum.sky.money/t/october-16-2025-proposed-changes-to-spark-for-upcoming-spell/27215
-        // Forum: https://forum.sky.money/t/october-2-2025-proposed-changes-to-spark-for-upcoming-spell/27191
-        // Forum: https://forum.sky.money/t/spark-aave-revenue-share-calculations-payments-9-q3-2025/27296
-        // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0x56cbdcf3f29f3b3f03c65ebb779106ebfe34e4582a177b5987c90cc5cf5a37ea
-        // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0x56cbdcf3f29f3b3f03c65ebb779106ebfe34e4582a177b5987c90cc5cf5a37ea
+        // Forum: https://forum.sky.money/t/september-18-2025-proposed-changes-to-spark-for-upcoming-spell/27153
         // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0x56cbdcf3f29f3b3f03c65ebb779106ebfe34e4582a177b5987c90cc5cf5a37ea
         // Poll: https://vote.sky.money/polling/QmTNrfXk
 
@@ -252,6 +249,7 @@ contract DssSpellAction is DssAction {
 
         // ---------- Bloom/Grove Spell ----------
         // Forum: https://forum.sky.money/t/october-16-2025-proposed-changes-to-grove-for-upcoming-spell/27266
+        // Poll: https://vote.sky.money/polling/QmWyJQpE
 
         // Approve Bloom/Grove proxy spell with address 0xF2A28fb43D5d3093904B889538277fB175B42Ece
         ProxyLike(GROVE_PROXY).exec(GROVE_SPELL, abi.encodeWithSignature("execute()"));

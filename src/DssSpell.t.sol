@@ -1317,13 +1317,13 @@ contract DssSpellTest is DssSpellTestBase {
     // SPELL-SPECIFIC TESTS GO BELOW
 
     function testNewLineMomIlks() public {
-        string[1] memory ilks = [
-            "ALLOCATOR-OBEX-A"
+        bytes32[1] memory ilks = [
+            bytes32("ALLOCATOR-OBEX-A")
         ];
 
         for (uint256 i = 0; i < ilks.length; i++) {
             assertEq(
-                LineMomLike(address(lineMom)).ilks(_stringToBytes32(ilks[i])),
+                LineMomLike(address(lineMom)).ilks(ilks[i]),
                 0,
                 _concat("testNewLineMomIlks/before-ilk-already-in-lineMom-", ilks[i])
             );
@@ -1335,7 +1335,7 @@ contract DssSpellTest is DssSpellTestBase {
 
         for (uint256 i = 0; i < ilks.length; i++) {
             assertEq(
-                LineMomLike(address(lineMom)).ilks(_stringToBytes32(ilks[i])),
+                LineMomLike(address(lineMom)).ilks(ilks[i]),
                 1,
                 _concat("testNewLineMomIlks/after-ilk-not-added-to-lineMom-", ilks[i])
             );
