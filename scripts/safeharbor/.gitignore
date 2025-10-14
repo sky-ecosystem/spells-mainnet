@@ -1,0 +1,5 @@
+# project
+.env*
+
+# node
+node_modules/
