@@ -1114,7 +1114,7 @@ contract Config {
             lum:          LineUpdateMethod.AUTOLINE,
             aL_line:      10_000_000,
             aL_gap:       10_000_000,
-            aL_ttl:       24 hours,
+            aL_ttl:       86_400,
             line:         0,
             dust:         0,
             pct:          0,
