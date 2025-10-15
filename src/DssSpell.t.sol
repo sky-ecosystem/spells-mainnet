@@ -373,7 +373,8 @@ contract DssSpellTest is DssSpellTestBase {
             roles:          addr.addr("ALLOCATOR_ROLES"),
             buffer:         addr.addr("ALLOCATOR_OBEX_A_BUFFER"),
             vault:          addr.addr("ALLOCATOR_OBEX_A_VAULT"),
-            allocatorProxy: addr.addr("ALLOCATOR_OBEX_A_SUBPROXY")
+            allocatorProxy: addr.addr("ALLOCATOR_OBEX_A_SUBPROXY"),
+            owner:          addr.addr("MCD_PAUSE_PROXY")
         });
 
         // Sanity checks
@@ -382,6 +383,13 @@ contract DssSpellTest is DssSpellTestBase {
         require(AllocatorVaultLike(p.vault).buffer()   == p.buffer,              "AllocatorInit/vault-buffer-mismatch");
         require(AllocatorVaultLike(p.vault).vat()      == address(vat),          "AllocatorInit/vault-vat-mismatch");
         require(AllocatorVaultLike(p.vault).usdsJoin() == address(usdsJoin),     "AllocatorInit/vault-usds-join-mismatch");
+        require(AllocatorVaultLike(p.vault).wards(p.owner) == 1, "TestError/vault-owner-not-authed");
+        require(WardsAbstract(p.buffer).wards(p.owner) == 1, "TestError/buffer-owner-not-authed");
+
+        if (p.owner != p.allocatorProxy) {
+            require(AllocatorVaultLike(p.vault).wards(p.allocatorProxy) == 0, "TestError/vault-allocator-proxy-authed-early");
+            require(WardsAbstract(p.buffer).wards(p.allocatorProxy) == 0, "TestError/buffer-allocator-proxy-authed-early");
+        }
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
