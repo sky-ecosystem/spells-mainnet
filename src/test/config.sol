@@ -79,8 +79,6 @@ contract Config {
         uint16  stusds_rate_setter_maxDuty;
         uint16  stusds_rate_setter_dutyStep;
         address[] stusds_rate_setter_buds;
-        uint256 stusds_line;
-        uint256 stusds_cap;
     }
 
     enum LineUpdateMethod {
