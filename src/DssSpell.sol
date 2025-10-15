@@ -117,7 +117,7 @@ contract DssSpellAction is DssAction {
         // Forum: https://forum.sky.money/t/technical-scope-launch-of-the-agent-4-allocation-system/27314
         // Forum: https://forum.sky.money/t/technical-scope-launch-of-the-agent-4-allocation-system/27314/4
 
-        // Call AllocatorInit.initIIk with the following parameters:
+        // Call AllocatorInit.initIlk with the following parameters:
         // Note: Create SharedInstance with the following parameters:
         AllocatorSharedInstance memory obexAllocatorSharedInstance = AllocatorSharedInstance({
             // sharedInstance.oracle: PIP_ALLOCATOR from chainlog;
@@ -242,7 +242,7 @@ contract DssSpellAction is DssAction {
         // Forum: https://forum.sky.money/t/october-16-2025-proposed-changes-to-spark-for-upcoming-spell/27215
         // Forum: https://forum.sky.money/t/september-18-2025-proposed-changes-to-spark-for-upcoming-spell/27153
         // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0x56cbdcf3f29f3b3f03c65ebb779106ebfe34e4582a177b5987c90cc5cf5a37ea
-        // Poll: https://vote.sky.money/polling/QmTNrfXk
+        // Poll: https://vote.sky.money/polling/QmRVD3uC
 
         // Approve Spark proxy spell with address 0x4924e46935F6706d08413d44dF5C31a9d40F6a64
         ProxyLike(SPARK_PROXY).exec(SPARK_SPELL, abi.encodeWithSignature("execute()"));
