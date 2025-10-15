@@ -21,6 +21,7 @@ import "dss-exec-lib/DssAction.sol";
 import { GemAbstract } from "dss-interfaces/ERC/GemAbstract.sol";
 import { VatAbstract } from "dss-interfaces/dss/VatAbstract.sol";
 import { JugAbstract } from "dss-interfaces/dss/JugAbstract.sol";
+import { ChainlogAbstract } from "dss-interfaces/dss/ChainlogAbstract.sol";
 import { DssInstance, MCD } from "dss-test/MCD.sol";
 import { AllocatorSharedInstance, AllocatorIlkInstance } from "./dependencies/dss-allocator/AllocatorInstances.sol";
 import { AllocatorInit, AllocatorIlkConfig } from "./dependencies/dss-allocator/AllocatorInit.sol";
@@ -35,10 +36,6 @@ interface AllocatorVaultLike {
 
 interface ProxyLike {
     function exec(address target, bytes calldata args) external payable returns (bytes memory out);
-}
-
-interface ChainlogLike {
-    function removeAddress(bytes32) external;
 }
 
 interface LineMomLike {
@@ -163,7 +160,7 @@ contract DssSpellAction is DssAction {
         AllocatorInit.initIlk(dss, obexAllocatorSharedInstance, obexAllocatorIlkInstance, obexAllocatorIlkCfg);
 
         // Remove newly created PIP_ALLOCATOR_OBEX_A from chainlog;
-        ChainlogLike(DssExecLib.LOG).removeAddress("PIP_ALLOCATOR_OBEX_A");
+        ChainlogAbstract(DssExecLib.LOG).removeAddress("PIP_ALLOCATOR_OBEX_A");
 
         // Add ALLOCATOR-OBEX-A ilk to the LINE_MOM.
         LineMomLike(LINE_MOM).addIlk("ALLOCATOR-OBEX-A");
