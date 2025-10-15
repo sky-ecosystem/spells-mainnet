@@ -48,8 +48,8 @@ interface LineMomLike {
 contract DssSpellAction is DssAction {
     // Provides a descriptive tag for bot consumption
     // This should be modified weekly to provide a summary of the actions
-    // Hash: cast keccak -- "$(wget 'TODO' -q -O - 2>/dev/null)"
-    string public constant override description = "2025-10-16 MakerDAO Executive Spell | Hash: TODO";
+    // Hash: cast keccak -- "$(wget 'https://raw.githubusercontent.com/sky-ecosystem/executive-votes/8a77616aa61e2c42608bf1cd0aad3df60f36127e/2025/executive-vote-2025-10-16-allocator-4-launch.md' -q -O - 2>/dev/null)"
+    string public constant override description = "2025-10-16 MakerDAO Executive Spell | Hash: 0x6059f051512ecaba0340c7d588e6209482081d86b6e5e5a1dcced4873eb7a271";
 
     // Set office hours according to the summary
     function officeHours() public pure override returns (bool) {
