@@ -1108,6 +1108,9 @@ contract DssSpellTestBase is Config, DssTest {
             assertEq(maxDuty, afterSpell.stusds_rate_setter_maxDuty, "TestError/stusds-ratesetter-dutycfg-maxduty");
             assertEq(dutyStep, afterSpell.stusds_rate_setter_dutyStep, "TestError/stusds-ratesetter-dutycfg-dutystep");
 
+            assertLe(stusds.line(), rateSetter.maxLine(), "TestError/stusds-line-exceeds-ratesetter-maxline");
+            assertLe(stusds.cap(), rateSetter.maxCap(), "TestError/stusds-cap-exceeds-ratesetter-maxcap");
+
             for (uint256 i; i < afterSpell.stusds_rate_setter_buds.length; i++) {
                 assertEq(rateSetter.buds(afterSpell.stusds_rate_setter_buds[i]), 1, "TestError/stusds-ratesetter-buds");
             }
