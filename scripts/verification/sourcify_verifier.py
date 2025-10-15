@@ -1,20 +1,18 @@
 #!/usr/bin/env python3
 """
-Sourcify block explorer verifier implementation.
+Sourcify block explorer verifier implementation using forge verify-contract.
 """
+import os
 import sys
-import json
-import requests
-from typing import Dict, Any
+import subprocess
 
 from .retry import retry_with_backoff
 
 # Block explorer configurations
-SOURCIFY_API_URL = 'https://sourcify.dev/server'
 SUPPORTED_CHAIN_IDS = ['1', '11155111']  # Mainnet and Sepolia
 
 class SourcifyVerifier:
-    """Sourcify block explorer verifier."""
+    """Sourcify block explorer verifier using forge verify-contract."""
     
     def __init__(self, chain_id: str):
         self.chain_id = chain_id
@@ -28,73 +26,59 @@ class SourcifyVerifier:
         return f"https://sourcify.dev/#/lookup/{contract_address}"
     
     @retry_with_backoff(max_retries=3, base_delay=2, max_delay=30)
-    def _send_api_request(self, endpoint: str, data: Dict[str, Any]) -> Dict:
-        """Send request to Sourcify API with retry mechanism."""
-        headers = {
-            'User-Agent': 'Sky-Protocol-Spell-Verifier',
-            'Content-Type': 'application/json'
-        }
-        
-        url = f"{SOURCIFY_API_URL}/{endpoint}"
-        
-        response = requests.post(
-            url,
-            headers=headers,
-            json=data,
-            timeout=30
-        )
-        
-        response.raise_for_status()
-        
-        try:
-            return response.json()
-        except json.decoder.JSONDecodeError as e:
-            print(f"Response text: {response.text}", file=sys.stderr)
-            raise Exception(f'Sourcify responded with invalid JSON: {str(e)}')
-    
     def verify_contract(
         self,
         contract_name: str,
         contract_address: str,
-        source_code: str,
         constructor_args: str,
-        metadata: Dict[str, Any],
         library_address: str = ""
     ) -> bool:
-        """Verify contract on Sourcify."""
+        """Verify contract on Sourcify using forge verify-contract."""
         print(f'\nVerifying {contract_name} at {contract_address} on Sourcify...')
         
-        files_data = {
-            "contract.sol": source_code
-        }
+        # Build forge verify-contract command
+        cmd = [
+            'forge', 'verify-contract',
+            contract_address,
+            f'src/{contract_name}.sol:{contract_name}',
+            '--verifier', 'sourcify',
+            '--flatten',
+            '--watch'
+        ]
         
-        if metadata:
-            files_data["metadata.json"] = json.dumps(metadata)
-        
-        verification_data = {
-            "address": contract_address,
-            "chain": self.chain_id,
-            "files": files_data
-        }
-        
+        # Add constructor arguments if provided
         if constructor_args:
-            verification_data["constructorArgs"] = constructor_args
+            cmd.extend(['--constructor-args', constructor_args])
+        
+        # Add library linking if provided
+        if library_address:
+            cmd.extend(['--libraries', f'src/DssExecLib.sol:DssExecLib:{library_address}'])
+        
+        # Set environment variables for the subprocess
+        env = os.environ.copy()
+        env['ETH_RPC_URL'] = os.environ.get('ETH_RPC_URL', '')
         
         try:
-            response = self._send_api_request("verify", verification_data)
+            subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                check=True,
+                env=env
+            )
             
-            if response.get("status") == "perfect":
-                print(f'Contract verified successfully on Sourcify')
-                print(f'View at: {self.get_verification_url(contract_address)}')
+            print(f'Contract verified successfully on Sourcify')
+            print(f'View at: {self.get_verification_url(contract_address)}')
+            return True
+            
+        except subprocess.CalledProcessError as e:
+            # Check if it's already verified
+            if 'already verified' in e.stderr.lower() or 'already verified' in e.stdout.lower():
+                print('Contract is already verified on Sourcify')
                 return True
-            elif response.get("status") == "partial":
-                print(f'Contract partially verified on Sourcify (some files missing)')
-                print(f'View at: {self.get_verification_url(contract_address)}')
-                return True
-            else:
-                print(f'Verification failed: {response.get("message", "Unknown error")}', file=sys.stderr)
-                return False
-
+            
+            print(f"Verification failed: {e.stderr}", file=sys.stderr)
+            return False
         except Exception as e:
-            print(f"Failed to verify on Sourcify: {str(e)}", file=sys.stderr)
+            print(f"Unexpected error during verification: {str(e)}", file=sys.stderr)
             return False

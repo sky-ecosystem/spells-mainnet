@@ -2,13 +2,12 @@
 """
 Enhanced contract verification script for Sky Protocol spells.
 This script verifies both the DssSpell and DssSpellAction contracts on multiple block explorers
-with robust retry mechanisms and fallback options.
+using forge verify-contract --flatten with robust retry mechanisms and fallback options.
 """
 import os
 import sys
-import time
 from pathlib import Path
-from typing import Dict, Any, Tuple, List
+from typing import Any, Tuple, List
 
 
 def add_project_root_to_path():
@@ -28,9 +27,7 @@ from scripts.verification import (
     SourcifyVerifier,
     get_chain_id,
     get_library_address,
-    flatten_source_code,
     get_contract_metadata,
-    read_flattened_code,
     get_action_address
 )
 
@@ -108,9 +105,7 @@ def setup_verifiers(chain_id: str) -> List[Any]:
 def verify_contract_with_verifiers(
     contract_name: str,
     contract_address: str,
-    source_code: str,
     constructor_args: str,
-    metadata: Dict[str, Any],
     library_address: str,
     verifiers: List[Any]
 ) -> bool:
@@ -127,9 +122,7 @@ def verify_contract_with_verifiers(
             success = verifier.verify_contract(
                 contract_name=contract_name,
                 contract_address=contract_address,
-                source_code=source_code,
                 constructor_args=constructor_args,
-                metadata=metadata,
                 library_address=library_address
             )
             
@@ -175,13 +168,6 @@ def main():
         print("Setting up verifiers...")
         verifiers = setup_verifiers(chain_id)
 
-        # Flatten source code
-        print("Flattening source code...")
-        flatten_source_code()
-
-        # Read flattened code
-        source_code = read_flattened_code()
-
         # Get contract metadata
         metadata = get_contract_metadata(
             f'out/DssSpell.sol/DssSpell.json',
@@ -192,7 +178,6 @@ def main():
         spell_success = verify_contract_with_verifiers(
             contract_name=spell_name,
             contract_address=spell_address,
-            source_code=source_code,
             constructor_args=constructor_args,
             metadata=metadata,
             library_address=library_address,
@@ -212,7 +197,6 @@ def main():
         action_success = verify_contract_with_verifiers(
             contract_name="DssSpellAction",
             contract_address=action_address,
-            source_code=source_code,
             constructor_args=constructor_args,
             metadata=metadata,
             library_address=library_address,

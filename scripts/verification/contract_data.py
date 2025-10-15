@@ -15,7 +15,6 @@ from .retry import retry_with_backoff
 
 
 # Constants
-FLATTEN_OUTPUT_PATH = 'out/flat.sol'
 SOURCE_FILE_PATH = 'src/DssSpell.sol'
 LIBRARY_NAME = 'DssExecLib'
 
@@ -68,19 +67,6 @@ def get_library_address() -> str:
     return ''
 
 
-@retry_with_backoff(max_retries=2, base_delay=1)
-def flatten_source_code() -> None:
-    """Flatten the source code using Forge with retry mechanism."""
-    result = subprocess.run([
-        'forge', 'flatten',
-        SOURCE_FILE_PATH,
-        '--output', FLATTEN_OUTPUT_PATH
-    ], capture_output=True, text=True, check=True)
-
-    if result.returncode != 0:
-        raise Exception(f"Forge flatten failed: {result.stderr}")
-
-
 def get_contract_metadata(output_path: str, input_path: str) -> Dict[str, Any]:
     """Extract contract metadata from the compiled output."""
     try:
@@ -103,17 +89,6 @@ def get_contract_metadata(output_path: str, input_path: str) -> Dict[str, Any]:
         raise Exception('Run forge build again')
     except KeyError as e:
         raise Exception(f'Missing metadata field: {e}')
-
-
-def read_flattened_code() -> str:
-    """Read the flattened source code."""
-    try:
-        with open(FLATTEN_OUTPUT_PATH, 'r', encoding='utf-8') as f:
-            return f.read()
-    except FileNotFoundError:
-        raise Exception(f'Flattened source code not found at {FLATTEN_OUTPUT_PATH}. Run forge flatten first.')
-    except UnicodeDecodeError as e:
-        raise Exception(f'Error reading flattened source code: {str(e)}')
 
 
 @retry_with_backoff(max_retries=2, base_delay=1)
