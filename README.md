@@ -8,72 +8,66 @@ Staging repo for MakerDAO executive spells.
 ### Getting Started
 
 ```bash
-$ git clone git@github.com:makerdao/spells-mainnet.git
-$ dapp update
+git clone --recurse-submodules git@github.com:sky-ecosystem/spells-mainnet
 ```
 
 ### Build
 
 ```bash
-$ make
-```
-
-### Test (DappTools without Optimizations)
-
-Set `ETH_RPC_URL` to a Mainnet node.
-
-```bash
-$ export ETH_RPC_URL=<Mainnet URL>
-$ make test
+make
 ```
 
 ### Test (Forge without Optimizations)
 
 #### Prerequisites
-1. [Install](https://www.rust-lang.org/tools/install) Rust.
-2. [Install](https://github.com/gakonst/foundry#forge) Forge.
+
+Install [Foundry](https://github.com/foundry-rs/foundry) latest stable version.
 
 #### Operation
 Set `ETH_RPC_URL` to a Mainnet node.
 
 ```bash
-$ export ETH_RPC_URL=<Mainnet URL>
-$ make test-forge
+export ETH_RPC_URL=<Mainnet URL>
+make test
 ```
 
 ### Deploy
 
-Set `ETH_RPC_URL` to a Mainnet node and ensure `ETH_GAS_LIMIT` is set to a high enough number to deploy the contract.
+Provide the following environment variables:
+- `ETH_RPC_URL` - a Mainnet RPC URL
+- `ETH_KEYSTORE` - a location to the keystore file, e.g. `~/.foundry/keystores/deploy`
+- `ETHERSCAN_API_KEY` - an Etherscan API key for spell verification
+
+Then run:
 
 ```bash
-$ export ETH_RPC_URL=<Mainnet URL>
-$ export ETH_GAS_LIMIT=5000000
-$ export ETH_GAS_PRICE=$(seth --to-wei 100 "gwei")
-$ make deploy
+make deploy
 ```
 
-A few helpful tips to estimate gas.  You can use the following to get a
-gas estimate for the deploy.
+#### Estimating gas needed for deployment
+
+Gas estimation is generally handled by Foundry automatically. However, manual limits can be specified as well, refer to the [`forge create` documentation](https://getfoundry.sh/forge/reference/create/).
+
+You can use the following to get a gas estimate for the deploy:
 
 ```bash
-make all
 make estimate
 ```
 
 Once you have that, add another million gas as a buffer against
-out-of-gas errors.  Set ETH_GAS_LIMIT to this value.
+out-of-gas errors. Set `ETH_GAS_LIMIT` to this value.
 
 ```bash
 export ETH_GAS_LIMIT="$((<value from previous step> + 0))"
 export ETH_GAS_LIMIT=$(bc <<< "$ETH_GAS_LIMIT + 1000000")
 ```
 
-You should also check current gas prices on your favorite site
+You can also check current gas prices on your favorite site
 (e.g. https://ethgasstation.info/) and put that gwei value in the
-ETH_GAS_PRICE line.
+`ETH_GAS_PRICE`.
 
 ```bash
-export ETH_GAS_PRICE=$(seth --to-wei 420 "gwei")
+export ETH_GAS_PRICE=$(cast --to-wei 420 "gwei")
 ```
 
 ### Cast to tenderly
