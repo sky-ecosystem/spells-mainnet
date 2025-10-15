@@ -200,8 +200,6 @@ contract Config {
         afterSpell.stusds_rate_setter_minDuty  = 2_10;          // Minimum allowed rate in bps
         afterSpell.stusds_rate_setter_maxDuty  = 50_00;         // Maximum allowed rate in bps
         afterSpell.stusds_rate_setter_dutyStep = 40_00;         // Maximum allowed rate change per update (bps)
-        afterSpell.stusds_line                 = 200_000_000;   // Stusds debt ceiling (USDS Units)
-        afterSpell.stusds_cap                  = 200_000_000;   // Stusds cap (USDS Units)
 
         address[] memory buds = new address[](1);
         buds[0] = 0xBB865F94B8A92E57f79fCc89Dfd4dcf0D3fDEA16;

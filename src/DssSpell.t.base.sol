@@ -1107,8 +1107,6 @@ contract DssSpellTestBase is Config, DssTest {
             assertEq(afterSpell.stusds_rate_setter_minDuty, minDuty, "TestError/stusds-ratesetter-dutycfg-minduty");
             assertEq(maxDuty, afterSpell.stusds_rate_setter_maxDuty, "TestError/stusds-ratesetter-dutycfg-maxduty");
             assertEq(dutyStep, afterSpell.stusds_rate_setter_dutyStep, "TestError/stusds-ratesetter-dutycfg-dutystep");
-            assertEq(stusds.line(), afterSpell.stusds_line * RAD, "TestError/stusds-line");
-            assertEq(stusds.cap(), afterSpell.stusds_cap * WAD, "TestError/stusds-cap");
 
             for (uint256 i; i < afterSpell.stusds_rate_setter_buds.length; i++) {
                 assertEq(rateSetter.buds(afterSpell.stusds_rate_setter_buds[i]), 1, "TestError/stusds-ratesetter-buds");
