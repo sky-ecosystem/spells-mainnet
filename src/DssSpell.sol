@@ -64,6 +64,7 @@ contract DssSpellAction is DssAction {
     //    https://ipfs.io/ipfs/QmVp4mhhbwWGTfbh2BzwQB9eiBrQBKiqcPRZCaAxNUaar6
     //
     // uint256 internal constant X_PCT_RATE = ;
+    uint256 internal constant ZERO_PCT_RATE = 1000000000000000000000000000;
 
     // ---------- Math ----------
     uint256 internal constant WAD = 10 ** 18;
@@ -140,7 +141,7 @@ contract DssSpellAction is DssAction {
             // cfg.ilk: ALLOCATOR-OBEX-A;
             ilk: "ALLOCATOR-OBEX-A",
             // cfg.duty: 1 * 10**27 (0%);
-            duty: 1 * RAY,
+            duty: ZERO_PCT_RATE,
             // cfg.gap: 10 million USDS;
             gap: 10_000_000 * RAD,
             // cfg.maxLine: 10 million USDS;
