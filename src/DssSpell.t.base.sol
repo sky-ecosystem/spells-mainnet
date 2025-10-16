@@ -1143,7 +1143,7 @@ contract DssSpellTestBase is Config, DssTest {
                         _concat("TestError/rates-", ilk)
                     );
                 } else {
-                    assertEq(values.collaterals[ilk].pct, 0, _concat("TestError/spbeam-pct-not-zero-", ilk));
+                    assertEq(values.collaterals[ilk].pct, 0, _concat("TestError/stUsds/pct-not-zero-", ilk));
 
                     (uint16 minDuty, uint16 maxDuty,) = rateSetter.dutyCfg();
                     assertLe(duty, rates.rates(maxDuty), _concat("TestError/stUsds/jug-duty-exceeds-ratesetter-max-", ilk));
