@@ -86,7 +86,7 @@ contract Config {
         MANUAL,
         // AutoLine can update `line`
         AUTOLINE,
-        // StUSDS can update `line` and `rate`
+        // StUSDS can update `line` and `duty`
         STUSDS
     }
 
