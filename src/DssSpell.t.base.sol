@@ -1108,6 +1108,10 @@ contract DssSpellTestBase is Config, DssTest {
             assertEq(maxDuty, afterSpell.stusds_rate_setter_maxDuty, "TestError/stusds-ratesetter-dutycfg-maxduty");
             assertEq(dutyStep, afterSpell.stusds_rate_setter_dutyStep, "TestError/stusds-ratesetter-dutycfg-dutystep");
 
+            uint256 str = stusds.str();
+            assertLe(str, rates.rates(maxStr), "TestError/stusds-str-exceeds-ratesetter-max");
+            assertGe(str, rates.rates(minStr), "TestError/stusds-str-exceeds-ratesetter-min");
+
             assertLe(stusds.line(), rateSetter.maxLine(), "TestError/stusds-line-exceeds-ratesetter-maxline");
             assertLe(stusds.cap(), rateSetter.maxCap(), "TestError/stusds-cap-exceeds-ratesetter-maxcap");
 
@@ -1139,9 +1143,11 @@ contract DssSpellTestBase is Config, DssTest {
                         _concat("TestError/rates-", ilk)
                     );
                 } else {
+                    assertEq(values.collaterals[ilk].pct, 0, _concat("TestError/spbeam-pct-not-zero-", ilk));
+
                     (uint16 minDuty, uint16 maxDuty,) = rateSetter.dutyCfg();
-                    assertLe(duty, rates.rates(maxDuty), _concat("TestError/stUsds/jug-duty-exceeds-ratesetter-max", ilk));
-                    assertGe(duty, rates.rates(minDuty), _concat("TestError/stUsds/jug-duty-exceeds-ratesetter-min", ilk));
+                    assertLe(duty, rates.rates(maxDuty), _concat("TestError/stUsds/jug-duty-exceeds-ratesetter-max-", ilk));
+                    assertGe(duty, rates.rates(minDuty), _concat("TestError/stUsds/jug-duty-exceeds-ratesetter-min-", ilk));
                 }
                 assertTrue(values.collaterals[ilk].pct < THOUSAND * THOUSAND, _concat("TestError/pct-max-", ilk));   // check value lt 1000%
             } else {

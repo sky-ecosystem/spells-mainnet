@@ -82,8 +82,11 @@ contract Config {
     }
 
     enum UpdateMethod {
+        // Manual can update `line`
         MANUAL,
+        // AutoLine can update `line`
         AUTOLINE,
+        // StUSDS can update `line` and `rate`
         STUSDS
     }
 
@@ -208,7 +211,7 @@ contract Config {
         // Update when adding or modifying Collateral Values
         //
         afterSpell.collaterals["ETH-A"] = CollateralValues({
-            um:           UpdateMethod.AUTOLINE,     // Method for updating line and duty
+            um:           UpdateMethod.AUTOLINE,     // Method for updating collateral values. See UpdateMethod enum for more details about which values
             aL_line:      15 * BILLION,              // In whole Dai units
             aL_gap:       150 * MILLION,             // In whole Dai units
             aL_ttl:       6 hours,                   // In seconds
@@ -997,7 +1000,7 @@ contract Config {
             aL_ttl:       0,
             line:         0,
             dust:         30_000,
-            pct:          20_00,
+            pct:          0,
             mat:          145_00,
             liqType:      "clip",
             liqOn:        false,
