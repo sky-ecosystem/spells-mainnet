@@ -269,7 +269,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["ETH-C"] = CollateralValues({
-            um:          UpdateMethod.AUTOLINE,
+            um:           UpdateMethod.AUTOLINE,
             aL_line:      2 * BILLION,
             aL_gap:       100 * MILLION,
             aL_ttl:       8 hours,
