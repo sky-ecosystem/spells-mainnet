@@ -82,7 +82,7 @@ contract Config {
     }
 
     enum UpdateMethod {
-        // Manual can update `line`
+        // Manual means updates are only done via spells
         MANUAL,
         // AutoLine can update `line`
         AUTOLINE,
@@ -211,7 +211,7 @@ contract Config {
         // Update when adding or modifying Collateral Values
         //
         afterSpell.collaterals["ETH-A"] = CollateralValues({
-            um:           UpdateMethod.AUTOLINE,     // Method for updating collateral values. See UpdateMethod enum for more details about which values
+            um:           UpdateMethod.AUTOLINE,     // Method for updating collateral values. See UpdateMethod enum for more details
             aL_line:      15 * BILLION,              // In whole Dai units
             aL_gap:       150 * MILLION,             // In whole Dai units
             aL_ttl:       6 hours,                   // In seconds
