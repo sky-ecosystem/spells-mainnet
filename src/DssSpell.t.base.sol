@@ -1132,26 +1132,27 @@ contract DssSpellTestBase is Config, DssTest {
                 assertEq(values.collaterals[ilk].SP_min, 0, _concat("TestError/spbeam-min-not-zero-", ilk));
                 assertEq(values.collaterals[ilk].SP_max, 0, _concat("TestError/spbeam-max-not-zero-", ilk));
                 assertEq(values.collaterals[ilk].SP_step, 0, _concat("TestError/spbeam-step-not-zero-", ilk));
-
-                assertEq(duty, rates.rates(values.collaterals[ilk].pct), _concat("TestError/jug-duty-", ilk));
-                assertTrue(
-                    _diffCalc(_expectedRate(values.collaterals[ilk].pct), _yearlyYield(rates.rates(values.collaterals[ilk].pct))) <= TOLERANCE,
-                    _concat("TestError/rates-", ilk)
-                );
+                if (values.collaterals[ilk].um != UpdateMethod.STUSDS) {
+                    assertEq(duty, rates.rates(values.collaterals[ilk].pct), _concat("TestError/jug-duty-", ilk));
+                    assertTrue(
+                        _diffCalc(_expectedRate(values.collaterals[ilk].pct), _yearlyYield(rates.rates(values.collaterals[ilk].pct))) <= TOLERANCE,
+                        _concat("TestError/rates-", ilk)
+                    );
+                } else {
+                    (uint16 minDuty, uint16 maxDuty,) = rateSetter.dutyCfg();
+                    assertLe(duty, rates.rates(maxDuty), _concat("TestError/stUsds/jug-duty-exceeds-ratesetter-max", ilk));
+                    assertGe(duty, rates.rates(minDuty), _concat("TestError/stUsds/jug-duty-exceeds-ratesetter-min", ilk));
+                }
                 assertTrue(values.collaterals[ilk].pct < THOUSAND * THOUSAND, _concat("TestError/pct-max-", ilk));   // check value lt 1000%
             } else {
                 assertEq(values.collaterals[ilk].pct, 0, _concat("TestError/spbeam-pct-not-zero-", ilk));
-
                 (uint256 SP_min, uint256 SP_max, uint256 SP_step) = spbeam.cfgs(ilk);
                 assertEq(SP_min, values.collaterals[ilk].SP_min, _concat("TestError/spbeam-min-", ilk));
                 assertEq(SP_max, values.collaterals[ilk].SP_max, _concat("TestError/spbeam-max-", ilk));
                 assertEq(SP_step, values.collaterals[ilk].SP_step, _concat("TestError/spbeam-step-", ilk));
-
                 uint256 rtob_duty = ConvLike(spbeam.conv()).rtob(duty);
-
                 assertGe(rtob_duty, SP_min, _concat("TestError/jug-duty-below-spbeam-min-", ilk));
                 assertLe(rtob_duty, SP_max, _concat("TestError/jug-duty-exceeds-spbeam-max-", ilk));
-
                 assertTrue(SP_max < THOUSAND * THOUSAND, _concat("TestError/spbeam-max-too-high-", ilk));   // check SPBEAM max lt 1000%
             }
             // make sure duty is less than 1000% APR
@@ -1173,11 +1174,11 @@ contract DssSpellTestBase is Config, DssTest {
             }
             sums[0] += line;
             (uint256 aL_line, uint256 aL_gap, uint256 aL_ttl,,) = autoLine.ilks(ilk);
-            if (values.collaterals[ilk].lum == LineUpdateMethod.MANUAL) {
+            if (values.collaterals[ilk].um == UpdateMethod.MANUAL) {
                 assertEq(aL_line, 0, _concat("TestError/Manual/al-Line-not-zero-", ilk));
                 assertEq(line, values.collaterals[ilk].line * RAD, _concat("TestError/Manual/vat-line-", ilk));
                 assertTrue((line >= RAD && line < 10 * BILLION * RAD) || line == 0, _concat("TestError/Manual/vat-line-range-", ilk));  // eq 0 or gt eq 1 RAD and lt 10B
-            } else if (values.collaterals[ilk].lum == LineUpdateMethod.AUTOLINE) {
+            } else if (values.collaterals[ilk].um == UpdateMethod.AUTOLINE) {
                 assertGt(aL_line, 0, _concat("TestError/al-Line-is-zero-", ilk));
                 assertEq(aL_line, values.collaterals[ilk].aL_line * RAD, _concat("TestError/AutoLine/al-line-", ilk));
                 assertEq(aL_gap, values.collaterals[ilk].aL_gap * RAD, _concat("TestError/AutoLine/al-gap-", ilk));

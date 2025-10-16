@@ -81,14 +81,14 @@ contract Config {
         address[] stusds_rate_setter_buds;
     }
 
-    enum LineUpdateMethod {
+    enum UpdateMethod {
         MANUAL,
         AUTOLINE,
         STUSDS
     }
 
     struct CollateralValues {
-        LineUpdateMethod lum;
+        UpdateMethod um;
         uint256 aL_line;
         uint256 aL_gap;
         uint256 aL_ttl;
@@ -208,7 +208,7 @@ contract Config {
         // Update when adding or modifying Collateral Values
         //
         afterSpell.collaterals["ETH-A"] = CollateralValues({
-            lum:          LineUpdateMethod.AUTOLINE, // Method for updating line
+            um:           UpdateMethod.AUTOLINE,     // Method for updating line and duty
             aL_line:      15 * BILLION,              // In whole Dai units
             aL_gap:       150 * MILLION,             // In whole Dai units
             aL_ttl:       6 hours,                   // In seconds
@@ -237,7 +237,7 @@ contract Config {
             offboarding:  false                      // If mat is being offboarded
         });
         afterSpell.collaterals["ETH-B"] = CollateralValues({
-            lum:          LineUpdateMethod.AUTOLINE,
+            um:           UpdateMethod.AUTOLINE,
             aL_line:      250 * MILLION,
             aL_gap:       20 * MILLION,
             aL_ttl:       6 hours,
@@ -266,7 +266,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["ETH-C"] = CollateralValues({
-            lum:          LineUpdateMethod.AUTOLINE,
+            um:          UpdateMethod.AUTOLINE,
             aL_line:      2 * BILLION,
             aL_gap:       100 * MILLION,
             aL_ttl:       8 hours,
@@ -295,7 +295,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["WBTC-A"] = CollateralValues({
-            lum:          LineUpdateMethod.MANUAL,
+            um:           UpdateMethod.MANUAL,
             aL_line:      0,
             aL_gap:       0,
             aL_ttl:       0,
@@ -324,7 +324,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["WBTC-B"] = CollateralValues({
-            lum:          LineUpdateMethod.MANUAL,
+            um:           UpdateMethod.MANUAL,
             aL_line:      0,
             aL_gap:       0,
             aL_ttl:       0,
@@ -353,7 +353,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["WBTC-C"] = CollateralValues({
-            lum:          LineUpdateMethod.MANUAL,
+            um:           UpdateMethod.MANUAL,
             aL_line:      0,
             aL_gap:       0,
             aL_ttl:       0,
@@ -382,7 +382,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["PSM-USDC-A"] = CollateralValues({
-            lum:          LineUpdateMethod.MANUAL,
+            um:           UpdateMethod.MANUAL,
             aL_line:      0,
             aL_gap:       0,
             aL_ttl:       0,
@@ -411,7 +411,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["LITE-PSM-USDC-A"] = CollateralValues({
-            lum:          LineUpdateMethod.AUTOLINE,
+            um:           UpdateMethod.AUTOLINE,
             aL_line:      10 * BILLION,
             aL_gap:       400 * MILLION,
             aL_ttl:       12 hours,
@@ -440,7 +440,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["UNIV2DAIUSDC-A"] = CollateralValues({
-            lum:          LineUpdateMethod.MANUAL,
+            um:           UpdateMethod.MANUAL,
             aL_line:      0,
             aL_gap:       0,
             aL_ttl:       0,
@@ -469,7 +469,7 @@ contract Config {
             offboarding:  true
         });
         afterSpell.collaterals["RWA001-A"] = CollateralValues({
-            lum:          LineUpdateMethod.MANUAL,
+            um:           UpdateMethod.MANUAL,
             aL_line:      0,
             aL_gap:       0,
             aL_ttl:       0,
@@ -498,7 +498,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["RWA002-A"] = CollateralValues({
-            lum:          LineUpdateMethod.MANUAL,
+            um:           UpdateMethod.MANUAL,
             aL_line:      0,
             aL_gap:       0,
             aL_ttl:       0,
@@ -527,7 +527,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["RWA004-A"] = CollateralValues({
-            lum:          LineUpdateMethod.MANUAL,
+            um:           UpdateMethod.MANUAL,
             aL_line:      0 * MILLION,
             aL_gap:       0 * MILLION,
             aL_ttl:       0,
@@ -556,7 +556,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["RWA005-A"] = CollateralValues({
-            lum:          LineUpdateMethod.MANUAL,
+            um:           UpdateMethod.MANUAL,
             aL_line:      0 * MILLION,
             aL_gap:       0 * MILLION,
             aL_ttl:       0,
@@ -585,7 +585,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["RWA009-A"] = CollateralValues({
-            lum:          LineUpdateMethod.MANUAL,
+            um:           UpdateMethod.MANUAL,
             aL_line:      0,
             aL_gap:       0,
             aL_ttl:       0,
@@ -614,7 +614,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["PSM-PAX-A"] = CollateralValues({
-            lum:          LineUpdateMethod.MANUAL,
+            um:           UpdateMethod.MANUAL,
             aL_line:      0,
             aL_gap:       0,
             aL_ttl:       0,
@@ -643,7 +643,7 @@ contract Config {
             offboarding:  true
         });
         afterSpell.collaterals["GUNIV3DAIUSDC1-A"] = CollateralValues({
-            lum:          LineUpdateMethod.MANUAL,
+            um:           UpdateMethod.MANUAL,
             aL_line:      0,
             aL_gap:       0,
             aL_ttl:       0,
@@ -672,7 +672,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["WSTETH-A"] = CollateralValues({
-            lum:          LineUpdateMethod.AUTOLINE,
+            um:           UpdateMethod.AUTOLINE,
             aL_line:      750 * MILLION,
             aL_gap:       30 * MILLION,
             aL_ttl:       12 hours,
@@ -701,7 +701,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["WSTETH-B"] = CollateralValues({
-            lum:          LineUpdateMethod.AUTOLINE,
+            um:           UpdateMethod.AUTOLINE,
             aL_line:      1 * BILLION,
             aL_gap:       45 * MILLION,
             aL_ttl:       12 hours,
@@ -730,7 +730,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["DIRECT-SPK-AAVE-LIDO-USDS"] = CollateralValues({
-            lum:          LineUpdateMethod.MANUAL,
+            um:           UpdateMethod.MANUAL,
             aL_line:      0,
             aL_gap:       0,
             aL_ttl:       0,
@@ -759,7 +759,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["DIRECT-AAVEV2-DAI"] = CollateralValues({
-            lum:          LineUpdateMethod.MANUAL,
+            um:           UpdateMethod.MANUAL,
             aL_line:      0,
             aL_gap:       0,
             aL_ttl:       0,
@@ -788,7 +788,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["DIRECT-COMPV2-DAI"] = CollateralValues({
-            lum:          LineUpdateMethod.MANUAL,
+            um:           UpdateMethod.MANUAL,
             aL_line:      0,
             aL_gap:       0,
             aL_ttl:       0,
@@ -817,7 +817,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["PSM-GUSD-A"] = CollateralValues({
-            lum:          LineUpdateMethod.MANUAL,
+            um:           UpdateMethod.MANUAL,
             aL_line:      0,
             aL_gap:       0,
             aL_ttl:       0,
@@ -846,7 +846,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["GUNIV3DAIUSDC2-A"] = CollateralValues({
-            lum:          LineUpdateMethod.MANUAL,
+            um:           UpdateMethod.MANUAL,
             aL_line:      0,
             aL_gap:       0,
             aL_ttl:       0,
@@ -875,7 +875,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["TELEPORT-FW-A"] = CollateralValues({
-            lum:          LineUpdateMethod.MANUAL,
+            um:           UpdateMethod.MANUAL,
             aL_line:      0,
             aL_gap:       0,
             aL_ttl:       0,
@@ -904,7 +904,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["DIRECT-SPARK-DAI"] = CollateralValues({
-            lum:          LineUpdateMethod.MANUAL,
+            um:           UpdateMethod.MANUAL,
             aL_line:      0,
             aL_gap:       0,
             aL_ttl:       0,
@@ -933,7 +933,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["DIRECT-SPARK-MORPHO-DAI"] = CollateralValues({
-            lum:          LineUpdateMethod.MANUAL,
+            um:           UpdateMethod.MANUAL,
             aL_line:      0,
             aL_gap:       0,
             aL_ttl:       0,
@@ -962,7 +962,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["LSE-MKR-A"] = CollateralValues({
-            lum:          LineUpdateMethod.MANUAL,
+            um:           UpdateMethod.MANUAL,
             aL_line:      0,
             aL_gap:       0,
             aL_ttl:       0,
@@ -991,7 +991,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["LSEV2-SKY-A"] = CollateralValues({
-            lum:          LineUpdateMethod.STUSDS,
+            um:           UpdateMethod.STUSDS,
             aL_line:      0,
             aL_gap:       0,
             aL_ttl:       0,
@@ -1020,7 +1020,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["ALLOCATOR-SPARK-A"] = CollateralValues({
-            lum:          LineUpdateMethod.AUTOLINE,
+            um:           UpdateMethod.AUTOLINE,
             aL_line:      10 * BILLION,
             aL_gap:       500 * MILLION,
             aL_ttl:       24 hours,
@@ -1049,7 +1049,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["ALLOCATOR-NOVA-A"] = CollateralValues({
-            lum:          LineUpdateMethod.AUTOLINE,
+            um:           UpdateMethod.AUTOLINE,
             aL_line:      60 * MILLION,
             aL_gap:       1 * MILLION,
             aL_ttl:       20 hours,
@@ -1078,7 +1078,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["ALLOCATOR-BLOOM-A"] = CollateralValues({
-            lum:          LineUpdateMethod.AUTOLINE,
+            um:           UpdateMethod.AUTOLINE,
             aL_line:      2_500_000_000,
             aL_gap:       50_000_000,
             aL_ttl:       24 hours,
@@ -1107,7 +1107,7 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["ALLOCATOR-OBEX-A"] = CollateralValues({
-            lum:          LineUpdateMethod.AUTOLINE,
+            um:           UpdateMethod.AUTOLINE,
             aL_line:      10_000_000,
             aL_gap:       10_000_000,
             aL_ttl:       86_400,
