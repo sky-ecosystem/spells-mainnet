@@ -56,30 +56,6 @@ def get_library_address() -> str:
     return ''
 
 
-def get_contract_metadata(output_path: str, input_path: str) -> Dict[str, Any]:
-    """Extract contract metadata from the compiled output."""
-    try:
-        with open(output_path, 'r') as f:
-            content = json.load(f)
-
-        metadata = content['metadata']
-        license_name = metadata['sources'][input_path]['license']
-
-        return {
-            'compiler_version': 'v' + metadata['compiler']['version'],
-            'evm_version': metadata['settings']['evmVersion'],
-            'optimizer_enabled': metadata['settings']['optimizer']['enabled'],
-            'optimizer_runs': metadata['settings']['optimizer']['runs'],
-            'license_name': license_name
-        }
-    except FileNotFoundError:
-        raise Exception('Run forge build first')
-    except json.decoder.JSONDecodeError:
-        raise Exception('Run forge build again')
-    except KeyError as e:
-        raise Exception(f'Missing metadata field: {e}')
-
-
 @retry_with_backoff(max_retries=2, base_delay=1)
 def get_action_address(spell_address: str) -> Optional[str]:
     """Get the action contract address from the spell contract with retry mechanism."""

@@ -23,8 +23,8 @@ add_project_root_to_path()
 # Import verifiers and contract data utilities from the verification package
 
 from scripts.verification import (
-    EtherscanVerifier,
-    SourcifyVerifier,
+    VerifierEtherscan,
+    VerifierSourcify,
     get_chain_id,
     get_library_address,
     get_action_address
@@ -74,7 +74,7 @@ def setup_verifiers(chain_id: str) -> List[Any]:
             'ETHERSCAN_API_KEY',
             "Etherscan API key not found. Set ETHERSCAN_API_KEY environment variable."
         )
-        etherscan_verifier = EtherscanVerifier(etherscan_api_key, chain_id)
+        etherscan_verifier = VerifierEtherscan(etherscan_api_key, chain_id)
         if etherscan_verifier.is_available():
             verifiers.append(etherscan_verifier)
             print(f"✓ Etherscan verifier available for chain {chain_id}")
@@ -86,7 +86,7 @@ def setup_verifiers(chain_id: str) -> List[Any]:
     # Setup Sourcify verifier
     # Note: Blockscout automatically picks up any code verification from Sourcify
     try:
-        sourcify_verifier = SourcifyVerifier(chain_id)
+        sourcify_verifier = VerifierSourcify(chain_id)
         if sourcify_verifier.is_available():
             verifiers.append(sourcify_verifier)
             print(f"✓ Sourcify verifier available for chain {chain_id}")

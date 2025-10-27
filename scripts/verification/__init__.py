@@ -3,20 +3,18 @@
 Verification package for Sky Protocol spells.
 """
 
-from .etherscan_verifier import EtherscanVerifier
-from .sourcify_verifier import SourcifyVerifier
+from .verifier_etherscan import VerifierEtherscan
+from .verifier_sourcify import VerifierSourcify
 from .contract_data import (
     get_chain_id,
     get_library_address,
-    get_contract_metadata,
     get_action_address
 )
 
 __all__ = [
-    'EtherscanVerifier',
-    'SourcifyVerifier',
+    'VerifierEtherscan',
+    'VerifierSourcify',
     'get_chain_id',
     'get_library_address',
-    'get_contract_metadata',
     'get_action_address'
 ]

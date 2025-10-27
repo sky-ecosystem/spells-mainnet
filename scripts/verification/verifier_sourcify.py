@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Etherscan block explorer verifier implementation using forge verify-contract.
+Sourcify block explorer verifier implementation using forge verify-contract.
 """
 import sys
 import subprocess
@@ -10,21 +10,19 @@ from .retry import retry_with_backoff
 # Block explorer configurations
 CHAIN_ID = '1'  # Mainnet only
 
-
-class EtherscanVerifier:
-    """Etherscan block explorer verifier using forge verify-contract."""
+class VerifierSourcify:
+    """Sourcify block explorer verifier using forge verify-contract."""
     
-    def __init__(self, api_key: str, chain_id: str):
-        self.api_key = api_key
+    def __init__(self, chain_id: str):
         self.chain_id = chain_id
     
     def is_available(self) -> bool:
-        """Check if Etherscan supports this chain."""
+        """Check if Sourcify supports this chain."""
         return self.chain_id == CHAIN_ID
     
     def get_verification_url(self, contract_address: str) -> str:
-        """Get Etherscan URL for the verified contract."""
-        return f"https://etherscan.io/address/{contract_address}#code"
+        """Get Sourcify URL for the verified contract."""
+        return f"https://sourcify.dev/#/lookup/{contract_address}"
     
     @retry_with_backoff(max_retries=3, base_delay=2, max_delay=30)
     def verify_contract(
@@ -34,16 +32,15 @@ class EtherscanVerifier:
         constructor_args: str,
         library_address: str = ""
     ) -> bool:
-        """Verify contract on Etherscan using forge verify-contract."""
-        print(f'\nVerifying {contract_name} at {contract_address} on Etherscan...')
+        """Verify contract on Sourcify using forge verify-contract."""
+        print(f'\nVerifying {contract_name} at {contract_address} on Sourcify...')
         
         # Build forge verify-contract command
         cmd = [
             'forge', 'verify-contract',
             contract_address,
             f'src/DssSpell.sol:{contract_name}',
-            '--verifier', 'etherscan',
-            '--etherscan-api-key', self.api_key,
+            '--verifier', 'sourcify',
             '--flatten',
             '--watch'
         ]
@@ -70,7 +67,7 @@ class EtherscanVerifier:
         except subprocess.CalledProcessError as e:
             # Check if it's already verified
             if 'already verified' in e.stderr.lower() or 'already verified' in e.stdout.lower():
-                print('✓ Contract is already verified on Etherscan')
+                print('✓ Contract is already verified on Sourcify')
                 return True
             
             print(f"✗ Verification failed: {e.stderr}", file=sys.stderr)
