@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Enhanced contract verification script for Sky Protocol spells.
+Enhanced contract verification script for Sky Protocol spells on mainnet.
 This script verifies both the DssSpell and DssSpellAction contracts on multiple block explorers
 using forge verify-contract --flatten with robust retry mechanisms and fallback options.
 """
@@ -27,7 +27,6 @@ from scripts.verification import (
     SourcifyVerifier,
     get_chain_id,
     get_library_address,
-    get_contract_metadata,
     get_action_address
 )
 
@@ -123,24 +122,24 @@ def verify_contract_with_verifiers(
                 contract_name=contract_name,
                 contract_address=contract_address,
                 constructor_args=constructor_args,
-                library_address=library_address
+                library_address=library_address,
             )
             
             if success:
                 successful_verifications += 1
-                print(f"✓ Successfully verified on {verifier.__class__.__name__}")
-            else:
-                print(f"✗ Verification failed on {verifier.__class__.__name__}")
                 
         except Exception as e:
             print(f"✗ Error during verification with {verifier.__class__.__name__}: {str(e)}", file=sys.stderr)
     
     # Report final results after trying all verifiers
     if successful_verifications == 0:
-        print(f"\n❌ Failed to verify contract on any verifier ({total_verifiers} attempted)")
+        print(f"\n❌ Failed to verify contract on all verifiers ({total_verifiers} attempted)")
         return False
+    elif successful_verifications < total_verifiers:
+        print(f"\n⚠️ Contract verified successfully in only {successful_verifications}/{total_verifiers} verifiers!")
+        return True
     else:
-        print(f"\n🎉 Contract verified successfully on {successful_verifications}/{total_verifiers} verifiers!")
+        print(f"\n🎉 Contract verified successfully in {total_verifiers} verifiers!")
         return True
 
 
@@ -148,7 +147,7 @@ def main():
     """Main entry point for the enhanced verification script."""
     try:
         # Get environment variables
-        rpc_url = get_env_var(
+        get_env_var(
             'ETH_RPC_URL',
             "You need a valid ETH_RPC_URL.\n"
             "Get a public one at https://chainlist.org/ or provide your own\n"
@@ -168,18 +167,11 @@ def main():
         print("Setting up verifiers...")
         verifiers = setup_verifiers(chain_id)
 
-        # Get contract metadata
-        metadata = get_contract_metadata(
-            f'out/DssSpell.sol/DssSpell.json',
-            SOURCE_FILE_PATH
-        )
-
         # Verify spell contract
         spell_success = verify_contract_with_verifiers(
             contract_name=spell_name,
             contract_address=spell_address,
             constructor_args=constructor_args,
-            metadata=metadata,
             library_address=library_address,
             verifiers=verifiers
         )
@@ -198,7 +190,6 @@ def main():
             contract_name="DssSpellAction",
             contract_address=action_address,
             constructor_args=constructor_args,
-            metadata=metadata,
             library_address=library_address,
             verifiers=verifiers
         )

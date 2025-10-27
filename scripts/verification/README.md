@@ -58,13 +58,11 @@ make verify addr=0x1234567890123456789012345678901234567890
 ## Supported Block Explorers
 
 ### Etherscan
-- **Chains**: Mainnet (1), Sepolia (11155111)
 - **API**: Etherscan API v2
 - **Requirements**: API key
 - **Features**: Full verification with constructor arguments and libraries
 
 ### Sourcify
-- **Chains**: Mainnet (1), Sepolia (11155111)
 - **API**: Sourcify API
 - **Requirements**: No API key required
 - **Features**: Open-source verification service

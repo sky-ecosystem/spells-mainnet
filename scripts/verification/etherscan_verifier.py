@@ -2,18 +2,13 @@
 """
 Etherscan block explorer verifier implementation using forge verify-contract.
 """
-import os
 import sys
 import subprocess
 
 from .retry import retry_with_backoff
 
 # Block explorer configurations
-ETHERSCAN_SUBDOMAINS = {
-    '1': '',
-    '11155111': 'sepolia.'
-}
-SUPPORTED_CHAIN_IDS = ['1', '11155111']  # Mainnet and Sepolia
+CHAIN_ID = '1'  # Mainnet only
 
 
 class EtherscanVerifier:
@@ -22,15 +17,14 @@ class EtherscanVerifier:
     def __init__(self, api_key: str, chain_id: str):
         self.api_key = api_key
         self.chain_id = chain_id
-        self.subdomain = ETHERSCAN_SUBDOMAINS.get(chain_id, '')
     
     def is_available(self) -> bool:
         """Check if Etherscan supports this chain."""
-        return self.chain_id in SUPPORTED_CHAIN_IDS
+        return self.chain_id == CHAIN_ID
     
     def get_verification_url(self, contract_address: str) -> str:
         """Get Etherscan URL for the verified contract."""
-        return f"https://{self.subdomain}etherscan.io/address/{contract_address}#code"
+        return f"https://etherscan.io/address/{contract_address}#code"
     
     @retry_with_backoff(max_retries=3, base_delay=2, max_delay=30)
     def verify_contract(
@@ -47,7 +41,7 @@ class EtherscanVerifier:
         cmd = [
             'forge', 'verify-contract',
             contract_address,
-            f'src/{contract_name}.sol:{contract_name}',
+            f'src/DssSpell.sol:{contract_name}',
             '--verifier', 'etherscan',
             '--etherscan-api-key', self.api_key,
             '--flatten',
@@ -62,30 +56,25 @@ class EtherscanVerifier:
         if library_address:
             cmd.extend(['--libraries', f'src/DssExecLib.sol:DssExecLib:{library_address}'])
         
-        # Set environment variables for the subprocess
-        env = os.environ.copy()
-        env['ETH_RPC_URL'] = os.environ.get('ETH_RPC_URL', '')
-        
         try:
             subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
                 check=True,
-                env=env
             )
             
-            print(f'Contract verified successfully at {self.get_verification_url(contract_address)}')
+            print(f'✓ Contract verified successfully at {self.get_verification_url(contract_address)}')
             return True
             
         except subprocess.CalledProcessError as e:
             # Check if it's already verified
             if 'already verified' in e.stderr.lower() or 'already verified' in e.stdout.lower():
-                print('Contract is already verified on Etherscan')
+                print('✓ Contract is already verified on Etherscan')
                 return True
             
-            print(f"Verification failed: {e.stderr}", file=sys.stderr)
+            print(f"✗ Verification failed: {e.stderr}", file=sys.stderr)
             return False
         except Exception as e:
-            print(f"Unexpected error during verification: {str(e)}", file=sys.stderr)
+            print(f"✗ Unexpected error during verification: {str(e)}", file=sys.stderr)
             return False

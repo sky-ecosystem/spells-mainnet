@@ -30,10 +30,10 @@ def get_chain_id() -> str:
 
 
 def get_library_address() -> str:
-    """Find the DssExecLib address from either DssExecLib.address file or foundry.toml."""
+    """Find the DssExecLib address from foundry.toml."""
     library_address = ''
 
-    # First try to read from foundry.toml libraries
+    # Try to read from foundry.toml libraries
     if os.path.exists('foundry.toml'):
         try:
             with open('foundry.toml', 'r') as f:
@@ -50,17 +50,6 @@ def get_library_address() -> str:
             print(f'Error reading foundry.toml: {str(e)}', file=sys.stderr)
     else:
         print('No foundry.toml found', file=sys.stderr)
-
-    # If it cannot be found, try DssExecLib.address
-    if os.path.exists('DssExecLib.address'):
-        try:
-            print(f'Trying to read DssExecLib.address...', file=sys.stderr)
-            with open('DssExecLib.address', 'r') as f:
-                library_address = f.read().strip()
-            print(f'Using library {LIBRARY_NAME} at address {library_address}')
-            return library_address
-        except Exception as e:
-            print(f'Error reading DssExecLib.address: {str(e)}', file=sys.stderr)
 
     # If we get here, no library address was found
     print('WARNING: Assuming this contract uses no libraries', file=sys.stderr)

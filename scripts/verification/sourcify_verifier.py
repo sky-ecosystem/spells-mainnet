@@ -2,14 +2,13 @@
 """
 Sourcify block explorer verifier implementation using forge verify-contract.
 """
-import os
 import sys
 import subprocess
 
 from .retry import retry_with_backoff
 
 # Block explorer configurations
-SUPPORTED_CHAIN_IDS = ['1', '11155111']  # Mainnet and Sepolia
+CHAIN_ID = '1'  # Mainnet only
 
 class SourcifyVerifier:
     """Sourcify block explorer verifier using forge verify-contract."""
@@ -19,7 +18,7 @@ class SourcifyVerifier:
     
     def is_available(self) -> bool:
         """Check if Sourcify supports this chain."""
-        return self.chain_id in SUPPORTED_CHAIN_IDS
+        return self.chain_id == CHAIN_ID
     
     def get_verification_url(self, contract_address: str) -> str:
         """Get Sourcify URL for the verified contract."""
@@ -40,7 +39,7 @@ class SourcifyVerifier:
         cmd = [
             'forge', 'verify-contract',
             contract_address,
-            f'src/{contract_name}.sol:{contract_name}',
+            f'src/DssSpell.sol:{contract_name}',
             '--verifier', 'sourcify',
             '--flatten',
             '--watch'
@@ -54,31 +53,25 @@ class SourcifyVerifier:
         if library_address:
             cmd.extend(['--libraries', f'src/DssExecLib.sol:DssExecLib:{library_address}'])
         
-        # Set environment variables for the subprocess
-        env = os.environ.copy()
-        env['ETH_RPC_URL'] = os.environ.get('ETH_RPC_URL', '')
-        
         try:
             subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
                 check=True,
-                env=env
             )
             
-            print(f'Contract verified successfully on Sourcify')
-            print(f'View at: {self.get_verification_url(contract_address)}')
+            print(f'✓ Contract verified successfully at {self.get_verification_url(contract_address)}')
             return True
             
         except subprocess.CalledProcessError as e:
             # Check if it's already verified
             if 'already verified' in e.stderr.lower() or 'already verified' in e.stdout.lower():
-                print('Contract is already verified on Sourcify')
+                print('✓ Contract is already verified on Sourcify')
                 return True
             
-            print(f"Verification failed: {e.stderr}", file=sys.stderr)
+            print(f"✗ Verification failed: {e.stderr}", file=sys.stderr)
             return False
         except Exception as e:
-            print(f"Unexpected error during verification: {str(e)}", file=sys.stderr)
+            print(f"✗ Unexpected error during verification: {str(e)}", file=sys.stderr)
             return False
