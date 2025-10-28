@@ -2932,8 +2932,10 @@ contract DssSpellTestBase is Config, DssTest {
         if (address(_gem) != address(sky)) {
             assertGe(balance, vestableAmt, _concat(string("TestError/insufficient-transferrable-vest-balance-"), _errSuffix));
         } else {
-            // Note: SKY streams will operate out of buybacks, check that balance is sufficient for short term (20 days)
-            vm.warp(block.timestamp + 20 days);
+            // Note: SKY streams will operate out of buybacks, check that balance is sufficient for short term (6 days)
+            // Note: Decreased from 20 days to 6 days because of the new vest cap.
+            // Note: Increased splitter.burn from 25% to 100% will take care of having enough SKY to cover the streams.
+            vm.warp(block.timestamp + 6 days);
 
             uint256 requiredBalance;
             for (uint256 i = 1; i <= vest.ids(); i++) {
@@ -2942,7 +2944,7 @@ contract DssSpellTestBase is Config, DssTest {
                 }
             }
 
-            assertGe(balance, requiredBalance, _concat(string("TestError/insufficient-transferrable-vest-balance-for-20-days-"), _errSuffix));
+            assertGe(balance, requiredBalance, _concat(string("TestError/insufficient-transferrable-vest-balance-for-6-days-"), _errSuffix));
         }
     }
 
@@ -3691,7 +3693,7 @@ contract DssSpellTestBase is Config, DssTest {
                 .target(address(vat))
                 .sig("dai(address)")
                 .with_key(address(vow))
-                .checked_write(vat.sin(address(vow)) + vow.bump() + vow.hump());
+                .checked_write(uint256(int256(vat.sin(address(vow))) + int256(kick.kbump()) + int256(kick.khump())));
 
             GemAbstract pair = GemAbstract(addr.addr("UNIV2USDSSKY"));
             FlapOracleLike pip = FlapOracleLike(flap.pip());
@@ -3699,20 +3701,18 @@ contract DssSpellTestBase is Config, DssTest {
             vm.prank(address(flap));
             uint256 price = uint256(pip.read());
 
-            // Ensure there is enough liquidity
-            uint256 usdsWad = 150_000_000 * WAD;
+            // Ensure there is enough liquidity (deep pool to minimize price impact)
+            uint256 usdsWad = 2_500_000_000 * WAD; // 2.5B USDS
             GodMode.setBalance(address(usds), address(pair), usdsWad);
-            // Ensure price is within the tolerane (flap.want() + delta (1 p.p.))
-            uint256 skyWad = usdsWad * (flap.want() + 10**16) / price;
+            // Ensure price is within the tolerance (flap.want() + delta)
+            uint256 skyWad = usdsWad * (flap.want() + 5 * 10**16) / price; // +5% buffer over want
             GodMode.setBalance(address(sky), address(pair), skyWad);
 
-            uint256 lotRad = vow.bump() * split.burn() / WAD;
-            uint256 payWad = (vow.bump() - lotRad) / RAY;
+            // Update pair reserves to reflect direct balance writes
+            (bool ok, ) = address(pair).call(abi.encodeWithSignature("sync()"));
+            ok;
 
-            uint256 pskyBalancePauseProxy = sky.balanceOf(pauseProxy);
-            uint256 pdaiVow = vat.dai(address(vow));
-            uint256 preserveUsds = usds.balanceOf(address(pair));
-            uint256 preserveSky = sky.balanceOf(address(pair));
+            uint256 lotRad = kick.kbump() * split.burn() / WAD;
 
             uint256 pbalanceUsdsFarm;
             // Checking the farm balance is only relevant if split.burn() < 100%
@@ -3721,17 +3721,27 @@ contract DssSpellTestBase is Config, DssTest {
                 assertFalse(split.farm() == address(0), "TestError/Splitter/missing-farm");
             }
 
-            vow.flap();
+            {
+                uint256 pskyBalancePauseProxy   = sky.balanceOf(pauseProxy);
+                uint256 pdaiVow                 = vat.dai(address(vow));
+                uint256 preserveUsds            = usds.balanceOf(address(pair));
+                uint256 preserveSky             = sky.balanceOf(address(pair));
+                uint256 preSin                  = vat.sin(address(vow));
 
-            assertGt(sky.balanceOf(pauseProxy),       pskyBalancePauseProxy,       "TestError/Flapper/unexpected-sky-pause-proxy-balance");
-            assertLt(sky.balanceOf(address(pair)),    preserveSky,                 "TestError/Flapper/unexpected-sky-pair-balance");
-            assertEq(usds.balanceOf(address(pair)),   preserveUsds + lotRad / RAY, "TestError/Flapper/invalid-usds-pair-balance-increase");
-            assertEq(pdaiVow - vat.dai(address(vow)), vow.bump(),                  "TestError/Flapper/invalid-vat-dai-vow-change");
-            assertEq(usds.balanceOf(address(flap)),   0,                           "TestError/Flapper/invalid-usds-balance");
-            assertEq(sky.balanceOf(address(flap)),    0,                           "TestError/Flapper/invalid-sky-balance");
+                kick.flap();
 
-            if (split.burn() < 1 * WAD) {
-                assertEq(usds.balanceOf(split.farm()), pbalanceUsdsFarm + payWad, "TestError/Splitter/invalid-farm-balance");
+                assertGt(sky.balanceOf(pauseProxy),       pskyBalancePauseProxy,       "TestError/Flapper/unexpected-sky-pause-proxy-balance");
+                assertLt(sky.balanceOf(address(pair)),    preserveSky,                 "TestError/Flapper/unexpected-sky-pair-balance");
+                assertEq(usds.balanceOf(address(pair)),   preserveUsds + lotRad / RAY, "TestError/Flapper/invalid-usds-pair-balance-increase");
+                assertEq(vat.dai(address(vow)),           pdaiVow,                     "TestError/Flapper/invalid-vat-dai-vow-change");
+                assertEq(usds.balanceOf(address(flap)),   0,                           "TestError/Flapper/invalid-usds-balance");
+                assertEq(sky.balanceOf(address(flap)),    0,                           "TestError/Flapper/invalid-sky-balance");
+                assertEq(vat.sin(address(vow)) - preSin,  kick.kbump(),                "TestError/Flapper/invalid-sin-increase");
+
+                if (split.burn() < 1 * WAD) {
+                    uint256 payWad = (kick.kbump() - lotRad) / RAY;
+                    assertEq(usds.balanceOf(split.farm()), pbalanceUsdsFarm + payWad, "TestError/Splitter/invalid-farm-balance");
+                }
             }
         }
 
@@ -3742,67 +3752,6 @@ contract DssSpellTestBase is Config, DssTest {
             vm.prank(chief.hat());
             splitterMom.stop();
             assertEq(split.hop(), type(uint256).max, "TestError/SplitterMom/not-stopped");
-        }
-    }
-
-    function _testKicker() internal {
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done());
-
-        assertEq(vow.bump(), 0, "TestError/Kicker/invalid-vow-bump");
-        assertEq(vow.hump(), type(uint256).max, "TestError/Kicker/invalid-vow-hump");
-        assertEq(vow.dump(), 0, "TestError/Kicker/invalid-vow-dump");
-        assertEq(vow.sump(), type(uint256).max, "TestError/Kicker/invalid-vow-sump");
-
-        assertEq(kick.khump(), -200_000_000 * int256(RAD));
-        assertEq(kick.kbump(), 100_000_000 * RAD);
-        assertEq(kick.vow(), address(vow), "TestError/Kicker/invalid-vow");
-        assertEq(kick.splitter(), address(split), "TestError/Kicker/invalid-splitter");
-
-        assertEq(vat.wards(address(kick)), 1, "TestError/Kicker/invalid-vat-wards");
-        assertEq(split.wards(address(kick)), 1, "TestError/Kicker/invalid-splitter-wards");
-
-        // Check Kicker can kick
-        {
-            // Leave surplus buffer ready to be flapped
-            vow.heal(vat.sin(address(vow)) - (vow.Sin() + vow.Ash()));
-
-            // Ensure the Kicker threshold condition is satisfied per Kicker.sol
-            // dai(vow) >= sin(vow) + kbump + khump ; with khump negative, using sin + kbump is sufficient
-            stdstore
-                .target(address(vat))
-                .sig("dai(address)")
-                .with_key(address(vow))
-                .checked_write(vat.sin(address(vow)) + kick.kbump());
-
-            // The check for the configured value is already done in `_checkSystemValues()`
-            assertLt(kick.khump(), 0, "TestError/Kicker/already-kicked");
-
-            // Seed sufficient liquidity and align price tolerance so the swap does not revert
-            // Mirror declarations from _testSplitter
-            GemAbstract    pair = GemAbstract(addr.addr("UNIV2USDSSKY"));
-            FlapOracleLike pip  = FlapOracleLike(flap.pip());
-            // Read oracle price as the flapper would (bypassing whitelist via prank)
-            vm.prank(address(flap));
-            uint256 price = uint256(pip.read());
-
-            // Provide ample USDS liquidity to the pair (large to minimize slippage for 25M swap)
-            uint256 usdsWad = 2_500_000_000 * WAD; // 2.5B USDS
-            GodMode.setBalance(address(usds), address(pair), usdsWad);
-
-            // Provide SKY liquidity consistent with price and a +5% buffer over want (account for swap fee + slippage)
-            // This ensures the computed minimum buy amount can be met
-            uint256 skyWad = usdsWad * (flap.want() + 5 * 10**16) / price;
-            GodMode.setBalance(address(sky), address(pair), skyWad);
-
-            // Update Uniswap pair reserves to reflect the direct balance writes
-            // (low-level call to avoid adding a dedicated interface here)
-            (bool ok, ) = address(pair).call(abi.encodeWithSignature("sync()"));
-            ok; // silence warning
-            
-            // Now the kicker-triggered flap should succeed
-            kick.flap();
         }
     }
 
