@@ -679,15 +679,11 @@ contract DssSpellTest is DssSpellTestBase {
     function testVestSky() public { // add the `skipped` modifier to skip
         uint256 spellCastTime = _getSpellCastTime();
 
-        // New vest stream created by TreasuryFundedFarmingInit for REWARDS_LSSKY_SKY
-        address dist = addr.addr("REWARDS_DIST_LSSKY_SKY");
-        uint256 vestId = VestedRewardsDistributionLike(dist).vestId();
-
         // Build expected new stream
         NewVestStream[] memory newStreams = new NewVestStream[](1);
         newStreams[0] = NewVestStream({
-            id:  vestId,
-            usr: dist,
+            id:  8,
+            usr: addr.addr("REWARDS_DIST_LSSKY_SKY"),
             bgn: spellCastTime - 7 days,
             clf: spellCastTime - 7 days,
             fin: (spellCastTime - 7 days) + 180 days,
@@ -695,7 +691,7 @@ contract DssSpellTest is DssSpellTestBase {
             mgr: address(0),
             res: 1,
             tot: 1_000_000_000 * WAD,
-            rxd: 0
+            rxd: (7 days * 1_000_000_000 * WAD) / 180 days
         });
 
         // No yanked streams expected
