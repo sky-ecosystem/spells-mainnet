@@ -18,8 +18,9 @@ pragma solidity 0.8.16;
 
 import "dss-exec-lib/DssExec.sol";
 import "dss-exec-lib/DssAction.sol";
-import { FlapperInit, KickerConfig } from "src/dependencies/dss-flappers/FlapperInit.sol";
 import { DssInstance, MCD } from "dss-test/MCD.sol";
+import { FlapperInit, KickerConfig } from "src/dependencies/dss-flappers/FlapperInit.sol";
+import { TreasuryFundedFarmingInit, FarmingInitParams } from "src/dependencies/lockstake/TreasuryFundedFarmingInit.sol";
 
 interface ProxyLike {
     function exec(address target, bytes calldata args) external payable returns (bytes memory out);
@@ -62,13 +63,20 @@ contract DssSpellAction is DssAction {
     uint256 internal constant RAD = 10 ** 45;
 
     // ---------- Contracts ----------
-    address internal immutable CRON_SEQUENCER       = DssExecLib.getChangelogAddress("CRON_SEQUENCER");
-    address internal immutable MCD_SPLIT            = DssExecLib.getChangelogAddress("MCD_SPLIT");
-    address internal immutable REWARDS_LSSKY_USDS   = DssExecLib.getChangelogAddress("REWARDS_LSSKY_USDS");
+    address internal immutable CRON_REWARDS_DIST_JOB    = DssExecLib.getChangelogAddress("CRON_REWARDS_DIST_JOB");
+    address internal immutable CRON_SEQUENCER           = DssExecLib.getChangelogAddress("CRON_SEQUENCER");
+    address internal immutable MCD_SPLIT                = DssExecLib.getChangelogAddress("MCD_SPLIT");
+    address internal immutable MCD_VEST_SKY_TREASURY    = DssExecLib.getChangelogAddress("MCD_VEST_SKY_TREASURY");
+    address internal immutable LOCKSTAKE_ENGINE         = DssExecLib.getChangelogAddress("LOCKSTAKE_ENGINE");
+    address internal immutable LOCKSTAKE_SKY            = DssExecLib.getChangelogAddress("LOCKSTAKE_SKY");
+    address internal immutable REWARDS_LSSKY_USDS       = DssExecLib.getChangelogAddress("REWARDS_LSSKY_USDS");
+    address internal immutable SKY                      = DssExecLib.getChangelogAddress("SKY");
 
-    address internal constant KICKER        = 0xD889477102e8C4A857b78Fcc2f134535176Ec1Fc;
-    address internal constant OLD_FLAP_JOB  = 0xc32506E9bB590971671b649d9B8e18CB6260559F;
-    address internal constant NEW_FLAP_JOB  = 0xE564C4E237f4D7e0130FdFf6ecC8a5E931C51494;
+    address internal constant KICKER                    = 0xD889477102e8C4A857b78Fcc2f134535176Ec1Fc;
+    address internal constant OLD_FLAP_JOB              = 0xc32506E9bB590971671b649d9B8e18CB6260559F;
+    address internal constant NEW_FLAP_JOB              = 0xE564C4E237f4D7e0130FdFf6ecC8a5E931C51494;
+    address internal constant REWARDS_LSSKY_SKY         = 0xB44C2Fb4181D7Cb06bdFf34A46FdFe4a259B40Fc;
+    address internal constant REWARDS_DIST_LSSKY_SKY    = 0x675671A8756dDb69F7254AFB030865388Ef699Ee;
 
     function actions() public override {
         // ---------- Initialize Kicker ----------
@@ -114,32 +122,36 @@ contract DssSpellAction is DssAction {
         // ---------- Initialize lsSKY->SKY Farm ----------
 
         // Call TreasuryFundedFarmingInit.initLockstakeFarm with the following parameters:
+        // Note: Create FarmingInitParams with the following parameters:
+        FarmingInitParams memory farmingInitParams = FarmingInitParams({
+            // stakingToken: LOCKSTAKE_SKY from chainlog
+            stakingToken: LOCKSTAKE_SKY,
+            // rewardsToken: SKY from chainlog
+            rewardsToken: SKY,
+            // rewards: 0xB44C2Fb4181D7Cb06bdFf34A46FdFe4a259B40Fc
+            rewards: REWARDS_LSSKY_SKY,
+            // rewardsKey: REWARDS_LSSKY_SKY
+            rewardsKey: "REWARDS_LSSKY_SKY",
+            // dist: 0x675671A8756dDb69F7254AFB030865388Ef699Ee
+            dist: REWARDS_DIST_LSSKY_SKY,
+            // distKey: REWARDS_DIST_LSSKY_SKY
+            distKey: "REWARDS_DIST_LSSKY_SKY",
+            // distJob: CRON_REWARDS_DIST_JOB from chainlog
+            distJob: CRON_REWARDS_DIST_JOB,
+            // distJobInterval: 7 days - 1 hours
+            distJobInterval: 7 days - 1 hours,
+            // vest: MCD_VEST_SKY_TREASURY from chainlog
+            vest: MCD_VEST_SKY_TREASURY,
+            // vestTot: 1,000,000,000 SKY
+            vestTot: 1_000_000_000 * WAD,
+            // vestBgn: block.timestamp - 7 days
+            vestBgn: block.timestamp - 7 days,
+            // vestTau: 180 days
+            vestTau: 180 days
+        });
 
-        // stakingToken: LOCKSTAKE_SKY from chainlog
-
-        // rewardsToken: SKY from chainlog
-
-        // rewards: 0xB44C2Fb4181D7Cb06bdFf34A46FdFe4a259B40Fc
-
-        // rewardsKey: REWARDS_LSSKY_SKY
-
-        // dist: 0x675671A8756dDb69F7254AFB030865388Ef699Ee
-
-        // distKey: REWARDS_DIST_LSSKY_SKY
-
-        // distJob: CRON_REWARDS_DIST_JOB from chainlog
-
-        // distJobInterval: 7 days - 1 hours
-
-        // vest: MCD_VEST_SKY_TREASURY from chainlog
-
-        // vestTot: 1,000,000,000 SKY
-
-        // vestBgn: block.timestamp - 7 days
-
-        // vestTau: 180 days
-
-        // lockstakeEngine: LOCKSTAKE_ENGINE from chainlog
+        // Note: Call TreasuryFundedFarmingInit.initLockstakeFarm with the parameters created above:
+        TreasuryFundedFarmingInit.initLockstakeFarm(farmingInitParams, LOCKSTAKE_ENGINE);
 
         // ---------- Initialize Spark StarGuard ----------
 

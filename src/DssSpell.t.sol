@@ -45,6 +45,18 @@ interface SequencerLike {
     function hasJob(address job) external view returns (bool);
 }
 
+interface DssVestTransferrableLike {
+    function czar() external view returns (address);
+    function gem() external view returns (address);
+}
+
+interface VestedRewardsDistributionLike {
+    function gem() external view returns (address);
+    function dssVest() external view returns (address);
+    function vestId() external view returns (uint256);
+    function stakingRewards() external view returns (address);
+}
+
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -1332,5 +1344,60 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(split.burn(), 1 * WAD, "Splitter/burn-not-set");
         assertEq(split.hop(), 2_880, "Splitter/hop-not-set");
         assertEq(StakingRewardsLike(addr.addr("REWARDS_LSSKY_USDS")).rewardsDuration(), 2_880, "StakingRewards/rewardsDuration-not-set");
+    }
+
+    function testLsskySkyFarm() public { // add the `skipped` modifier to skip
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        address rewards    = addr.addr("REWARDS_LSSKY_SKY");
+        address dist       = addr.addr("REWARDS_DIST_LSSKY_SKY");
+        address lssky      = addr.addr("LOCKSTAKE_SKY");
+
+        // StakingRewards wiring
+        {
+            StakingRewardsLike rw = StakingRewardsLike(rewards);
+            assertEq(rw.stakingToken(),  lssky,          "Rewards/staking-token-mismatch");
+            assertEq(rw.rewardsToken(),  address(sky),            "Rewards/rewards-token-mismatch");
+            assertEq(rw.rewardsDistribution(), dist,     "Rewards/rewards-distribution-not-set");
+            assertEq(rw.owner(),         pauseProxy,     "Rewards/invalid-owner");
+        }
+
+        // Distribution contract wiring
+        {
+            VestedRewardsDistributionLike d = VestedRewardsDistributionLike(dist);
+            assertEq(d.gem(),           address(sky),      "Dist/gem-mismatch");
+            assertEq(d.dssVest(),       address(vestSky), "Dist/dss-vest-mismatch");
+            assertEq(d.stakingRewards(), address(rewards), "Dist/staking-rewards-mismatch");
+            assertGt(d.vestId(),        0,        "Dist/vest-id-not-set");
+        }
+
+        uint256 id = vestSky.ids();
+
+        // Vest parameters and cap adjustment check
+        {
+            assertEq(DssVestTransferrableLike(address(vestSky)).czar(), pauseProxy, "Vest/czar-not-set");
+            assertEq(DssVestTransferrableLike(address(vestSky)).gem(),  address(sky, "Vest/gem-not-set");
+            assertEq(vestSky.tot(id),  1_000_000_000 * WAD,       "Vest/tot-not-set");
+            assertEq(vestSky.bgn(id),  block.timestamp - 7 days,  "Vest/bgn-not-set");
+            
+
+            // Cap should be >= 110% of vestTot/vestTau
+            uint256 vestTot = 1_000_000_000 * WAD;
+            uint256 vestTau = 180 days;
+            uint256 rateWithBuffer = (110 * vestTot) / (100 * vestTau);
+            assertGe(vestSky.cap(), rateWithBuffer, "Vest/cap-too-low");
+        }
+
+        // Treasury SKY allowance to vest increased by >= vestTot
+        assertGe(sky.allowance(pauseProxy, address(vestSky)), 1_000_000_000 * WAD, "Treasury/allowance-too-low");
+
+        // After distribute, unpaid for vestId should be zero and rewards should hold some SKY; rewardRate > 0
+        {
+            assertEq(vestSky.unpaid(id), 0, "Vest/unpaid-not-zero-after-distribute");
+            assertGt(sky.balanceOf(address(rewards)), 0,              "Rewards/no-sky-balance");
+            assertGt(StakingRewardsLike(rewards).rewardRate(), 0,   "Rewards/rewardRate-not-set");
+        }
     }
 }
