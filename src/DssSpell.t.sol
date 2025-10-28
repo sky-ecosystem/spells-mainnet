@@ -1270,9 +1270,9 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // Spark tests
-    function testSparkSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
+    function testSparkSpellIsExecuted() public { // add the `skipped` modifier to skip
         address SPARK_PROXY = addr.addr('ALLOCATOR_SPARK_A_SUBPROXY');
-        address SPARK_SPELL = address(0x4924e46935F6706d08413d44dF5C31a9d40F6a64); // Insert Spark spell address
+        address SPARK_SPELL = address(0x71059EaAb41D6fda3e916bC9D76cB44E96818654); // Insert Spark spell address
 
         vm.expectCall(
             SPARK_PROXY,
@@ -1289,9 +1289,9 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // Bloom/Grove tests
-    function testBloomSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
+    function testBloomSpellIsExecuted() public { // add the `skipped` modifier to skip
         address BLOOM_PROXY = addr.addr('ALLOCATOR_BLOOM_A_SUBPROXY');
-        address BLOOM_SPELL = address(0xF2A28fb43D5d3093904B889538277fB175B42Ece); // Insert Bloom spell address
+        address BLOOM_SPELL = address(0x8b4A92f8375ef89165AeF4639E640e077d7C656b); // Insert Bloom spell address
 
         vm.expectCall(
             BLOOM_PROXY,

@@ -91,6 +91,16 @@ contract DssSpellAction is DssAction {
     address internal constant CORE_COUNCIL_DELEGATE_MULTISIG = 0x37FC5d447c8c54326C62b697f674c93eaD2A93A3;
     address internal constant INTEGRATION_BOOST_INITIATIVE = 0xD6891d1DFFDA6B0B1aF3524018a1eE2E608785F7;
 
+    // ---------- Spark Spell ----------
+    // Note: Spark Proxy: https://github.com/sparkdotfi/sparklend-deployments/blob/bba4c57d54deb6a14490b897c12a949aa035a99b/script/output/1/primary-sce-latest.json#L2
+    address internal constant SPARK_PROXY = 0x3300f198988e4C9C63F75dF86De36421f06af8c4;
+    address internal constant SPARK_SPELL = 0x71059EaAb41D6fda3e916bC9D76cB44E96818654;
+
+    // ---------- Bloom/Grove Proxy ----------
+    // Note: The deployment address for the Grove Proxy can be found at https://forum.sky.money/t/technical-scope-of-the-star-2-allocator-launch/26190
+    address internal constant BLOOM_PROXY = 0x1369f7b2b38c76B6478c0f0E66D94923421891Ba;
+    address internal constant BLOOM_SPELL = 0x8b4A92f8375ef89165AeF4639E640e077d7C656b;
+
     function actions() public override {
         // ---------- Initialize Kicker ----------
         // Forum: TODO
@@ -217,14 +227,14 @@ contract DssSpellAction is DssAction {
         // Poll: TODO
 
         // Execute the Spark Proxy Spell at 0x71059EaAb41D6fda3e916bC9D76cB44E96818654
-        // ProxyLike(SPARK_PROXY).exec(SPARK_SPELL, abi.encodeWithSignature("execute()"));
+        ProxyLike(SPARK_PROXY).exec(SPARK_SPELL, abi.encodeWithSignature("execute()"));
 
         // ---------- Execute Bloom/Grove Proxy Spell ----------
         // Forum: TODO
         // Poll: TODO
 
         // Execute the Bloom/Grove Proxy Spell at 0x8b4A92f8375ef89165AeF4639E640e077d7C656b
-        // ProxyLike(BLOOM_PROXY).exec(BLOOM_SPELL, abi.encodeWithSignature("execute()"));
+        ProxyLike(BLOOM_PROXY).exec(BLOOM_SPELL, abi.encodeWithSignature("execute()"));
     }
 
     // ---------- Helper Functions ----------
