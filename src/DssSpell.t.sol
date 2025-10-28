@@ -57,6 +57,21 @@ interface VestedRewardsDistributionLike {
     function stakingRewards() external view returns (address);
 }
 
+interface StarGuardLike {
+    function maxDelay() external view returns (uint256);
+    function subProxy() external view returns (address subProxy);
+    function spellData() external view returns (address addr, bytes32 tag, uint256 deadline);
+    function wards(address usr) external view returns (uint256 allowed);
+}
+
+interface StarGuardJobLike {
+    function has(address starGuard) external view returns (bool);
+}
+
+interface SubProxyLike {
+    function wards(address usr) external view returns (uint256 allowed);
+}
+
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -299,7 +314,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
+    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
         string[2] memory addedKeys = [
             "ALLOCATOR_OBEX_A_VAULT",
             "ALLOCATOR_OBEX_A_BUFFER"
@@ -967,7 +982,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testNewCronJobs() public skipped { // add the `skipped` modifier to skip
+    function testNewCronJobs() public { // add the `skipped` modifier to skip
         SequencerLike seq = SequencerLike(addr.addr("CRON_SEQUENCER"));
         address[1] memory newJobs = [
             addr.addr("CRON_REWARDS_DIST_JOB")
@@ -1408,5 +1423,24 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(maxStr, 5_000, "StusdsRateSetter/max-not-set");
         assertEq(minDuty, 210, "StusdsRateSetter/min-not-set");
         assertEq(maxDuty, 5_000, "StusdsRateSetter/max-not-set");
+    }
+
+    function testStarGuard() public { // add the `skipped` modifier to skip
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        address SPARK_PROXY = addr.addr('ALLOCATOR_SPARK_A_SUBPROXY');
+        address SPARK_STARGUARD = addr.addr("SPARK_STARGUARD");
+
+        assertEq(SubProxyLike(SPARK_PROXY).wards(SPARK_STARGUARD), 1, "SubProxy/wards-not-set");
+        assertEq(StarGuardLike(SPARK_STARGUARD).subProxy(), SPARK_PROXY, "StarGuard/subProxy-not-set");
+        assertEq(StarGuardLike(SPARK_STARGUARD).wards(pauseProxy), 1, "StarGuard/wards-not-set");
+        assertEq(StarGuardLike(SPARK_STARGUARD).maxDelay(), 7 days, "StarGuard/maxDelay-not-set");
+
+        (address spellAddr,,) = StarGuardLike(SPARK_STARGUARD).spellData();
+        assertEq(spellAddr, address(0), "StarGuard/unexpected-plotted-spell");
+
+        assertEq(StarGuardJobLike(addr.addr("CRON_STARGUARD_JOB")).has(SPARK_STARGUARD), true, "StarGuardJob/stars-not-set");
     }
 }

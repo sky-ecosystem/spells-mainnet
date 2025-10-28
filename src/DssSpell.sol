@@ -21,6 +21,7 @@ import "dss-exec-lib/DssAction.sol";
 import { DssInstance, MCD } from "dss-test/MCD.sol";
 import { GemAbstract } from "dss-interfaces/ERC/GemAbstract.sol";
 import { FlapperInit, KickerConfig } from "src/dependencies/dss-flappers/FlapperInit.sol";
+import { StarGuardInit, StarGuardConfig } from "src/dependencies/starguard/StarGuardInit.sol";
 import { TreasuryFundedFarmingInit, FarmingInitParams } from "src/dependencies/lockstake/TreasuryFundedFarmingInit.sol";
 
 interface ProxyLike {
@@ -38,6 +39,10 @@ interface StakingRewardsLike {
 
 interface DaiUsdsLike {
     function daiToUsds(address usr, uint256 wad) external;
+}
+
+interface StarGuardJobLike {
+    function add(address starGuard) external;
 }
 
 contract DssSpellAction is DssAction {
@@ -85,6 +90,8 @@ contract DssSpellAction is DssAction {
     address internal constant NEW_FLAP_JOB              = 0xE564C4E237f4D7e0130FdFf6ecC8a5E931C51494;
     address internal constant REWARDS_LSSKY_SKY         = 0xB44C2Fb4181D7Cb06bdFf34A46FdFe4a259B40Fc;
     address internal constant REWARDS_DIST_LSSKY_SKY    = 0x675671A8756dDb69F7254AFB030865388Ef699Ee;
+    address internal constant SPARK_STARGUARD           = 0x6605aa120fe8b656482903E7757BaBF56947E45E;
+    address internal constant STAR_GUARD_JOB            = 0xB18d211fA69422a9A848B790C5B4a3957F7Aa44E;
 
     // ---------- Wallets ----------
     address internal constant CORE_COUNCIL_BUDGET_MULTISIG = 0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364;
@@ -181,22 +188,33 @@ contract DssSpellAction is DssAction {
         // Call StarGuardInit.init with the following parameters:
 
         // address chainlog: DssExecLib.LOG
+        address chainlog = DssExecLib.LOG;
 
-        // cfg.subProxy: 0x3300f198988e4C9C63F75dF86De36421f06af8c4
+        // Note: Create StarGuardConfig with the following parameters:
+        StarGuardConfig memory starGuardCfg = StarGuardConfig({
+            // cfg.subProxy: SPARK_PROXY
+            subProxy: SPARK_PROXY,
+            // cfg.subProxyKey: SPARK_SUBPROXY
+            subProxyKey: "SPARK_SUBPROXY",
+            // cfg.starGuard: SPARK_STARGUARD
+            starGuard: SPARK_STARGUARD,
+            // cfg.starGuardKey: SPARK_STARGUARD_KEY
+            starGuardKey: "SPARK_STARGUARD",
+            // cfg.maxDelay: 7 days
+            maxDelay: 7 days
+        });
 
-        // cfg.subProxyKey: SPARK_SUBPROXY
-
-        // cfg.starGuard: 0x6605aa120fe8b656482903E7757BaBF56947E45E
-
-        // cfg.starGuardKey: SPARK_STARGUARD
-
-        // cfg.maxDelay: 7 days
+        // Note: Call StarGuardInit.init with the parameters created above:
+        StarGuardInit.init(chainlog, starGuardCfg);
 
         // Add StarGuardJob deployed at 0xB18d211fA69422a9A848B790C5B4a3957F7Aa44E to the Sequencer
+        DssCronSequencerLike(CRON_SEQUENCER).addJob(STAR_GUARD_JOB);
 
         // Add SPARK_STARGUARD to the StarGuardJob
+        StarGuardJobLike(STAR_GUARD_JOB).add(SPARK_STARGUARD);
 
         // Add StarGuardJob to the Chainlog as CRON_STARGUARD_JOB
+        DssExecLib.setChangelogAddress("CRON_STARGUARD_JOB", STAR_GUARD_JOB);
 
         // ---------- Fund Core Council Multisigs ----------
 
