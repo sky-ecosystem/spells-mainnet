@@ -191,12 +191,15 @@ contract DssSpellAction is DssAction {
         // ---------- Fund Core Council Multisigs ----------
 
         // Transfer 3,876,387 USDS to the Core Council Budget Multisig at 0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364
+        _transferUsds(CORE_COUNCIL_BUDGET_MULTISIG, 3_876_387 * WAD);
 
         // Transfer 193,820 USDS to the Core Council Delegate Multisig at 0x37FC5d447c8c54326C62b697f674c93eaD2A93A3
+        _transferUsds(CORE_COUNCIL_DELEGATE_MULTISIG, 193_820 * WAD);
 
         // ---------- Fund Integration Boost Multisig ----------
 
         // Transfer 1,000,000 USDS to 0xD6891d1DFFDA6B0B1aF3524018a1eE2E608785F7
+        _transferUsds(INTEGRATION_BOOST_INITIATIVE, 1_000_000 * WAD);
 
         // ---------- Adjust stUSDS Beam step parameters ----------
 
