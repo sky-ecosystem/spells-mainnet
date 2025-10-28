@@ -153,13 +153,13 @@ contract Config {
         afterSpell.line_offset            = 700 * MILLION;                  // Offset between the global line against the sum of local lines
         afterSpell.pause_delay            = 24 hours;                       // In seconds
         afterSpell.vow_wait               = 156 hours;                      // In seconds
-        afterSpell.vow_dump               = 250;                            // In whole Dai units
+        afterSpell.vow_dump               = 0;                              // In whole Dai units
         afterSpell.vow_sump               = type(uint256).max;              // In whole Dai units
-        afterSpell.vow_bump               = 10 * THOUSAND;                  // In whole Dai units
-        afterSpell.vow_hump_min           = 1 * MILLION;                    // In whole Dai units
-        afterSpell.vow_hump_max           = 1 * MILLION;                    // In whole Dai units
-        afterSpell.split_hop              = 2_160 seconds;                  // In seconds
-        afterSpell.split_burn             = 25_00;                          // In basis points
+        afterSpell.vow_bump               = 0;                              // In whole Dai units
+        afterSpell.vow_hump_min           = type(uint256).max;              // In whole Dai units
+        afterSpell.vow_hump_max           = type(uint256).max;              // In whole Dai units
+        afterSpell.split_hop              = 2_880 seconds;                  // In seconds
+        afterSpell.split_burn             = 100_00;                         // In basis points
         afterSpell.split_farm             = "REWARDS_LSSKY_USDS";           // Farm chainlog key
         afterSpell.flap_want              = 9800;                           // In basis points
         afterSpell.dog_Hole               = 150 * MILLION;                  // In whole Dai units
@@ -180,7 +180,7 @@ contract Config {
         afterSpell.vest_sky_mint_cap      = 176_000_000 * WAD / 182 days;   // In WAD SKY per second
         afterSpell.vest_spk_cap           = 2_502_500_000 * WAD / 730 days; // In WAD SKY per second
         afterSpell.ilk_count              = 31;                             // Num expected in system
-        afterSpell.chainlog_version       = "1.20.6";                       // String expected in system
+        afterSpell.chainlog_version       = "1.20.7";                       // String expected in system
 
         afterSpell.SP_tau       = 57_600 seconds;                             // In seconds
         afterSpell.SP_bud       = 0xe1c6f81D0c3CD570A77813b81AA064c5fff80309; // Address of SPBEAM Bud
@@ -197,10 +197,10 @@ contract Config {
         afterSpell.stusds_rate_setter_maxCap   = 1_000_000_000; // USDS units
         afterSpell.stusds_rate_setter_minStr   = 2_00;          // Minimum allowed rate in bps
         afterSpell.stusds_rate_setter_maxStr   = 50_00;         // Maximum allowed rate in bps
-        afterSpell.stusds_rate_setter_strStep  = 40_00;         // Maximum allowed rate change per update (bps)
+        afterSpell.stusds_rate_setter_strStep  = 5_00;          // Maximum allowed rate change per update (bps)
         afterSpell.stusds_rate_setter_minDuty  = 2_10;          // Minimum allowed rate in bps
         afterSpell.stusds_rate_setter_maxDuty  = 50_00;         // Maximum allowed rate in bps
-        afterSpell.stusds_rate_setter_dutyStep = 40_00;         // Maximum allowed rate change per update (bps)
+        afterSpell.stusds_rate_setter_dutyStep = 5_00;          // Maximum allowed rate change per update (bps)
 
         address[] memory buds = new address[](1);
         buds[0] = 0xBB865F94B8A92E57f79fCc89Dfd4dcf0D3fDEA16;
