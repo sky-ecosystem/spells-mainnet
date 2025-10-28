@@ -176,7 +176,7 @@ contract Config {
         afterSpell.vest_dai_cap           = 1_000_000 * WAD /  30 days;     // In WAD Dai per second
         afterSpell.vest_mkr_cap           = 2_220 * WAD / 365 days;         // In WAD MKR per second
         afterSpell.vest_usds_cap          = 46_200 * WAD /  30 days;        // In WAD USDS per second
-        afterSpell.vest_sky_cap           = 151_250_000 * WAD / 182 days;   // In WAD SKY per second
+        afterSpell.vest_sky_cap           = 1_100_000_000 * WAD / 180 days; // In WAD SKY per second
         afterSpell.vest_sky_mint_cap      = 176_000_000 * WAD / 182 days;   // In WAD SKY per second
         afterSpell.vest_spk_cap           = 2_502_500_000 * WAD / 730 days; // In WAD SKY per second
         afterSpell.ilk_count              = 31;                             // Num expected in system

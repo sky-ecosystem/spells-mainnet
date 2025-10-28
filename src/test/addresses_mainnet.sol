@@ -487,14 +487,14 @@ contract Addresses {
         addr["MCD_JOIN_GNO_A"]                   = 0x7bD3f01e24E0f0838788bC8f573CEA43A80CaBB5;
         addr["MCD_CLIP_GNO_A"]                   = 0xd9e758bd239e5d568f44D0A748633f6a8d52CBbb;
         addr["MCD_CLIP_CALC_GNO_A"]              = 0x17b6D0e4237ea7F880aF5F58257cd232a04171D9;
-        addr["ALLOCATOR_SPARK_A_SUBPROXY"]       = 0x3300f198988e4C9C63F75dF86De36421f06af8c4;
+        addr["SPARK_SUBPROXY"]                   = 0x3300f198988e4C9C63F75dF86De36421f06af8c4;
         addr["CRON_SEQUENCER"]                   = 0x238b4E35dAed6100C6162fAE4510261f88996EC9;
         addr["CRON_AUTOLINE_JOB"]                = 0x67AD4000e73579B9725eE3A149F85C4Af0A61361;
         addr["CRON_LERP_JOB"]                    = 0x8F8f2FC1F0380B9Ff4fE5c3142d0811aC89E32fB;
         addr["CRON_D3M_JOB"]                     = 0x2Ea4aDE144485895B923466B4521F5ebC03a0AeF;
         addr["CRON_CLIPPER_MOM_JOB"]             = 0x7E93C4f61C8E8874e7366cDbfeFF934Ed089f9fF;
         addr["CRON_ORACLE_JOB"]                  = 0xe717Ec34b2707fc8c226b34be5eae8482d06ED03;
-        addr["CRON_FLAP_JOB"]                    = 0xc32506E9bB590971671b649d9B8e18CB6260559F;
+        addr["CRON_FLAP_JOB"]                    = 0xE564C4E237f4D7e0130FdFf6ecC8a5E931C51494;
         addr["CRON_LITE_PSM_JOB"]                = 0x0C86162ba3E507592fC8282b07cF18c7F902C401;
         addr["USDS"]                             = 0xdC035D45d973E3EC169d2276DDab16f1e407384F;
         addr["USDS_IMP"]                         = 0x1923DfeE706A8E78157416C29cBCCFDe7cdF4102;

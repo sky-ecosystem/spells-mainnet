@@ -315,9 +315,13 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
-        string[2] memory addedKeys = [
-            "ALLOCATOR_OBEX_A_VAULT",
-            "ALLOCATOR_OBEX_A_BUFFER"
+        string[6] memory addedKeys = [
+            "MCD_KICK",
+            "REWARDS_LSSKY_SKY",
+            "REWARDS_DIST_LSSKY_SKY",
+            "SPARK_SUBPROXY",
+            "SPARK_STARGUARD",
+            "CRON_STARGUARD_JOB"
         ];
 
         for(uint256 i = 0; i < addedKeys.length; i++) {
@@ -985,7 +989,7 @@ contract DssSpellTest is DssSpellTestBase {
     function testNewCronJobs() public { // add the `skipped` modifier to skip
         SequencerLike seq = SequencerLike(addr.addr("CRON_SEQUENCER"));
         address[1] memory newJobs = [
-            addr.addr("CRON_REWARDS_DIST_JOB")
+            addr.addr("CRON_STARGUARD_JOB")
         ];
 
         for (uint256 i = 0; i < newJobs.length; i++) {
@@ -1286,7 +1290,7 @@ contract DssSpellTest is DssSpellTestBase {
 
     // Spark tests
     function testSparkSpellIsExecuted() public { // add the `skipped` modifier to skip
-        address SPARK_PROXY = addr.addr('ALLOCATOR_SPARK_A_SUBPROXY');
+        address SPARK_PROXY = addr.addr('SPARK_SUBPROXY');
         address SPARK_SPELL = address(0x71059EaAb41D6fda3e916bC9D76cB44E96818654); // Insert Spark spell address
 
         vm.expectCall(
@@ -1430,7 +1434,7 @@ contract DssSpellTest is DssSpellTestBase {
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        address SPARK_PROXY = addr.addr('ALLOCATOR_SPARK_A_SUBPROXY');
+        address SPARK_PROXY = addr.addr('SPARK_SUBPROXY');
         address SPARK_STARGUARD = addr.addr("SPARK_STARGUARD");
 
         assertEq(SubProxyLike(SPARK_PROXY).wards(SPARK_STARGUARD), 1, "SubProxy/wards-not-set");
