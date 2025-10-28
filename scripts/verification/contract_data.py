@@ -5,24 +5,25 @@ This module handles contract metadata extraction, source code flattening,
 and other contract-related data operations.
 """
 import os
-import sys
-import subprocess
 import re
+import subprocess
+import sys
 from typing import Optional
 
 from .retry import retry_with_backoff
 
-
 # Constants
-SOURCE_FILE_PATH = 'src/DssSpell.sol'
-LIBRARY_NAME = 'DssExecLib'
+SOURCE_FILE_PATH = "src/DssSpell.sol"
+LIBRARY_NAME = "DssExecLib"
 
 
 @retry_with_backoff(max_retries=2, base_delay=1)
 def get_chain_id() -> str:
     """Get the current chain ID with retry mechanism."""
-    print('Obtaining chain ID... ')
-    result = subprocess.run(['cast', 'chain-id'], capture_output=True, text=True, check=True)
+    print("Obtaining chain ID... ")
+    result = subprocess.run(
+        ["cast", "chain-id"], capture_output=True, text=True, check=True
+    )
     chain_id = result.stdout.strip()
     print(f"CHAIN_ID: {chain_id}")
     return chain_id
@@ -30,29 +31,29 @@ def get_chain_id() -> str:
 
 def get_library_address() -> str:
     """Find the DssExecLib address from foundry.toml."""
-    library_address = ''
+    library_address = ""
 
     # Try to read from foundry.toml libraries
-    if os.path.exists('foundry.toml'):
+    if os.path.exists("foundry.toml"):
         try:
-            with open('foundry.toml', 'r') as f:
+            with open("foundry.toml", "r") as f:
                 config = f.read()
 
-            result = re.search(r':DssExecLib:(0x[0-9a-fA-F]{40})', config)
+            result = re.search(r":DssExecLib:(0x[0-9a-fA-F]{40})", config)
             if result:
                 library_address = result.group(1)
-                print(f'Using library {LIBRARY_NAME} at address {library_address}')
+                print(f"Using library {LIBRARY_NAME} at address {library_address}")
                 return library_address
             else:
-                print('No DssExecLib configured in foundry.toml', file=sys.stderr)
+                print("No DssExecLib configured in foundry.toml", file=sys.stderr)
         except Exception as e:
-            print(f'Error reading foundry.toml: {str(e)}', file=sys.stderr)
+            print(f"Error reading foundry.toml: {str(e)}", file=sys.stderr)
     else:
-        print('No foundry.toml found', file=sys.stderr)
+        print("No foundry.toml found", file=sys.stderr)
 
     # If we get here, no library address was found
-    print('WARNING: Assuming this contract uses no libraries', file=sys.stderr)
-    return ''
+    print("WARNING: Assuming this contract uses no libraries", file=sys.stderr)
+    return ""
 
 
 @retry_with_backoff(max_retries=2, base_delay=1)
@@ -60,19 +61,16 @@ def get_action_address(spell_address: str) -> Optional[str]:
     """Get the action contract address from the spell contract with retry mechanism."""
     try:
         result = subprocess.run(
-            ['cast', 'call', spell_address, 'action()(address)'],
+            ["cast", "call", spell_address, "action()(address)"],
             capture_output=True,
             text=True,
             check=True,
-            env=os.environ | {
-                'ETH_GAS_PRICE': '0',
-                'ETH_PRIO_FEE': '0'
-            }
+            env=os.environ | {"ETH_GAS_PRICE": "0", "ETH_PRIO_FEE": "0"},
         )
         return result.stdout.strip()
     except subprocess.CalledProcessError as e:
-        print(f'Error getting action address: {str(e)}', file=sys.stderr)
+        print(f"Error getting action address: {str(e)}", file=sys.stderr)
         return None
     except Exception as e:
-        print(f'Unexpected error getting action address: {str(e)}', file=sys.stderr)
+        print(f"Unexpected error getting action address: {str(e)}", file=sys.stderr)
         return None
