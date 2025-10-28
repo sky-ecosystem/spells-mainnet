@@ -189,6 +189,7 @@ interface KickerLike {
     function splitter() external view returns (address);
     function file(bytes32, uint256) external;
     function file(bytes32, int256) external;
+    function wards(address) external view returns (uint256);
 }
 
 interface FlapOracleLike {

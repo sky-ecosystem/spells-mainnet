@@ -1343,6 +1343,21 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
+    function testKickerInit() public {
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        assertEq(kick.khump(), -200_000_000 * int256(RAD), "Kicker/khump-not-set");
+        assertEq(kick.kbump(), 100_000_000 * RAD, "Kicker/kbump-not-set");
+        assertEq(kick.vat(), address(vat), "Kicker/vat-not-set");
+        assertEq(kick.vow(), address(vow), "Kicker/vow-not-set");
+        assertEq(kick.splitter(), address(split), "Kicker/splitter-not-set");
+        assertEq(kick.wards(pauseProxy), 1, "Kicker/wards-not-set");
+        assertEq(vat.wards(address(kick)), 1, "Vat/wards-not-set");
+        assertEq(split.wards(address(kick)), 1, "Splitter/wards-not-set");
+    }
+
     function testSmartBurnEngine() public { // add the `skipped` modifier to skip
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
@@ -1366,7 +1381,7 @@ contract DssSpellTest is DssSpellTestBase {
         {
             StakingRewardsLike rw = StakingRewardsLike(rewards);
             assertEq(rw.stakingToken(),  lssky,          "Rewards/staking-token-mismatch");
-            assertEq(rw.rewardsToken(),  address(sky),            "Rewards/rewards-token-mismatch");
+            assertEq(rw.rewardsToken(),  address(sky),   "Rewards/rewards-token-mismatch");
             assertEq(rw.rewardsDistribution(), dist,     "Rewards/rewards-distribution-not-set");
             assertEq(rw.owner(),         pauseProxy,     "Rewards/invalid-owner");
         }
