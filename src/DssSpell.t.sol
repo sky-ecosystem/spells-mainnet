@@ -676,37 +676,30 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public skipped { // add the `skipped` modifier to skip
-        // Provide human-readable names for timestamps
-        uint256 MAR_09_2026_16_41_11 = 1773074471;
-
-        // Uncomment if contract does not yet have funds to fully pay the award
-        deal(address(sky), pauseProxy, 100_000_000 * WAD);
-
+    function testVestSky() public { // add the `skipped` modifier to skip
         uint256 spellCastTime = _getSpellCastTime();
 
-        // For each new stream, provide Stream object and initialize the array with the current number of new streams
+        // New vest stream created by TreasuryFundedFarmingInit for REWARDS_LSSKY_SKY
+        address dist = addr.addr("REWARDS_DIST_LSSKY_SKY");
+        uint256 vestId = VestedRewardsDistributionLike(dist).vestId();
+
+        // Build expected new stream
         NewVestStream[] memory newStreams = new NewVestStream[](1);
         newStreams[0] = NewVestStream({
-            id:  7,
-            usr: addr.addr("REWARDS_DIST_USDS_SKY"),
-            bgn: spellCastTime,
-            clf: spellCastTime,
-            fin: spellCastTime + 182 days,
-            tau: 182 days,
+            id:  vestId,
+            usr: dist,
+            bgn: spellCastTime - 7 days,
+            clf: spellCastTime - 7 days,
+            fin: (spellCastTime - 7 days) + 180 days,
+            tau: 180 days,
             mgr: address(0),
             res: 1,
-            tot: 68_379_376 * WAD,
-            rxd: 0 // Amount already claimed
+            tot: 1_000_000_000 * WAD,
+            rxd: 0
         });
 
-        // For each yanked stream, provide Stream object and initialize the array with the current number of yanked streams
-        YankedVestStream[] memory yankedStreams = new YankedVestStream[](1);
-        yankedStreams[0] = YankedVestStream({
-            id:  6,
-            fin: MAR_09_2026_16_41_11,
-            end: spellCastTime
-        });
+        // No yanked streams expected
+        YankedVestStream[] memory yankedStreams = new YankedVestStream[](0);
 
         _checkVest(
             VestInst({vest: vestSky, gem: sky, name: "sky", isTransferrable: true}),
@@ -738,7 +731,6 @@ contract DssSpellTest is DssSpellTestBase {
 
         // For each yanked stream, provide Stream object and initialize the array with the current number of yanked streams
         YankedVestStream[] memory yankedStreams = new YankedVestStream[](0);
-
 
         _checkVest(
             VestInst({vest: vestSkyMint, gem: sky, name: "skyMint", isTransferrable: false}),
@@ -1403,7 +1395,6 @@ contract DssSpellTest is DssSpellTestBase {
             assertEq(DssVestTransferrableLike(address(vestSky)).gem(),  address(sky), "Vest/gem-not-set");
             assertEq(vestSky.tot(id),  1_000_000_000 * WAD,       "Vest/tot-not-set");
             assertEq(vestSky.bgn(id),  block.timestamp - 7 days,  "Vest/bgn-not-set");
-            
 
             // Cap should be >= 110% of vestTot/vestTau
             uint256 vestTot = 1_000_000_000 * WAD;
