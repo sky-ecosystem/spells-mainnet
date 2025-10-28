@@ -74,6 +74,7 @@ contract DssSpellAction is DssAction {
 
     // ---------- Contracts ----------
     address internal immutable DAI                      = DssExecLib.dai();
+    address internal immutable CHAINLOG                 = DssExecLib.LOG;
     address internal immutable CRON_REWARDS_DIST_JOB    = DssExecLib.getChangelogAddress("CRON_REWARDS_DIST_JOB");
     address internal immutable CRON_SEQUENCER           = DssExecLib.getChangelogAddress("CRON_SEQUENCER");
     address internal immutable DAI_USDS                 = DssExecLib.getChangelogAddress("DAI_USDS");
@@ -129,7 +130,14 @@ contract DssSpellAction is DssAction {
         DssInstance memory dss = MCD.loadFromChainlog(DssExecLib.LOG);
 
         // Note: Call FlapperInit.initKicker with the parameters created above:
-        FlapperInit.initKicker(dss, KICKER, kickerCfg);
+        FlapperInit.initKicker(
+            // dss: A DssInstance (from dss-test/MCD.sol)
+            dss,
+            // kicker: 0xD889477102e8C4A857b78Fcc2f134535176Ec1Fc
+            KICKER,
+            // Note: KickerConfig created above
+            kickerCfg
+        );
 
         // Remove old FlapJob (0xc32506E9bB590971671b649d9B8e18CB6260559F) from the Sequencer
         DssCronSequencerLike(CRON_SEQUENCER).removeJob(OLD_FLAP_JOB);
@@ -188,7 +196,12 @@ contract DssSpellAction is DssAction {
         });
 
         // Note: Call TreasuryFundedFarmingInit.initLockstakeFarm with the parameters created above:
-        TreasuryFundedFarmingInit.initLockstakeFarm(farmingInitParams, LOCKSTAKE_ENGINE);
+        TreasuryFundedFarmingInit.initLockstakeFarm(
+            // Note: FarmingInitParams created above
+            farmingInitParams,
+            // lockstakeEngine: LOCKSTAKE_ENGINE from chainlog
+            LOCKSTAKE_ENGINE
+        );
 
         // ---------- Initialize Spark StarGuard ----------
         // Forum: https://forum.sky.money/t/launching-starguard-an-upgrade-to-the-sky-agents-governance-payload-execution/27364
@@ -197,25 +210,27 @@ contract DssSpellAction is DssAction {
 
         // Call StarGuardInit.init with the following parameters:
 
-        // address chainlog: DssExecLib.LOG
-        address chainlog = DssExecLib.LOG;
-
         // Note: Create StarGuardConfig with the following parameters:
         StarGuardConfig memory starGuardCfg = StarGuardConfig({
-            // cfg.subProxy: SPARK_PROXY
+            // cfg.subProxy: 0x3300f198988e4C9C63F75dF86De36421f06af8c4
             subProxy: SPARK_PROXY,
             // cfg.subProxyKey: SPARK_SUBPROXY
             subProxyKey: "SPARK_SUBPROXY",
-            // cfg.starGuard: SPARK_STARGUARD
+            // cfg.starGuard: 0x6605aa120fe8b656482903E7757BaBF56947E45E
             starGuard: SPARK_STARGUARD,
-            // cfg.starGuardKey: SPARK_STARGUARD_KEY
+            // cfg.starGuardKey: SPARK_STARGUARD
             starGuardKey: "SPARK_STARGUARD",
             // cfg.maxDelay: 7 days
             maxDelay: 7 days
         });
 
         // Note: Call StarGuardInit.init with the parameters created above:
-        StarGuardInit.init(chainlog, starGuardCfg);
+        StarGuardInit.init(
+            // address chainlog: DssExecLib.LOG
+            CHAINLOG,
+            // Note: StarGuardConfig created above
+            starGuardCfg
+        );
 
         // Add StarGuardJob deployed at 0xB18d211fA69422a9A848B790C5B4a3957F7Aa44E to the Sequencer
         DssCronSequencerLike(CRON_SEQUENCER).addJob(STAR_GUARD_JOB);
