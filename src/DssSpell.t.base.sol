@@ -2884,6 +2884,9 @@ contract DssSpellTestBase is Config, DssTest {
             _vi.vest.unrestrict(_ns.id);
 
             vm.warp(_ns.fin);
+
+            // Set balance of pauseProxy to the total amount of the stream to ensure the stream is payable
+            GodMode.setBalance(address(sky), pauseProxy, _ns.tot);
             _vi.vest.vest(_ns.id);
             assertEq(
                 _vi.gem.balanceOf(_ns.usr),
