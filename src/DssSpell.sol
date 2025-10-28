@@ -19,6 +19,7 @@ pragma solidity 0.8.16;
 import "dss-exec-lib/DssExec.sol";
 import "dss-exec-lib/DssAction.sol";
 import { DssInstance, MCD } from "dss-test/MCD.sol";
+import { GemAbstract } from "dss-interfaces/ERC/GemAbstract.sol";
 import { FlapperInit, KickerConfig } from "src/dependencies/dss-flappers/FlapperInit.sol";
 import { TreasuryFundedFarmingInit, FarmingInitParams } from "src/dependencies/lockstake/TreasuryFundedFarmingInit.sol";
 
@@ -33,6 +34,10 @@ interface DssCronSequencerLike {
 
 interface StakingRewardsLike {
     function setRewardsDuration(uint256 duration) external;
+}
+
+interface DaiUsdsLike {
+    function daiToUsds(address usr, uint256 wad) external;
 }
 
 contract DssSpellAction is DssAction {
@@ -63,20 +68,28 @@ contract DssSpellAction is DssAction {
     uint256 internal constant RAD = 10 ** 45;
 
     // ---------- Contracts ----------
+    address internal immutable DAI                      = DssExecLib.dai();
     address internal immutable CRON_REWARDS_DIST_JOB    = DssExecLib.getChangelogAddress("CRON_REWARDS_DIST_JOB");
     address internal immutable CRON_SEQUENCER           = DssExecLib.getChangelogAddress("CRON_SEQUENCER");
+    address internal immutable DAI_USDS                 = DssExecLib.getChangelogAddress("DAI_USDS");
     address internal immutable MCD_SPLIT                = DssExecLib.getChangelogAddress("MCD_SPLIT");
     address internal immutable MCD_VEST_SKY_TREASURY    = DssExecLib.getChangelogAddress("MCD_VEST_SKY_TREASURY");
     address internal immutable LOCKSTAKE_ENGINE         = DssExecLib.getChangelogAddress("LOCKSTAKE_ENGINE");
     address internal immutable LOCKSTAKE_SKY            = DssExecLib.getChangelogAddress("LOCKSTAKE_SKY");
     address internal immutable REWARDS_LSSKY_USDS       = DssExecLib.getChangelogAddress("REWARDS_LSSKY_USDS");
     address internal immutable SKY                      = DssExecLib.getChangelogAddress("SKY");
+    address internal immutable STUSDS_RATE_SETTER       = DssExecLib.getChangelogAddress("STUSDS_RATE_SETTER");
 
     address internal constant KICKER                    = 0xD889477102e8C4A857b78Fcc2f134535176Ec1Fc;
     address internal constant OLD_FLAP_JOB              = 0xc32506E9bB590971671b649d9B8e18CB6260559F;
     address internal constant NEW_FLAP_JOB              = 0xE564C4E237f4D7e0130FdFf6ecC8a5E931C51494;
     address internal constant REWARDS_LSSKY_SKY         = 0xB44C2Fb4181D7Cb06bdFf34A46FdFe4a259B40Fc;
     address internal constant REWARDS_DIST_LSSKY_SKY    = 0x675671A8756dDb69F7254AFB030865388Ef699Ee;
+
+    // ---------- Wallets ----------
+    address internal constant CORE_COUNCIL_BUDGET_MULTISIG = 0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364;
+    address internal constant CORE_COUNCIL_DELEGATE_MULTISIG = 0x37FC5d447c8c54326C62b697f674c93eaD2A93A3;
+    address internal constant INTEGRATION_BOOST_INITIATIVE = 0xD6891d1DFFDA6B0B1aF3524018a1eE2E608785F7;
 
     function actions() public override {
         // ---------- Initialize Kicker ----------
@@ -188,10 +201,13 @@ contract DssSpellAction is DssAction {
         // ---------- Adjust stUSDS Beam step parameters ----------
 
         // Reduce str step parameter by 3,500 bps from 4,000 bps to 500 bps
+        DssExecLib.setValue(STUSDS_RATE_SETTER, "STR", "step", 500);
 
         // Reduce duty step parameter by 3,500 bps from 4,000 bps to 500 bps
+        DssExecLib.setValue(STUSDS_RATE_SETTER, "LSEV2-SKY-A", "step", 500);
 
         // Maintain all other parameters at their current values
+        // Note: no actions required
 
         // ---------- Execute Spark Proxy Spell ----------
         // Forum: TODO
@@ -206,6 +222,22 @@ contract DssSpellAction is DssAction {
 
         // Execute the Bloom/Grove Proxy Spell at 0x8b4A92f8375ef89165AeF4639E640e077d7C656b
         // ProxyLike(BLOOM_PROXY).exec(BLOOM_SPELL, abi.encodeWithSignature("execute()"));
+    }
+
+    // ---------- Helper Functions ----------
+
+    /// @notice Wraps the operations required to transfer USDS from the surplus buffer.
+    /// @param usr The USDS receiver.
+    /// @param wad The USDS amount in wad precision (10 ** 18).
+    function _transferUsds(address usr, uint256 wad) internal {
+        // Note: Enforce whole units to avoid rounding errors
+        require(wad % WAD == 0, "transferUsds/non-integer-wad");
+        // Note: DssExecLib currently only supports Dai transfers from the surplus buffer.
+        DssExecLib.sendPaymentFromSurplusBuffer(address(this), wad / WAD);
+        // Note: Approve DAI_USDS for the amount sent to be able to convert it.
+        GemAbstract(DAI).approve(DAI_USDS, wad);
+        // Note: Convert Dai to USDS for `usr`.
+        DaiUsdsLike(DAI_USDS).daiToUsds(usr, wad);
     }
 }
 

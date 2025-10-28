@@ -1378,7 +1378,7 @@ contract DssSpellTest is DssSpellTestBase {
         // Vest parameters and cap adjustment check
         {
             assertEq(DssVestTransferrableLike(address(vestSky)).czar(), pauseProxy, "Vest/czar-not-set");
-            assertEq(DssVestTransferrableLike(address(vestSky)).gem(),  address(sky, "Vest/gem-not-set");
+            assertEq(DssVestTransferrableLike(address(vestSky)).gem(),  address(sky), "Vest/gem-not-set");
             assertEq(vestSky.tot(id),  1_000_000_000 * WAD,       "Vest/tot-not-set");
             assertEq(vestSky.bgn(id),  block.timestamp - 7 days,  "Vest/bgn-not-set");
             
@@ -1399,5 +1399,22 @@ contract DssSpellTest is DssSpellTestBase {
             assertGt(sky.balanceOf(address(rewards)), 0,              "Rewards/no-sky-balance");
             assertGt(StakingRewardsLike(rewards).rewardRate(), 0,   "Rewards/rewardRate-not-set");
         }
+    }
+
+    function testStusdsRateSetter() public { // add the `skipped` modifier to skip
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        (uint16 minStr, uint16 maxStr, uint256 strStep) = rateSetter.strCfg();
+        assertEq(strStep, 500, "StusdsRateSetter/step-not-set");
+        (uint16 minDuty, uint16 maxDuty, uint256 dutyStep) = rateSetter.dutyCfg();
+        assertEq(dutyStep, 500, "StusdsRateSetter/step-not-set");
+
+        // Check that the rest of the parameters are unchanged
+        assertEq(minStr, 200, "StusdsRateSetter/min-not-set");
+        assertEq(maxStr, 5_000, "StusdsRateSetter/max-not-set");
+        assertEq(minDuty, 210, "StusdsRateSetter/min-not-set");
+        assertEq(maxDuty, 5_000, "StusdsRateSetter/max-not-set");
     }
 }
