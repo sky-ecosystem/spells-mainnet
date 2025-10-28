@@ -1468,6 +1468,98 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(maxDuty, 5_000, "StusdsRateSetter/max-not-set");
     }
 
+    function testStusdsRateSetterRejectsInvalid() public {
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // Satisfy timing guard
+        vm.warp(block.timestamp + rateSetter.tau());
+
+        (uint16 minStr, uint16 maxStr, uint16 strStep) = rateSetter.strCfg();
+        (uint16 minDuty, uint16 maxDuty, uint16 dutyStep) = rateSetter.dutyCfg();
+
+        uint256 line = rateSetter.maxLine();
+        uint256 cap  = rateSetter.maxCap();
+
+        address bud = address(0xBB865F94B8A92E57f79fCc89Dfd4dcf0D3fDEA16);
+
+        vm.startPrank(bud);
+        // Invalid: str above max
+        vm.expectRevert();
+        rateSetter.set(uint256(maxStr) + 1, minDuty, line, cap);
+
+        // Invalid: str below min
+        vm.expectRevert();
+        rateSetter.set(uint256(minStr) - 1, minDuty, line, cap);
+
+        uint256 oldStrBps = ConvLike(spbeam.conv()).rtob(stusds.str());
+        (uint256 dutyRay, ) = jug.ilks(stusds.ilk());
+        uint256 oldDutyBps = ConvLike(spbeam.conv()).rtob(dutyRay);
+
+        // Imvalid: str delta above step
+        vm.expectRevert();
+        rateSetter.set(oldStrBps + strStep + 1, minDuty, line, cap);
+
+        vm.expectRevert();
+        rateSetter.set(oldStrBps - strStep - 1, minDuty, line, cap);
+
+        // Invalid: duty below min
+        vm.expectRevert();
+        rateSetter.set(oldStrBps, uint256(minDuty) - 1, line, cap);
+
+        // Invalid: duty above max
+        vm.expectRevert();
+        rateSetter.set(oldStrBps, uint256(maxDuty) + 1, line, cap);
+
+        // Invalid: duty delta above step
+        vm.expectRevert();
+        rateSetter.set(oldStrBps, oldDutyBps + dutyStep + 1, line, cap);
+
+        vm.expectRevert();
+        rateSetter.set(oldStrBps, oldDutyBps - dutyStep - 1, line, cap);
+
+        // Valid: str and duty within bounds (no change)
+        rateSetter.set(oldStrBps, oldDutyBps, line, cap);
+        vm.stopPrank();
+    }
+
+    function testStusdsRateSetterAllowsValid() public {
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        (,,uint16 strStep) = rateSetter.strCfg();
+        (,,uint16 dutyStep) = rateSetter.dutyCfg();
+
+        // Satisfy timing guard
+        vm.warp(block.timestamp + rateSetter.tau());
+
+        // Use current bps values (delta = 0, within bounds)
+        uint256 oldStrBps = ConvLike(spbeam.conv()).rtob(stusds.str());
+        (uint256 dutyRay, ) = jug.ilks(stusds.ilk());
+        uint256 oldDutyBps = ConvLike(spbeam.conv()).rtob(dutyRay);
+
+        uint256 line = rateSetter.maxLine();
+        uint256 cap  = rateSetter.maxCap();
+
+        address bud = address(0xBB865F94B8A92E57f79fCc89Dfd4dcf0D3fDEA16);
+
+        vm.startPrank(bud);
+
+        // Valid str and duty within bounds and delta below step
+        rateSetter.set(oldStrBps + strStep - 1, oldDutyBps + dutyStep - 1, line, cap);
+
+        uint256 newStrBps = ConvLike(spbeam.conv()).rtob(stusds.str());
+        (uint256 newDutyRay, ) = jug.ilks(stusds.ilk());
+        uint256 newDutyBps = ConvLike(spbeam.conv()).rtob(newDutyRay);
+
+        assertEq(newStrBps, oldStrBps + strStep - 1, "StusdsRateSetter/strbps-changed");
+        assertEq(newDutyBps, oldDutyBps + dutyStep - 1, "StusdsRateSetter/dutybps-changed");
+
+        vm.stopPrank();
+    }
+
     function testStarGuard() public { // add the `skipped` modifier to skip
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
