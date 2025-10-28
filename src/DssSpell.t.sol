@@ -45,10 +45,6 @@ interface SequencerLike {
     function hasJob(address job) external view returns (bool);
 }
 
-interface LineMomLike {
-    function ilks(bytes32 ilk) external view returns (uint256);
-}
-
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -287,7 +283,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
         string[2] memory addedKeys = [
             "ALLOCATOR_OBEX_A_VAULT",
             "ALLOCATOR_OBEX_A_BUFFER"
@@ -365,7 +361,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testAllocatorIntegration() public { // add the `skipped` modifier to skip
+    function testAllocatorIntegration() public skipped { // add the `skipped` modifier to skip
         AllocatorIntegrationParams memory p = AllocatorIntegrationParams({
             ilk:            "ALLOCATOR-OBEX-A",
             pip:            addr.addr("PIP_ALLOCATOR"),
@@ -782,7 +778,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public { // add the `skipped` modifier to skip
+    function testPayments() public skipped { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -1214,7 +1210,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 
-    function testMonthlySettlementCycleInflows() public { // add the `skipped` modifier to skip
+    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
         address ALLOCATOR_BLOOM_A_VAULT = addr.addr("ALLOCATOR_BLOOM_A_VAULT");
         address ALLOCATOR_SPARK_A_VAULT = addr.addr("ALLOCATOR_SPARK_A_VAULT");
 
@@ -1266,7 +1262,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // Spark tests
-    function testSparkSpellIsExecuted() public { // add the `skipped` modifier to skip
+    function testSparkSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
         address SPARK_PROXY = addr.addr('ALLOCATOR_SPARK_A_SUBPROXY');
         address SPARK_SPELL = address(0x4924e46935F6706d08413d44dF5C31a9d40F6a64); // Insert Spark spell address
 
@@ -1285,7 +1281,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // Bloom/Grove tests
-    function testBloomSpellIsExecuted() public { // add the `skipped` modifier to skip
+    function testBloomSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
         address BLOOM_PROXY = addr.addr('ALLOCATOR_BLOOM_A_SUBPROXY');
         address BLOOM_SPELL = address(0xF2A28fb43D5d3093904B889538277fB175B42Ece); // Insert Bloom spell address
 
@@ -1323,50 +1319,4 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
-
-    function testNewLineMomIlks() public {
-        bytes32[1] memory ilks = [
-            bytes32("ALLOCATOR-OBEX-A")
-        ];
-
-        for (uint256 i = 0; i < ilks.length; i++) {
-            assertEq(
-                LineMomLike(address(lineMom)).ilks(ilks[i]),
-                0,
-                _concat("testNewLineMomIlks/before-ilk-already-in-lineMom-", ilks[i])
-            );
-        }
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        for (uint256 i = 0; i < ilks.length; i++) {
-            assertEq(
-                LineMomLike(address(lineMom)).ilks(ilks[i]),
-                1,
-                _concat("testNewLineMomIlks/after-ilk-not-added-to-lineMom-", ilks[i])
-            );
-        }
-    }
-
-    function testAllocatorObexASubProxy() public {
-        address allocatorObexAProxy = addr.addr("ALLOCATOR_OBEX_A_SUBPROXY");
-        address subProxySpell = address(new MockSubProxySpell());
-
-        vm.prank(addr.addr("MCD_PAUSE_PROXY"));
-        vm.expectEmit();
-        emit Exec();
-        ProxyLike(allocatorObexAProxy).exec(subProxySpell, abi.encodeWithSignature("execute()"));
-    }
-
-    event Exec();
-}
-
-contract MockSubProxySpell {
-    event Exec();
-
-    function execute() public {
-        emit Exec();
-    }
 }
