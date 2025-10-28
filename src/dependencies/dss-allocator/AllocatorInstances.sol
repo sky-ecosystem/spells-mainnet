@@ -16,10 +16,14 @@
 
 pragma solidity >=0.8.0;
 
-struct LockstakeInstance {
-    address lssky;
-    address engine;
-    address clipper;
-    address clipperCalc;
-    address migrator;
+struct AllocatorSharedInstance {
+    address oracle;
+    address roles;
+    address registry;
+}
+
+struct AllocatorIlkInstance {
+    address owner;
+    address vault;
+    address buffer;
 }
