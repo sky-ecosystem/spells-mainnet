@@ -110,7 +110,9 @@ contract DssSpellAction is DssAction {
 
     function actions() public override {
         // ---------- Initialize Kicker ----------
-        // Forum: TODO
+        // Forum: https://forum.sky.money/t/technical-scope-of-the-kicker-launch/27350
+        // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2025-10-27/27362
+        // Poll: https://vote.sky.money/polling/Qmbs7wEM
 
         // Init Kicker by calling FlapperInit.initKicker() with the following parameters:
         // Note: Create KickerConfig with the following parameters:
@@ -139,6 +141,8 @@ contract DssSpellAction is DssAction {
         DssExecLib.setChangelogAddress("CRON_FLAP_JOB", NEW_FLAP_JOB);
 
         // ---------- Recalibrate Smart Burn Engine ----------
+        // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2025-10-27/27362
+        // Poll: https://vote.sky.money/polling/Qmbs7wEM
 
         // Increase splitter.burn by 75 percentage points from 25% to 100% (1 * WAD)
         DssExecLib.setValue(MCD_SPLIT, "burn", 1 * WAD);
@@ -150,6 +154,9 @@ contract DssSpellAction is DssAction {
         StakingRewardsLike(REWARDS_LSSKY_USDS).setRewardsDuration(2_880);
 
         // ---------- Initialize lsSKY->SKY Farm ----------
+        // Forum: https://forum.sky.money/t/technical-scope-lssky-sky-farm/27312
+        // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2025-10-27/27362
+        // Poll: https://vote.sky.money/polling/Qmbs7wEM
 
         // Call TreasuryFundedFarmingInit.initLockstakeFarm with the following parameters:
         // Note: Create FarmingInitParams with the following parameters:
@@ -184,6 +191,9 @@ contract DssSpellAction is DssAction {
         TreasuryFundedFarmingInit.initLockstakeFarm(farmingInitParams, LOCKSTAKE_ENGINE);
 
         // ---------- Initialize Spark StarGuard ----------
+        // Forum: https://forum.sky.money/t/launching-starguard-an-upgrade-to-the-sky-agents-governance-payload-execution/27364
+        // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2025-10-27/27362
+        // Poll: https://vote.sky.money/polling/Qmbs7wEM
 
         // Call StarGuardInit.init with the following parameters:
 
@@ -217,6 +227,8 @@ contract DssSpellAction is DssAction {
         DssExecLib.setChangelogAddress("CRON_STARGUARD_JOB", STAR_GUARD_JOB);
 
         // ---------- Fund Core Council Multisigs ----------
+        // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2025-10-27/27362
+        // Poll: https://vote.sky.money/polling/Qmbs7wEM
 
         // Transfer 3,876,387 USDS to the Core Council Budget Multisig at 0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364
         _transferUsds(CORE_COUNCIL_BUDGET_MULTISIG, 3_876_387 * WAD);
@@ -225,11 +237,15 @@ contract DssSpellAction is DssAction {
         _transferUsds(CORE_COUNCIL_DELEGATE_MULTISIG, 193_820 * WAD);
 
         // ---------- Fund Integration Boost Multisig ----------
+        // Forum: https://forum.sky.money/t/utilization-of-the-integration-boost-budget-a-5-2-1-2/25536/13
+        // Atlas: https://sky-atlas.powerhouse.io/A.2.3.8.2.2.1.3.2.1_Near_Term_Process/1b3f2ff0-8d73-8006-8d52-f441b4e85f5b|9e1ff936eafd46ecfcbb87335192b6fc
 
         // Transfer 1,000,000 USDS to 0xD6891d1DFFDA6B0B1aF3524018a1eE2E608785F7
         _transferUsds(INTEGRATION_BOOST_INITIATIVE, 1_000_000 * WAD);
 
         // ---------- Adjust stUSDS Beam step parameters ----------
+        // Forum: https://forum.sky.money/t/stusds-beam-rate-setter-configuration/27161/20
+        // Poll: https://vote.sky.money/polling/QmbzWao8
 
         // Reduce str step parameter by 3,500 bps from 4,000 bps to 500 bps
         DssExecLib.setValue(STUSDS_RATE_SETTER, "STR", "step", 500);
@@ -241,15 +257,26 @@ contract DssSpellAction is DssAction {
         // Note: no actions required
 
         // ---------- Execute Spark Proxy Spell ----------
-        // Forum: TODO
-        // Poll: TODO
+        // Forum: https://forum.sky.money/t/october-30-2025-proposed-changes-to-spark-for-upcoming-spell/27309
+        // Forum: https://forum.sky.money/t/spark-aave-revenue-share-calculations-payments-9-q3-2025/27296
+        // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2025-09-29/27222
+        // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0xeea0e2648f55df4e57f8717831a5949f2a35852e32aa0f98a7e16e7ed56268a8
+        // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0x95138f104ff84defb64985368f348af4d7500b2641b88b396e37426126f5ce0d
+        // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0x14300684fb44685ad27270745fa6780e8083f3741de2119b98cf6bb1e44b4617
+        // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0xf289dbc26dc0380bfab16a5d6c12b6167d8a47a348891797ea8bc3b752a4ce7a
+        // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0xab448e3d135620340da30616c0dabaa293f816a9edd4dc009f29b0ffb5bcbad2
+        // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0x58549e11044e7c8dfecd9a60c8ecb8e77d42dbef46a1db64c09e7d9540102b1c
+        // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0x86f6b4e728e943fedf8ff814808e2d9bc0220f57edae40e3cf3711fb72d2e097
+        // Atlas: https://sky-atlas.powerhouse.io/A.AG1.2.6.P15.2.1.2.3_Token_Claim_Authorization/280f2ff0-8d73-8040-9e11-d79eb710596b%7C7896ed3326389fe3185c95c7594595c36ff152ce
+        // Atlas: https://sky-atlas.powerhouse.io/A.AG1.3.2.1.2.3.2_Standard_Agreement_Post_SPK_Launch/1c1f2ff0-8d73-81f6-8b1e-cb3bac92d9b3|7896ed3326389fe3553030cd0a82221360c2
+        // Atlas: https://sky-atlas.powerhouse.io/A.2.9.2.2.2.5.5.1_Subsequent_Cash_Grant_To_Spark_Foundation/280f2ff0-8d73-8019-baf3-cefdd05d4a14|9e1f80092582d59891b0d93ee539
 
         // Execute the Spark Proxy Spell at 0x71059EaAb41D6fda3e916bC9D76cB44E96818654
         ProxyLike(SPARK_PROXY).exec(SPARK_SPELL, abi.encodeWithSignature("execute()"));
 
         // ---------- Execute Bloom/Grove Proxy Spell ----------
-        // Forum: TODO
-        // Poll: TODO
+        // Forum: https://forum.sky.money/t/october-30th-2025-sky-prime-technical-scope-param-changes/27325
+        // Poll: https://vote.sky.money/polling/Qmef8C3a
 
         // Execute the Bloom/Grove Proxy Spell at 0x8b4A92f8375ef89165AeF4639E640e077d7C656b
         ProxyLike(BLOOM_PROXY).exec(BLOOM_SPELL, abi.encodeWithSignature("execute()"));
