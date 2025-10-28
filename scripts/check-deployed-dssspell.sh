@@ -19,7 +19,7 @@ function error_check() {
 [[ "$ETHERSCAN_API_KEY" ]] || { echo -e "Please set ETHERSCAN_API_KEY"; exit 1; }
 
 # Etherscan API endpoint
-ETHERSCAN_API="https://api.etherscan.io/api?apikey=$ETHERSCAN_API_KEY"
+ETHERSCAN_API="https://api.etherscan.io/v2/api?chainid=1&apikey=$ETHERSCAN_API_KEY"
 
 # Path to config.sol file
 CONFIG_PATH="src/test/config.sol"
