@@ -1323,4 +1323,14 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
+
+    function testSmartBurnEngine() public { // add the `skipped` modifier to skip
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        assertEq(split.burn(), 1 * WAD, "Splitter/burn-not-set");
+        assertEq(split.hop(), 2_880, "Splitter/hop-not-set");
+        assertEq(StakingRewardsLike(addr.addr("REWARDS_LSSKY_USDS")).rewardsDuration(), 2_880, "StakingRewards/rewardsDuration-not-set");
+    }
 }

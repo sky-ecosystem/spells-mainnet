@@ -62,9 +62,9 @@ contract DssSpellAction is DssAction {
     uint256 internal constant RAD = 10 ** 45;
 
     // ---------- Contracts ----------
-    address internal immutable CRON_SEQUENCER = DssExecLib.getChangelogAddress("CRON_SEQUENCER");
-    address internal immutable MCD_SPLIT = DssExecLib.getChangelogAddress("MCD_SPLIT");
-    address internal immutable REWARDS_LSSKY_USDS = DssExecLib.getChangelogAddress("REWARDS_LSSKY_USDS");
+    address internal immutable CRON_SEQUENCER       = DssExecLib.getChangelogAddress("CRON_SEQUENCER");
+    address internal immutable MCD_SPLIT            = DssExecLib.getChangelogAddress("MCD_SPLIT");
+    address internal immutable REWARDS_LSSKY_USDS   = DssExecLib.getChangelogAddress("REWARDS_LSSKY_USDS");
 
     address internal constant KICKER        = 0xD889477102e8C4A857b78Fcc2f134535176Ec1Fc;
     address internal constant OLD_FLAP_JOB  = 0xc32506E9bB590971671b649d9B8e18CB6260559F;
