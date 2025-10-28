@@ -108,10 +108,10 @@ The test suite uses relative imports and must be run as a module:
 
 ```bash
 # ✅ Correct way - run as module
-python3 -m scripts.verification.test_retry
+python3 -m scripts.verification.retry_test
 
 # ❌ Incorrect way - direct execution fails
-python3 scripts/verification/test_retry.py
+python3 scripts/verification/retry_test.py
 ```
 
 **Why?** The test file uses relative imports (`from .retry import retry_with_backoff`) which only work when the file is run as part of a package, not as a standalone script.
@@ -133,7 +133,7 @@ The test suite covers:
 1. **"No verifiers available"**: Check chain ID support and API keys
 2. **"Verification failed on all verifiers"**: Check contract deployment and source code
 3. **"Etherscan API key not found"**: Set `ETHERSCAN_API_KEY` environment variable
-4. **"ImportError: attempted relative import with no known parent package"**: Run tests as a module using `python3 -m scripts.verification.test_retry`
+4. **"ImportError: attempted relative import with no known parent package"**: Run tests as a module using `python3 -m scripts.verification.retry_test`
 
 ### **Debug Mode**
 

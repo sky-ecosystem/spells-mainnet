@@ -8,8 +8,7 @@ import os
 import sys
 import subprocess
 import re
-import json
-from typing import Dict, Any, Optional
+from typing import Optional
 
 from .retry import retry_with_backoff
 
