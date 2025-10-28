@@ -30,6 +30,10 @@ interface DssCronSequencerLike {
     function removeJob(address job) external;
 }
 
+interface StakingRewardsLike {
+    function setRewardsDuration(uint256 duration) external;
+}
+
 contract DssSpellAction is DssAction {
     // Provides a descriptive tag for bot consumption
     // This should be modified weekly to provide a summary of the actions
@@ -54,10 +58,13 @@ contract DssSpellAction is DssAction {
     // uint256 internal constant X_PCT_RATE = ;
 
     // ---------- Math ----------
+    uint256 internal constant WAD = 10 ** 18;
     uint256 internal constant RAD = 10 ** 45;
 
     // ---------- Contracts ----------
     address internal immutable CRON_SEQUENCER = DssExecLib.getChangelogAddress("CRON_SEQUENCER");
+    address internal immutable MCD_SPLIT = DssExecLib.getChangelogAddress("MCD_SPLIT");
+    address internal immutable REWARDS_LSSKY_USDS = DssExecLib.getChangelogAddress("REWARDS_LSSKY_USDS");
 
     address internal constant KICKER        = 0xD889477102e8C4A857b78Fcc2f134535176Ec1Fc;
     address internal constant OLD_FLAP_JOB  = 0xc32506E9bB590971671b649d9B8e18CB6260559F;
@@ -96,10 +103,13 @@ contract DssSpellAction is DssAction {
         // ---------- Recalibrate Smart Burn Engine ----------
 
         // Increase splitter.burn by 75 percentage points from 25% to 100% (1 * WAD)
+        DssExecLib.setValue(MCD_SPLIT, "burn", 1 * WAD);
 
         // Increase splitter.hop by 720 seconds from 2,160 seconds to 2,880 seconds
+        DssExecLib.setValue(MCD_SPLIT, "hop", 2_880);
 
         // Increase rewardsDuration in REWARDS_LSSKY_USDS by 720 seconds from 2,160 seconds to 2,880 seconds
+        StakingRewardsLike(REWARDS_LSSKY_USDS).setRewardsDuration(2_880);
 
         // ---------- Initialize lsSKY->SKY Farm ----------
 

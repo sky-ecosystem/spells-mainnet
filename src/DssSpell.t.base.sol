@@ -3766,6 +3766,14 @@ contract DssSpellTestBase is Config, DssTest {
             // Leave surplus buffer ready to be flapped
             vow.heal(vat.sin(address(vow)) - (vow.Sin() + vow.Ash()));
 
+            // Ensure the Kicker threshold condition is satisfied per Kicker.sol
+            // dai(vow) >= sin(vow) + kbump + khump ; with khump negative, using sin + kbump is sufficient
+            stdstore
+                .target(address(vat))
+                .sig("dai(address)")
+                .with_key(address(vow))
+                .checked_write(vat.sin(address(vow)) + kick.kbump());
+
             // The check for the configured value is already done in `_checkSystemValues()`
             assertLt(kick.khump(), 0, "TestError/Kicker/already-kicked");
 
@@ -3786,6 +3794,11 @@ contract DssSpellTestBase is Config, DssTest {
             uint256 skyWad = usdsWad * (flap.want() + 5 * 10**16) / price;
             GodMode.setBalance(address(sky), address(pair), skyWad);
 
+            // Update Uniswap pair reserves to reflect the direct balance writes
+            // (low-level call to avoid adding a dedicated interface here)
+            (bool ok, ) = address(pair).call(abi.encodeWithSignature("sync()"));
+            ok; // silence warning
+            
             // Now the kicker-triggered flap should succeed
             kick.flap();
         }
