@@ -63,6 +63,9 @@ interface StarGuardLike {
     function subProxy() external view returns (address subProxy);
     function spellData() external view returns (address addr, bytes32 tag, uint256 deadline);
     function wards(address usr) external view returns (uint256 allowed);
+    function plot(address addr_, bytes32 tag_) external;
+    function prob() external view returns (bool);
+    function exec() external returns (address addr);
 }
 
 interface StarGuardJobLike {
@@ -1560,7 +1563,7 @@ contract DssSpellTest is DssSpellTestBase {
         vm.stopPrank();
     }
 
-    function testStarGuard() public { // add the `skipped` modifier to skip
+    function testStarGuard() public {
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
@@ -1577,5 +1580,51 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(spellAddr, address(0), "StarGuard/unexpected-plotted-spell");
 
         assertEq(StarGuardJobLike(addr.addr("CRON_STARGUARD_JOB")).has(SPARK_STARGUARD), true, "StarGuardJob/stars-not-set");
+    }
+
+    function testStarGuardSpellExecution() public {
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        StarGuardLike starGuard = StarGuardLike(addr.addr("SPARK_STARGUARD"));
+
+        // Deploy a simple payload that is always executable
+        MockStarSpell payload = new MockStarSpell();
+
+        // Plot the payload as the Pause Proxy (admin)
+        vm.startPrank(pauseProxy);
+        starGuard.plot(address(payload), address(payload).codehash);
+        vm.stopPrank();
+
+        // Should be executable now
+        assertEq(starGuard.prob(), true, "StarGuard/prob-not-true");
+
+        // Expect the starGuard to emit its Exec event upon exec()
+        vm.expectEmit();
+        emit Executed();
+        vm.expectEmit(true, false, false, false, address(starGuard));
+        emit Exec(address(payload));
+        address executed = starGuard.exec();
+        assertEq(executed, address(payload), "StarGuard/exec-wrong-target");
+
+        // Still owner of subProxy, and no longer plotted
+        assertEq(SubProxyLike(addr.addr("SPARK_SUBPROXY")).wards(address(starGuard)), 1, "StarGuard/subProxy-wards-changed");
+        assertEq(starGuard.prob(), false, "StarGuard/spell-not-cleared");
+    }
+
+    event Exec(address indexed addr);
+    event Executed();
+}
+
+contract MockStarSpell {
+    event Executed();
+
+    function execute() external {
+        emit Executed();
+    }
+
+    function isExecutable() external pure returns (bool) {
+        return true;
     }
 }
