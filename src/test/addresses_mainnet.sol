@@ -587,5 +587,6 @@ contract Addresses {
         addr["ALLOCATOR_OBEX_A_VAULT"]           = 0xF275110dFE7B80df66a762f968f59B70BABE2b29;
         addr["ALLOCATOR_OBEX_A_BUFFER"]          = 0x51E9681D7a05abFD33EfaFd43e5dd3Afc0093F1D;
         addr["ALLOCATOR_OBEX_A_SUBPROXY"]        = 0x8be042581f581E3620e29F213EA8b94afA1C8071;
+        addr["MCD_KICK"]                         = 0xD889477102e8C4A857b78Fcc2f134535176Ec1Fc;
     }
 }

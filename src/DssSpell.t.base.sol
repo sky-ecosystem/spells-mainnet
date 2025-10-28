@@ -177,6 +177,18 @@ interface SplitLike {
     function file(bytes32, uint256) external;
     function flapper() external view returns (address);
     function hop() external view returns (uint256);
+    function wards(address) external view returns (uint256);
+}
+
+interface KickerLike {
+    function flap() external;
+    function khump() external view returns (int256);
+    function kbump() external view returns (uint256);
+    function vat() external view returns (address);
+    function vow() external view returns (address);
+    function splitter() external view returns (address);
+    function file(bytes32, uint256) external;
+    function file(bytes32, int256) external;
 }
 
 interface FlapOracleLike {
@@ -565,6 +577,7 @@ contract DssSpellTestBase is Config, DssTest {
     CureAbstract                    cure = CureAbstract(       addr.addr("MCD_CURE"));
     IlkRegistryAbstract              reg = IlkRegistryAbstract(addr.addr("ILK_REGISTRY"));
     SplitLike                      split = SplitLike(          addr.addr("MCD_SPLIT"));
+    KickerLike                      kick = KickerLike(         addr.addr("MCD_KICK"));
     FlapUniV2Like                   flap = FlapUniV2Like(      addr.addr("MCD_FLAP"));
     CropperLike                  cropper = CropperLike(        addr.addr("MCD_CROPPER"));
 
@@ -3727,6 +3740,54 @@ contract DssSpellTestBase is Config, DssTest {
             vm.prank(chief.hat());
             splitterMom.stop();
             assertEq(split.hop(), type(uint256).max, "TestError/SplitterMom/not-stopped");
+        }
+    }
+
+    function _testKicker() internal {
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done());
+
+        assertEq(vow.bump(), 0, "TestError/Kicker/invalid-vow-bump");
+        assertEq(vow.hump(), type(uint256).max, "TestError/Kicker/invalid-vow-hump");
+        assertEq(vow.dump(), 0, "TestError/Kicker/invalid-vow-dump");
+        assertEq(vow.sump(), type(uint256).max, "TestError/Kicker/invalid-vow-sump");
+
+        assertEq(kick.khump(), -200_000_000 * int256(RAD));
+        assertEq(kick.kbump(), 100_000_000 * RAD);
+        assertEq(kick.vow(), address(vow), "TestError/Kicker/invalid-vow");
+        assertEq(kick.splitter(), address(split), "TestError/Kicker/invalid-splitter");
+
+        assertEq(vat.wards(address(kick)), 1, "TestError/Kicker/invalid-vat-wards");
+        assertEq(split.wards(address(kick)), 1, "TestError/Kicker/invalid-splitter-wards");
+
+        // Check Kicker can kick
+        {
+            // Leave surplus buffer ready to be flapped
+            vow.heal(vat.sin(address(vow)) - (vow.Sin() + vow.Ash()));
+
+            // The check for the configured value is already done in `_checkSystemValues()`
+            assertLt(kick.khump(), 0, "TestError/Kicker/already-kicked");
+
+            // Seed sufficient liquidity and align price tolerance so the swap does not revert
+            // Mirror declarations from _testSplitter
+            GemAbstract    pair = GemAbstract(addr.addr("UNIV2USDSSKY"));
+            FlapOracleLike pip  = FlapOracleLike(flap.pip());
+            // Read oracle price as the flapper would (bypassing whitelist via prank)
+            vm.prank(address(flap));
+            uint256 price = uint256(pip.read());
+
+            // Provide ample USDS liquidity to the pair (large to minimize slippage for 25M swap)
+            uint256 usdsWad = 2_500_000_000 * WAD; // 2.5B USDS
+            GodMode.setBalance(address(usds), address(pair), usdsWad);
+
+            // Provide SKY liquidity consistent with price and a +5% buffer over want (account for swap fee + slippage)
+            // This ensures the computed minimum buy amount can be met
+            uint256 skyWad = usdsWad * (flap.want() + 5 * 10**16) / price;
+            GodMode.setBalance(address(sky), address(pair), skyWad);
+
+            // Now the kicker-triggered flap should succeed
+            kick.flap();
         }
     }
 

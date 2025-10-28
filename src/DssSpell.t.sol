@@ -101,6 +101,10 @@ contract DssSpellTest is DssSpellTestBase {
         _testSplitter();
     }
 
+    function testKicker() public {
+        _testKicker();
+    }
+
     function testSystemTokens() public {
         _testSystemTokens();
     }
