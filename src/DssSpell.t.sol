@@ -1399,7 +1399,7 @@ contract DssSpellTest is DssSpellTestBase {
             // Cap should be >= 110% of vestTot/vestTau
             uint256 vestTot = 1_000_000_000 * WAD;
             uint256 vestTau = 180 days;
-            uint256 rateWithBuffer = (110 * vestTot) / (100 * vestTau);
+            uint256 rateWithBuffer = 110 * (vestTot / vestTau) / 100;
             assertGe(vestSky.cap(), rateWithBuffer, "Vest/cap-too-low");
         }
 
