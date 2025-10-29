@@ -65,6 +65,7 @@ interface StarGuardLike {
     function plot(address addr_, bytes32 tag_) external;
     function prob() external view returns (bool);
     function exec() external returns (address addr);
+    function drop() external;
 }
 
 interface StarGuardJobLike {
@@ -1612,6 +1613,40 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(starGuard.prob(), false, "StarGuard/spell-not-cleared");
     }
 
+
+    function testStarGuardDrop() public {
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        StarGuardLike starGuard = StarGuardLike(addr.addr("SPARK_STARGUARD"));
+
+        // Deploy a simple payload and plot it
+        MockStarSpell payload = new MockStarSpell();
+        vm.startPrank(pauseProxy);
+        starGuard.plot(address(payload), address(payload).codehash);
+        vm.stopPrank();
+
+        assertEq(starGuard.prob(), true, "StarGuard/prob-not-true-after-plot");
+
+        // Expect a Drop event and cancel the plotted spell
+        vm.startPrank(pauseProxy);
+        vm.expectEmit(true, false, false, false, address(starGuard));
+        emit Drop(address(payload));
+        starGuard.drop();
+        vm.stopPrank();
+
+        // After drop, it should not be executable and spellData cleared
+        assertEq(starGuard.prob(), false, "StarGuard/prob-true-after-drop");
+        (address plotted,,) = starGuard.spellData();
+        assertEq(plotted, address(0), "StarGuard/spellData-not-cleared");
+
+        // Exec should revert when nothing is plotted
+        vm.expectRevert();
+        starGuard.exec();
+    }
+
+    event Drop(address indexed addr);
     event Exec(address indexed addr);
     event Executed();
 }
