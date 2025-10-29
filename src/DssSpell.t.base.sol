@@ -2936,10 +2936,12 @@ contract DssSpellTestBase is Config, DssTest {
         if (address(_gem) != address(sky)) {
             assertGe(balance, vestableAmt, _concat(string("TestError/insufficient-transferrable-vest-balance-"), _errSuffix));
         } else {
-            // Note: SKY streams will operate out of buybacks, check that balance is sufficient for short term (6 days)
-            // Note: Decreased from 20 days to 6 days because of the new vest cap.
-            // Note: Increased splitter.burn from 25% to 100% will take care of having enough SKY to cover the streams.
-            vm.warp(block.timestamp + 6 days);
+            // Note: SKY streams will operate out of buybacks, check that balance is sufficient for short term (20 days)
+            // Note: As discussed with GovOps, when the 2025-10-30 spell is executed, 500 million SKY will be transferred to the PauseProxy.
+            // TODO: This is a one-time transfer. Update in next spells.
+            GodMode.setBalance(address(sky), pauseProxy, balance +500_000_000 * WAD);
+            vm.warp(block.timestamp + 20 days);
+
 
             uint256 requiredBalance;
             for (uint256 i = 1; i <= vest.ids(); i++) {
@@ -2948,7 +2950,7 @@ contract DssSpellTestBase is Config, DssTest {
                 }
             }
 
-            assertGe(balance, requiredBalance, _concat(string("TestError/insufficient-transferrable-vest-balance-for-6-days-"), _errSuffix));
+            assertGe(_gem.balanceOf(pauseProxy), requiredBalance, _concat(string("TestError/insufficient-transferrable-vest-balance-for-20-days-"), _errSuffix));
         }
     }
 
@@ -3711,10 +3713,6 @@ contract DssSpellTestBase is Config, DssTest {
             // Ensure price is within the tolerance (flap.want() + delta)
             uint256 skyWad = usdsWad * (flap.want() + 10**16) / price; // +1% buffer over want
             GodMode.setBalance(address(sky), address(pair), skyWad);
-
-            // Update pair reserves to reflect direct balance writes
-            (bool ok, ) = address(pair).call(abi.encodeWithSignature("sync()"));
-            ok;
 
             uint256 lotRad = kick.kbump() * split.burn() / WAD;
 
