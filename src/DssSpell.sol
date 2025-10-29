@@ -304,7 +304,7 @@ contract DssSpellAction is DssAction {
     /// @param usr The USDS receiver.
     /// @param wad The USDS amount in wad precision (10 ** 18).
     function _transferUsds(address usr, uint256 wad) internal {
-        // Note: Enforce whole units to avoid rounding errors
+        // Note: Enforce whole units to avoid rounding errors.
         require(wad % WAD == 0, "transferUsds/non-integer-wad");
         // Note: DssExecLib currently only supports Dai transfers from the surplus buffer.
         DssExecLib.sendPaymentFromSurplusBuffer(address(this), wad / WAD);
