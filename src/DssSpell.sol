@@ -95,22 +95,22 @@ contract DssSpellAction is DssAction {
     address internal constant REWARDS_LSSKY_SKY         = 0xB44C2Fb4181D7Cb06bdFf34A46FdFe4a259B40Fc;
     address internal constant REWARDS_DIST_LSSKY_SKY    = 0x675671A8756dDb69F7254AFB030865388Ef699Ee;
     address internal constant SPARK_STARGUARD           = 0x6605aa120fe8b656482903E7757BaBF56947E45E;
-    address internal constant STARGUARD_JOB            = 0xB18d211fA69422a9A848B790C5B4a3957F7Aa44E;
+    address internal constant STARGUARD_JOB             = 0xB18d211fA69422a9A848B790C5B4a3957F7Aa44E;
 
     // ---------- Wallets ----------
-    address internal constant CORE_COUNCIL_BUDGET_MULTISIG = 0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364;
-    address internal constant CORE_COUNCIL_DELEGATE_MULTISIG = 0x37FC5d447c8c54326C62b697f674c93eaD2A93A3;
-    address internal constant INTEGRATION_BOOST_INITIATIVE = 0xD6891d1DFFDA6B0B1aF3524018a1eE2E608785F7;
+    address internal constant CORE_COUNCIL_BUDGET_MULTISIG      = 0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364;
+    address internal constant CORE_COUNCIL_DELEGATE_MULTISIG    = 0x37FC5d447c8c54326C62b697f674c93eaD2A93A3;
+    address internal constant INTEGRATION_BOOST_INITIATIVE      = 0xD6891d1DFFDA6B0B1aF3524018a1eE2E608785F7;
 
     // ---------- Spark Spell ----------
     // Note: Spark Proxy: https://github.com/sparkdotfi/sparklend-deployments/blob/bba4c57d54deb6a14490b897c12a949aa035a99b/script/output/1/primary-sce-latest.json#L2
-    address internal constant SPARK_PROXY = 0x3300f198988e4C9C63F75dF86De36421f06af8c4;
-    address internal constant SPARK_SPELL = 0x71059EaAb41D6fda3e916bC9D76cB44E96818654;
+    address internal constant SPARK_SUBPROXY    = 0x3300f198988e4C9C63F75dF86De36421f06af8c4;
+    address internal constant SPARK_SPELL       = 0x71059EaAb41D6fda3e916bC9D76cB44E96818654;
 
     // ---------- Grove Proxy ----------
     // Note: The deployment address for the Grove Proxy can be found at https://forum.sky.money/t/technical-scope-of-the-star-2-allocator-launch/26190
-    address internal constant GROVE_PROXY = 0x1369f7b2b38c76B6478c0f0E66D94923421891Ba;
-    address internal constant GROVE_SPELL = 0x8b4A92f8375ef89165AeF4639E640e077d7C656b;
+    address internal constant GROVE_SUBPROXY    = 0x1369f7b2b38c76B6478c0f0E66D94923421891Ba;
+    address internal constant GROVE_SPELL       = 0x8b4A92f8375ef89165AeF4639E640e077d7C656b;
 
     function actions() public override {
         // ---------- Initialize Kicker ----------
@@ -218,7 +218,7 @@ contract DssSpellAction is DssAction {
             // Note: Create StarGuardConfig with the following parameters:
             StarGuardConfig({
                 // cfg.subProxy: 0x3300f198988e4C9C63F75dF86De36421f06af8c4
-                subProxy: SPARK_PROXY,
+                subProxy: SPARK_SUBPROXY,
                 // cfg.subProxyKey: SPARK_SUBPROXY
                 subProxyKey: "SPARK_SUBPROXY",
                 // cfg.starGuard: 0x6605aa120fe8b656482903E7757BaBF56947E45E
@@ -288,14 +288,14 @@ contract DssSpellAction is DssAction {
         // Atlas: https://sky-atlas.powerhouse.io/A.2.9.2.2.2.5.5.1_Subsequent_Cash_Grant_To_Spark_Foundation/280f2ff0-8d73-8019-baf3-cefdd05d4a14|9e1f80092582d59891b0d93ee539
 
         // Execute the Spark Proxy Spell at 0x71059EaAb41D6fda3e916bC9D76cB44E96818654
-        ProxyLike(SPARK_PROXY).exec(SPARK_SPELL, abi.encodeWithSignature("execute()"));
+        ProxyLike(SPARK_SUBPROXY).exec(SPARK_SPELL, abi.encodeWithSignature("execute()"));
 
         // ---------- Execute Grove Proxy Spell ----------
         // Forum: https://forum.sky.money/t/october-30th-2025-sky-prime-technical-scope-param-changes/27325
         // Poll: https://vote.sky.money/polling/Qmef8C3a
 
         // Execute the Grove Proxy Spell at 0x8b4A92f8375ef89165AeF4639E640e077d7C656b
-        ProxyLike(GROVE_PROXY).exec(GROVE_SPELL, abi.encodeWithSignature("execute()"));
+        ProxyLike(GROVE_SUBPROXY).exec(GROVE_SPELL, abi.encodeWithSignature("execute()"));
     }
 
     // ---------- Helper Functions ----------
