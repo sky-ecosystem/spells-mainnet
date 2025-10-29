@@ -3705,11 +3705,11 @@ contract DssSpellTestBase is Config, DssTest {
             vm.prank(address(flap));
             uint256 price = uint256(pip.read());
 
-            // Ensure there is enough liquidity (deep pool to minimize price impact)
-            uint256 usdsWad = 2_500_000_000 * WAD; // 2.5B USDS
+            // Ensure there is enough liquidity
+            uint256 usdsWad = 150_000_000 * WAD;
             GodMode.setBalance(address(usds), address(pair), usdsWad);
             // Ensure price is within the tolerance (flap.want() + delta)
-            uint256 skyWad = usdsWad * (flap.want() + 5 * 10**16) / price; // +5% buffer over want
+            uint256 skyWad = usdsWad * (flap.want() + 10**16) / price; // +1% buffer over want
             GodMode.setBalance(address(sky), address(pair), skyWad);
 
             // Update pair reserves to reflect direct balance writes
