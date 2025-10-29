@@ -41,7 +41,6 @@ interface SpellActionLike {
 }
 
 interface SequencerLike {
-    function getMaster() external view returns (bytes32);
     function hasJob(address job) external view returns (bool);
 }
 
@@ -374,7 +373,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testLockstakeIlkIntegration() public skipped { // add the `skipped` modifier to skip
+    function testLockstakeIlkIntegration() public { // add the `skipped` modifier to skip
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
@@ -388,9 +387,9 @@ contract DssSpellTest is DssSpellTestBase {
                 engine: addr.addr("LOCKSTAKE_ENGINE"),
                 clip:   addr.addr("LOCKSTAKE_CLIP"),
                 calc:   addr.addr("LOCKSTAKE_CLIP_CALC"),
-                farm:   addr.addr("REWARDS_LSSKY_SPK"),
-                rToken: addr.addr("SPK"),
-                rDistr: addr.addr("REWARDS_DIST_LSSKY_SPK"),
+                farm:   addr.addr("REWARDS_LSSKY_SKY"),
+                rToken: addr.addr("SKY"),
+                rDistr: addr.addr("REWARDS_DIST_LSSKY_SKY"),
                 rDur:   7 days
             })
         );
