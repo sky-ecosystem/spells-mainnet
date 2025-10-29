@@ -104,10 +104,10 @@ contract DssSpellAction is DssAction {
     address internal constant SPARK_PROXY = 0x3300f198988e4C9C63F75dF86De36421f06af8c4;
     address internal constant SPARK_SPELL = 0x71059EaAb41D6fda3e916bC9D76cB44E96818654;
 
-    // ---------- Bloom/Grove Proxy ----------
+    // ---------- Grove Proxy ----------
     // Note: The deployment address for the Grove Proxy can be found at https://forum.sky.money/t/technical-scope-of-the-star-2-allocator-launch/26190
-    address internal constant BLOOM_PROXY = 0x1369f7b2b38c76B6478c0f0E66D94923421891Ba;
-    address internal constant BLOOM_SPELL = 0x8b4A92f8375ef89165AeF4639E640e077d7C656b;
+    address internal constant GROVE_PROXY = 0x1369f7b2b38c76B6478c0f0E66D94923421891Ba;
+    address internal constant GROVE_SPELL = 0x8b4A92f8375ef89165AeF4639E640e077d7C656b;
 
     function actions() public override {
         // ---------- Initialize Kicker ----------
@@ -292,12 +292,12 @@ contract DssSpellAction is DssAction {
         // Execute the Spark Proxy Spell at 0x71059EaAb41D6fda3e916bC9D76cB44E96818654
         ProxyLike(SPARK_PROXY).exec(SPARK_SPELL, abi.encodeWithSignature("execute()"));
 
-        // ---------- Execute Bloom/Grove Proxy Spell ----------
+        // ---------- Execute Grove Proxy Spell ----------
         // Forum: https://forum.sky.money/t/october-30th-2025-sky-prime-technical-scope-param-changes/27325
         // Poll: https://vote.sky.money/polling/Qmef8C3a
 
-        // Execute the Bloom/Grove Proxy Spell at 0x8b4A92f8375ef89165AeF4639E640e077d7C656b
-        ProxyLike(BLOOM_PROXY).exec(BLOOM_SPELL, abi.encodeWithSignature("execute()"));
+        // Execute the Grove Proxy Spell at 0x8b4A92f8375ef89165AeF4639E640e077d7C656b
+        ProxyLike(GROVE_PROXY).exec(GROVE_SPELL, abi.encodeWithSignature("execute()"));
     }
 
     // ---------- Helper Functions ----------
