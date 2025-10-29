@@ -121,7 +121,7 @@ contract DssSpellAction is DssAction {
             // cfg.khump: -200 million USDS (note this is a negative value)
             khump: -200_000_000 * int256(RAD),
             // cfg.kbump: 10,000 USDS
-            kbump: 100_000_000 * RAD,
+            kbump: 10_000 * RAD,
             // cfg.chainlogKey: "MCD_KICK";
             chainlogKey: "MCD_KICK"
         });

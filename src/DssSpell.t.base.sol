@@ -3697,7 +3697,7 @@ contract DssSpellTestBase is Config, DssTest {
                 .target(address(vat))
                 .sig("dai(address)")
                 .with_key(address(vow))
-                .checked_write(uint256(int256(vat.sin(address(vow))) + int256(kick.kbump()) + int256(kick.khump())));
+                .checked_write(uint256(int256(vat.sin(address(vow))) + int256(kick.kbump())));
 
             GemAbstract pair = GemAbstract(addr.addr("UNIV2USDSSKY"));
             FlapOracleLike pip = FlapOracleLike(flap.pip());

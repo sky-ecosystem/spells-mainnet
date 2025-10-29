@@ -1341,7 +1341,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertTrue(spell.done(), "TestError/spell-not-done");
 
         assertEq(kick.khump(), -200_000_000 * int256(RAD), "Kicker/khump-not-set");
-        assertEq(kick.kbump(), 100_000_000 * RAD, "Kicker/kbump-not-set");
+        assertEq(kick.kbump(), 10_000 * RAD, "Kicker/kbump-not-set");
         assertEq(kick.vat(), address(vat), "Kicker/vat-not-set");
         assertEq(kick.vow(), address(vow), "Kicker/vow-not-set");
         assertEq(kick.splitter(), address(split), "Kicker/splitter-not-set");
