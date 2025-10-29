@@ -209,27 +209,22 @@ contract DssSpellAction is DssAction {
         // Poll: https://vote.sky.money/polling/Qmbs7wEM
 
         // Call StarGuardInit.init with the following parameters:
-
-        // Note: Create StarGuardConfig with the following parameters:
-        StarGuardConfig memory starGuardCfg = StarGuardConfig({
-            // cfg.subProxy: 0x3300f198988e4C9C63F75dF86De36421f06af8c4
-            subProxy: SPARK_PROXY,
-            // cfg.subProxyKey: SPARK_SUBPROXY
-            subProxyKey: "SPARK_SUBPROXY",
-            // cfg.starGuard: 0x6605aa120fe8b656482903E7757BaBF56947E45E
-            starGuard: SPARK_STARGUARD,
-            // cfg.starGuardKey: SPARK_STARGUARD
-            starGuardKey: "SPARK_STARGUARD",
-            // cfg.maxDelay: 7 days
-            maxDelay: 7 days
-        });
-
-        // Note: Call StarGuardInit.init with the parameters created above:
         StarGuardInit.init(
             // address chainlog: DssExecLib.LOG
             CHAINLOG,
-            // Note: StarGuardConfig created above
-            starGuardCfg
+            // Note: Create StarGuardConfig with the following parameters:
+            StarGuardConfig({
+                // cfg.subProxy: 0x3300f198988e4C9C63F75dF86De36421f06af8c4
+                subProxy: SPARK_PROXY,
+                // cfg.subProxyKey: SPARK_SUBPROXY
+                subProxyKey: "SPARK_SUBPROXY",
+                // cfg.starGuard: 0x6605aa120fe8b656482903E7757BaBF56947E45E
+                starGuard: SPARK_STARGUARD,
+                // cfg.starGuardKey: SPARK_STARGUARD
+                starGuardKey: "SPARK_STARGUARD",
+                // cfg.maxDelay: 7 days
+                maxDelay: 7 days
+            })
         );
 
         // Add StarGuardJob deployed at 0xB18d211fA69422a9A848B790C5B4a3957F7Aa44E to the Sequencer
