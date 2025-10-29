@@ -239,7 +239,7 @@ contract DssSpellAction is DssAction {
         // Add StarGuardJob to the Chainlog as CRON_STARGUARD_JOB
         DssExecLib.setChangelogAddress("CRON_STARGUARD_JOB", STAR_GUARD_JOB);
 
-        // Note: Bump chainlog PATCH version
+        // Note: Bump chainlog patch version as new keys are being added
         DssExecLib.setChangelogVersion("1.20.7");
 
         // ---------- Fund Core Council Multisigs ----------
