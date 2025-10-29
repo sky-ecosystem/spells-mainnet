@@ -20,8 +20,11 @@ import "dss-exec-lib/DssExec.sol";
 import "dss-exec-lib/DssAction.sol";
 import { DssInstance, MCD } from "dss-test/MCD.sol";
 import { GemAbstract } from "dss-interfaces/ERC/GemAbstract.sol";
+// Note: code matches https://github.com/sky-ecosystem/dss-flappers/blob/f4f4f22b3eae6c912551b00ad64a56862ad61f86/deploy/FlapperInit.sol
 import { FlapperInit, KickerConfig } from "src/dependencies/dss-flappers/FlapperInit.sol";
+// Note: code matches https://github.com/sky-ecosystem/star-guard/blob/52239d716a89188b303f137fc43fb9288735ba2e/deploy/StarGuardInit.sol
 import { StarGuardInit, StarGuardConfig } from "src/dependencies/starguard/StarGuardInit.sol";
+// Note: code matches https://github.com/sky-ecosystem/endgame-toolkit/blob/fe734bea271e87c0b8e772d7adcccb46c4df1939/script/dependencies/treasury-funded-farms/TreasuryFundedFarmingInit.sol
 import { TreasuryFundedFarmingInit, FarmingInitParams } from "src/dependencies/lockstake/TreasuryFundedFarmingInit.sol";
 
 interface ProxyLike {

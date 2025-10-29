@@ -31,9 +31,9 @@ struct FarmingInitParams {
     address distJob;
     uint256 distJobInterval; // in seconds
     address vest;
-    uint256 vestTot; // wad
-    uint256 vestBgn; // unix timestamp
-    uint256 vestTau; // in seconds
+    uint256 vestTot;
+    uint256 vestBgn;
+    uint256 vestTau;
 }
 
 struct FarmingInitResult {
@@ -80,7 +80,7 @@ library TreasuryFundedFarmingInit {
         // Check if `p.vest.cap` needs to be adjusted based on the new vest rate.
         // Note: adds 10% buffer to the rate, as usual for this parameter.
         uint256 cap = DssVestTransferrableLike(p.vest).cap();
-        uint256 rateWithBuffer = (110 * p.vestTot) / (100 * p.vestTau);
+        uint256 rateWithBuffer = (110 * (p.vestTot / p.vestTau)) / 100;
         if (rateWithBuffer > cap) {
             DssVestTransferrableLike(p.vest).file("cap", rateWithBuffer);
         }
@@ -124,7 +124,7 @@ interface DssVestTransferrableLike {
     function czar() external view returns (address);
     function gem() external view returns (address);
     function file(bytes32 key, uint256 value) external;
-    function unpaid(uint256 vestId) external view returns (uint256);
+    function unpaid(uint256 vestid) external view returns (uint256);
 }
 
 interface StakingRewardsLike {
