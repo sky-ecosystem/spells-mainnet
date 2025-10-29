@@ -95,7 +95,7 @@ contract DssSpellAction is DssAction {
     address internal constant REWARDS_LSSKY_SKY         = 0xB44C2Fb4181D7Cb06bdFf34A46FdFe4a259B40Fc;
     address internal constant REWARDS_DIST_LSSKY_SKY    = 0x675671A8756dDb69F7254AFB030865388Ef699Ee;
     address internal constant SPARK_STARGUARD           = 0x6605aa120fe8b656482903E7757BaBF56947E45E;
-    address internal constant STAR_GUARD_JOB            = 0xB18d211fA69422a9A848B790C5B4a3957F7Aa44E;
+    address internal constant STARGUARD_JOB            = 0xB18d211fA69422a9A848B790C5B4a3957F7Aa44E;
 
     // ---------- Wallets ----------
     address internal constant CORE_COUNCIL_BUDGET_MULTISIG = 0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364;
@@ -231,13 +231,13 @@ contract DssSpellAction is DssAction {
         );
 
         // Add StarGuardJob deployed at 0xB18d211fA69422a9A848B790C5B4a3957F7Aa44E to the Sequencer
-        DssCronSequencerLike(CRON_SEQUENCER).addJob(STAR_GUARD_JOB);
+        DssCronSequencerLike(CRON_SEQUENCER).addJob(STARGUARD_JOB);
 
         // Add SPARK_STARGUARD to the StarGuardJob
-        StarGuardJobLike(STAR_GUARD_JOB).add(SPARK_STARGUARD);
+        StarGuardJobLike(STARGUARD_JOB).add(SPARK_STARGUARD);
 
         // Add StarGuardJob to the Chainlog as CRON_STARGUARD_JOB
-        DssExecLib.setChangelogAddress("CRON_STARGUARD_JOB", STAR_GUARD_JOB);
+        DssExecLib.setChangelogAddress("CRON_STARGUARD_JOB", STARGUARD_JOB);
 
         // Note: Bump chainlog patch version as new keys are being added
         DssExecLib.setChangelogVersion("1.20.7");
