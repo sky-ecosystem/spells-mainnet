@@ -34,7 +34,7 @@ interface DssCronSequencerLike {
 }
 
 interface StakingRewardsLike {
-    function setRewardsDuration(uint256 duration) external;
+    function setRewardsDuration(uint256 _rewardsDuration) external;
 }
 
 interface DaiUsdsLike {
@@ -75,6 +75,7 @@ contract DssSpellAction is DssAction {
     // ---------- Contracts ----------
     address internal immutable DAI                      = DssExecLib.dai();
     address internal immutable CHAINLOG                 = DssExecLib.LOG;
+    address internal immutable CRON_FLAP_JOB            = DssExecLib.getChangelogAddress("CRON_FLAP_JOB");
     address internal immutable CRON_REWARDS_DIST_JOB    = DssExecLib.getChangelogAddress("CRON_REWARDS_DIST_JOB");
     address internal immutable CRON_SEQUENCER           = DssExecLib.getChangelogAddress("CRON_SEQUENCER");
     address internal immutable DAI_USDS                 = DssExecLib.getChangelogAddress("DAI_USDS");
@@ -87,8 +88,7 @@ contract DssSpellAction is DssAction {
     address internal immutable STUSDS_RATE_SETTER       = DssExecLib.getChangelogAddress("STUSDS_RATE_SETTER");
 
     address internal constant KICKER                    = 0xD889477102e8C4A857b78Fcc2f134535176Ec1Fc;
-    address internal constant OLD_FLAP_JOB              = 0xc32506E9bB590971671b649d9B8e18CB6260559F;
-    address internal constant NEW_FLAP_JOB              = 0xE564C4E237f4D7e0130FdFf6ecC8a5E931C51494;
+    address internal constant NEW_CRON_FLAP_JOB         = 0xE564C4E237f4D7e0130FdFf6ecC8a5E931C51494;
     address internal constant REWARDS_LSSKY_SKY         = 0xB44C2Fb4181D7Cb06bdFf34A46FdFe4a259B40Fc;
     address internal constant REWARDS_DIST_LSSKY_SKY    = 0x675671A8756dDb69F7254AFB030865388Ef699Ee;
     address internal constant SPARK_STARGUARD           = 0x6605aa120fe8b656482903E7757BaBF56947E45E;
@@ -122,7 +122,7 @@ contract DssSpellAction is DssAction {
             khump: -200_000_000 * int256(RAD),
             // cfg.kbump: 10,000 USDS
             kbump: 10_000 * RAD,
-            // cfg.chainlogKey: "MCD_KICK";
+            // cfg.chainlogKey: MCD_KICK;
             chainlogKey: "MCD_KICK"
         });
 
@@ -140,13 +140,13 @@ contract DssSpellAction is DssAction {
         );
 
         // Remove old FlapJob (0xc32506E9bB590971671b649d9B8e18CB6260559F) from the Sequencer
-        DssCronSequencerLike(CRON_SEQUENCER).removeJob(OLD_FLAP_JOB);
+        DssCronSequencerLike(CRON_SEQUENCER).removeJob(CRON_FLAP_JOB);
 
         // Add new FlapJob deployed at 0xE564C4E237f4D7e0130FdFf6ecC8a5E931C51494 to the Sequencer
-        DssCronSequencerLike(CRON_SEQUENCER).addJob(NEW_FLAP_JOB);
+        DssCronSequencerLike(CRON_SEQUENCER).addJob(NEW_CRON_FLAP_JOB);
 
         // Update CRON_FLAP_JOB in the Chainlog to 0xE564C4E237f4D7e0130FdFf6ecC8a5E931C51494
-        DssExecLib.setChangelogAddress("CRON_FLAP_JOB", NEW_FLAP_JOB);
+        DssExecLib.setChangelogAddress("CRON_FLAP_JOB", NEW_CRON_FLAP_JOB);
 
         // ---------- Recalibrate Smart Burn Engine ----------
         // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2025-10-27/27362
