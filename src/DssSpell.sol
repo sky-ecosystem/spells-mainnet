@@ -118,28 +118,24 @@ contract DssSpellAction is DssAction {
         // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2025-10-27/27362
         // Poll: https://vote.sky.money/polling/Qmbs7wEM
 
-        // Init Kicker by calling FlapperInit.initKicker() with the following parameters:
-        // Note: Create KickerConfig with the following parameters:
-        KickerConfig memory kickerCfg = KickerConfig({
-            // cfg.khump: -200 million USDS (note this is a negative value)
-            khump: -200_000_000 * int256(RAD),
-            // cfg.kbump: 10,000 USDS
-            kbump: 10_000 * RAD,
-            // cfg.chainlogKey: MCD_KICK
-            chainlogKey: "MCD_KICK"
-        });
-
-        // Note: We also need dss as an input parameter for initKicker
+        /// Note: Load DssInstance from chainlog
         DssInstance memory dss = MCD.loadFromChainlog(DssExecLib.LOG);
 
-        // Note: Call FlapperInit.initKicker with the parameters created above:
+        // Init Kicker by calling FlapperInit.initKicker() with the following parameters:
         FlapperInit.initKicker(
             // dss: A DssInstance (from dss-test/MCD.sol)
             dss,
             // kicker: 0xD889477102e8C4A857b78Fcc2f134535176Ec1Fc
             KICKER,
-            // Note: KickerConfig created above
-            kickerCfg
+            // Note: Create KickerConfig with the following parameters:
+            KickerConfig({
+                // cfg.khump: -200 million USDS (note this is a negative value)
+                khump: -200_000_000 * int256(RAD),
+                // cfg.kbump: 10,000 USDS
+                kbump: 10_000 * RAD,
+                // cfg.chainlogKey: MCD_KICK
+                chainlogKey: "MCD_KICK"
+            })
         );
 
         // Remove old FlapJob (0xc32506E9bB590971671b649d9B8e18CB6260559F) from the Sequencer
