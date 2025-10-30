@@ -42,6 +42,7 @@ interface SpellActionLike {
 
 interface SequencerLike {
     function hasJob(address job) external view returns (bool);
+    function getMaster() external view returns (bytes32);
 }
 
 interface DssVestTransferrableLike {
@@ -70,6 +71,11 @@ interface StarGuardLike {
 
 interface StarGuardJobLike {
     function has(address starGuard) external view returns (bool);
+}
+
+interface CronJobLike {
+    function work(bytes32 network, bytes memory args) external;
+    function workable(bytes32 network) external returns (bool, bytes memory);
 }
 
 interface SubProxyLike {
@@ -1359,6 +1365,66 @@ contract DssSpellTest is DssSpellTestBase {
         assertTrue(spell.done(), "TestError/spell-not-done");
 
         assertEq(seq.hasJob(OLD_CRON_FLAP_JOB), false, "CronSequencer/job-not-removed");
+    }
+
+    function testCronFlapJobWorkableAndWork() public {
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        SequencerLike seq = SequencerLike(addr.addr("CRON_SEQUENCER"));
+        address jobAddr = addr.addr("CRON_FLAP_JOB");
+        CronJobLike job = CronJobLike(jobAddr);
+
+        // Ensure the job is registered in the sequencer
+        assertTrue(seq.hasJob(jobAddr), "CronSequencer/flap-job-not-added");
+
+        // Prepare market conditions so the flap swap can execute without revert
+        {
+            GemAbstract    pair = GemAbstract(addr.addr("UNIV2USDSSKY"));
+            FlapOracleLike pip  = FlapOracleLike(flap.pip());
+
+            // Read oracle price as Flapper (whitelisted)
+            vm.prank(address(flap));
+            uint256 price = uint256(pip.read());
+
+            // Deep liquidity and a +1% buffer over want to satisfy minOut
+            uint256 usdsWad = 150_000_000 * WAD;
+            GodMode.setBalance(address(usds), address(pair), usdsWad);
+            uint256 skyWad = usdsWad * (flap.want() + 10**16) / price;
+            GodMode.setBalance(address(sky), address(pair), skyWad);
+
+            // Ensure Kicker threshold so the job is workable
+            stdstore
+                .target(address(vat))
+                .sig("dai(address)")
+                .with_key(address(vow))
+                .checked_write(vat.sin(address(vow)) + kick.kbump());
+        }
+
+        bytes32 master = seq.getMaster();
+
+        // workable() may modify state; snapshot and revert the check
+        bool isWorkable;
+        bytes memory args;
+
+        {
+            uint256 before = vm.snapshotState();
+            (isWorkable, args) = job.workable(master);
+            vm.revertToStateAndDelete(before);
+        }
+        assertTrue(isWorkable, "CronFlapJob/not-workable");
+
+        // Execute the job
+        job.work(master, args);
+
+        // After work, it should not be immediately workable again
+        {
+            uint256 before = vm.snapshotState();
+            (bool again, ) = job.workable(master);
+            vm.revertToStateAndDelete(before);
+            assertFalse(again, "CronFlapJob/still-workable-after-work");
+        }
     }
 
     function testSmartBurnEngine() public { // add the `skipped` modifier to skip
