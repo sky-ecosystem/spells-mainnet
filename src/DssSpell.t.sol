@@ -1726,6 +1726,54 @@ contract DssSpellTest is DssSpellTestBase {
     event Drop(address indexed addr);
     event Exec(address indexed addr);
     event Executed();
+
+    function testCronStarGuardJobWorkAndWorkable() public {
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        StarGuardLike  starGuard = StarGuardLike(addr.addr("SPARK_STARGUARD"));
+        SequencerLike  seq       = SequencerLike(addr.addr("CRON_SEQUENCER"));
+        CronJobLike    job       = CronJobLike(addr.addr("CRON_STARGUARD_JOB"));
+
+        // Ensure job is registered
+        assertTrue(seq.hasJob(address(job)), "StarGuardJob/not-in-sequencer");
+
+        // Plot an executable payload so the job becomes workable
+        MockStarSpell payload = new MockStarSpell();
+        vm.startPrank(pauseProxy);
+        starGuard.plot(address(payload), address(payload).codehash);
+        vm.stopPrank();
+
+        assertEq(starGuard.prob(), true, "StarGuard/prob-not-true-after-plot");
+
+        bytes32 network = seq.getMaster();
+
+        // workable() may mutate; snapshot and revert around the check
+        bool isWorkable;
+        bytes memory args;
+        {
+            uint256 before = vm.snapshotState();
+            (isWorkable, args) = job.workable(network);
+            vm.revertToStateAndDelete(before);
+        }
+        assertTrue(isWorkable, "StarGuardJob/not-workable");
+
+        job.work(network, args);
+
+        // After work, plotted spell should be cleared and not executable
+        assertEq(starGuard.prob(), false, "StarGuard/prob-true-after-job");
+        (address plotted,,) = starGuard.spellData();
+        assertEq(plotted, address(0), "StarGuard/spellData-not-cleared-by-job");
+
+        // Not immediately workable again
+        {
+            uint256 before = vm.snapshotState();
+            (bool again, ) = job.workable(network);
+            vm.revertToStateAndDelete(before);
+            assertFalse(again, "StarGuardJob/still-workable-after-work");
+        }
+    }
 }
 
 contract MockStarSpell {
