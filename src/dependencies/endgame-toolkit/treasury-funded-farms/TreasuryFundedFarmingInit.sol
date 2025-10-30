@@ -15,11 +15,11 @@
 
 pragma solidity ^0.8.16;
 
-import {StakingRewardsInit, StakingRewardsInitParams} from "./StakingRewardsInit.sol";
-import {VestInit, VestCreateParams} from "./VestInit.sol";
+import {StakingRewardsInit, StakingRewardsInitParams} from "../StakingRewardsInit.sol";
+import {VestInit, VestCreateParams} from "../VestInit.sol";
 import {
     VestedRewardsDistributionInit, VestedRewardsDistributionInitParams
-} from "./VestedRewardsDistributionInit.sol";
+} from "../VestedRewardsDistributionInit.sol";
 
 struct FarmingInitParams {
     address stakingToken;
