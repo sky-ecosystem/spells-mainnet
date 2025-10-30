@@ -1364,7 +1364,7 @@ contract DssSpellTest is DssSpellTestBase {
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        assertEq(seq.hasJob(OLD_CRON_FLAP_JOB), false, "CronSequencer/job-not-removed");
+        assertFalse(seq.hasJob(OLD_CRON_FLAP_JOB), "CronSequencer/job-not-removed");
     }
 
     function testCronFlapJobWorkableAndWork() public {
@@ -1641,12 +1641,14 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     function testStarGuard() public {
+        address SPARK_PROXY = addr.addr('SPARK_SUBPROXY');
+        address SPARK_STARGUARD = addr.addr("SPARK_STARGUARD");
+
+        assertFalse(StarGuardJobLike(addr.addr("CRON_STARGUARD_JOB")).has(SPARK_STARGUARD), "StarGuardJob/stars-not-set");
+        
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
-
-        address SPARK_PROXY = addr.addr('SPARK_SUBPROXY');
-        address SPARK_STARGUARD = addr.addr("SPARK_STARGUARD");
 
         assertEq(SubProxyLike(SPARK_PROXY).wards(SPARK_STARGUARD), 1, "SubProxy/wards-not-set");
         assertEq(StarGuardLike(SPARK_STARGUARD).subProxy(), SPARK_PROXY, "StarGuard/subProxy-not-set");
@@ -1656,7 +1658,7 @@ contract DssSpellTest is DssSpellTestBase {
         (address spellAddr,,) = StarGuardLike(SPARK_STARGUARD).spellData();
         assertEq(spellAddr, address(0), "StarGuard/unexpected-plotted-spell");
 
-        assertEq(StarGuardJobLike(addr.addr("CRON_STARGUARD_JOB")).has(SPARK_STARGUARD), true, "StarGuardJob/stars-not-set");
+        assertTrue(StarGuardJobLike(addr.addr("CRON_STARGUARD_JOB")).has(SPARK_STARGUARD), "StarGuardJob/stars-not-set");
     }
 
     function testStarGuardSpellExecution() public {
@@ -1675,7 +1677,7 @@ contract DssSpellTest is DssSpellTestBase {
         vm.stopPrank();
 
         // Should be executable now
-        assertEq(starGuard.prob(), true, "StarGuard/prob-not-true");
+        assertTrue(starGuard.prob(), "StarGuard/prob-not-true");
 
         // Expect the starGuard to emit its Exec event upon exec()
         vm.expectEmit();
@@ -1687,7 +1689,7 @@ contract DssSpellTest is DssSpellTestBase {
 
         // Still owner of subProxy, and no longer plotted
         assertEq(SubProxyLike(addr.addr("SPARK_SUBPROXY")).wards(address(starGuard)), 1, "StarGuard/subProxy-wards-changed");
-        assertEq(starGuard.prob(), false, "StarGuard/spell-not-cleared");
+        assertFalse(starGuard.prob(), "StarGuard/spell-not-cleared");
     }
 
 
@@ -1704,7 +1706,7 @@ contract DssSpellTest is DssSpellTestBase {
         starGuard.plot(address(payload), address(payload).codehash);
         vm.stopPrank();
 
-        assertEq(starGuard.prob(), true, "StarGuard/prob-not-true-after-plot");
+        assertTrue(starGuard.prob(), "StarGuard/prob-not-true-after-plot");
 
         // Expect a Drop event and cancel the plotted spell
         vm.startPrank(pauseProxy);
@@ -1714,7 +1716,7 @@ contract DssSpellTest is DssSpellTestBase {
         vm.stopPrank();
 
         // After drop, it should not be executable and spellData cleared
-        assertEq(starGuard.prob(), false, "StarGuard/prob-true-after-drop");
+        assertFalse(starGuard.prob(), "StarGuard/prob-true-after-drop");
         (address plotted,,) = starGuard.spellData();
         assertEq(plotted, address(0), "StarGuard/spellData-not-cleared");
 
@@ -1745,7 +1747,7 @@ contract DssSpellTest is DssSpellTestBase {
         starGuard.plot(address(payload), address(payload).codehash);
         vm.stopPrank();
 
-        assertEq(starGuard.prob(), true, "StarGuard/prob-not-true-after-plot");
+        assertTrue(starGuard.prob(), "StarGuard/prob-not-true-after-plot");
 
         bytes32 network = seq.getMaster();
 
@@ -1762,7 +1764,7 @@ contract DssSpellTest is DssSpellTestBase {
         job.work(network, args);
 
         // After work, plotted spell should be cleared and not executable
-        assertEq(starGuard.prob(), false, "StarGuard/prob-true-after-job");
+        assertFalse(starGuard.prob(), "StarGuard/prob-true-after-job");
         (address plotted,,) = starGuard.spellData();
         assertEq(plotted, address(0), "StarGuard/spellData-not-cleared-by-job");
 
