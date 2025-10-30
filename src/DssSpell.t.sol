@@ -1350,6 +1350,17 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(split.wards(address(kick)), 1, "Splitter/wards-not-set");
     }
 
+    function testJobRemoval() public {
+        SequencerLike seq = SequencerLike(addr.addr("CRON_SEQUENCER"));
+        address OLD_CRON_FLAP_JOB = address(0xc32506E9bB590971671b649d9B8e18CB6260559F);
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        assertEq(seq.hasJob(OLD_CRON_FLAP_JOB), false, "CronSequencer/job-not-removed");
+    }
+
     function testSmartBurnEngine() public { // add the `skipped` modifier to skip
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
