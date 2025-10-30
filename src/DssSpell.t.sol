@@ -58,6 +58,10 @@ interface VestedRewardsDistributionLike {
     function distribute() external;
 }
 
+interface VestedRewardsDistributionJobLike {
+    function intervals(address) external view returns (uint256);
+}
+
 interface StarGuardLike {
     function maxDelay() external view returns (uint256);
     function subProxy() external view returns (address subProxy);
@@ -1445,6 +1449,7 @@ contract DssSpellTest is DssSpellTestBase {
         address rewards    = addr.addr("REWARDS_LSSKY_SKY");
         address dist       = addr.addr("REWARDS_DIST_LSSKY_SKY");
         address lssky      = addr.addr("LOCKSTAKE_SKY");
+        address distJob    = addr.addr("CRON_REWARDS_DIST_JOB");
 
         // StakingRewards wiring
         {
@@ -1463,6 +1468,10 @@ contract DssSpellTest is DssSpellTestBase {
             assertEq(d.stakingRewards(),    address(rewards),   "Dist/staking-rewards-mismatch");
             assertGt(d.vestId(),            0,                  "Dist/vest-id-not-set");
         }
+
+        // Distribution job params from spell: job address and interval
+        assertEq(chainLog.getAddress("CRON_REWARDS_DIST_JOB"), distJob, "DistJob/chainlog-mismatch");
+        assertEq(VestedRewardsDistributionJobLike(distJob).intervals(dist), 7 days - 1 hours, "DistJob/interval-mismatch");
 
         uint256 id = vestSky.ids();
 
