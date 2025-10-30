@@ -118,7 +118,7 @@ contract DssSpellAction is DssAction {
         // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2025-10-27/27362
         // Poll: https://vote.sky.money/polling/Qmbs7wEM
 
-        /// Note: Load DssInstance from chainlog
+        // Note: We need a DssInstance as an input parameter for initKicker
         DssInstance memory dss = MCD.loadFromChainlog(DssExecLib.LOG);
 
         // Init Kicker by calling FlapperInit.initKicker() with the following parameters:
