@@ -1510,12 +1510,12 @@ contract DssSpellTest is DssSpellTestBase {
         address lssky = addr.addr("LOCKSTAKE_SKY");
 
         // Sanity checks
-        assertEq(rewards.rewardsDistribution(), address(dist), "testLsskySkyRewards/rewards-rewards-dist-mismatch");
-        assertEq(rewards.stakingToken(), lssky, "testLsskySkyRewards/rewards-staking-token-mismatch");
-        assertEq(rewards.rewardsToken(), address(sky), "testLsskySkyRewards/rewards-rewards-token-mismatch");
-        assertTrue(vestSky.valid(dist.vestId()), "testLsskySkyRewards/invalid-dist-vest-id");
-        assertEq(dist.dssVest(), address(vestSky), "testLsskySkyRewards/dist-vest-mismatch");
-        assertEq(dist.stakingRewards(), address(rewards), "testLsskySkyRewards/dist-rewards-mismatch");
+        assertEq(rewards.rewardsDistribution(), address(dist), "Rewards/rewards-dist-mismatch");
+        assertEq(rewards.stakingToken(), lssky, "Rewards/staking-token-mismatch");
+        assertEq(rewards.rewardsToken(), address(sky), "Rewards/rewards-token-mismatch");
+        assertTrue(vestSky.valid(dist.vestId()), "Vest/invalid-vest-id");
+        assertEq(dist.dssVest(), address(vestSky), "Dist/dss-vest-mismatch");
+        assertEq(dist.stakingRewards(), address(rewards), "Dist/staking-rewards-mismatch");
 
         uint256 before = vm.snapshotState();
         { // Check if users can stake and get rewards
@@ -1523,7 +1523,7 @@ contract DssSpellTest is DssSpellTestBase {
             _giveTokens(lssky, stakingWad);
             GemAbstract(lssky).approve(address(rewards), stakingWad);
             rewards.stake(stakingWad);
-            assertEq(rewards.balanceOf(address(this)), stakingWad, "testLsskySkyRewards/rewards-invalid-staked-balance");
+            assertEq(rewards.balanceOf(address(this)), stakingWad, "Rewards/invalid-staked-balance");
 
             uint256 pbalance = sky.balanceOf(address(this));
             skip(7 days);
@@ -1536,7 +1536,7 @@ contract DssSpellTest is DssSpellTestBase {
             uint256 pbalance = sky.balanceOf(address(rewards));
             skip(7 days);
             dist.distribute();
-            assertGt(sky.balanceOf(address(rewards)), pbalance, "testLsskySkyRewards/distribute-no-increase-balance");
+            assertGt(sky.balanceOf(address(rewards)), pbalance, "Dist/no-increase-balance");
         }
     }
 
@@ -1557,7 +1557,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(maxDuty, 5_000, "StusdsRateSetter/max-not-set");
     }
 
-    function testStusdsRateSetterRejectsInvalid() public {
+    function testStUsdsRateSetterRejectsInvalid() public {
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
@@ -1575,11 +1575,11 @@ contract DssSpellTest is DssSpellTestBase {
 
         vm.startPrank(bud);
         // Invalid: str above max
-        vm.expectRevert();
+        vm.expectRevert("StUsdsRateSetter/above-max");
         rateSetter.set(uint256(maxStr) + 1, minDuty, line, cap);
 
         // Invalid: str below min
-        vm.expectRevert();
+        vm.expectRevert("StUsdsRateSetter/below-min");
         rateSetter.set(uint256(minStr) - 1, minDuty, line, cap);
 
         uint256 oldStrBps = ConvLike(spbeam.conv()).rtob(stusds.str());
@@ -1587,33 +1587,49 @@ contract DssSpellTest is DssSpellTestBase {
         uint256 oldDutyBps = ConvLike(spbeam.conv()).rtob(dutyRay);
 
         // Imvalid: str delta above step
-        vm.expectRevert();
-        rateSetter.set(oldStrBps + strStep + 1, minDuty, line, cap);
+        vm.expectRevert("StUsdsRateSetter/delta-above-step");
+        rateSetter.set(oldStrBps + strStep + 1, oldDutyBps, line, cap);
 
-        vm.expectRevert();
-        rateSetter.set(oldStrBps - strStep - 1, minDuty, line, cap);
+        {
+            uint256 before = vm.snapshotState();
+            rateSetter.set(oldStrBps + strStep, oldDutyBps, line, cap);
+            vm.warp(block.timestamp + rateSetter.tau());
+
+            // Imvalid: str delta above step
+            vm.expectRevert("StUsdsRateSetter/delta-above-step");
+            rateSetter.set(oldStrBps - 1, oldDutyBps, line, cap);
+            vm.revertToStateAndDelete(before);
+        }
 
         // Invalid: duty below min
-        vm.expectRevert();
+        vm.expectRevert("StUsdsRateSetter/below-min");
         rateSetter.set(oldStrBps, uint256(minDuty) - 1, line, cap);
 
         // Invalid: duty above max
-        vm.expectRevert();
+        vm.expectRevert("StUsdsRateSetter/above-max");
         rateSetter.set(oldStrBps, uint256(maxDuty) + 1, line, cap);
 
         // Invalid: duty delta above step
-        vm.expectRevert();
+        vm.expectRevert("StUsdsRateSetter/delta-above-step");
         rateSetter.set(oldStrBps, oldDutyBps + dutyStep + 1, line, cap);
 
-        vm.expectRevert();
-        rateSetter.set(oldStrBps, oldDutyBps - dutyStep - 1, line, cap);
+        {
+            uint256 before = vm.snapshotState();
+            rateSetter.set(oldStrBps, oldDutyBps + dutyStep, line, cap);
+            vm.warp(block.timestamp + rateSetter.tau());
+
+            // Imvalid: str delta above step
+            vm.expectRevert("StUsdsRateSetter/delta-above-step");
+            rateSetter.set(oldStrBps, oldDutyBps - 1, line, cap);
+            vm.revertToStateAndDelete(before);
+        }
 
         // Valid: str and duty within bounds (no change)
         rateSetter.set(oldStrBps, oldDutyBps, line, cap);
         vm.stopPrank();
     }
 
-    function testStusdsRateSetterAllowsValid() public {
+    function testStUsdsRateSetterAllowsValid() public {
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
@@ -1643,8 +1659,8 @@ contract DssSpellTest is DssSpellTestBase {
         (uint256 newDutyRay, ) = jug.ilks(stusds.ilk());
         uint256 newDutyBps = ConvLike(spbeam.conv()).rtob(newDutyRay);
 
-        assertEq(newStrBps, oldStrBps + strStep - 1, "StusdsRateSetter/strbps-changed");
-        assertEq(newDutyBps, oldDutyBps + dutyStep - 1, "StusdsRateSetter/dutybps-changed");
+        assertEq(newStrBps, oldStrBps + strStep - 1, "StUsdsRateSetter/strbps-changed");
+        assertEq(newDutyBps, oldDutyBps + dutyStep - 1, "StUsdsRateSetter/dutybps-changed");
 
         vm.stopPrank();
     }
@@ -1730,7 +1746,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(plotted, address(0), "StarGuard/spellData-not-cleared");
 
         // Exec should revert when nothing is plotted
-        vm.expectRevert();
+        vm.expectRevert("StarGuard/unplotted-spell");
         starGuard.exec();
     }
 
