@@ -539,6 +539,25 @@ interface OsmWrapperLike {
     function osm() external view returns (address);
 }
 
+interface StarGuardLike {
+    function spellData() external view returns (address addr, bytes32 tag, uint256 deadline);
+    function subProxy() external view returns (address);
+    function exec() external returns (address addr);
+    function prob() external view returns (bool);
+}
+
+interface CronStarGuardJobLike {
+    function has(address starGuard) external view returns (bool);
+}
+
+interface PrimeSpellLike {
+    function isExecutable() external view returns (bool);
+}
+
+interface ProxyLike {
+    function exec(address target, bytes calldata args) external payable returns (bytes memory out);
+}
+
 contract DssSpellTestBase is Config, DssTest {
     using stdStorage for StdStorage;
 
@@ -1008,7 +1027,7 @@ contract DssSpellTestBase is Config, DssTest {
         // hump values in RAD
         if (values.vow_hump_min == type(uint256).max && values.vow_hump_max == type(uint256).max) {
             assertEq(vow.hump(), type(uint256).max, "TestError/vow-hump");
-        } else { 
+        } else {
             uint256 normalizedHumpMin = values.vow_hump_min * RAD;
             uint256 normalizedHumpMax = values.vow_hump_max * RAD;
             assertTrue(vow.hump() >= normalizedHumpMin && vow.hump() <= normalizedHumpMax, "TestError/vow-hump-min-max");
@@ -3897,5 +3916,98 @@ contract DssSpellTestBase is Config, DssTest {
     /// @dev Returns the implementation of upgradeable contracts following EIP1697
     function _imp(address _tgt) internal view returns (address) {
         return address(uint160(uint256(vm.load(_tgt, EIP1967_IMPLEMENTATION_SLOT))));
+    }
+
+    function _testPrimeAgentSpellExecution(
+        string memory primeAgentName,
+        address subproxyAddress,
+        address primeAgentSpell,
+        bytes32 primeAgentSpellHash,
+        bool directExecutionEnabled
+    ) internal {
+        // Sanity check with passed parameters
+        assertTrue(primeAgentSpell != address(0), "TestError/PrimeAgentSpell/zero-address");
+        bytes32 deployedSpellHash = primeAgentSpell.codehash;
+        assertEq(deployedSpellHash, primeAgentSpellHash, "TestError/PrimeAgentSpell/hash-mismatch");
+
+        // Get correct addresses from chainlog
+        address STAR_GUARD = addr.addr(_stringToBytes32(string.concat(primeAgentName, "_STARGUARD")));
+
+        if (directExecutionEnabled) {
+            vm.expectCall(
+                subproxyAddress,
+                /* value = */ 0,
+                abi.encodeCall(
+                    ProxyLike(subproxyAddress).exec,
+                    (primeAgentSpell, abi.encodeWithSignature("execute()"))
+                )
+            );
+
+            _vote(address(spell));
+            _scheduleWaitAndCast(address(spell));
+            assertTrue(spell.done(), "TestError/PrimeAgentSpell/spell-not-done");
+
+            // Ensure StarGuard spell data is not updated to current PrimeAgentSpell
+            if(STAR_GUARD != address(0)) {
+                (address spellAddr,,) = StarGuardLike(STAR_GUARD).spellData();
+                assertNotEq(primeAgentSpell, spellAddr, "TestError/PrimeAgentSpell/prime-agent-starguard-spell-updated");
+            }
+        } else {
+            // Sanity checks for star guard configuration
+            assertTrue(STAR_GUARD != address(0), "TestError/PrimeAgentSpell/missing-starguard-address");
+            CronStarGuardJobLike CRON_STARGUARD_JOB = CronStarGuardJobLike(addr.addr("CRON_STARGUARD_JOB"));
+            assertTrue(
+                CRON_STARGUARD_JOB.has(STAR_GUARD),
+                "TestError/PrimeAgentSpell/starguard-not-registered-in-cronjob"
+            );
+            assertTrue(
+                StarGuardLike(STAR_GUARD).subProxy() == subproxyAddress,
+                "TestError/PrimeAgentSpell/invalid-subproxy-address"
+            );
+
+            // PrimeAgentSpell compatibility check
+            (bool ok, ) = primeAgentSpell.staticcall(abi.encodeWithSignature("isExecutable()"));
+            assertTrue(ok, "TestError/PrimeAgentSpell/spell-does-not-support-isExecutable");
+
+            _vote(address(spell));
+            _scheduleWaitAndCast(address(spell));
+            assertTrue(spell.done(), "TestError/PrimeAgentSpell/spell-not-done");
+
+            (address spellAddr, bytes32 spellHash, uint256 deadline) = StarGuardLike(STAR_GUARD).spellData();
+
+            assertEq(primeAgentSpell, spellAddr, "TestError/PrimeAgentSpell/prime-agent-starguard-spell-not-updated");
+            assertEq(primeAgentSpellHash, spellHash, "TestError/PrimeAgentSpell/prime-agent-starguard-spell-hash-mismatch");
+
+            // Try to warp and execute the spell via StarGuard before the deadline
+            _warpAndExecStarGuard(block.timestamp, deadline, STAR_GUARD, subproxyAddress, primeAgentSpell);
+        }
+    }
+
+    function _warpAndExecStarGuard(
+        uint256 startTime,
+        uint256 deadline,
+        address STAR_GUARD,
+        address subproxyAddress,
+        address primeAgentSpell
+    ) internal {
+        for (uint256 t = startTime; t <= deadline; t += 1 hours) {
+            vm.warp(t);
+            bool executable = StarGuardLike(STAR_GUARD).prob();
+            if (executable) {
+                // Execute prime agent spell via StarGuard
+                vm.expectCall(
+                    subproxyAddress,
+                    /* value = */ 0,
+                    abi.encodeCall(
+                        ProxyLike(subproxyAddress).exec,
+                        (primeAgentSpell, abi.encodeWithSignature("execute()"))
+                    )
+                );
+                StarGuardLike(STAR_GUARD).exec();
+                return;
+            }
+        }
+        emit log_named_string("Error","TestError/PrimeAgentSpell/spell-not-executable-before-deadline");
+        fail();
     }
 }

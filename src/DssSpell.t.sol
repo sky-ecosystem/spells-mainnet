@@ -32,10 +32,6 @@ interface BridgeLike {
     function l2TeleportGateway() external view returns (address);
 }
 
-interface ProxyLike {
-    function exec(address target, bytes calldata args) external payable returns (bytes memory out);
-}
-
 interface SpellActionLike {
     function dao_resolutions() external view returns (string memory);
 }
@@ -1246,60 +1242,43 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // Spark tests
-    function testSparkSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
-        address SPARK_PROXY = addr.addr('SPARK_SUBPROXY');
-        address SPARK_SPELL = address(0x71059EaAb41D6fda3e916bC9D76cB44E96818654); // Insert Spark spell address
-
-        vm.expectCall(
-            SPARK_PROXY,
-            /* value = */ 0,
-            abi.encodeCall(
-                ProxyLike(SPARK_PROXY).exec,
-                (SPARK_SPELL, abi.encodeWithSignature("execute()"))
-            )
-        );
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
+    function testSparkSpellIsExecuted() public { // add the `skipped` modifier to skip
+        _testPrimeAgentSpellExecution({
+            primeAgentName: "SPARK",
+            subproxyAddress: addr.addr('SPARK_SUBPROXY'),
+            // Insert Spark spell address
+            primeAgentSpell: address(0x71059EaAb41D6fda3e916bC9D76cB44E96818654),
+            // Insert Spark spell hash
+            primeAgentSpellHash: 0x71059EaAb41D6fda3e916bC9D76cB44E96818654.codehash,
+            // Set to true if the spark spell is executed directly from core spell
+            directExecutionEnabled: true
+        });
     }
 
     // Bloom/Grove tests
     function testBloomSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
-        address BLOOM_PROXY = addr.addr('ALLOCATOR_BLOOM_A_SUBPROXY');
-        address BLOOM_SPELL = address(0x8b4A92f8375ef89165AeF4639E640e077d7C656b); // Insert Bloom spell address
-
-        vm.expectCall(
-            BLOOM_PROXY,
-            /* value = */ 0,
-            abi.encodeCall(
-                ProxyLike(BLOOM_PROXY).exec,
-                (BLOOM_SPELL, abi.encodeWithSignature("execute()"))
-            )
-        );
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
+        _testPrimeAgentSpellExecution({
+            primeAgentName: "GROVE",
+            subproxyAddress: addr.addr('ALLOCATOR_BLOOM_A_SUBPROXY'),
+            // Insert Bloom spell address
+            primeAgentSpell: address(0x8b4A92f8375ef89165AeF4639E640e077d7C656b),
+            // Insert Bloom spell hash
+            primeAgentSpellHash: bytes32('codehash'),
+            directExecutionEnabled: true
+        });
     }
 
     // Nova/Keel tests
     function testNovaSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
-        address NOVA_PROXY = addr.addr('ALLOCATOR_NOVA_A_SUBPROXY');
-        address NOVA_SPELL = address(0x7ae136b7e677C6A9B909a0ef0a4E29f0a1c3c7fE); // Insert Nova spell address
-
-        vm.expectCall(
-            NOVA_PROXY,
-            /* value = */ 0,
-            abi.encodeCall(
-                ProxyLike(NOVA_PROXY).exec,
-                (NOVA_SPELL, abi.encodeWithSignature("execute()"))
-            )
-        );
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
+        _testPrimeAgentSpellExecution({
+            primeAgentName: "KEEL",
+            subproxyAddress: addr.addr('ALLOCATOR_NOVA_A_SUBPROXY'),
+            // Insert Nova spell address
+            primeAgentSpell: address(0x7ae136b7e677C6A9B909a0ef0a4E29f0a1c3c7fE),
+            // Insert Nova spell hash
+            primeAgentSpellHash: bytes32('codehash'),
+            directExecutionEnabled: true
+        });
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
