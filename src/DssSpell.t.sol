@@ -45,47 +45,6 @@ interface SequencerLike {
     function getMaster() external view returns (bytes32);
 }
 
-interface DssVestTransferrableLike {
-    function czar() external view returns (address);
-    function gem() external view returns (address);
-}
-
-interface VestedRewardsDistributionLike {
-    function gem() external view returns (address);
-    function dssVest() external view returns (address);
-    function vestId() external view returns (uint256);
-    function stakingRewards() external view returns (address);
-    function distribute() external;
-}
-
-interface VestedRewardsDistributionJobLike {
-    function intervals(address) external view returns (uint256);
-}
-
-interface StarGuardLike {
-    function maxDelay() external view returns (uint256);
-    function subProxy() external view returns (address subProxy);
-    function spellData() external view returns (address addr, bytes32 tag, uint256 deadline);
-    function wards(address usr) external view returns (uint256 allowed);
-    function plot(address addr_, bytes32 tag_) external;
-    function prob() external view returns (bool);
-    function exec() external returns (address addr);
-    function drop() external;
-}
-
-interface StarGuardJobLike {
-    function has(address starGuard) external view returns (bool);
-}
-
-interface CronJobLike {
-    function work(bytes32 network, bytes memory args) external;
-    function workable(bytes32 network) external returns (bool, bytes memory);
-}
-
-interface SubProxyLike {
-    function wards(address usr) external view returns (uint256 allowed);
-}
-
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -324,7 +283,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
         string[6] memory addedKeys = [
             "MCD_KICK",
             "REWARDS_LSSKY_SKY",
@@ -384,7 +343,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testLockstakeIlkIntegration() public { // add the `skipped` modifier to skip
+    function testLockstakeIlkIntegration() public skipped { // add the `skipped` modifier to skip
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
@@ -690,7 +649,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public { // add the `skipped` modifier to skip
+    function testVestSky() public skipped { // add the `skipped` modifier to skip
         uint256 spellCastTime = _getSpellCastTime();
 
         // Build expected new stream
@@ -811,7 +770,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public { // add the `skipped` modifier to skip
+    function testPayments() public skipped { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -984,7 +943,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testNewCronJobs() public { // add the `skipped` modifier to skip
+    function testNewCronJobs() public skipped { // add the `skipped` modifier to skip
         SequencerLike seq = SequencerLike(addr.addr("CRON_SEQUENCER"));
         address[1] memory newJobs = [
             addr.addr("CRON_STARGUARD_JOB")
@@ -1287,7 +1246,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // Spark tests
-    function testSparkSpellIsExecuted() public { // add the `skipped` modifier to skip
+    function testSparkSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
         address SPARK_PROXY = addr.addr('SPARK_SUBPROXY');
         address SPARK_SPELL = address(0x71059EaAb41D6fda3e916bC9D76cB44E96818654); // Insert Spark spell address
 
@@ -1306,7 +1265,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // Bloom/Grove tests
-    function testBloomSpellIsExecuted() public { // add the `skipped` modifier to skip
+    function testBloomSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
         address BLOOM_PROXY = addr.addr('ALLOCATOR_BLOOM_A_SUBPROXY');
         address BLOOM_SPELL = address(0x8b4A92f8375ef89165AeF4639E640e077d7C656b); // Insert Bloom spell address
 
@@ -1345,472 +1304,4 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
-    function testKickerInit() public {
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        assertEq(kick.khump(), -200_000_000 * int256(RAD), "Kicker/khump-not-set");
-        assertEq(kick.kbump(), 10_000 * RAD, "Kicker/kbump-not-set");
-        assertEq(kick.vat(), address(vat), "Kicker/vat-not-set");
-        assertEq(kick.vow(), address(vow), "Kicker/vow-not-set");
-        assertEq(kick.splitter(), address(split), "Kicker/splitter-not-set");
-        assertEq(kick.wards(pauseProxy), 1, "Kicker/wards-not-set");
-        assertEq(vat.wards(address(kick)), 1, "Vat/wards-not-set");
-        assertEq(split.wards(address(kick)), 1, "Splitter/wards-not-set");
-    }
-
-    function testJobRemoval() public {
-        SequencerLike seq = SequencerLike(addr.addr("CRON_SEQUENCER"));
-        address OLD_CRON_FLAP_JOB = address(0xc32506E9bB590971671b649d9B8e18CB6260559F);
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        assertFalse(seq.hasJob(OLD_CRON_FLAP_JOB), "CronSequencer/job-not-removed");
-    }
-
-    function testCronFlapJobWorkableAndWork() public {
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        SequencerLike seq = SequencerLike(addr.addr("CRON_SEQUENCER"));
-        address jobAddr = addr.addr("CRON_FLAP_JOB");
-        CronJobLike job = CronJobLike(jobAddr);
-
-        // Ensure the job is registered in the sequencer
-        assertTrue(seq.hasJob(jobAddr), "CronSequencer/flap-job-not-added");
-
-        // Prepare market conditions so the flap swap can execute without revert
-        {
-            GemAbstract    pair = GemAbstract(addr.addr("UNIV2USDSSKY"));
-            FlapOracleLike pip  = FlapOracleLike(flap.pip());
-
-            // Read oracle price as Flapper (whitelisted)
-            vm.prank(address(flap));
-            uint256 price = uint256(pip.read());
-
-            // Deep liquidity and a +1% buffer over want to satisfy minOut
-            uint256 usdsWad = 150_000_000 * WAD;
-            GodMode.setBalance(address(usds), address(pair), usdsWad);
-            uint256 skyWad = usdsWad * (flap.want() + 10**16) / price;
-            GodMode.setBalance(address(sky), address(pair), skyWad);
-
-            // Ensure Kicker threshold so the job is workable
-            stdstore
-                .target(address(vat))
-                .sig("dai(address)")
-                .with_key(address(vow))
-                .checked_write(vat.sin(address(vow)) + kick.kbump());
-        }
-
-        bytes32 master = seq.getMaster();
-
-        // workable() may modify state; snapshot and revert the check
-        bool isWorkable;
-        bytes memory args;
-
-        {
-            uint256 before = vm.snapshotState();
-            (isWorkable, args) = job.workable(master);
-            vm.revertToStateAndDelete(before);
-        }
-        assertTrue(isWorkable, "CronFlapJob/not-workable");
-
-        // Execute the job
-        job.work(master, args);
-
-        // After work, it should not be immediately workable again
-        {
-            uint256 before = vm.snapshotState();
-            (bool again, ) = job.workable(master);
-            vm.revertToStateAndDelete(before);
-            assertFalse(again, "CronFlapJob/still-workable-after-work");
-        }
-    }
-
-    function testSmartBurnEngine() public { // add the `skipped` modifier to skip
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        assertEq(split.burn(), 1 * WAD, "Splitter/burn-not-set");
-        assertEq(split.hop(), 2_880, "Splitter/hop-not-set");
-        assertEq(StakingRewardsLike(addr.addr("REWARDS_LSSKY_USDS")).rewardsDuration(), 2_880, "StakingRewards/rewardsDuration-not-set");
-    }
-
-    function testLsskySkyFarm() public { // add the `skipped` modifier to skip
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        address rewards    = addr.addr("REWARDS_LSSKY_SKY");
-        address dist       = addr.addr("REWARDS_DIST_LSSKY_SKY");
-        address lssky      = addr.addr("LOCKSTAKE_SKY");
-        address distJob    = addr.addr("CRON_REWARDS_DIST_JOB");
-
-        // StakingRewards wiring
-        {
-            StakingRewardsLike rw = StakingRewardsLike(rewards);
-            assertEq(rw.stakingToken(),         lssky,          "Rewards/staking-token-mismatch");
-            assertEq(rw.rewardsToken(),         address(sky),   "Rewards/rewards-token-mismatch");
-            assertEq(rw.rewardsDistribution(),  dist,           "Rewards/rewards-distribution-not-set");
-            assertEq(rw.owner(),                pauseProxy,     "Rewards/invalid-owner");
-        }
-
-        // Distribution contract wiring
-        {
-            VestedRewardsDistributionLike d = VestedRewardsDistributionLike(dist);
-            assertEq(d.gem(),               address(sky),       "Dist/gem-mismatch");
-            assertEq(d.dssVest(),           address(vestSky),   "Dist/dss-vest-mismatch");
-            assertEq(d.stakingRewards(),    address(rewards),   "Dist/staking-rewards-mismatch");
-            assertGt(d.vestId(),            0,                  "Dist/vest-id-not-set");
-        }
-
-        // Distribution job params from spell: job address and interval
-        assertEq(chainLog.getAddress("CRON_REWARDS_DIST_JOB"), distJob, "DistJob/chainlog-mismatch");
-        assertEq(VestedRewardsDistributionJobLike(distJob).intervals(dist), 7 days - 1 hours, "DistJob/interval-mismatch");
-
-        uint256 id = vestSky.ids();
-
-        // Vest parameters and cap adjustment check
-        {
-            assertEq(DssVestTransferrableLike(address(vestSky)).czar(), pauseProxy,                 "Vest/czar-not-set");
-            assertEq(DssVestTransferrableLike(address(vestSky)).gem(),  address(sky),               "Vest/gem-not-set");
-            assertEq(vestSky.tot(id),                                   1_000_000_000 * WAD,        "Vest/tot-not-set");
-            assertEq(vestSky.bgn(id),                                   block.timestamp - 7 days,   "Vest/bgn-not-set");
-
-            // Cap should be >= 110% of vestTot/vestTau
-            uint256 vestTot = 1_000_000_000 * WAD;
-            uint256 vestTau = 180 days;
-            uint256 rateWithBuffer = 110 * (vestTot / vestTau) / 100;
-            assertGe(vestSky.cap(), rateWithBuffer, "Vest/cap-too-low");
-        }
-
-        // Treasury SKY allowance to vest increased by >= vestTot
-        assertGe(sky.allowance(pauseProxy, address(vestSky)), 1_000_000_000 * WAD, "Treasury/allowance-too-low");
-
-        // After distribute, unpaid for vestId should be zero and rewards should hold some SKY; rewardRate > 0
-        {
-            assertEq(vestSky.unpaid(id),                        0, "Vest/unpaid-not-zero-after-distribute");
-            assertGt(sky.balanceOf(address(rewards)),           0, "Rewards/no-sky-balance");
-            assertGt(StakingRewardsLike(rewards).rewardRate(),  0, "Rewards/rewardRate-not-set");
-        }
-    }
-
-    function testLsskySkyRewardsIntegration() public {
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        StakingRewardsLike rewards = StakingRewardsLike(addr.addr("REWARDS_LSSKY_SKY"));
-        VestedRewardsDistributionLike dist = VestedRewardsDistributionLike(addr.addr("REWARDS_DIST_LSSKY_SKY"));
-        address lssky = addr.addr("LOCKSTAKE_SKY");
-
-        // Sanity checks
-        assertEq(rewards.rewardsDistribution(), address(dist), "Rewards/rewards-dist-mismatch");
-        assertEq(rewards.stakingToken(), lssky, "Rewards/staking-token-mismatch");
-        assertEq(rewards.rewardsToken(), address(sky), "Rewards/rewards-token-mismatch");
-        assertTrue(vestSky.valid(dist.vestId()), "Vest/invalid-vest-id");
-        assertEq(dist.dssVest(), address(vestSky), "Dist/dss-vest-mismatch");
-        assertEq(dist.stakingRewards(), address(rewards), "Dist/staking-rewards-mismatch");
-
-        uint256 before = vm.snapshotState();
-        { // Check if users can stake and get rewards
-            uint256 stakingWad = 100_000 * WAD;
-            _giveTokens(lssky, stakingWad);
-            GemAbstract(lssky).approve(address(rewards), stakingWad);
-            rewards.stake(stakingWad);
-            assertEq(rewards.balanceOf(address(this)), stakingWad, "Rewards/invalid-staked-balance");
-
-            uint256 pbalance = sky.balanceOf(address(this));
-            skip(7 days);
-            rewards.getReward();
-            assertGt(sky.balanceOf(address(this)), pbalance);
-        }
-
-        vm.revertToState(before);
-        { // Check if distribute can be called again in the future
-            uint256 pbalance = sky.balanceOf(address(rewards));
-            skip(7 days);
-            dist.distribute();
-            assertGt(sky.balanceOf(address(rewards)), pbalance, "Dist/no-increase-balance");
-        }
-    }
-
-    function testStusdsRateSetter() public { // add the `skipped` modifier to skip
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        (uint16 minStr, uint16 maxStr, uint256 strStep) = rateSetter.strCfg();
-        assertEq(strStep, 500, "StusdsRateSetter/step-not-set");
-        (uint16 minDuty, uint16 maxDuty, uint256 dutyStep) = rateSetter.dutyCfg();
-        assertEq(dutyStep, 500, "StusdsRateSetter/step-not-set");
-
-        // Check that the rest of the parameters are unchanged
-        assertEq(minStr, 200, "StusdsRateSetter/min-not-set");
-        assertEq(maxStr, 5_000, "StusdsRateSetter/max-not-set");
-        assertEq(minDuty, 210, "StusdsRateSetter/min-not-set");
-        assertEq(maxDuty, 5_000, "StusdsRateSetter/max-not-set");
-    }
-
-    function testStUsdsRateSetterRejectsInvalid() public {
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        // Satisfy timing guard
-        vm.warp(block.timestamp + rateSetter.tau());
-
-        (uint16 minStr, uint16 maxStr, uint16 strStep) = rateSetter.strCfg();
-        (uint16 minDuty, uint16 maxDuty, uint16 dutyStep) = rateSetter.dutyCfg();
-
-        uint256 line = rateSetter.maxLine();
-        uint256 cap  = rateSetter.maxCap();
-
-        address bud = address(0xBB865F94B8A92E57f79fCc89Dfd4dcf0D3fDEA16);
-
-        vm.startPrank(bud);
-        // Invalid: str above max
-        vm.expectRevert("StUsdsRateSetter/above-max");
-        rateSetter.set(uint256(maxStr) + 1, minDuty, line, cap);
-
-        // Invalid: str below min
-        vm.expectRevert("StUsdsRateSetter/below-min");
-        rateSetter.set(uint256(minStr) - 1, minDuty, line, cap);
-
-        uint256 oldStrBps = ConvLike(spbeam.conv()).rtob(stusds.str());
-        (uint256 dutyRay, ) = jug.ilks(stusds.ilk());
-        uint256 oldDutyBps = ConvLike(spbeam.conv()).rtob(dutyRay);
-
-        // Imvalid: str delta above step
-        vm.expectRevert("StUsdsRateSetter/delta-above-step");
-        rateSetter.set(oldStrBps + strStep + 1, oldDutyBps, line, cap);
-
-        {
-            uint256 before = vm.snapshotState();
-            rateSetter.set(oldStrBps + strStep, oldDutyBps, line, cap);
-            vm.warp(block.timestamp + rateSetter.tau());
-
-            // Imvalid: str delta above step
-            vm.expectRevert("StUsdsRateSetter/delta-above-step");
-            rateSetter.set(oldStrBps - 1, oldDutyBps, line, cap);
-            vm.revertToStateAndDelete(before);
-        }
-
-        // Invalid: duty below min
-        vm.expectRevert("StUsdsRateSetter/below-min");
-        rateSetter.set(oldStrBps, uint256(minDuty) - 1, line, cap);
-
-        // Invalid: duty above max
-        vm.expectRevert("StUsdsRateSetter/above-max");
-        rateSetter.set(oldStrBps, uint256(maxDuty) + 1, line, cap);
-
-        // Invalid: duty delta above step
-        vm.expectRevert("StUsdsRateSetter/delta-above-step");
-        rateSetter.set(oldStrBps, oldDutyBps + dutyStep + 1, line, cap);
-
-        {
-            uint256 before = vm.snapshotState();
-            rateSetter.set(oldStrBps, oldDutyBps + dutyStep, line, cap);
-            vm.warp(block.timestamp + rateSetter.tau());
-
-            // Imvalid: str delta above step
-            vm.expectRevert("StUsdsRateSetter/delta-above-step");
-            rateSetter.set(oldStrBps, oldDutyBps - 1, line, cap);
-            vm.revertToStateAndDelete(before);
-        }
-
-        // Valid: str and duty within bounds (no change)
-        rateSetter.set(oldStrBps, oldDutyBps, line, cap);
-        vm.stopPrank();
-    }
-
-    function testStUsdsRateSetterAllowsValid() public {
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        (,,uint16 strStep) = rateSetter.strCfg();
-        (,,uint16 dutyStep) = rateSetter.dutyCfg();
-
-        // Satisfy timing guard
-        vm.warp(block.timestamp + rateSetter.tau());
-
-        // Use current bps values (delta = 0, within bounds)
-        uint256 oldStrBps = ConvLike(spbeam.conv()).rtob(stusds.str());
-        (uint256 dutyRay, ) = jug.ilks(stusds.ilk());
-        uint256 oldDutyBps = ConvLike(spbeam.conv()).rtob(dutyRay);
-
-        uint256 line = rateSetter.maxLine();
-        uint256 cap  = rateSetter.maxCap();
-
-        address bud = address(0xBB865F94B8A92E57f79fCc89Dfd4dcf0D3fDEA16);
-
-        vm.startPrank(bud);
-
-        // Valid str and duty within bounds and delta below step
-        rateSetter.set(oldStrBps + strStep - 1, oldDutyBps + dutyStep - 1, line, cap);
-
-        uint256 newStrBps = ConvLike(spbeam.conv()).rtob(stusds.str());
-        (uint256 newDutyRay, ) = jug.ilks(stusds.ilk());
-        uint256 newDutyBps = ConvLike(spbeam.conv()).rtob(newDutyRay);
-
-        assertEq(newStrBps, oldStrBps + strStep - 1, "StUsdsRateSetter/strbps-changed");
-        assertEq(newDutyBps, oldDutyBps + dutyStep - 1, "StUsdsRateSetter/dutybps-changed");
-
-        vm.stopPrank();
-    }
-
-    function testStarGuard() public {
-        address SPARK_PROXY = addr.addr('SPARK_SUBPROXY');
-        address SPARK_STARGUARD = addr.addr("SPARK_STARGUARD");
-
-        assertFalse(StarGuardJobLike(addr.addr("CRON_STARGUARD_JOB")).has(SPARK_STARGUARD), "StarGuardJob/stars-not-set");
-        
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        assertEq(SubProxyLike(SPARK_PROXY).wards(SPARK_STARGUARD), 1, "SubProxy/wards-not-set");
-        assertEq(StarGuardLike(SPARK_STARGUARD).subProxy(), SPARK_PROXY, "StarGuard/subProxy-not-set");
-        assertEq(StarGuardLike(SPARK_STARGUARD).wards(pauseProxy), 1, "StarGuard/wards-not-set");
-        assertEq(StarGuardLike(SPARK_STARGUARD).maxDelay(), 7 days, "StarGuard/maxDelay-not-set");
-
-        (address spellAddr,,) = StarGuardLike(SPARK_STARGUARD).spellData();
-        assertEq(spellAddr, address(0), "StarGuard/unexpected-plotted-spell");
-
-        assertTrue(StarGuardJobLike(addr.addr("CRON_STARGUARD_JOB")).has(SPARK_STARGUARD), "StarGuardJob/stars-not-set");
-    }
-
-    function testStarGuardSpellExecution() public {
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        StarGuardLike starGuard = StarGuardLike(addr.addr("SPARK_STARGUARD"));
-
-        // Deploy a simple payload that is always executable
-        MockStarSpell payload = new MockStarSpell();
-
-        // Plot the payload as the Pause Proxy (admin)
-        vm.startPrank(pauseProxy);
-        starGuard.plot(address(payload), address(payload).codehash);
-        vm.stopPrank();
-
-        // Should be executable now
-        assertTrue(starGuard.prob(), "StarGuard/prob-not-true");
-
-        // Expect the starGuard to emit its Exec event upon exec()
-        vm.expectEmit();
-        emit Executed();
-        vm.expectEmit(true, false, false, false, address(starGuard));
-        emit Exec(address(payload));
-        address executed = starGuard.exec();
-        assertEq(executed, address(payload), "StarGuard/exec-wrong-target");
-
-        // Still owner of subProxy, and no longer plotted
-        assertEq(SubProxyLike(addr.addr("SPARK_SUBPROXY")).wards(address(starGuard)), 1, "StarGuard/subProxy-wards-changed");
-        assertFalse(starGuard.prob(), "StarGuard/spell-not-cleared");
-    }
-
-
-    function testStarGuardDrop() public {
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        StarGuardLike starGuard = StarGuardLike(addr.addr("SPARK_STARGUARD"));
-
-        // Deploy a simple payload and plot it
-        MockStarSpell payload = new MockStarSpell();
-        vm.startPrank(pauseProxy);
-        starGuard.plot(address(payload), address(payload).codehash);
-        vm.stopPrank();
-
-        assertTrue(starGuard.prob(), "StarGuard/prob-not-true-after-plot");
-
-        // Expect a Drop event and cancel the plotted spell
-        vm.startPrank(pauseProxy);
-        vm.expectEmit(true, false, false, false, address(starGuard));
-        emit Drop(address(payload));
-        starGuard.drop();
-        vm.stopPrank();
-
-        // After drop, it should not be executable and spellData cleared
-        assertFalse(starGuard.prob(), "StarGuard/prob-true-after-drop");
-        (address plotted,,) = starGuard.spellData();
-        assertEq(plotted, address(0), "StarGuard/spellData-not-cleared");
-
-        // Exec should revert when nothing is plotted
-        vm.expectRevert("StarGuard/unplotted-spell");
-        starGuard.exec();
-    }
-
-    event Drop(address indexed addr);
-    event Exec(address indexed addr);
-    event Executed();
-
-    function testCronStarGuardJobWorkAndWorkable() public {
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        StarGuardLike  starGuard = StarGuardLike(addr.addr("SPARK_STARGUARD"));
-        SequencerLike  seq       = SequencerLike(addr.addr("CRON_SEQUENCER"));
-        CronJobLike    job       = CronJobLike(addr.addr("CRON_STARGUARD_JOB"));
-
-        // Ensure job is registered
-        assertTrue(seq.hasJob(address(job)), "StarGuardJob/not-in-sequencer");
-
-        // Plot an executable payload so the job becomes workable
-        MockStarSpell payload = new MockStarSpell();
-        vm.startPrank(pauseProxy);
-        starGuard.plot(address(payload), address(payload).codehash);
-        vm.stopPrank();
-
-        assertTrue(starGuard.prob(), "StarGuard/prob-not-true-after-plot");
-
-        bytes32 network = seq.getMaster();
-
-        // workable() may mutate; snapshot and revert around the check
-        bool isWorkable;
-        bytes memory args;
-        {
-            uint256 before = vm.snapshotState();
-            (isWorkable, args) = job.workable(network);
-            vm.revertToStateAndDelete(before);
-        }
-        assertTrue(isWorkable, "StarGuardJob/not-workable");
-
-        job.work(network, args);
-
-        // After work, plotted spell should be cleared and not executable
-        assertFalse(starGuard.prob(), "StarGuard/prob-true-after-job");
-        (address plotted,,) = starGuard.spellData();
-        assertEq(plotted, address(0), "StarGuard/spellData-not-cleared-by-job");
-
-        // Not immediately workable again
-        {
-            uint256 before = vm.snapshotState();
-            (bool again, ) = job.workable(network);
-            vm.revertToStateAndDelete(before);
-            assertFalse(again, "StarGuardJob/still-workable-after-work");
-        }
-    }
-}
-
-contract MockStarSpell {
-    event Executed();
-
-    function execute() external {
-        emit Executed();
-    }
-
-    function isExecutable() external pure returns (bool) {
-        return true;
-    }
 }
