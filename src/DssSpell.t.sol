@@ -1255,9 +1255,8 @@ contract DssSpellTest is DssSpellTestBase {
 
     // Spark tests
     function testSparkSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
-        _testPrimeAgentSpellExecution({
+        _testStarguardExecution({
             starGuardKey: "SPARK_STARGUARD",
-            subProxyKey: "SPARK_SUBPROXY",
             primeAgentSpell: address(0x71059EaAb41D6fda3e916bC9D76cB44E96818654), // Insert Spark spell address
             primeAgentSpellHash: bytes32('codehash'), // Insert Spark spell hash
             directExecutionEnabled: true // Set to true if the spark spell is executed directly from core spell
@@ -1266,30 +1265,40 @@ contract DssSpellTest is DssSpellTestBase {
 
     // Bloom/Grove tests
     function testBloomSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
+        address BLOOM_PROXY = addr.addr('ALLOCATOR_BLOOM_A_SUBPROXY');
         address BLOOM_SPELL = address(0x8b4A92f8375ef89165AeF4639E640e077d7C656b); // Insert Bloom spell address
 
-        _testPrimeAgentSpellExecution({
-            /** starGuard not onboarded */
-            starGuardKey: "GROVE",
-            directExecutionEnabled: true,
-            subProxyKey: "ALLOCATOR_BLOOM_A_SUBPROXY",
-            primeAgentSpell: BLOOM_SPELL,
-            primeAgentSpellHash: BLOOM_SPELL.codehash
-        });
+        vm.expectCall(
+            BLOOM_PROXY,
+            /* value = */ 0,
+            abi.encodeCall(
+                ProxyLike(BLOOM_PROXY).exec,
+                (BLOOM_SPELL, abi.encodeWithSignature("execute()"))
+            )
+        );
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
     }
 
     // Nova/Keel tests
     function testNovaSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
+        address NOVA_PROXY = addr.addr('ALLOCATOR_NOVA_A_SUBPROXY');
         address NOVA_SPELL = address(0x7ae136b7e677C6A9B909a0ef0a4E29f0a1c3c7fE); // Insert Nova spell address
 
-        _testPrimeAgentSpellExecution({
-            /** starGuard not onboarded */
-            starGuardKey: "KEEL",
-            directExecutionEnabled: true,
-            subProxyKey: 'ALLOCATOR_NOVA_A_SUBPROXY',
-            primeAgentSpell: NOVA_SPELL,
-            primeAgentSpellHash: NOVA_SPELL.codehash
-        });
+        vm.expectCall(
+            NOVA_PROXY,
+            /* value = */ 0,
+            abi.encodeCall(
+                ProxyLike(NOVA_PROXY).exec,
+                (NOVA_SPELL, abi.encodeWithSignature("execute()"))
+            )
+        );
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW

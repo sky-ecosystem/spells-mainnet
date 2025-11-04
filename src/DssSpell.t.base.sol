@@ -3920,9 +3920,8 @@ contract DssSpellTestBase is Config, DssTest {
 
     event Exec(address indexed addr);
 
-    function _testPrimeAgentSpellExecution(
+    function _testStarguardExecution(
         bytes32 starGuardKey,
-        bytes32 subProxyKey,
         address primeAgentSpell,
         bytes32 primeAgentSpellHash,
         bool directExecutionEnabled
@@ -3932,8 +3931,11 @@ contract DssSpellTestBase is Config, DssTest {
         assertEq(deployedSpellHash, primeAgentSpellHash, "TestError/PrimeAgentSpell/hash-mismatch");
 
         // Get correct addresses from chainlog
-        address starGuard = addr.addr(starGuardKey);
-        address subProxy  = addr.addr(subProxyKey);
+        address starGuardAddr = addr.addr(starGuardKey);
+        assertTrue(starGuardAddr != address(0), "TestError/PrimeAgentSpell/missing-starguard-address");
+        StarGuardLike starGuard = StarGuardLike(starGuardAddr);
+
+        address subProxy  = starGuard.subProxy();
 
         if (directExecutionEnabled) {
             vm.expectCall(
@@ -3950,21 +3952,14 @@ contract DssSpellTestBase is Config, DssTest {
             assertTrue(spell.done(), "TestError/PrimeAgentSpell/spell-not-done");
 
             // Ensure starGuard spell data is not updated to current PrimeAgentSpell
-            if(starGuard != address(0)) {
-                (address spellAddr,,) = StarGuardLike(starGuard).spellData();
-                assertNotEq(primeAgentSpell, spellAddr, "TestError/PrimeAgentSpell/prime-agent-starguard-spell-updated");
-            }
+            (address spellAddr,,) = starGuard.spellData();
+            assertNotEq(primeAgentSpell, spellAddr, "TestError/PrimeAgentSpell/prime-agent-starguard-spell-updated");
         } else {
             // Sanity checks for starGuard configuration
-            assertTrue(starGuard != address(0), "TestError/PrimeAgentSpell/missing-starguard-address");
             CronStarGuardJobLike CRON_STARGUARD_JOB = CronStarGuardJobLike(addr.addr("CRON_STARGUARD_JOB"));
             assertTrue(
-                CRON_STARGUARD_JOB.has(starGuard),
+                CRON_STARGUARD_JOB.has(starGuardAddr),
                 "TestError/PrimeAgentSpell/starguard-not-registered-in-cronjob"
-            );
-            assertTrue(
-                StarGuardLike(starGuard).subProxy() == subProxy,
-                "TestError/PrimeAgentSpell/invalid-subproxy-address"
             );
 
             // PrimeAgentSpell compatibility check
@@ -3975,7 +3970,7 @@ contract DssSpellTestBase is Config, DssTest {
             _scheduleWaitAndCast(address(spell));
             assertTrue(spell.done(), "TestError/PrimeAgentSpell/spell-not-done");
 
-            (address spellAddr, bytes32 spellHash, uint256 deadline) = StarGuardLike(starGuard).spellData();
+            (address spellAddr, bytes32 spellHash, uint256 deadline) = starGuard.spellData();
 
             assertEq(primeAgentSpell, spellAddr, "TestError/PrimeAgentSpell/prime-agent-starguard-spell-not-updated");
             assertEq(primeAgentSpellHash, spellHash, "TestError/PrimeAgentSpell/prime-agent-starguard-spell-hash-mismatch");
@@ -3987,15 +3982,13 @@ contract DssSpellTestBase is Config, DssTest {
 
     function _warpAndExecStarGuard(
         uint256 deadline,
-        address starGuardAddress,
+        StarGuardLike starGuard,
         address primeAgentSpell
     ) internal {
-        StarGuardLike starGuard = StarGuardLike(starGuardAddress);
-
         for (uint256 t = block.timestamp; t <= deadline; t += 1 hours) {
             bool executable = starGuard.prob();
             if (executable) {
-                vm.expectEmit(true, false, false, false, address(starGuardAddress));
+                vm.expectEmit(true, false, false, false, address(starGuard));
                 emit Exec(address(primeAgentSpell));
                 address executed = starGuard.exec();
                 assertEq(executed, primeAgentSpell, "StarGuard/exec-wrong-target");
