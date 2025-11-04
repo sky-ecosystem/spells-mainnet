@@ -41,6 +41,18 @@ interface SequencerLike {
     function getMaster() external view returns (bytes32);
 }
 
+ interface NttManagerLike {
+    function token() external view returns (address);
+    function mode() external view returns (uint8);
+    function chainId() external view returns (uint16);
+    function rateLimitDuration() external view returns (uint64);
+    function migrateLockedTokens(address) external;
+}
+
+interface WormholeLike {
+    function nextSequence(address) external view returns (uint64);
+}
+
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -1282,4 +1294,46 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
+    event LogMessagePublished(address indexed sender, uint64 sequence, uint32 nonce, bytes payload, uint8 consistencyLevel);
+    event Upgraded(address indexed implementation);
+
+    function testNttMigration() public {
+        WormholeLike   WORMHOLE_CORE_BRIDGE = WormholeLike(0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B);
+        NttManagerLike NTT_MANAGER_V1 = NttManagerLike(0x7d4958454a3f520bDA8be764d06591B054B0bf33);
+
+        NttManagerLike NTT_MANAGER_IMP_V2 = NttManagerLike(0x37c618755832ef5ca44FA88BF1CCdCe46f30b479);
+        bytes memory whProgramUpgradePayload = "000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc002a8f6914e88a1b0e210153ef763ae2b00c2b93d16c124d2c0537a10048000000007ce0337c15d099ab89b1d402fd5877df40a09ded4856dadbdc337d510dc0661ef0001a05a61ad0a3b97c653b34dfd53fa97c7f1f69ff3211b60bc958695a45716abcf000180dcd3999cc863dc41c1d367763ae1e73d6aa9a6d126fc3ccd2011a4a2c76b1b000125f99243b1a3eae2559a3961a410ca4393d5f48ebe3f5c8d9ac5324344188477000106a7d517192c5c51218cc94c3d4af17f58daee089ba1fd44e3dbd98a00000000000006a7d51718c774c928566398691d5eb68b5eb8a39b4b6d5c73555b210000000000006f776e65720000000000000000000000000000000000000000000000000000000100000403000000";
+
+        // Sanity check prior to spell execution
+        require(NTT_MANAGER_IMP_V2.token()             == NTT_MANAGER_V1.token(),             "Test/NttMigration/token-mismatch");
+        require(NTT_MANAGER_IMP_V2.mode()              == NTT_MANAGER_V1.mode(),              "Test/NttMigration/mode-mismatch");
+        require(NTT_MANAGER_IMP_V2.chainId()           == NTT_MANAGER_V1.chainId(),           "Test/NttMigration/chain-id-mismatch");
+        require(NTT_MANAGER_IMP_V2.rateLimitDuration() == NTT_MANAGER_V1.rateLimitDuration(), "Test/NttMigration/rl-dur-mismatch");
+
+        _vote(address(spell));
+
+        // _scheduleWaitAndCast run manually to capture the wormhole event
+        DssSpell(spell).schedule();
+        vm.warp(DssSpell(spell).nextCastTime());
+
+        // NTT Manager implementation upgrade event
+        vm.expectEmit(true, true, true, true, address(NTT_MANAGER_V1));
+        emit Upgraded(address(NTT_MANAGER_IMP_V2));
+
+        // Wormhole message sent event
+        vm.expectEmit(true, true, true, true, address(WORMHOLE_CORE_BRIDGE));
+        emit LogMessagePublished(pauseProxy, WORMHOLE_CORE_BRIDGE.nextSequence(pauseProxy), 0, whProgramUpgradePayload, 202);
+
+        DssSpell(spell).cast();
+
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // Test call migrateLockedTokens
+        uint256 nttManagerBalance = usds.balanceOf(address(NTT_MANAGER_V1));
+        uint256 pauseProxyBalance  = usds.balanceOf(pauseProxy);
+        NTT_MANAGER_V1.migrateLockedTokens(pauseProxy);
+
+        assertEq(usds.balanceOf(address(NTT_MANAGER_V1)), 0, "Test/NttMigration/lockedTokens-balance-mismatch");
+        assertEq(usds.balanceOf(pauseProxy), pauseProxyBalance + nttManagerBalance, "Test/NttMigration/migratedLockedTokens-balance-mismatch");
+    }
 }
