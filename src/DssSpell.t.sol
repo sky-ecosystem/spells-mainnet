@@ -57,11 +57,6 @@ interface WormholeLike {
     function nextSequence(address) external view returns (uint64);
 }
 
-interface ERC20Like {
-    function approve(address spender, uint256 amount) external returns (bool);
-    function decimals() external view returns (uint8);
-}
-
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -1323,16 +1318,17 @@ contract DssSpellTest is DssSpellTestBase {
         bytes memory payloadWhProgramUpgrade = hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc002a8f6914e88a1b0e210153ef763ae2b00c2b93d16c124d2c0537a10048000000007ce0337c15d099ab89b1d402fd5877df40a09ded4856dadbdc337d510dc0661ef0001a05a61ad0a3b97c653b34dfd53fa97c7f1f69ff3211b60bc958695a45716abcf000180dcd3999cc863dc41c1d367763ae1e73d6aa9a6d126fc3ccd2011a4a2c76b1b000125f99243b1a3eae2559a3961a410ca4393d5f48ebe3f5c8d9ac5324344188477000106a7d517192c5c51218cc94c3d4af17f58daee089ba1fd44e3dbd98a00000000000006a7d51718c774c928566398691d5eb68b5eb8a39b4b6d5c73555b210000000000006f776e65720000000000000000000000000000000000000000000000000000000100000403000000";
 
         uint16 solanaWormholeChainId = 1;
-        address NttManagerToken = nttManager.token();
+        address nttManagerToken = nttManager.token();
+        uint8 tokenDecimals = GemAbstract(nttManagerToken).decimals();
 
         // Sanity check prior to spell execution
-        require(nttManagerImpV2.token()             == NttManagerToken,                "Test/MigrationStep0/token-mismatch");
+        require(nttManagerImpV2.token()             == nttManagerToken,                "Test/MigrationStep0/token-mismatch");
         require(nttManagerImpV2.mode()              == nttManager.mode(),              "Test/MigrationStep0/mode-mismatch");
         require(nttManagerImpV2.chainId()           == nttManager.chainId(),           "Test/MigrationStep0/chain-id-mismatch");
         require(nttManagerImpV2.rateLimitDuration() == nttManager.rateLimitDuration(), "Test/MigrationStep0/rl-dur-mismatch");
 
-        GodMode.setBalance(NttManagerToken, address(this), 2 ether);
-        ERC20Like(NttManagerToken).approve(address(nttManager), 2 ether);
+        GodMode.setBalance(nttManagerToken, address(this), 2 ether);
+        GemAbstract(nttManagerToken).approve(address(nttManager), 2 ether);
 
         (, uint256 totalDeliveryPrice) = nttManager.quoteDeliveryPrice(solanaWormholeChainId, new bytes(1));
         // Transfer is possible before upgrade
@@ -1340,7 +1336,7 @@ contract DssSpellTest is DssSpellTestBase {
             address(nttManager).call{value: totalDeliveryPrice}(
                 abi.encodeWithSignature(
                     "transfer(uint256,uint16,bytes32)",
-                    1 * 10 ** ERC20Like(NttManagerToken).decimals(),
+                    1 * 10 ** tokenDecimals,
                     solanaWormholeChainId,
                     bytes32("solanAddress")
                 )
@@ -1370,7 +1366,7 @@ contract DssSpellTest is DssSpellTestBase {
             address(nttManager).call{value: totalDeliveryPrice}(
                 abi.encodeWithSignature(
                     "transfer(uint256,uint16,bytes32)",
-                    1 * 10 ** ERC20Like(NttManagerToken).decimals(),
+                    1 * 10 ** tokenDecimals,
                     solanaWormholeChainId,
                     bytes32("solanAddress")
                 )
