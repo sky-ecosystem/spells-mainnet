@@ -3986,14 +3986,15 @@ contract DssSpellTestBase is Config, DssTest {
         address primeAgentSpell
     ) internal {
         for (uint256 t = block.timestamp; t <= deadline; t += 1 hours) {
+            vm.warp(t);
             bool executable = starGuard.prob();
             if (executable) {
                 vm.expectEmit(true, false, false, false, address(starGuard));
                 emit Exec(address(primeAgentSpell));
                 address executed = starGuard.exec();
                 assertEq(executed, primeAgentSpell, "StarGuard/exec-wrong-target");
+                return;
             }
-            vm.warp(t);
         }
         revert("TestError/PrimeAgentSpell/spell-not-executable-before-deadline");
     }
