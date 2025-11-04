@@ -3918,28 +3918,29 @@ contract DssSpellTestBase is Config, DssTest {
         return address(uint160(uint256(vm.load(_tgt, EIP1967_IMPLEMENTATION_SLOT))));
     }
 
+    event Exec(address indexed addr);
+
     function _testPrimeAgentSpellExecution(
-        bytes32 starguardKey,
+        bytes32 starGuardKey,
         bytes32 subProxyKey,
         address primeAgentSpell,
         bytes32 primeAgentSpellHash,
         bool directExecutionEnabled
     ) internal {
         // Sanity check with passed parameters
-        assertTrue(primeAgentSpell != address(0), "TestError/PrimeAgentSpell/zero-address");
         bytes32 deployedSpellHash = primeAgentSpell.codehash;
         assertEq(deployedSpellHash, primeAgentSpellHash, "TestError/PrimeAgentSpell/hash-mismatch");
 
         // Get correct addresses from chainlog
-        address STARGUARD = addr.addr(starguardKey);
-        address SUB_PROXY = addr.addr(subProxyKey);
+        address starGuard = addr.addr(starGuardKey);
+        address subProxy  = addr.addr(subProxyKey);
 
         if (directExecutionEnabled) {
             vm.expectCall(
-                SUB_PROXY,
+                subProxy,
                 /* value = */ 0,
                 abi.encodeCall(
-                    ProxyLike(SUB_PROXY).exec,
+                    ProxyLike(subProxy).exec,
                     (primeAgentSpell, abi.encodeWithSignature("execute()"))
                 )
             );
@@ -3948,21 +3949,21 @@ contract DssSpellTestBase is Config, DssTest {
             _scheduleWaitAndCast(address(spell));
             assertTrue(spell.done(), "TestError/PrimeAgentSpell/spell-not-done");
 
-            // Ensure Starguard spell data is not updated to current PrimeAgentSpell
-            if(STARGUARD != address(0)) {
-                (address spellAddr,,) = StarGuardLike(STARGUARD).spellData();
+            // Ensure starGuard spell data is not updated to current PrimeAgentSpell
+            if(starGuard != address(0)) {
+                (address spellAddr,,) = StarGuardLike(starGuard).spellData();
                 assertNotEq(primeAgentSpell, spellAddr, "TestError/PrimeAgentSpell/prime-agent-starguard-spell-updated");
             }
         } else {
-            // Sanity checks for starguard configuration
-            assertTrue(STARGUARD != address(0), "TestError/PrimeAgentSpell/missing-starguard-address");
+            // Sanity checks for starGuard configuration
+            assertTrue(starGuard != address(0), "TestError/PrimeAgentSpell/missing-starguard-address");
             CronStarGuardJobLike CRON_STARGUARD_JOB = CronStarGuardJobLike(addr.addr("CRON_STARGUARD_JOB"));
             assertTrue(
-                CRON_STARGUARD_JOB.has(STARGUARD),
+                CRON_STARGUARD_JOB.has(starGuard),
                 "TestError/PrimeAgentSpell/starguard-not-registered-in-cronjob"
             );
             assertTrue(
-                StarGuardLike(STARGUARD).subProxy() == SUB_PROXY,
+                StarGuardLike(starGuard).subProxy() == subProxy,
                 "TestError/PrimeAgentSpell/invalid-subproxy-address"
             );
 
@@ -3974,43 +3975,33 @@ contract DssSpellTestBase is Config, DssTest {
             _scheduleWaitAndCast(address(spell));
             assertTrue(spell.done(), "TestError/PrimeAgentSpell/spell-not-done");
 
-            (address spellAddr, bytes32 spellHash, uint256 deadline) = StarGuardLike(STARGUARD).spellData();
+            (address spellAddr, bytes32 spellHash, uint256 deadline) = StarGuardLike(starGuard).spellData();
 
             assertEq(primeAgentSpell, spellAddr, "TestError/PrimeAgentSpell/prime-agent-starguard-spell-not-updated");
             assertEq(primeAgentSpellHash, spellHash, "TestError/PrimeAgentSpell/prime-agent-starguard-spell-hash-mismatch");
 
-            // Try to warp and execute the spell via StarGuard before the deadline
-            _warpAndExecStarGuard(block.timestamp, deadline, STARGUARD, SUB_PROXY, primeAgentSpell);
+            // Try to warp and execute the spell via starGuard before the deadline
+            _warpAndExecStarGuard(deadline, starGuard, primeAgentSpell);
         }
     }
 
     function _warpAndExecStarGuard(
-        uint256 startTime,
         uint256 deadline,
-        address starguardAddress,
-        address subProxyAddress,
+        address starGuardAddress,
         address primeAgentSpell
     ) internal {
-        StarGuardLike STARGUARD = StarGuardLike(starguardAddress);
+        StarGuardLike starGuard = StarGuardLike(starGuardAddress);
 
-        for (uint256 t = startTime; t <= deadline; t += 1 hours) {
-            vm.warp(t);
-            bool executable = STARGUARD.prob();
+        for (uint256 t = block.timestamp; t <= deadline; t += 1 hours) {
+            bool executable = starGuard.prob();
             if (executable) {
-                // Execute prime agent spell via StarGuard
-                vm.expectCall(
-                    subProxyAddress,
-                    /* value = */ 0,
-                    abi.encodeCall(
-                        ProxyLike(subProxyAddress).exec,
-                        (primeAgentSpell, abi.encodeWithSignature("execute()"))
-                    )
-                );
-                STARGUARD.exec();
-                return;
+                vm.expectEmit(true, false, false, false, address(starGuardAddress));
+                emit Exec(address(primeAgentSpell));
+                address executed = starGuard.exec();
+                assertEq(executed, primeAgentSpell, "StarGuard/exec-wrong-target");
             }
+            vm.warp(t);
         }
-        emit log_named_string("Error","TestError/PrimeAgentSpell/spell-not-executable-before-deadline");
-        fail();
+        revert("TestError/PrimeAgentSpell/spell-not-executable-before-deadline");
     }
 }
