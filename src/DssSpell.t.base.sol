@@ -19,6 +19,7 @@ pragma solidity 0.8.16;
 import "dss-interfaces/Interfaces.sol";
 import {DssTest, GodMode} from "dss-test/DssTest.sol";
 import {stdStorage, StdStorage} from "forge-std/Test.sol";
+import {Vm} from "forge-std/Vm.sol";
 
 import "./test/rates.sol";
 import "./test/addresses_mainnet.sol";
@@ -546,7 +547,7 @@ interface StarGuardLike {
     function prob() external view returns (bool);
 }
 
-interface CronStarGuardJobLike {
+interface StarGuardJobLike {
     function has(address starGuard) external view returns (bool);
 }
 
@@ -554,7 +555,7 @@ interface PrimeSpellLike {
     function isExecutable() external view returns (bool);
 }
 
-interface ProxyLike {
+interface SubProxyLike {
     function exec(address target, bytes calldata args) external payable returns (bytes memory out);
 }
 
@@ -3918,6 +3919,7 @@ contract DssSpellTestBase is Config, DssTest {
         return address(uint160(uint256(vm.load(_tgt, EIP1967_IMPLEMENTATION_SLOT))));
     }
 
+    event Plot(address indexed addr, bytes32 tag, uint256 deadline);
     event Exec(address indexed addr);
 
     function _testStarguardExecution(
@@ -3927,8 +3929,10 @@ contract DssSpellTestBase is Config, DssTest {
         bool directExecutionEnabled
     ) internal {
         // Sanity check with passed parameters
-        bytes32 deployedSpellHash = primeAgentSpell.codehash;
-        assertEq(deployedSpellHash, primeAgentSpellHash, "TestError/PrimeAgentSpell/hash-mismatch");
+        {
+            bytes32 deployedSpellHash = primeAgentSpell.codehash;
+            assertEq(deployedSpellHash, primeAgentSpellHash, "TestError/PrimeAgentSpell/hash-mismatch");
+        }
 
         // Get correct addresses from chainlog
         address starGuardAddr = addr.addr(starGuardKey);
@@ -3938,53 +3942,59 @@ contract DssSpellTestBase is Config, DssTest {
         address subProxy  = starGuard.subProxy();
 
         if (directExecutionEnabled) {
+            // Direct execution path
             vm.expectCall(
                 subProxy,
                 /* value = */ 0,
                 abi.encodeCall(
-                    ProxyLike(subProxy).exec,
+                    SubProxyLike(subProxy).exec,
                     (primeAgentSpell, abi.encodeWithSignature("execute()"))
                 )
             );
 
+            vm.recordLogs();
             _vote(address(spell));
             _scheduleWaitAndCast(address(spell));
             assertTrue(spell.done(), "TestError/PrimeAgentSpell/spell-not-done");
+            Vm.Log[] memory entries = vm.getRecordedLogs();
+            for (uint256 i = 0; i < entries.length; i++) {
+                Vm.Log memory logEntry = entries[i];
+                if (logEntry.topics[0] == keccak256("Plot(address,bytes32,uint256)")) {
+                    revert("TestError/PrimeAgentSpell/plot-event-emitted-during-direct-execution");
+                }
+            }
 
             // Ensure starGuard spell data is not updated to current PrimeAgentSpell
-            (address spellAddr,,) = starGuard.spellData();
-            assertNotEq(primeAgentSpell, spellAddr, "TestError/PrimeAgentSpell/prime-agent-starguard-spell-updated");
-        } else {
-            // Sanity checks for starGuard configuration
-            CronStarGuardJobLike CRON_STARGUARD_JOB = CronStarGuardJobLike(addr.addr("CRON_STARGUARD_JOB"));
-            assertTrue(
-                CRON_STARGUARD_JOB.has(starGuardAddr),
-                "TestError/PrimeAgentSpell/starguard-not-registered-in-cronjob"
-            );
+            (address notUpdatedSpellAddr,,) = starGuard.spellData();
+            assertNotEq(primeAgentSpell, notUpdatedSpellAddr, "TestError/PrimeAgentSpell/prime-agent-starguard-spell-updated");
 
-            // PrimeAgentSpell compatibility check
-            (bool ok, ) = primeAgentSpell.staticcall(abi.encodeWithSignature("isExecutable()"));
-            assertTrue(ok, "TestError/PrimeAgentSpell/spell-does-not-support-isExecutable");
-
-            _vote(address(spell));
-            _scheduleWaitAndCast(address(spell));
-            assertTrue(spell.done(), "TestError/PrimeAgentSpell/spell-not-done");
-
-            (address spellAddr, bytes32 spellHash, uint256 deadline) = starGuard.spellData();
-
-            assertEq(primeAgentSpell, spellAddr, "TestError/PrimeAgentSpell/prime-agent-starguard-spell-not-updated");
-            assertEq(primeAgentSpellHash, spellHash, "TestError/PrimeAgentSpell/prime-agent-starguard-spell-hash-mismatch");
-
-            // Try to warp and execute the spell via starGuard before the deadline
-            _warpAndExecStarGuard(deadline, starGuard, primeAgentSpell);
+            // Exit test after direct execution check is done
+            return;
         }
-    }
 
-    function _warpAndExecStarGuard(
-        uint256 deadline,
-        StarGuardLike starGuard,
-        address primeAgentSpell
-    ) internal {
+        // Indirect execution path
+
+        // Sanity checks for starGuard configuration
+        StarGuardJobLike CRON_STARGUARD_JOB = StarGuardJobLike(addr.addr("CRON_STARGUARD_JOB"));
+        assertTrue(
+            CRON_STARGUARD_JOB.has(starGuardAddr),
+            "TestError/PrimeAgentSpell/starguard-not-registered-in-cronjob"
+        );
+
+        // PrimeAgentSpell compatibility check
+        (bool ok, ) = primeAgentSpell.staticcall(abi.encodeWithSignature("isExecutable()"));
+        assertTrue(ok, "TestError/PrimeAgentSpell/spell-does-not-support-isExecutable");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/PrimeAgentSpell/spell-not-done");
+
+        (address spellAddr, bytes32 spellHash, uint256 deadline) = starGuard.spellData();
+
+        assertEq(primeAgentSpell, spellAddr, "TestError/PrimeAgentSpell/prime-agent-starguard-spell-not-updated");
+        assertEq(primeAgentSpellHash, spellHash, "TestError/PrimeAgentSpell/prime-agent-starguard-spell-hash-mismatch");
+
+        // Try to execute the primeAgentSpell via starGuard before the deadline
         for (uint256 t = block.timestamp; t <= deadline; t += 1 hours) {
             vm.warp(t);
             bool executable = starGuard.prob();

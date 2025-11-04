@@ -1272,7 +1272,7 @@ contract DssSpellTest is DssSpellTestBase {
             BLOOM_PROXY,
             /* value = */ 0,
             abi.encodeCall(
-                ProxyLike(BLOOM_PROXY).exec,
+                SubProxyLike(BLOOM_PROXY).exec,
                 (BLOOM_SPELL, abi.encodeWithSignature("execute()"))
             )
         );
@@ -1291,7 +1291,7 @@ contract DssSpellTest is DssSpellTestBase {
             NOVA_PROXY,
             /* value = */ 0,
             abi.encodeCall(
-                ProxyLike(NOVA_PROXY).exec,
+                SubProxyLike(NOVA_PROXY).exec,
                 (NOVA_SPELL, abi.encodeWithSignature("execute()"))
             )
         );
@@ -1322,8 +1322,8 @@ contract DssSpellTest is DssSpellTestBase {
         _vote(address(spell));
 
         // _scheduleWaitAndCast run manually to capture the wormhole event
-        DssSpell(spell).schedule();
-        vm.warp(DssSpell(spell).nextCastTime());
+        spell.schedule();
+        vm.warp(spell.nextCastTime());
 
         // NTT Manager implementation upgrade event
         vm.expectEmit(true, true, true, true, address(nttManagerV1));
@@ -1333,7 +1333,7 @@ contract DssSpellTest is DssSpellTestBase {
         vm.expectEmit(true, true, true, true, address(wormholeCoreBridge));
         emit LogMessagePublished(pauseProxy, wormholeCoreBridge.nextSequence(pauseProxy), 0, payloadWhProgramUpgrade, 202);
 
-        DssSpell(spell).cast();
+        spell.cast();
 
         assertTrue(spell.done(), "TestError/spell-not-done");
 
