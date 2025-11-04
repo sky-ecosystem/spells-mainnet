@@ -49,6 +49,65 @@ interface L1GovernanceRelayLike {
     function l1Oapp() external view returns (address);
 }
 
+interface WormholeLike {
+    function nextSequence(address) external view returns (uint64);
+}
+
+interface OAppLike {
+    function owner() external view returns (address);
+    function endpoint() external view returns (address);
+    function peers(uint32) external view returns (bytes32);
+}
+
+interface OFTAdapterLike is OAppLike {
+    struct SendParam {
+        uint32 dstEid;
+        bytes32 to;
+        uint256 amountLD;
+        uint256 minAmountLD;
+        bytes extraOptions;
+        bytes composeMsg;
+        bytes oftCmd;
+    }
+    struct MessagingFee {
+        uint256 nativeFee;
+        uint256 lzTokenFee;
+    }
+    struct MessagingReceipt {
+        bytes32 guid;
+        uint64 nonce;
+        MessagingFee fee;
+    }
+    struct OFTReceipt {
+        uint256 amountSentLD; // Amount of tokens ACTUALLY debited from the sender in local decimals.
+        // @dev In non-default implementations, the amountReceivedLD COULD differ from this value.
+        uint256 amountReceivedLD; // Amount of tokens to be received on the remote side.
+    }
+    function token() external view returns (address);
+    function defaultFeeBps() external view returns (uint16);
+    function feeBps(uint32) external view returns (uint16, bool);
+    function outboundRateLimits(uint32) external view returns (uint128, uint48, uint256, uint256);
+    function inboundRateLimits(uint32) external view returns (uint128, uint48, uint256, uint256);
+    function rateLimitAccountingType() external view returns (uint8);
+    function pausers(address) external view returns (bool);
+    function pause() external;
+    function unpause() external;
+    function paused() external view returns (bool);
+    function quoteSend(
+        SendParam calldata _sendParam,
+        bool _useLzToken
+    ) external view returns (MessagingFee memory);
+    function send(
+        SendParam calldata _sendParam,
+        MessagingFee calldata _fee,
+        address _refundAddress
+    ) external payable returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt);
+}
+
+interface EndpointLike {
+    function delegates(address) external view returns (address);
+}
+
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -1303,8 +1362,148 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
+    function _sanityCheckOapp(address oapp, address owner, address endpoint, bytes32 peer) internal view {
+        OAppLike oapp_ = OAppLike(oapp);
+        require(oapp_.owner() == owner,                          "TestError/MigrationStep1/owner-mismatch");
+        require(oapp_.endpoint() == endpoint,                    "TestError/MigrationStep1/endpoint-mismatch");
+        require(oapp_.peers(solEid) == peer,                     "TestError/MigrationStep1/peer-mismatch");
+        require(EndpointLike(endpoint).delegates(oapp) == owner, "TestError/MigrationStep1/delegate-mismatch");
+    }
+
+    event LogMessagePublished(address indexed sender, uint64 sequence, uint32 nonce, bytes payload, uint8 consistencyLevel);
+
+    address oftPauser = 0x38d1114b4cE3e079CC0f627df6aC2776B5887776;
+    address ethLZEndpoint = 0x1a44076050125825900e736c501f859c50fE728c;
+    address nttManager = 0x7d4958454a3f520bDA8be764d06591B054B0bf33;
+    uint32  solEid = 30168;
+
+    address govOapp = 0x1234567890AbcdEF1234567890aBcdef12345678;
+    bytes32 govPeer = bytes32("SOLANA_GOV_RELAY");
+    address oftAdapter = 0x1234567890AbcdEF1234567890aBcdef12345678;
+    bytes32 oftPeer = bytes32("SOLANA_OFT_ADAPTER");
+    WormholeLike wormholeCoreBridge = WormholeLike(0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B);
+    OFTAdapterLike oft = OFTAdapterLike(oftAdapter);
+
+    function testMigrationStep1Sanity() public view {
+        uint8 rlAccountingType = 0;
+
+        _sanityCheckOapp(govOapp,    pauseProxy, ethLZEndpoint, govPeer);
+        _sanityCheckOapp(oftAdapter, pauseProxy, ethLZEndpoint, oftPeer);
+        (uint16 feeBps, bool enabled) = oft.feeBps(solEid);
+        (,uint48 outWindow,,uint256 outLimit) = oft.outboundRateLimits(solEid);
+        (,uint48  inWindow,,uint256  inLimit) = oft.inboundRateLimits(solEid);
+        assertEq(oft.token(), address(usds),                       "TestError/MigrationStep1/token-mismatch");
+        assertEq(oft.defaultFeeBps(), 0,                           "TestError/MigrationStep1/incorrect-default-fee");
+        assertTrue(feeBps == 0 && !enabled,                        "TestError/MigrationStep1/incorrect-solana-fee");
+        assertFalse(oft.paused(),                                  "TestError/MigrationStep1/paused");
+        assertEq(outWindow, 0,                                     "TestError/MigrationStep1/outWindow-rl-nonzero");
+        assertEq(outLimit, 0,                                      "TestError/MigrationStep1/outbound-rl-nonzero");
+        assertEq(inWindow, 0,                                      "TestError/MigrationStep1/inWindow-rl-nonzero");
+        assertEq(inLimit, 0,                                       "TestError/MigrationStep1/inbound-rl-nonzero");
+        assertEq(oft.rateLimitAccountingType(), rlAccountingType , "TestError/MigrationStep1/rl-accounting-mismatch");
+    }
+
     function testMigrationStep1() public {
-        // TODO: implement test
+        bytes memory payloadTransferMintAuth = hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc0a05a61ad0a3b97c653b34dfd53fa97c7f1f69ff3211b60bc958695a45716abcf00056f776e6572000000000000000000000000000000000000000000000000000000010017d3629ffe2ecbfd2592f49f65ba343c192280dd56a019e57b2cb0da8d9df9fa000050222a9b624d36710aea19bd4bc85b13114f031a8cd47623eda753bf5426dee10000f4b51d250eda3916727fa23794747188a5b67e897c206177851454e7640df5da000106ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a90000002857edbb54a8aff14b25f99243b1a3eae2559a3961a410ca4393d5f48ebe3f5c8d9ac5324344188477";
+        bytes memory payloadTransferFreezeAuth = hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc006ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a90002a4fad2785c5c361d983857e644506fc08e9c3143f80ffdefe3e495ab68a4a0e900016f776e657200000000000000000000000000000000000000000000000000000001000023060101ffc1a13508348f7a8fd3a9dbf958ac86231c731e85d24cfc896bf4386f921488";
+        bytes memory payloadTransferMetadataUpdateAuth = hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc00b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f82946000b6f776e657200000000000000000000000000000000000000000000000000000001000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f8294600000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f8294600000707312d1d41da71f0fb280c1662cd65ebeb2e0859c0cbae3fdbdcb26c86e0af000071809dfc828921f70659869a0822bf04c42b823d518bfc11fe9a7b65d221a58f00010b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f829460000706179657200000000000000000000000000000000000000000000000000000001010000000000000000000000000000000000000000000000000000000000000000000006a7d517187bd16635dad40455fdc2c0c124c68f215675a5dbbacb5f0800000000000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f8294600000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f829460000002c32010125f99243b1a3eae2559a3961a410ca4393d5f48ebe3f5c8d9ac5324344188477000000000000000000";
+
+        // Rate limit
+        uint48  outWindowFinal = 0;
+        uint256 outLimitFinal = 0;
+        uint48  inWindowFinal = 0;
+        uint256 inLimitFinal = 0;
+
+        uint256 oftAdapterPreviousBalance = usds.balanceOf(oftAdapter);
+        uint256 nttManagerPreviousBalance = usds.balanceOf(nttManager);
+
+        // check pauser address
+        assertTrue(oft.pausers(oftPauser), "TestError/MigrationStep1/pauser-mismatch");
+
+        // Send OFT doesn't work yet
+        OFTAdapterLike.SendParam memory sendParams = OFTAdapterLike.SendParam({
+            dstEid: solEid,
+            to: bytes32("SolanaAddress"),
+            amountLD: 2 ether,
+            minAmountLD: 2 ether,
+            extraOptions: bytes(""),
+            composeMsg: bytes(""),
+            oftCmd: bytes("")
+        });
+
+        OFTAdapterLike.MessagingFee memory msgFee = oft.quoteSend(sendParams, false);
+        GodMode.setBalance(address(usds), address(this), 2 ether);
+        GemAbstract(usds).approve(oftAdapter, 2 ether);
+
+        vm.expectRevert();
+        oft.send{value: msgFee.nativeFee}(sendParams, msgFee, address(this));
+
+        {
+            // Execute the spell
+
+            _vote(address(spell));
+
+            // _scheduleWaitAndCast run manually to capture the wormhole event
+            spell.schedule();
+            vm.warp(spell.nextCastTime());
+
+            uint64 sequence = wormholeCoreBridge.nextSequence(pauseProxy);
+
+            // NTT Manager transfer mint authority event
+            vm.expectEmit(true, true, true, true, address(wormholeCoreBridge));
+            emit LogMessagePublished(pauseProxy, sequence, 0, payloadTransferMintAuth, 202);
+            // NTT Manager transfer freeze authority event
+            vm.expectEmit(true, true, true, true, address(wormholeCoreBridge));
+            emit LogMessagePublished(pauseProxy, sequence + 1, 0, payloadTransferFreezeAuth, 202);
+            // NTT Manager transfer metadata update event
+            vm.expectEmit(true, true, true, true, address(wormholeCoreBridge));
+            emit LogMessagePublished(pauseProxy, sequence + 2, 0, payloadTransferMetadataUpdateAuth, 202);
+
+            spell.cast();
+            assertTrue(spell.done(), "TestError/spell-not-done");
+        }
+
+        // Check locked token migration
+        uint256 oftAdapterAfterBalance = usds.balanceOf(oftAdapter);
+        uint256 nttManagerAfterBalance = usds.balanceOf(nttManager);
+        assertGe(
+            oftAdapterAfterBalance,
+            oftAdapterPreviousBalance + nttManagerPreviousBalance,
+            "TestError/MigrationStep1/oft-adapter-balance-not-increased"
+        );
+        assertEq(
+            nttManagerAfterBalance,
+            0,
+            "TestError/MigrationStep1/ntt-manager-balance-not-zero"
+        );
+
+        // Check rate limit settings
+        (,uint48 outWindow2,,uint256 outLimit2) = oft.outboundRateLimits(solEid);
+        (,uint48  inWindow2,,uint256  inLimit2) = oft.inboundRateLimits(solEid);
+        assertEq(outWindow2, outWindowFinal,    "TestError/MigrationStep1/outWindow-rl-not-set");
+        assertEq(inWindow2, inWindowFinal,      "TestError/MigrationStep1/inWindow-rl-not-set");
+        assertEq(outLimit2, outLimitFinal,      "TestError/MigrationStep1/outLimit-rl-not-set");
+        assertEq(inLimit2, inLimitFinal,        "TestError/MigrationStep1/inLimit-rl-not-set");
+
+        // OFT send works now
+        oft.send{value: msgFee.nativeFee}(sendParams, msgFee, address(this));
+        assertEq(
+            usds.balanceOf(address(this)),
+            0,
+            "TestError/MigrationStep1/oft-send-didnt-work"
+        );
+
+        // Pause oft as pauser
+        vm.startPrank(oftPauser);
+        oft.pause();
+        vm.stopPrank();
+        assertTrue(oft.paused(), "TestError/MigrationStep1/failed-to-pause");
+
+        // Check owner(pauseProxy) can unpause
+        vm.startPrank(pauseProxy);
+        oft.unpause();
+        vm.stopPrank();
+        assertFalse(oft.paused(), "TestError/MigrationStep1/failed-to-unpause");
     }
 
     function testGovernanceRelayInit() public {
@@ -1316,5 +1515,9 @@ contract DssSpellTest is DssSpellTestBase {
         assertTrue(spell.done(), "TestError/spell-not-done");
 
         assertEq(l1GovernanceRelay.l1Oapp(), l1Oapp, "governance-relay-init/wrong-l1-oapp");
+
+        // TODO: Relay evm
+
+        // TODO: Relay raw
     }
 }
