@@ -45,6 +45,10 @@ interface SequencerLike {
     function getMaster() external view returns (bytes32);
 }
 
+interface L1GovernanceRelayLike {
+    function l1Oapp() external view returns (address);
+}
+
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -283,14 +287,9 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
-        string[6] memory addedKeys = [
-            "MCD_KICK",
-            "REWARDS_LSSKY_SKY",
-            "REWARDS_DIST_LSSKY_SKY",
-            "SPARK_SUBPROXY",
-            "SPARK_STARGUARD",
-            "CRON_STARGUARD_JOB"
+    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+        string[1] memory addedKeys = [
+            "LZ_GOV_RELAY"
         ];
 
         for(uint256 i = 0; i < addedKeys.length; i++) {
@@ -1304,4 +1303,18 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
+    function testMigrationStep1() public {
+        // TODO: implement test
+    }
+
+    function testGovernanceRelayInit() public {
+        L1GovernanceRelayLike l1GovernanceRelay = L1GovernanceRelayLike(addr.addr("LZ_GOV_RELAY"));
+        address l1Oapp = 0x1234567890AbcdEF1234567890aBcdef12345678;
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        assertEq(l1GovernanceRelay.l1Oapp(), l1Oapp, "governance-relay-init/wrong-l1-oapp");
+    }
 }

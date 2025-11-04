@@ -143,7 +143,7 @@ contract Config {
             deployed_spell_created: 0,          // use `make deploy-info tx=<deployment-tx>` to obtain the timestamp
             deployed_spell_block:   0,          // use `make deploy-info tx=<deployment-tx>` to obtain the block number
             previous_spells:        prevSpells, // older spells to ensure are executed first
-            office_hours_enabled:   true,       // true if officehours is expected to be enabled in the spell
+            office_hours_enabled:   false,       // true if officehours is expected to be enabled in the spell
             expiration_threshold:   30 days     // Amount of time before spell expires
         });
 
@@ -180,7 +180,7 @@ contract Config {
         afterSpell.vest_sky_mint_cap      = 176_000_000 * WAD / 182 days;                   // In WAD SKY per second
         afterSpell.vest_spk_cap           = 2_502_500_000 * WAD / 730 days;                 // In WAD SKY per second
         afterSpell.ilk_count              = 31;                                             // Num expected in system
-        afterSpell.chainlog_version       = "1.20.7";                                       // String expected in system
+        afterSpell.chainlog_version       = "1.20.8";                                       // String expected in system
 
         afterSpell.SP_tau       = 57_600 seconds;                             // In seconds
         afterSpell.SP_bud       = 0xe1c6f81D0c3CD570A77813b81AA064c5fff80309; // Address of SPBEAM Bud
