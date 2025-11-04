@@ -47,10 +47,19 @@ interface SequencerLike {
     function chainId() external view returns (uint16);
     function rateLimitDuration() external view returns (uint64);
     function migrateLockedTokens(address) external;
+    function quoteDeliveryPrice(
+        uint16 recipientChain,
+        bytes memory transceiverInstructions
+    ) external view returns (uint256[] memory, uint256);
 }
 
 interface WormholeLike {
     function nextSequence(address) external view returns (uint64);
+}
+
+interface ERC20Like {
+    function approve(address spender, uint256 amount) external returns (bool);
+    function decimals() external view returns (uint8);
 }
 
 contract DssSpellTest is DssSpellTestBase {
@@ -1306,18 +1315,37 @@ contract DssSpellTest is DssSpellTestBase {
     event LogMessagePublished(address indexed sender, uint64 sequence, uint32 nonce, bytes payload, uint8 consistencyLevel);
     event Upgraded(address indexed implementation);
 
-    function testNttMigration() public {
+    function testMigrationStep0() public {
         WormholeLike  wormholeCoreBridge = WormholeLike(0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B);
-        NttManagerLike nttManagerV1 = NttManagerLike(0x7d4958454a3f520bDA8be764d06591B054B0bf33);
+        NttManagerLike nttManager = NttManagerLike(0x7d4958454a3f520bDA8be764d06591B054B0bf33);
 
         NttManagerLike nttManagerImpV2 = NttManagerLike(0x37c618755832ef5ca44FA88BF1CCdCe46f30b479);
         bytes memory payloadWhProgramUpgrade = hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc002a8f6914e88a1b0e210153ef763ae2b00c2b93d16c124d2c0537a10048000000007ce0337c15d099ab89b1d402fd5877df40a09ded4856dadbdc337d510dc0661ef0001a05a61ad0a3b97c653b34dfd53fa97c7f1f69ff3211b60bc958695a45716abcf000180dcd3999cc863dc41c1d367763ae1e73d6aa9a6d126fc3ccd2011a4a2c76b1b000125f99243b1a3eae2559a3961a410ca4393d5f48ebe3f5c8d9ac5324344188477000106a7d517192c5c51218cc94c3d4af17f58daee089ba1fd44e3dbd98a00000000000006a7d51718c774c928566398691d5eb68b5eb8a39b4b6d5c73555b210000000000006f776e65720000000000000000000000000000000000000000000000000000000100000403000000";
 
+        uint16 solanaWormholeChainId = 1;
+        address NttManagerToken = nttManager.token();
+
         // Sanity check prior to spell execution
-        require(nttManagerImpV2.token()             == nttManagerV1.token(),             "Test/NttMigration/token-mismatch");
-        require(nttManagerImpV2.mode()              == nttManagerV1.mode(),              "Test/NttMigration/mode-mismatch");
-        require(nttManagerImpV2.chainId()           == nttManagerV1.chainId(),           "Test/NttMigration/chain-id-mismatch");
-        require(nttManagerImpV2.rateLimitDuration() == nttManagerV1.rateLimitDuration(), "Test/NttMigration/rl-dur-mismatch");
+        require(nttManagerImpV2.token()             == NttManagerToken,                "Test/MigrationStep0/token-mismatch");
+        require(nttManagerImpV2.mode()              == nttManager.mode(),              "Test/MigrationStep0/mode-mismatch");
+        require(nttManagerImpV2.chainId()           == nttManager.chainId(),           "Test/MigrationStep0/chain-id-mismatch");
+        require(nttManagerImpV2.rateLimitDuration() == nttManager.rateLimitDuration(), "Test/MigrationStep0/rl-dur-mismatch");
+
+        GodMode.setBalance(NttManagerToken, address(this), 2 ether);
+        ERC20Like(NttManagerToken).approve(address(nttManager), 2 ether);
+
+        (, uint256 totalDeliveryPrice) = nttManager.quoteDeliveryPrice(solanaWormholeChainId, new bytes(1));
+        // Transfer is possible before upgrade
+        (bool transferBeforeSpell,) =
+            address(nttManager).call{value: totalDeliveryPrice}(
+                abi.encodeWithSignature(
+                    "transfer(uint256,uint16,bytes32)",
+                    1 * 10 ** ERC20Like(NttManagerToken).decimals(),
+                    solanaWormholeChainId,
+                    bytes32("solanAddress")
+                )
+            );
+        assertTrue(transferBeforeSpell, "Test/MigrationStep0/transfer-call-should-succeed");
 
         _vote(address(spell));
 
@@ -1326,7 +1354,7 @@ contract DssSpellTest is DssSpellTestBase {
         vm.warp(spell.nextCastTime());
 
         // NTT Manager implementation upgrade event
-        vm.expectEmit(true, true, true, true, address(nttManagerV1));
+        vm.expectEmit(true, true, true, true, address(nttManager));
         emit Upgraded(address(nttManagerImpV2));
 
         // Wormhole message sent event
@@ -1337,12 +1365,24 @@ contract DssSpellTest is DssSpellTestBase {
 
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        // Test call migrateLockedTokens
-        uint256 nttManagerBalance = usds.balanceOf(address(nttManagerV1));
-        uint256 pauseProxyBalance  = usds.balanceOf(pauseProxy);
-        nttManagerV1.migrateLockedTokens(pauseProxy);
+        // Transfer is not possible after upgrade
+        (bool transferAfterSpell,) =
+            address(nttManager).call{value: totalDeliveryPrice}(
+                abi.encodeWithSignature(
+                    "transfer(uint256,uint16,bytes32)",
+                    1 * 10 ** ERC20Like(NttManagerToken).decimals(),
+                    solanaWormholeChainId,
+                    bytes32("solanAddress")
+                )
+            );
+        assertFalse(transferAfterSpell, "Test/MigrationStep0/transfer-call-should-fail");
 
-        assertEq(usds.balanceOf(address(nttManagerV1)), 0, "Test/NttMigration/lockedTokens-balance-mismatch");
-        assertEq(usds.balanceOf(pauseProxy), pauseProxyBalance + nttManagerBalance, "Test/NttMigration/migratedLockedTokens-balance-mismatch");
+        // Test call migrateLockedTokens success
+        uint256 nttManagerBalance = usds.balanceOf(address(nttManager));
+        uint256 pauseProxyBalance  = usds.balanceOf(pauseProxy);
+        nttManager.migrateLockedTokens(pauseProxy);
+
+        assertEq(usds.balanceOf(address(nttManager)), 0, "Test/MigrationStep0/lockedTokens-balance-mismatch");
+        assertEq(usds.balanceOf(pauseProxy), pauseProxyBalance + nttManagerBalance, "Test/MigrationStep0/migratedLockedTokens-balance-mismatch");
     }
 }
