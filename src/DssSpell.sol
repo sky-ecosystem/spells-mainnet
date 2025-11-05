@@ -48,16 +48,13 @@ contract DssSpellAction is DssAction {
     // uint256 internal constant X_PCT_RATE = ;
 
     // ---------- Contracts ----------
-    // TODO: update with actual address
-    address internal constant OFT_ADAPTER         = 0x1234567890AbcdEF1234567890aBcdef12345678;
-    // TODO: update with actual address
-    bytes32 internal constant OFT_PEER            = 0x4f46545f50454552000000000000000000000000000000000000000000000000;
-    // TODO: update with actual address
-    address internal constant GOV_OAPP            = 0x1234567890AbcdEF1234567890aBcdef12345678;
-    // TODO: update with actual address
-    bytes32 internal constant GOV_PEER            = 0x474f565f50454552000000000000000000000000000000000000000000000000;
-    // TODO: update with actual address
-    address internal constant L1_GOVERNANCE_RELAY = 0x1234567890AbcdEF1234567890aBcdef12345678;
+    address internal constant OFT_ADAPTER         = 0x1e1D42781FC170EF9da004Fb735f56F0276d01B8;
+    // base58: 8vXXGiaXFrKFUDw21H5Z57ex552Lh8WP9rVd2ktzmcCy
+    bytes32 internal constant OFT_PEER            = 0x75b81a4430dee7012ff31d58540835ccc89a18d1fc0522bc95df16ecd50efc32;
+    address internal constant GOV_OAPP_SENDER     = 0x27FC1DD771817b53bE48Dc28789533BEa53C9CCA;
+    // base58: BEvTHkTyXooyaJzP8egDUC7WQK8cyRrq5WvERZNWhuah
+    bytes32 internal constant GOV_PEER            = 0x9825dc0cbeaf22836931c00cb891592f0a96d0dc6a65a4c67992b01e0db8d122;
+    address internal constant L1_GOVERNANCE_RELAY = 0x2beBFe397D497b66cB14461cB6ee467b4C3B7D61;
 
     // ---------- Constant Values ----------
     uint256 internal constant WH_MAX_FEE = 0;
@@ -76,7 +73,7 @@ contract DssSpellAction is DssAction {
         MigrationInit.initMigrationStep1({
             oftAdapter: OFT_ADAPTER,
             oftPeer: OFT_PEER,
-            govOapp: GOV_OAPP,
+            govOapp: GOV_OAPP_SENDER,
             govPeer: GOV_PEER,
             rl: MigrationInit.RateLimitsParams({
                 outboundWindow: 0,
@@ -98,7 +95,7 @@ contract DssSpellAction is DssAction {
         GovernanceRelayInit.init({
             dss: dss,
             l1GovernanceRelay: L1_GOVERNANCE_RELAY,
-            l1Oapp: GOV_OAPP
+            l1Oapp: GOV_OAPP_SENDER
         });
 
         // Note: bump minor chainlog version as governance l1 relay is added

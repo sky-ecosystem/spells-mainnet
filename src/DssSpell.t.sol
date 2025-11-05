@@ -1372,16 +1372,16 @@ contract DssSpellTest is DssSpellTestBase {
 
     event LogMessagePublished(address indexed sender, uint64 sequence, uint32 nonce, bytes payload, uint8 consistencyLevel);
 
-    address oftPauser = 0x38d1114b4cE3e079CC0f627df6aC2776B5887776;
-    address ethLZEndpoint = 0x1a44076050125825900e736c501f859c50fE728c;
     address nttManager = 0x7d4958454a3f520bDA8be764d06591B054B0bf33;
+    WormholeLike wormholeCoreBridge = WormholeLike(0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B);
+    address ethLZEndpoint = 0x1a44076050125825900e736c501f859c50fE728c;
     uint32  solEid = 30168;
 
-    address govOapp = 0x1234567890AbcdEF1234567890aBcdef12345678;
-    bytes32 govPeer = bytes32("SOLANA_GOV_RELAY");
-    address oftAdapter = 0x1234567890AbcdEF1234567890aBcdef12345678;
-    bytes32 oftPeer = bytes32("SOLANA_OFT_ADAPTER");
-    WormholeLike wormholeCoreBridge = WormholeLike(0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B);
+    address oftPauser = 0x38d1114b4cE3e079CC0f627df6aC2776B5887776;
+    address govOapp = 0x27FC1DD771817b53bE48Dc28789533BEa53C9CCA;
+    bytes32 govPeer = 0x9825dc0cbeaf22836931c00cb891592f0a96d0dc6a65a4c67992b01e0db8d122;
+    address oftAdapter = 0x1e1D42781FC170EF9da004Fb735f56F0276d01B8;
+    bytes32 oftPeer = 0x75b81a4430dee7012ff31d58540835ccc89a18d1fc0522bc95df16ecd50efc32;
     OFTAdapterLike oft = OFTAdapterLike(oftAdapter);
 
     function testMigrationStep1Sanity() public view {
@@ -1439,7 +1439,7 @@ contract DssSpellTest is DssSpellTestBase {
         oft.send{value: msgFee.nativeFee}(sendParams, msgFee, address(this));
 
         {
-            // Execute the spell
+            /// Execute spell
 
             _vote(address(spell));
 
