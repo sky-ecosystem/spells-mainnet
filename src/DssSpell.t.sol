@@ -46,7 +46,33 @@ interface SequencerLike {
 }
 
 interface L1GovernanceRelayLike {
+    struct MessagingFee {
+        uint256 nativeFee;
+        uint256 lzTokenFee;
+    }
+
+    struct TxParams {
+        uint32 dstEid;
+        bytes32 dstTarget;
+        bytes dstCallData;
+        bytes extraOptions;
+    }
+
     function l1Oapp() external view returns (address);
+    function relayEVM(
+        uint32                dstEid,
+        address               l2GovernanceRelay,
+        address               target,
+        bytes calldata        targetData,
+        bytes calldata        extraOptions,
+        MessagingFee calldata fee,
+        address               refundAddress
+    ) external payable;
+    function relayRaw(
+        TxParams calldata     txParams,
+        MessagingFee calldata fee,
+        address               refundAddress
+    ) external payable;
 }
 
 interface WormholeLike {
@@ -57,6 +83,10 @@ interface OAppLike {
     function owner() external view returns (address);
     function endpoint() external view returns (address);
     function peers(uint32) external view returns (bytes32);
+}
+
+interface GovernanceOAppSenderLike is OAppLike {
+    function setCanCallTarget(address _srcSender, uint32 _dstEid, bytes32 _dstTarget, bool _canCall) external;
 }
 
 interface OFTAdapterLike is OAppLike {
@@ -1417,7 +1447,7 @@ contract DssSpellTest is DssSpellTestBase {
         uint256 oftAdapterPreviousBalance = usds.balanceOf(oftAdapter);
         uint256 nttManagerPreviousBalance = usds.balanceOf(nttManager);
 
-        // check pauser address
+        // Check pauser address
         assertTrue(oft.pausers(oftPauser), "TestError/MigrationStep1/pauser-mismatch");
 
         // Send OFT doesn't work yet
@@ -1432,8 +1462,10 @@ contract DssSpellTest is DssSpellTestBase {
         });
 
         OFTAdapterLike.MessagingFee memory msgFee = oft.quoteSend(sendParams, false);
+
         GodMode.setBalance(address(usds), address(this), 2 ether);
         GemAbstract(usds).approve(oftAdapter, 2 ether);
+        vm.deal(address(this), 1 ether);
 
         vm.expectRevert();
         oft.send{value: msgFee.nativeFee}(sendParams, msgFee, address(this));
@@ -1508,16 +1540,51 @@ contract DssSpellTest is DssSpellTestBase {
 
     function testGovernanceRelayInit() public {
         L1GovernanceRelayLike l1GovernanceRelay = L1GovernanceRelayLike(addr.addr("LZ_GOV_RELAY"));
-        address l1Oapp = 0x1234567890AbcdEF1234567890aBcdef12345678;
+        GovernanceOAppSenderLike govOappSender = GovernanceOAppSenderLike(govOapp);
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        assertEq(l1GovernanceRelay.l1Oapp(), l1Oapp, "governance-relay-init/wrong-l1-oapp");
+        assertEq(l1GovernanceRelay.l1Oapp(), address(govOappSender), "governance-relay-init/wrong-l1-oapp");
 
-        // TODO: Relay evm
+        vm.startPrank(pauseProxy);
+        address fakeL2GovernanceRelay = address(0x123);
 
-        // TODO: Relay raw
+        // Relay to EVM L2 (e.g., Arbitrum)
+        vm.deal(address(pauseProxy), 1 ether);
+        uint256 nativeFee = 0.01 ether;
+        uint32 arbitrumEid = 30110;
+        govOappSender.setCanCallTarget(address(l1GovernanceRelay), arbitrumEid, bytes32(uint256(uint160(fakeL2GovernanceRelay))), true);
+        l1GovernanceRelay.relayEVM({
+            dstEid            : arbitrumEid,
+            l2GovernanceRelay : fakeL2GovernanceRelay,
+            target            : address(0x333),
+            targetData        : "789",
+            extraOptions      : "",
+            fee : L1GovernanceRelayLike.MessagingFee({
+                nativeFee  : nativeFee,
+                lzTokenFee : 0
+            }),
+            refundAddress     : address(pauseProxy)
+        });
+
+        // Relay to Solana
+        govOappSender.setCanCallTarget(address(l1GovernanceRelay), solEid, bytes32(uint256(uint160(fakeL2GovernanceRelay))), true);
+        l1GovernanceRelay.relayRaw({
+            txParams : L1GovernanceRelayLike.TxParams({
+                dstEid            : solEid,
+                dstTarget         : bytes32(uint256(uint160(fakeL2GovernanceRelay))),
+                dstCallData       : new bytes(123),
+                extraOptions      : ""
+            }),
+            fee : L1GovernanceRelayLike.MessagingFee({
+                nativeFee  : nativeFee,
+                lzTokenFee : 0
+            }),
+            refundAddress : address(pauseProxy)
+        });
+
+        vm.stopPrank();
     }
 }

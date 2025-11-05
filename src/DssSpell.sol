@@ -32,7 +32,7 @@ contract DssSpellAction is DssAction {
 
     // Set office hours according to the summary
     function officeHours() public pure override returns (bool) {
-        return false;
+        return true;
     }
 
     // ---------- Rates ----------
@@ -49,11 +49,11 @@ contract DssSpellAction is DssAction {
 
     // ---------- Contracts ----------
     address internal constant OFT_ADAPTER         = 0x1e1D42781FC170EF9da004Fb735f56F0276d01B8;
-    // base58: 8vXXGiaXFrKFUDw21H5Z57ex552Lh8WP9rVd2ktzmcCy
-    bytes32 internal constant OFT_PEER            = 0x75b81a4430dee7012ff31d58540835ccc89a18d1fc0522bc95df16ecd50efc32;
-    address internal constant GOV_OAPP_SENDER     = 0x27FC1DD771817b53bE48Dc28789533BEa53C9CCA;
     // base58: BEvTHkTyXooyaJzP8egDUC7WQK8cyRrq5WvERZNWhuah
-    bytes32 internal constant GOV_PEER            = 0x9825dc0cbeaf22836931c00cb891592f0a96d0dc6a65a4c67992b01e0db8d122;
+    bytes32 internal constant OFT_PEER            = 0x9825dc0cbeaf22836931c00cb891592f0a96d0dc6a65a4c67992b01e0db8d122;
+    address internal constant GOV_OAPP_SENDER     = 0x27FC1DD771817b53bE48Dc28789533BEa53C9CCA;
+    // base58: 8vXXGiaXFrKFUDw21H5Z57ex552Lh8WP9rVd2ktzmcCy
+    bytes32 internal constant GOV_PEER            = 0x75b81a4430dee7012ff31d58540835ccc89a18d1fc0522bc95df16ecd50efc32;
     address internal constant L1_GOVERNANCE_RELAY = 0x2beBFe397D497b66cB14461cB6ee467b4C3B7D61;
 
     // ---------- Constant Values ----------
