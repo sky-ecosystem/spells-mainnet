@@ -45,7 +45,7 @@ contract DssSpellAction is DssAction {
     // uint256 internal constant X_PCT_RATE = ;
 
     // ---------- Contracts ----------
-    address internal constant NTT_MANAGER_IMP_V2 = 0x37c618755832ef5ca44FA88BF1CCdCe46f30b479; // TODO: this needs to be newly deployed address
+    address internal constant NTT_MANAGER_IMP_V2 = 0xD4DD90bAC23E2a1470681E7cAfFD381FE44c3430;
 
     // ---------- Constant Values ----------
     uint256 internal constant WH_MAX_FEE = 0;
