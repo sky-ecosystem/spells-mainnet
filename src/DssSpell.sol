@@ -32,6 +32,20 @@ contract DssSpellAction is DssAction {
         return true;
     }
 
+    // ---------- Set earliest execution date November 17, 14:00 UTC ----------
+
+    // Note: 2025-11-17 14:00:00 UTC
+    uint256 internal constant NOV_17_2025_14_00_UTC = 1763388000;
+
+    // Note: Override nextCastTime to inform keepers about the earliest execution time
+    function nextCastTime(uint256 eta) external view override returns (uint256 castTime) {
+        require(eta <= type(uint40).max);
+        // Note: First calculate the standard office hours cast time
+        castTime = DssExecLib.nextCastTime(uint40(eta), uint40(block.timestamp), officeHours());
+        // Note: Then ensure it's not before our minimum date
+        return castTime < NOV_17_2025_14_00_UTC ? NOV_17_2025_14_00_UTC : castTime;
+    }
+
     // ---------- Rates ----------
     // Many of the settings that change weekly rely on the rate accumulator
     // described at https://docs.makerdao.com/smart-contract-modules/rates-module

@@ -73,7 +73,8 @@ contract DssSpellTest is DssSpellTestBase {
         _testCastOnTime();
     }
 
-    function testNextCastTime() public {
+    // NOTE: skipped due to the custom min ETA logic in the current spell
+    function testNextCastTime() public skipped {
         _testNextCastTime();
     }
 
@@ -1306,6 +1307,37 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
+
+    // 2025-11-17 14:00:00 UTC
+    uint256 constant MIN_ETA = 1763388000;
+
+    function testNextCastTimeMinEta() public {
+        // Spell obtains approval for execution before MIN_ETA
+        {
+            uint256 before = vm.snapshotState();
+
+            vm.warp(1748736000); // 2025-06-01 00:00:00 UTC - could be any date far enough in the past
+            _vote(address(spell));
+            spell.schedule();
+
+            assertEq(spell.nextCastTime(), MIN_ETA, "testNextCastTimeMinEta/min-eta-not-enforced");
+
+            vm.revertToStateAndDelete(before);
+        }
+
+        // Spell obtains approval for execution after MIN_ETA
+        {
+            uint256 before = vm.snapshotState();
+
+            vm.warp(MIN_ETA); // As we move closer to MIN_ETA, GSM delay is still applicable
+            _vote(address(spell));
+            spell.schedule();
+
+            assertGe(spell.nextCastTime(), MIN_ETA + pause.delay(), "testNextCastTimeMinEta/gsm-delay-not-enforced");
+
+            vm.revertToStateAndDelete(before);
+        }
+    }
 
     event LogMessagePublished(address indexed sender, uint64 sequence, uint32 nonce, bytes payload, uint8 consistencyLevel);
     event Upgraded(address indexed implementation);
