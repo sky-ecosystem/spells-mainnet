@@ -76,10 +76,10 @@ contract DssSpellAction is DssAction {
             govOapp: GOV_OAPP_SENDER,
             govPeer: GOV_PEER,
             rl: MigrationInit.RateLimitsParams({
-                outboundWindow: 0,
-                outboundLimit: 0,
-                inboundWindow: 0,
-                inboundLimit: 0,
+                outboundWindow: 1 days,
+                outboundLimit: 10_000_000,
+                inboundWindow: 1 days,
+                inboundLimit: 10_000_000,
                 rlAccountingType: 0
             }),
             maxFee: WH_MAX_FEE,
