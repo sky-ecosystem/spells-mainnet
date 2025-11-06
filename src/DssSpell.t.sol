@@ -83,6 +83,7 @@ interface OAppLike {
     function owner() external view returns (address);
     function endpoint() external view returns (address);
     function peers(uint32) external view returns (bytes32);
+    function setPeer(uint32 _dstEid, bytes32 _dstOApp) external;
 }
 
 interface GovernanceOAppSenderLike is OAppLike {
@@ -1551,38 +1552,45 @@ contract DssSpellTest is DssSpellTestBase {
         vm.startPrank(pauseProxy);
         address fakeL2GovernanceRelay = address(0x123);
 
-        // Relay to EVM L2 (e.g., Arbitrum)
         vm.deal(address(pauseProxy), 1 ether);
         uint256 nativeFee = 0.01 ether;
+
+        // Relay to EVM L2 (e.g., Arbitrum)
         uint32 arbitrumEid = 30110;
+        govOappSender.setPeer(arbitrumEid, bytes32(uint256(uint160(address(fakeL2GovernanceRelay)))));
         govOappSender.setCanCallTarget(address(l1GovernanceRelay), arbitrumEid, bytes32(uint256(uint160(fakeL2GovernanceRelay))), true);
-        l1GovernanceRelay.relayEVM({
+        l1GovernanceRelay.relayEVM{value: nativeFee}({
             dstEid            : arbitrumEid,
             l2GovernanceRelay : fakeL2GovernanceRelay,
             target            : address(0x333),
-            targetData        : "789",
-            extraOptions      : "",
+            targetData        : bytes("789"),
+            extraOptions      : hex"00030100210100000000000000000000000000030d40000000000000000000000000001f1df0",
             fee : L1GovernanceRelayLike.MessagingFee({
                 nativeFee  : nativeFee,
                 lzTokenFee : 0
             }),
-            refundAddress     : address(pauseProxy)
+            refundAddress     : address(0x222)
         });
 
         // Relay to Solana
         govOappSender.setCanCallTarget(address(l1GovernanceRelay), solEid, bytes32(uint256(uint160(fakeL2GovernanceRelay))), true);
-        l1GovernanceRelay.relayRaw({
+        l1GovernanceRelay.relayRaw{value: nativeFee}({
             txParams : L1GovernanceRelayLike.TxParams({
                 dstEid            : solEid,
                 dstTarget         : bytes32(uint256(uint160(fakeL2GovernanceRelay))),
-                dstCallData       : new bytes(123),
-                extraOptions      : ""
+                dstCallData       : abi.encodeWithSelector(
+                                        bytes4(keccak256("relay(address,string)")),
+                                        bytes4(keccak256("relay(address,string)")),
+                                        fakeL2GovernanceRelay,
+                                        "789"
+                                    ),
+                extraOptions      : hex"00030100210100000000000000000000000000030d40000000000000000000000000001f1df0"
             }),
             fee : L1GovernanceRelayLike.MessagingFee({
                 nativeFee  : nativeFee,
                 lzTokenFee : 0
             }),
-            refundAddress : address(pauseProxy)
+            refundAddress : address(0x222)
         });
 
         vm.stopPrank();
