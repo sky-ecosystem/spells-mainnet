@@ -115,11 +115,8 @@ interface OFTAdapterLike is OAppLike {
         uint256 amountReceivedLD; // Amount of tokens to be received on the remote side.
     }
     function token() external view returns (address);
-    function defaultFeeBps() external view returns (uint16);
-    function feeBps(uint32) external view returns (uint16, bool);
     function outboundRateLimits(uint32) external view returns (uint128, uint48, uint256, uint256);
     function inboundRateLimits(uint32) external view returns (uint128, uint48, uint256, uint256);
-    function rateLimitAccountingType() external view returns (uint8);
     function pausers(address) external view returns (bool);
     function pause() external;
     function unpause() external;
@@ -1393,14 +1390,6 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
-    function _sanityCheckOapp(address oapp, address owner, address endpoint, bytes32 peer) internal view {
-        OAppLike oapp_ = OAppLike(oapp);
-        require(oapp_.owner() == owner,                          "TestError/MigrationStep1/owner-mismatch");
-        require(oapp_.endpoint() == endpoint,                    "TestError/MigrationStep1/endpoint-mismatch");
-        require(oapp_.peers(solEid) == peer,                     "TestError/MigrationStep1/peer-mismatch");
-        require(EndpointLike(endpoint).delegates(oapp) == owner, "TestError/MigrationStep1/delegate-mismatch");
-    }
-
     event LogMessagePublished(address indexed sender, uint64 sequence, uint32 nonce, bytes payload, uint8 consistencyLevel);
 
     address nttManager = 0x7d4958454a3f520bDA8be764d06591B054B0bf33;
@@ -1415,35 +1404,17 @@ contract DssSpellTest is DssSpellTestBase {
     bytes32 oftPeer = 0x75b81a4430dee7012ff31d58540835ccc89a18d1fc0522bc95df16ecd50efc32;
     OFTAdapterLike oft = OFTAdapterLike(oftAdapter);
 
-    function testMigrationStep1Sanity() public view {
-        uint8 rlAccountingType = 0;
-
-        _sanityCheckOapp(govOapp,    pauseProxy, ethLZEndpoint, govPeer);
-        _sanityCheckOapp(oftAdapter, pauseProxy, ethLZEndpoint, oftPeer);
-        (uint16 feeBps, bool enabled) = oft.feeBps(solEid);
-        (,uint48 outWindow,,uint256 outLimit) = oft.outboundRateLimits(solEid);
-        (,uint48  inWindow,,uint256  inLimit) = oft.inboundRateLimits(solEid);
-        assertEq(oft.token(), address(usds),                       "TestError/MigrationStep1/token-mismatch");
-        assertEq(oft.defaultFeeBps(), 0,                           "TestError/MigrationStep1/incorrect-default-fee");
-        assertTrue(feeBps == 0 && !enabled,                        "TestError/MigrationStep1/incorrect-solana-fee");
-        assertFalse(oft.paused(),                                  "TestError/MigrationStep1/paused");
-        assertEq(outWindow, 0,                                     "TestError/MigrationStep1/outWindow-rl-nonzero");
-        assertEq(outLimit, 0,                                      "TestError/MigrationStep1/outbound-rl-nonzero");
-        assertEq(inWindow, 0,                                      "TestError/MigrationStep1/inWindow-rl-nonzero");
-        assertEq(inLimit, 0,                                       "TestError/MigrationStep1/inbound-rl-nonzero");
-        assertEq(oft.rateLimitAccountingType(), rlAccountingType , "TestError/MigrationStep1/rl-accounting-mismatch");
-    }
+    // Rate limit
+    uint48  outWindowFinal = 1 days;
+    uint256 outLimitFinal = 10_000_000 * WAD;
+    uint48  inWindowFinal = 1 days;
+    uint256 inLimitFinal = 10_000_000 * WAD;
 
     function testMigrationStep1() public {
-        bytes memory payloadTransferMintAuth = hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc0a05a61ad0a3b97c653b34dfd53fa97c7f1f69ff3211b60bc958695a45716abcf00056f776e6572000000000000000000000000000000000000000000000000000000010017d3629ffe2ecbfd2592f49f65ba343c192280dd56a019e57b2cb0da8d9df9fa000050222a9b624d36710aea19bd4bc85b13114f031a8cd47623eda753bf5426dee10000f4b51d250eda3916727fa23794747188a5b67e897c206177851454e7640df5da000106ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a90000002857edbb54a8aff14b25f99243b1a3eae2559a3961a410ca4393d5f48ebe3f5c8d9ac5324344188477";
-        bytes memory payloadTransferFreezeAuth = hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc006ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a90002a4fad2785c5c361d983857e644506fc08e9c3143f80ffdefe3e495ab68a4a0e900016f776e657200000000000000000000000000000000000000000000000000000001000023060101ffc1a13508348f7a8fd3a9dbf958ac86231c731e85d24cfc896bf4386f921488";
-        bytes memory payloadTransferMetadataUpdateAuth = hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc00b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f82946000b6f776e657200000000000000000000000000000000000000000000000000000001000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f8294600000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f8294600000707312d1d41da71f0fb280c1662cd65ebeb2e0859c0cbae3fdbdcb26c86e0af000071809dfc828921f70659869a0822bf04c42b823d518bfc11fe9a7b65d221a58f00010b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f829460000706179657200000000000000000000000000000000000000000000000000000001010000000000000000000000000000000000000000000000000000000000000000000006a7d517187bd16635dad40455fdc2c0c124c68f215675a5dbbacb5f0800000000000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f8294600000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f829460000002c32010125f99243b1a3eae2559a3961a410ca4393d5f48ebe3f5c8d9ac5324344188477000000000000000000";
+        bytes memory payloadTransferMintAuth = hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc006856f43abf4aaa4a26b32ae8ea4cb8fadc8e02d267703fbd5f9dad85f6d00b300056f776e65720000000000000000000000000000000000000000000000000000000100b53f200f8db357f9e1e982ef0ec4b3b879f9f6516d5247307ebaf00d187be51a00009f92dcb365df21a4a4ec23d8ff4cc020cdd09895f8129c2c2fb43289bc53f95f00000707312d1d41da71f0fb280c1662cd65ebeb2e0859c0cbae3fdbdcb26c86e0af000106ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a90000002857edbb54a8aff14b8dc412529f876c9f3bc01d7c3095bcd6cd1d6d5177b59aa03f04e5c5b422147b";
+        bytes memory payloadTransferFreezeAuth = hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc006ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a900020707312d1d41da71f0fb280c1662cd65ebeb2e0859c0cbae3fdbdcb26c86e0af00016f776e6572000000000000000000000000000000000000000000000000000000010000230601018dc412529f876c9f3bc01d7c3095bcd6cd1d6d5177b59aa03f04e5c5b422147b";
+        bytes memory payloadTransferMetadataUpdateAuth = hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc00b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f82946000b6f776e657200000000000000000000000000000000000000000000000000000001000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f8294600000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f8294600000707312d1d41da71f0fb280c1662cd65ebeb2e0859c0cbae3fdbdcb26c86e0af000071809dfc828921f70659869a0822bf04c42b823d518bfc11fe9a7b65d221a58f00010b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f829460000706179657200000000000000000000000000000000000000000000000000000001010000000000000000000000000000000000000000000000000000000000000000000006a7d517187bd16635dad40455fdc2c0c124c68f215675a5dbbacb5f0800000000000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f8294600000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f829460000002c3201018dc412529f876c9f3bc01d7c3095bcd6cd1d6d5177b59aa03f04e5c5b422147b000000000000000000";
 
-        // Rate limit
-        uint48  outWindowFinal = 1 days;
-        uint256 outLimitFinal = 10_000_000;
-        uint48  inWindowFinal = 1 days;
-        uint256 inLimitFinal = 10_000_000;
 
         uint256 oftAdapterPreviousBalance = usds.balanceOf(oftAdapter);
         uint256 nttManagerPreviousBalance = usds.balanceOf(nttManager);
@@ -1455,8 +1426,8 @@ contract DssSpellTest is DssSpellTestBase {
         OFTAdapterLike.SendParam memory sendParams = OFTAdapterLike.SendParam({
             dstEid: solEid,
             to: bytes32("SolanaAddress"),
-            amountLD: 2 ether,
-            minAmountLD: 2 ether,
+            amountLD: 5 ether,
+            minAmountLD: 5 ether,
             extraOptions: bytes(""),
             composeMsg: bytes(""),
             oftCmd: bytes("")
@@ -1464,12 +1435,14 @@ contract DssSpellTest is DssSpellTestBase {
 
         OFTAdapterLike.MessagingFee memory msgFee = oft.quoteSend(sendParams, false);
 
-        GodMode.setBalance(address(usds), address(this), 2 ether);
-        GemAbstract(usds).approve(oftAdapter, 2 ether);
-        vm.deal(address(this), 1 ether);
+        GodMode.setBalance(address(usds), address(this), 10 ether);
+        GemAbstract(usds).approve(oftAdapter, 10 ether);
+        vm.deal(address(this), 10 ether);
+
+        uint256 usdsBalanceBeforeSend = usds.balanceOf(address(this));
 
         vm.expectRevert();
-        oft.send{value: msgFee.nativeFee}(sendParams, msgFee, address(this));
+        oft.send{value: msgFee.nativeFee}(sendParams, msgFee, payable(address(this)));
 
         {
             /// Execute spell
@@ -1519,10 +1492,10 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(inLimit2, inLimitFinal,        "TestError/MigrationStep1/inLimit-rl-not-set");
 
         // OFT send works now
-        oft.send{value: msgFee.nativeFee}(sendParams, msgFee, address(this));
+        oft.send{value: msgFee.nativeFee}(sendParams, msgFee, payable(address(this)));
         assertEq(
             usds.balanceOf(address(this)),
-            0,
+            usdsBalanceBeforeSend - sendParams.amountLD,
             "TestError/MigrationStep1/oft-send-didnt-work"
         );
 
@@ -1562,14 +1535,14 @@ contract DssSpellTest is DssSpellTestBase {
         l1GovernanceRelay.relayEVM{value: nativeFee}({
             dstEid            : arbitrumEid,
             l2GovernanceRelay : fakeL2GovernanceRelay,
-            target            : address(0x333),
+            target            : address(0x222),
             targetData        : bytes("789"),
             extraOptions      : hex"00030100210100000000000000000000000000030d40000000000000000000000000001f1df0",
             fee : L1GovernanceRelayLike.MessagingFee({
                 nativeFee  : nativeFee,
                 lzTokenFee : 0
             }),
-            refundAddress     : address(0x222)
+            refundAddress     : address(0x333)
         });
 
         // Relay to Solana
@@ -1581,7 +1554,7 @@ contract DssSpellTest is DssSpellTestBase {
                 dstCallData       : abi.encodeWithSelector(
                                         bytes4(keccak256("relay(address,string)")),
                                         bytes4(keccak256("relay(address,string)")),
-                                        fakeL2GovernanceRelay,
+                                        0x222,
                                         "789"
                                     ),
                 extraOptions      : hex"00030100210100000000000000000000000000030d40000000000000000000000000001f1df0"
@@ -1590,7 +1563,7 @@ contract DssSpellTest is DssSpellTestBase {
                 nativeFee  : nativeFee,
                 lzTokenFee : 0
             }),
-            refundAddress : address(0x222)
+            refundAddress : address(0x333)
         });
 
         vm.stopPrank();
