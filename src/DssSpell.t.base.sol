@@ -921,6 +921,8 @@ contract DssSpellTestBase is Config, DssTest {
 
         // Set L1GovernanceRelay relay
         GodMode.setWard(l1GovernanceRelay, pauseProxy, 1);
+        // Set L1GovernanceRelay deployer wards to 0
+        GodMode.setWard(l1GovernanceRelay, 0x54eAde20f7DD1A67624626A3DB9408185eD0039e, 0);
     }
 
     function _vote(address spell_) internal {
