@@ -3282,27 +3282,30 @@ contract DssSpellTestBase is Config, DssTest {
 
     // The specific date doesn't matter that much since function is checking for difference between warps
     function _testNextCastTime() internal {
-        vm.warp(1606161600); // Nov 23, 20 UTC (could be cast Nov 26)
+        vm.warp(1763150400); // Nov 14, 20 UTC (could be casted on Nov 15)
 
         _vote(address(spell));
         spell.schedule();
 
-        uint256 monday_1400_UTC = 1606744800; // Nov 30, 2020
-        uint256 monday_2100_UTC = 1606770000; // Nov 30, 2020
+        uint256 monday_1400_UTC = 1763388000; // Nov 17, 2020
+        uint256 monday_2100_UTC = 1763413200; // Nov 17, 2020
 
         // Day tests
         vm.warp(monday_1400_UTC);                                      // Monday,   14:00 UTC
         assertEq(spell.nextCastTime(), monday_1400_UTC);               // Monday,   14:00 UTC
 
         if (spell.officeHours()) {
-            vm.warp(monday_1400_UTC - 1 days);                         // Sunday,   14:00 UTC
-            assertEq(spell.nextCastTime(), monday_1400_UTC);           // Monday,   14:00 UTC
+            // NOTE: skipped due to the custom min ETA logic in the current spell
+            // vm.warp(monday_1400_UTC - 1 days);                         // Sunday,   14:00 UTC
+            // assertEq(spell.nextCastTime(), monday_1400_UTC);           // Monday,   14:00 UTC
 
-            vm.warp(monday_1400_UTC - 2 days);                         // Saturday, 14:00 UTC
-            assertEq(spell.nextCastTime(), monday_1400_UTC);           // Monday,   14:00 UTC
+            // NOTE: skipped due to the custom min ETA logic in the current spell
+            // vm.warp(monday_1400_UTC - 2 days);                         // Saturday, 14:00 UTC
+            // assertEq(spell.nextCastTime(), monday_1400_UTC);           // Monday,   14:00 UTC
 
-            vm.warp(monday_1400_UTC - 3 days);                         // Friday,   14:00 UTC
-            assertEq(spell.nextCastTime(), monday_1400_UTC - 3 days);  // Able to cast
+            // NOTE: skipped due to the custom min ETA logic in the current spell
+            // vm.warp(monday_1400_UTC - 3 days);                         // Friday,   14:00 UTC
+            // assertEq(spell.nextCastTime(), monday_1400_UTC - 3 days);  // Able to cast
 
             vm.warp(monday_2100_UTC);                                  // Monday,   21:00 UTC
             assertEq(spell.nextCastTime(), monday_1400_UTC + 1 days);  // Tuesday,  14:00 UTC
