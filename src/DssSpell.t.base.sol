@@ -3282,7 +3282,7 @@ contract DssSpellTestBase is Config, DssTest {
 
     // The specific date doesn't matter that much since function is checking for difference between warps
     function _testNextCastTime() internal {
-        vm.warp(1763150400); // Nov 14, 20 UTC (could be casted on Nov 15)
+        vm.warp(1763150400); // Nov 14, 20 UTC (could be casted after pause_delay)
 
         _vote(address(spell));
         spell.schedule();
