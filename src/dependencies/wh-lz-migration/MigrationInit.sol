@@ -95,7 +95,7 @@ library MigrationInit {
         require(impV2.mode()              == mgr.mode(),              "MigrationInit/mode-mismatch");
         require(impV2.chainId()           == mgr.chainId(),           "MigrationInit/chain-id-mismatch");
         require(impV2.rateLimitDuration() == mgr.rateLimitDuration(), "MigrationInit/rl-dur-mismatch");
-
+        
         // Upgrade Ethereum NTT Manager
         mgr.upgrade(nttManagerImpV2);
 
@@ -161,7 +161,7 @@ library MigrationInit {
     struct MigrationStep1Params {
         address oftAdapter;
         bytes32 oftPeer;
-        address govOapp;
+        address govOapp; 
         bytes32 govPeer;
         RateLimitsParams rl;
         uint256 maxFee;
@@ -192,7 +192,7 @@ library MigrationInit {
         inboundCfg[0]  = OFTAdapterLike.RateLimitConfig(p.solEid, p.rl.inboundWindow,  p.rl.inboundLimit);
         outboundCfg[0] = OFTAdapterLike.RateLimitConfig(p.solEid, p.rl.outboundWindow, p.rl.outboundLimit);
         OFTAdapterLike(p.oftAdapter).setRateLimits(inboundCfg, outboundCfg);
-
+        
         uint256 fee = WormholeLike(p.wormhole).messageFee();
         require(fee <= p.maxFee, "MigrationInit/exceeds-max-fee");
 
