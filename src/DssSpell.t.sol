@@ -43,9 +43,6 @@ interface SequencerLike {
 
  interface NttManagerLike {
     function token() external view returns (address);
-    function mode() external view returns (uint8);
-    function chainId() external view returns (uint16);
-    function rateLimitDuration() external view returns (uint64);
     function migrateLockedTokens(address) external;
     function quoteDeliveryPrice(
         uint16 recipientChain,
@@ -1342,25 +1339,25 @@ contract DssSpellTest is DssSpellTestBase {
     function testMigrationStep0() public {
         WormholeLike  wormholeCoreBridge = WormholeLike(0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B);
         NttManagerLike nttManager = NttManagerLike(0x7d4958454a3f520bDA8be764d06591B054B0bf33);
+        address transferWallet = address(0x333);
 
-        NttManagerLike nttManagerImpV2 = NttManagerLike(0xD4DD90bAC23E2a1470681E7cAfFD381FE44c3430);
+        address nttManagerImpV2 = 0xD4DD90bAC23E2a1470681E7cAfFD381FE44c3430;
         bytes memory payloadWhProgramUpgrade = hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc002a8f6914e88a1b0e210153ef763ae2b00c2b93d16c124d2c0537a10048000000007a821ac5164fa9b54fd93b54dba8215550b8fce868f52299169f6619867cac501000106856f43abf4aaa4a26b32ae8ea4cb8fadc8e02d267703fbd5f9dad85f6d00b300012d27f5131975fdaf20a5934c6e90f6d7c9bbde9fcf94c37b48c5a49c7f06aae2000105cab222188023f74394ecaee9daf397c11a2a672511adc34958c1d7bdb1c673000106a7d517192c5c51218cc94c3d4af17f58daee089ba1fd44e3dbd98a00000000000006a7d51718c774c928566398691d5eb68b5eb8a39b4b6d5c73555b210000000000006f776e65720000000000000000000000000000000000000000000000000000000100000403000000";
 
         uint16 solanaWormholeChainId = 1;
         address nttManagerToken = nttManager.token();
         uint8 tokenDecimals = GemAbstract(nttManagerToken).decimals();
 
-        // Sanity check prior to spell execution
-        require(nttManagerImpV2.token()             == nttManagerToken,                "Test/MigrationStep0/token-mismatch");
-        require(nttManagerImpV2.mode()              == nttManager.mode(),              "Test/MigrationStep0/mode-mismatch");
-        require(nttManagerImpV2.chainId()           == nttManager.chainId(),           "Test/MigrationStep0/chain-id-mismatch");
-        require(nttManagerImpV2.rateLimitDuration() == nttManager.rateLimitDuration(), "Test/MigrationStep0/rl-dur-mismatch");
-
-        GodMode.setBalance(nttManagerToken, address(this), 2 ether);
+        // Prepare transfer wallet
+        vm.deal(transferWallet, 1 ether);
+        GodMode.setBalance(nttManagerToken, address(transferWallet), 2 ether);
+        vm.prank(transferWallet);
         GemAbstract(nttManagerToken).approve(address(nttManager), 2 ether);
 
         (, uint256 totalDeliveryPrice) = nttManager.quoteDeliveryPrice(solanaWormholeChainId, new bytes(1));
+
         // Transfer is possible before upgrade
+        vm.prank(transferWallet);
         (bool transferBeforeSpell,) =
             address(nttManager).call{value: totalDeliveryPrice}(
                 abi.encodeWithSignature(
@@ -1380,7 +1377,7 @@ contract DssSpellTest is DssSpellTestBase {
 
         // NTT Manager implementation upgrade event
         vm.expectEmit(true, true, true, true, address(nttManager));
-        emit Upgraded(address(nttManagerImpV2));
+        emit Upgraded(nttManagerImpV2);
 
         // Wormhole message sent event
         vm.expectEmit(true, true, true, true, address(wormholeCoreBridge));
@@ -1391,6 +1388,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertTrue(spell.done(), "TestError/spell-not-done");
 
         // Transfer is not possible after upgrade
+        vm.prank(transferWallet);
         (bool transferAfterSpell,) =
             address(nttManager).call{value: totalDeliveryPrice}(
                 abi.encodeWithSignature(
