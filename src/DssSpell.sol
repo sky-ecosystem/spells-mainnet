@@ -68,7 +68,10 @@ contract DssSpellAction is DssAction {
     bytes internal constant PAYLOAD_TRANSFER_METADATA_UPDATE_AUTH = hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc00b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f82946000b6f776e657200000000000000000000000000000000000000000000000000000001000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f8294600000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f8294600000707312d1d41da71f0fb280c1662cd65ebeb2e0859c0cbae3fdbdcb26c86e0af000071809dfc828921f70659869a0822bf04c42b823d518bfc11fe9a7b65d221a58f00010b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f829460000706179657200000000000000000000000000000000000000000000000000000001010000000000000000000000000000000000000000000000000000000000000000000006a7d517187bd16635dad40455fdc2c0c124c68f215675a5dbbacb5f0800000000000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f8294600000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f829460000002c3201018dc412529f876c9f3bc01d7c3095bcd6cd1d6d5177b59aa03f04e5c5b422147b000000000000000000";
 
     function actions() public override {
-        // ----- Initialize Migration Step 1 -----
+        // ----- Solana Bridge Migration -----
+        // NOTE: This is a title, the content follows below
+
+        // ----- Call MigrationInit.initMigrationStep1 with the following parameters: -----
 
         MigrationInit.initMigrationStep1({
             oftAdapter: OFT_ADAPTER,
@@ -88,17 +91,19 @@ contract DssSpellAction is DssAction {
             transferMetadataUpdateAuthPayload: PAYLOAD_TRANSFER_METADATA_UPDATE_AUTH
         });
 
-        // ----- Initialize Governance Relay -----
+        // ----- Call GovernanceRelayInit.init with the following parameters: -----
 
         // Note: We need dss as an input parameter for governance relay initialization
         DssInstance memory dss = MCD.loadFromChainlog(DssExecLib.LOG);
+
         GovernanceRelayInit.init({
             dss: dss,
             l1GovernanceRelay: L1_GOVERNANCE_RELAY,
             l1Oapp: GOV_OAPP_SENDER
         });
 
-        // Note: bump minor chainlog version as governance l1 relay is added
+        // ----- Bump chainlog PATCH version -----
+
         DssExecLib.setChangelogVersion("1.20.8");
     }
 }
