@@ -782,7 +782,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public skipped { // add the `skipped` modifier to skip
+    function testPayments() public { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -792,17 +792,15 @@ contract DssSpellTest is DssSpellTestBase {
         //    the destination address,
         //    the amount to be paid
         // Initialize the array with the number of payees
-        Payee[3] memory payees = [
-            Payee(address(usds), wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG"), 3_876_387 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("CORE_COUNCIL_DELEGATE_MULTISIG"), 193_820 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("INTEGRATION_BOOST_INITIATIVE"), 1_000_000 ether) // Note: ether is only a keyword helper
+        Payee[1] memory payees = [
+            Payee(address(usds), addr.addr("ALLOCATOR_OBEX_A_SUBPROXY"), 21_000_000 ether) // Note: ether is only a keyword helper
         ];
 
         // Fill the total values from exec sheet
         PaymentAmounts memory expectedTotalPayments = PaymentAmounts({
             dai:                               0 ether, // Note: ether is only a keyword helper
             mkr:                               0 ether, // Note: ether is only a keyword helper
-            usds:                      5_070_207 ether, // Note: ether is only a keyword helper
+            usds:                     21_000_000 ether, // Note: ether is only a keyword helper
             sky:                               0 ether  // Note: ether is only a keyword helper
         });
 
@@ -1413,5 +1411,43 @@ contract DssSpellTest is DssSpellTestBase {
 
         assertEq(usds.balanceOf(address(nttManager)), 0, "Test/MigrationStep0/lockedTokens-balance-mismatch");
         assertEq(usds.balanceOf(pauseProxy), pauseProxyBalance + nttManagerBalance, "Test/MigrationStep0/migratedLockedTokens-balance-mismatch");
+    }
+
+    function testWhitelistObexALMProxy() public {
+        address almProxy = addr.addr("ALLOCATOR_OBEX_A_SUBPROXY");
+        DssLitePsmLike psmUsdcA = DssLitePsmLike(addr.addr("MCD_LITE_PSM_USDC_A"));
+        GemAbstract usdc = GemAbstract(addr.addr("USDC"));
+
+        // bud is 0 before kiss
+        assertEq(psmUsdcA.bud(almProxy), 0, "TestError/MCD_LITE_PSM_USDC_A/invalid-bud");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done());
+
+        // bud is 1 after kiss
+        assertEq(psmUsdcA.bud(almProxy), 1, "TestError/MCD_LITE_PSM_USDC_A/invalid-bud");
+
+        // OBEX can call buyGemNoFee() on MCD_LITE_PSM_USDC_A
+        uint256 daiAmount  = 1_000 * WAD;
+        uint256 usdcAmount = 1_000 * 10**6;
+
+        // fund proxy
+        deal(address(dai), almProxy, daiAmount);
+        vm.startPrank(almProxy);
+
+        // buy gem with no fee
+        dai.approve(address(psmUsdcA), daiAmount);
+        psmUsdcA.buyGemNoFee(almProxy, usdcAmount);
+        assertEq(usdc.balanceOf(almProxy), usdcAmount);
+        assertEq(dai.balanceOf(almProxy), 0);
+
+        // now sell it back with no fee
+        usdc.approve(address(psmUsdcA), usdcAmount);
+        psmUsdcA.sellGemNoFee(almProxy, usdcAmount);
+        assertEq(usdc.balanceOf(almProxy), 0);
+        assertEq(dai.balanceOf(almProxy), daiAmount);
+
+        vm.stopPrank();
     }
 }

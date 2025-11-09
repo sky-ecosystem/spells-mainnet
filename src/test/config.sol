@@ -1111,8 +1111,8 @@ contract Config {
         });
         afterSpell.collaterals["ALLOCATOR-OBEX-A"] = CollateralValues({
             um:           UpdateMethod.AUTOLINE,
-            aL_line:      10_000_000,
-            aL_gap:       10_000_000,
+            aL_line:      2_500_000_000,
+            aL_gap:       50_000_000,
             aL_ttl:       86_400,
             line:         0,
             dust:         0,
