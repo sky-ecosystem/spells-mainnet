@@ -3291,15 +3291,13 @@ contract DssSpellTestBase is Config, DssTest {
         assertEq(spell.nextCastTime(), monday_1400_UTC);               // Monday,   14:00 UTC
 
         if (spell.officeHours()) {
-            // NOTE: skipped due to the custom min ETA logic in the current spell
-            // vm.warp(monday_1400_UTC - 1 days);                         // Sunday,   14:00 UTC
-            // assertEq(spell.nextCastTime(), monday_1400_UTC);           // Monday,   14:00 UTC
+            vm.warp(monday_1400_UTC - 1 days);                         // Sunday,   14:00 UTC
+            assertEq(spell.nextCastTime(), monday_1400_UTC);           // Monday,   14:00 UTC
 
-            // NOTE: skipped due to the custom min ETA logic in the current spell
-            // vm.warp(monday_1400_UTC - 2 days);                         // Saturday, 14:00 UTC
-            // assertEq(spell.nextCastTime(), monday_1400_UTC);           // Monday,   14:00 UTC
+            vm.warp(monday_1400_UTC - 2 days);                         // Saturday, 14:00 UTC
+            assertEq(spell.nextCastTime(), monday_1400_UTC);           // Monday,   14:00 UTC
 
-            // NOTE: skipped due to the custom min ETA logic in the current spell
+            // NOTE: skipped due to the custom min ETA logic in the current spell (2025-11-13)
             // vm.warp(monday_1400_UTC - 3 days);                         // Friday,   14:00 UTC
             // assertEq(spell.nextCastTime(), monday_1400_UTC - 3 days);  // Able to cast
 
@@ -3938,7 +3936,7 @@ contract DssSpellTestBase is Config, DssTest {
         assertTrue(starGuardAddr != address(0), "TestError/PrimeAgentSpell/missing-starguard-address");
         StarGuardLike starGuard = StarGuardLike(starGuardAddr);
 
-        address subProxy  = starGuard.subProxy();
+        address subProxy = starGuard.subProxy();
 
         if (directExecutionEnabled) {
             // Direct execution path
