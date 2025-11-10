@@ -3992,10 +3992,10 @@ contract DssSpellTestBase is Config, DssTest {
         assertEq(primeAgentSpellHash, spellHash, "TestError/PrimeAgentSpell/prime-agent-starguard-spell-hash-mismatch");
 
         // Try to execute the primeAgentSpell via starGuard before the deadline
-        for (uint256 t = block.timestamp; t <= deadline; t += 1 hours) {
-            vm.warp(t);
-            bool executable = starGuard.prob();
-            if (executable) {
+        while (block.timestamp <= deadline) {
+            if (!starGuard.prob()) {
+                skip(1 hours);
+            } else {
                 vm.expectEmit(true, false, false, false, address(starGuard));
                 emit Exec(address(primeAgentSpell));
                 address executed = starGuard.exec();
