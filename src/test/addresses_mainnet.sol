@@ -592,5 +592,6 @@ contract Addresses {
         addr["REWARDS_DIST_LSSKY_SKY"]           = 0x675671A8756dDb69F7254AFB030865388Ef699Ee;
         addr["SPARK_STARGUARD"]                  = 0x6605aa120fe8b656482903E7757BaBF56947E45E;
         addr["CRON_STARGUARD_JOB"]               = 0xB18d211fA69422a9A848B790C5B4a3957F7Aa44E;
+        addr["OBEX_ALM_PROXY"]                   = 0xb6dD7ae22C9922AFEe0642f9Ac13e58633f715A2;
     }
 }

@@ -1412,7 +1412,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     function testWhitelistObexALMProxy() public {
-        address almProxy = addr.addr("ALLOCATOR_OBEX_A_SUBPROXY");
+        address almProxy = addr.addr("OBEX_ALM_PROXY");
         DssLitePsmLike psmUsdcA = DssLitePsmLike(addr.addr("MCD_LITE_PSM_USDC_A"));
         GemAbstract usdc = GemAbstract(addr.addr("USDC"));
 

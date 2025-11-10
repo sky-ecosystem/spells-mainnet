@@ -116,6 +116,7 @@ contract DssSpellAction is DssAction {
     address internal immutable DAI_USDS                      = DssExecLib.getChangelogAddress("DAI_USDS");
     address internal constant  NTT_MANAGER_IMP_V2            = 0xD4DD90bAC23E2a1470681E7cAfFD381FE44c3430;
     address internal constant  ALLOCATOR_OBEX_A_SUBPROXY     = 0x8be042581f581E3620e29F213EA8b94afA1C8071;
+    address internal constant  OBEX_ALM_PROXY                = 0xb6dD7ae22C9922AFEe0642f9Ac13e58633f715A2;
 
     // ---------- Constant Values ----------
     uint256 internal constant WH_MAX_FEE = 0;
@@ -157,7 +158,7 @@ contract DssSpellAction is DssAction {
         // Forum: https://forum.sky.money/t/proposed-changes-to-launch-agent-4-obex-for-upcoming-spell/27370/3
 
         // MCD_LITE_PSM_USDC_A.kiss(0xb6dD7ae22C9922AFEe0642f9Ac13e58633f715A2)
-        DssLitePsmLike(MCD_LITE_PSM_USDC_A).kiss(ALLOCATOR_OBEX_A_SUBPROXY);
+        DssLitePsmLike(MCD_LITE_PSM_USDC_A).kiss(OBEX_ALM_PROXY);
 
         // ----- Execute Spark Proxy Spell -----
 
