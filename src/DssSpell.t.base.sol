@@ -551,10 +551,6 @@ interface StarGuardJobLike {
     function has(address starGuard) external view returns (bool);
 }
 
-interface PrimeSpellLike {
-    function isExecutable() external view returns (bool);
-}
-
 interface SubProxyLike {
     function exec(address target, bytes calldata args) external payable returns (bytes memory out);
 }
