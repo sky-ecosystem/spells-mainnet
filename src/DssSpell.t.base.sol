@@ -549,7 +549,6 @@ interface WHNttManagerLike {
     function upgrade(address) external;
 }
 
-
 contract DssSpellTestBase is Config, DssTest {
     using stdStorage for StdStorage;
 
@@ -886,6 +885,7 @@ contract DssSpellTestBase is Config, DssTest {
         );
     }
 
+    // TODO: Remove once 2025-11-13 spell is deployed so the update doesn't need to be mocked in 2025-11-17
     function _upgradeNttManagerImpl() internal {
         WHNttManagerLike nttManager = WHNttManagerLike(0x7d4958454a3f520bDA8be764d06591B054B0bf33);
         address nttImplV2 = 0xD4DD90bAC23E2a1470681E7cAfFD381FE44c3430;
@@ -894,41 +894,9 @@ contract DssSpellTestBase is Config, DssTest {
         nttManager.upgrade(nttImplV2);
     }
 
-    // TODO: Remove once the authority changes are correctly made on new contracts deployed for 2025-11-17 contract
-    function _setAuthBeforeSpellExecution() internal {
-        // NOTE: this is only for temporary use before authority changes are correctly made on new contracts deployed for 2025-11-17 contract
-        LZOAppLike oftAdapter        = LZOAppLike(0x1e1D42781FC170EF9da004Fb735f56F0276d01B8);
-        LZOAppLike govOappSender     = LZOAppLike(0x27FC1DD771817b53bE48Dc28789533BEa53C9CCA);
-        address l1GovernanceRelay    = 0x2beBFe397D497b66cB14461cB6ee467b4C3B7D61;
-
-        // Set OFTAdapter owner and delegate
-        address oftAdapterOwner = oftAdapter.owner();
-        if (oftAdapterOwner != pauseProxy) {
-            vm.prank(oftAdapterOwner);
-            oftAdapter.transferOwnership(pauseProxy);
-            vm.prank(pauseProxy);
-            oftAdapter.setDelegate(pauseProxy);
-        }
-
-        // Set GovOappSender owner and delegate
-        address govOappSenderOwner = govOappSender.owner();
-        if (govOappSenderOwner != pauseProxy) {
-            vm.prank(govOappSenderOwner);
-            govOappSender.transferOwnership(pauseProxy);
-            vm.prank(pauseProxy);
-            govOappSender.setDelegate(pauseProxy);
-        }
-
-        // Set L1GovernanceRelay relay
-        GodMode.setWard(l1GovernanceRelay, pauseProxy, 1);
-        // Set L1GovernanceRelay deployer wards to 0
-        GodMode.setWard(l1GovernanceRelay, 0x54eAde20f7DD1A67624626A3DB9408185eD0039e, 0);
-    }
-
     function _vote(address spell_) internal {
-        // TODO: Remove after 2025-11-17
+        // TODO: Remove once 2025-11-13 spell is deployed so the update doesn't need to be mocked in 2025-11-17
         _upgradeNttManagerImpl();
-        _setAuthBeforeSpellExecution();
 
         if (chief.hat() != spell_) {
             _giveTokens(address(sky), 999999999999 ether);
