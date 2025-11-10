@@ -1256,7 +1256,7 @@ contract DssSpellTest is DssSpellTestBase {
     function testSparkSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
         _testStarguardExecution({
             starGuardKey: "SPARK_STARGUARD",
-            primeAgentSpell: address(0x71059EaAb41D6fda3e916bC9D76cB44E96818654), // Insert Spark spell address
+            primeAgentSpell: 0x71059EaAb41D6fda3e916bC9D76cB44E96818654, // Insert Spark spell address
             primeAgentSpellHash: bytes32('codehash'), // Insert Spark spell hash
             directExecutionEnabled: true // Set to true if the spark spell is executed directly from core spell
         });
