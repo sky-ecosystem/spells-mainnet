@@ -134,6 +134,7 @@ contract DssSpellAction is DssAction {
         // Poll: https://vote.sky.money/polling/Qmetv8fp
 
         // Call MigrationInit.initMigrationStep0 with the following arguments:
+        // TODO: add other comments once they are clarified
         MigrationInit.initMigrationStep0({
             nttManagerImpV2: NTT_MANAGER_IMP_V2,
             maxFee:          WH_MAX_FEE,
