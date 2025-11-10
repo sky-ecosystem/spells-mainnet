@@ -1315,10 +1315,11 @@ contract DssSpellTest is DssSpellTestBase {
             spell.schedule();
 
             // Execute before MIN_ETA is not allowed
-            vm.warp(1748872800); // 2025-06-01 14:00:00 UTC
+            vm.warp(1763128800); // 2025-11-14 14:00:00 UTC
 
             // Try execute before MIN_ETA
-            vm.expectRevert();
+            // The error will be overwriten from PauseProxy
+            vm.expectRevert('ds-pause-delegatecall-error');
             spell.cast();
 
             assertEq(spell.nextCastTime(), MIN_ETA, "testNextCastTimeMinEta/min-eta-not-enforced");
