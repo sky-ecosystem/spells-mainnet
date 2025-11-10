@@ -1314,6 +1314,13 @@ contract DssSpellTest is DssSpellTestBase {
             _vote(address(spell));
             spell.schedule();
 
+            // Execute before MIN_ETA is not allowed
+            vm.warp(1748872800); // 2025-06-01 14:00:00 UTC
+
+            // Try execute before MIN_ETA
+            vm.expectRevert();
+            spell.cast();
+
             assertEq(spell.nextCastTime(), MIN_ETA, "testNextCastTimeMinEta/min-eta-not-enforced");
 
             vm.revertToStateAndDelete(before);
