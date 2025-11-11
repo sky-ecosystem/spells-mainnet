@@ -76,11 +76,11 @@ interface L1GovernanceRelayLike {
 }
 
 interface WormholeLike {
-    function nextSequence(address) external view returns (uint64);
+    function nextSequence(address emitter) external view returns (uint64);
 }
 
 interface OAppLike {
-    function setPeer(uint32 _dstEid, bytes32 _dstOApp) external;
+    function setPeer(uint32 _eid, bytes32 _peer) external;
 }
 
 interface GovernanceOAppSenderLike is OAppLike {
@@ -92,11 +92,18 @@ interface SkyOFTAdapterLike is OAppLike {
         uint256 nativeFee;
         uint256 lzTokenFee;
     }
+
     struct MessagingReceipt {
         bytes32 guid;
         uint64 nonce;
         MessagingFee fee;
     }
+
+    struct OFTReceipt {
+        uint256 amountSentLD;
+        uint256 amountReceivedLD;
+    }
+
     struct SendParam {
         uint32 dstEid;
         bytes32 to;
@@ -106,27 +113,27 @@ interface SkyOFTAdapterLike is OAppLike {
         bytes composeMsg;
         bytes oftCmd;
     }
-    struct OFTReceipt {
-        uint256 amountSentLD; // Amount of tokens ACTUALLY debited from the sender in local decimals.
-        // @dev In non-default implementations, the amountReceivedLD COULD differ from this value.
-        uint256 amountReceivedLD; // Amount of tokens to be received on the remote side.
-    }
-    function token() external view returns (address);
-    function outboundRateLimits(uint32) external view returns (uint128, uint48, uint256, uint256);
-    function inboundRateLimits(uint32) external view returns (uint128, uint48, uint256, uint256);
-    function pausers(address) external view returns (bool);
+
+    function inboundRateLimits(uint32 srcEid)
+        external
+        view
+        returns (uint128 lastUpdated, uint48 window, uint256 amountInFlight, uint256 limit);
+    function outboundRateLimits(uint32 dstEid)
+        external
+        view
+        returns (uint128 lastUpdated, uint48 window, uint256 amountInFlight, uint256 limit);
     function pause() external;
-    function unpause() external;
     function paused() external view returns (bool);
-    function quoteSend(
-        SendParam calldata _sendParam,
-        bool _useLzToken
-    ) external view returns (MessagingFee memory);
-    function send(
-        SendParam calldata _sendParam,
-        MessagingFee calldata _fee,
-        address _refundAddress
-    ) external payable returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt);
+    function pausers(address pauser) external view returns (bool canPause);
+    function quoteSend(SendParam memory _sendParam, bool _payInLzToken)
+        external
+        view
+        returns (MessagingFee memory msgFee);
+    function send(SendParam memory _sendParam, MessagingFee memory _fee, address _refundAddress)
+        external
+        payable
+        returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt);
+    function unpause() external;
 }
 
 contract DssSpellTest is DssSpellTestBase {
