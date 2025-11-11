@@ -87,16 +87,7 @@ interface GovernanceOAppSenderLike is OAppLike {
     function setCanCallTarget(address _srcSender, uint32 _dstEid, bytes32 _dstTarget, bool _canCall) external;
 }
 
-interface OFTAdapterLike is OAppLike {
-    struct SendParam {
-        uint32 dstEid;
-        bytes32 to;
-        uint256 amountLD;
-        uint256 minAmountLD;
-        bytes extraOptions;
-        bytes composeMsg;
-        bytes oftCmd;
-    }
+interface SkyOFTAdapterLike is OAppLike {
     struct MessagingFee {
         uint256 nativeFee;
         uint256 lzTokenFee;
@@ -105,6 +96,15 @@ interface OFTAdapterLike is OAppLike {
         bytes32 guid;
         uint64 nonce;
         MessagingFee fee;
+    }
+    struct SendParam {
+        uint32 dstEid;
+        bytes32 to;
+        uint256 amountLD;
+        uint256 minAmountLD;
+        bytes extraOptions;
+        bytes composeMsg;
+        bytes oftCmd;
     }
     struct OFTReceipt {
         uint256 amountSentLD; // Amount of tokens ACTUALLY debited from the sender in local decimals.
@@ -127,10 +127,6 @@ interface OFTAdapterLike is OAppLike {
         MessagingFee calldata _fee,
         address _refundAddress
     ) external payable returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt);
-}
-
-interface EndpointLike {
-    function delegates(address) external view returns (address);
 }
 
 contract DssSpellTest is DssSpellTestBase {
@@ -1399,7 +1395,7 @@ contract DssSpellTest is DssSpellTestBase {
     address LZ_GOV_SENDER = addr.addr("LZ_GOV_SENDER");
     address USDS_OFT = addr.addr("USDS_OFT");
 
-    OFTAdapterLike oft = OFTAdapterLike(USDS_OFT);
+    SkyOFTAdapterLike oft = SkyOFTAdapterLike(USDS_OFT);
 
     function testMigrationStep1() public {
         bytes memory payloadTransferMintAuth = hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc006856f43abf4aaa4a26b32ae8ea4cb8fadc8e02d267703fbd5f9dad85f6d00b300056f776e65720000000000000000000000000000000000000000000000000000000100b53f200f8db357f9e1e982ef0ec4b3b879f9f6516d5247307ebaf00d187be51a00009f92dcb365df21a4a4ec23d8ff4cc020cdd09895f8129c2c2fb43289bc53f95f00000707312d1d41da71f0fb280c1662cd65ebeb2e0859c0cbae3fdbdcb26c86e0af000106ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a90000002857edbb54a8aff14b8dc412529f876c9f3bc01d7c3095bcd6cd1d6d5177b59aa03f04e5c5b422147b";
@@ -1413,7 +1409,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertTrue(oft.pausers(USDS_OFT_PAUSER), "TestError/MigrationStep1/pauser-mismatch");
 
         // Send OFT doesn't work yet
-        OFTAdapterLike.SendParam memory sendParams = OFTAdapterLike.SendParam({
+        SkyOFTAdapterLike.SendParam memory sendParams = SkyOFTAdapterLike.SendParam({
             dstEid: SOL_EID,
             to: bytes32("SolanaAddress"),
             amountLD: 5 ether,
@@ -1423,7 +1419,7 @@ contract DssSpellTest is DssSpellTestBase {
             oftCmd: bytes("")
         });
 
-        OFTAdapterLike.MessagingFee memory msgFee = oft.quoteSend(sendParams, false);
+        SkyOFTAdapterLike.MessagingFee memory msgFee = oft.quoteSend(sendParams, false);
 
         GodMode.setBalance(address(usds), address(this), 10 ether);
         GemAbstract(usds).approve(USDS_OFT, 10 ether);
