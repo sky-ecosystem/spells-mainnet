@@ -1253,12 +1253,12 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // Spark tests
-    function testSparkSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
+    function testSparkSpellIsExecuted() public { // add the `skipped` modifier to skip
         _testStarguardExecution({
             starGuardKey: "SPARK_STARGUARD",
-            primeAgentSpell: 0x71059EaAb41D6fda3e916bC9D76cB44E96818654, // Insert Spark spell address
-            primeAgentSpellHash: bytes32('codehash'), // Insert Spark spell hash
-            directExecutionEnabled: true // Set to true if the spark spell is executed directly from core spell
+            primeAgentSpell: 0x63Fa202a7020e8eE0837196783f0fB768CBFE2f1, // Insert Spark spell address
+            primeAgentSpellHash: 0x6e88f81cc72989a637f4b87592dcde2016272fbceb08a2af3b2effdb2d20c0fb, // Insert Spark spell hash
+            directExecutionEnabled: false // Set to true if the spark spell is executed directly from core spell
         });
     }
 
@@ -1292,6 +1292,25 @@ contract DssSpellTest is DssSpellTestBase {
             abi.encodeCall(
                 SubProxyLike(NOVA_PROXY).exec,
                 (NOVA_SPELL, abi.encodeWithSignature("execute()"))
+            )
+        );
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+    }
+
+    // Obex tests
+    function testObexSpellIsExecuted() public { // add the `skipped` modifier to skip
+        address OBEX_PROXY = addr.addr('ALLOCATOR_OBEX_A_SUBPROXY');
+        address OBEX_SPELL = address(0xF538909eDF14d2c23002C2b3882Ad60f79d61893); // Insert Obex spell address
+
+        vm.expectCall(
+            OBEX_PROXY,
+            /* value = */ 0,
+            abi.encodeCall(
+                SubProxyLike(OBEX_PROXY).exec,
+                (OBEX_SPELL, abi.encodeWithSignature("execute()"))
             )
         );
 

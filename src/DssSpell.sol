@@ -22,6 +22,22 @@ import {GemAbstract} from "dss-interfaces/ERC/GemAbstract.sol";
 // Note: code matches https://github.com/sky-ecosystem/wh-lz-migration/blob/17397879385d42521b0fe9783046b3cf25a9fec6/deploy/MigrationInit.sol
 import {MigrationInit} from "src/dependencies/wh-lz-migration/MigrationInit.sol";
 
+interface DaiUsdsLike {
+    function daiToUsds(address usr, uint256 wad) external;
+}
+
+interface DssLitePsmLike {
+    function kiss(address usr) external;
+}
+
+interface StarGuardLike {
+    function plot(address addr_, bytes32 tag_) external;
+}
+
+interface ProxyLike {
+    function exec(address target, bytes calldata args) external payable returns (bytes memory out);
+}
+
 abstract contract DssAction {
 
     using DssExecLib for *;
@@ -59,14 +75,6 @@ abstract contract DssAction {
         require(eta <= type(uint40).max);
         castTime = DssExecLib.nextCastTime(uint40(eta), uint40(block.timestamp), officeHours());
     }
-}
-
-interface DaiUsdsLike {
-    function daiToUsds(address usr, uint256 wad) external;
-}
-
-interface DssLitePsmLike {
-    function kiss(address usr) external;
 }
 
 contract DssSpellAction is DssAction {
@@ -124,6 +132,14 @@ contract DssSpellAction is DssAction {
     // ---------- Payloads ----------
     bytes internal constant PAYLOAD_WH_PROGRAM_UPGRADE = hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc002a8f6914e88a1b0e210153ef763ae2b00c2b93d16c124d2c0537a10048000000007a821ac5164fa9b54fd93b54dba8215550b8fce868f52299169f6619867cac501000106856f43abf4aaa4a26b32ae8ea4cb8fadc8e02d267703fbd5f9dad85f6d00b300012d27f5131975fdaf20a5934c6e90f6d7c9bbde9fcf94c37b48c5a49c7f06aae2000105cab222188023f74394ecaee9daf397c11a2a672511adc34958c1d7bdb1c673000106a7d517192c5c51218cc94c3d4af17f58daee089ba1fd44e3dbd98a00000000000006a7d51718c774c928566398691d5eb68b5eb8a39b4b6d5c73555b210000000000006f776e65720000000000000000000000000000000000000000000000000000000100000403000000";
 
+    // ---------- Spark Spell ----------
+    address internal immutable SPARK_STARGUARD  = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
+    address internal constant  SPARK_SPELL      = 0x63Fa202a7020e8eE0837196783f0fB768CBFE2f1;
+    bytes32 internal constant  SPARK_SPELL_HASH = 0x6e88f81cc72989a637f4b87592dcde2016272fbceb08a2af3b2effdb2d20c0fb;
+
+    // ---------- Launch Agent 4 (Obex) Spell ----------
+    address internal constant  OBEX_SPELL = 0xF538909eDF14d2c23002C2b3882Ad60f79d61893;
+
     function actions() public override {
         // ---------- Set earliest execution date November 17, 14:00 UTC ----------
 
@@ -132,12 +148,17 @@ contract DssSpellAction is DssAction {
         // ----- Solana Bridge Migration -----
         // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2025-11-03/27381
         // Poll: https://vote.sky.money/polling/Qmetv8fp
+        // Note: This is heading, the content is below.
 
-        // Call MigrationInit.initMigrationStep0 with the following arguments:
-        // TODO: add other comments once they are clarified
+        // ----- Call MigrationInit.initMigrationStep0 with the following arguments: -----
+        // Forum: https://forum.sky.money/t/solana-bridge-migration/27403
+
         MigrationInit.initMigrationStep0({
+            // nttManagerImpV2: 0xD4DD90bAC23E2a1470681E7cAfFD381FE44c3430
             nttManagerImpV2: NTT_MANAGER_IMP_V2,
+            // maxFee expected to be 0 (unless Wormhole.messageFee() returns non-zero value)
             maxFee:          WH_MAX_FEE,
+            // payload: [payload](https://raw.githubusercontent.com/keel-fi/crosschain-gov-solana-spell-payloads/b108b90e24e71c3d82dfde9599ce44dda913683a/wh-program-upgrade-mainnet.txt)
             payload:         PAYLOAD_WH_PROGRAM_UPGRADE
         });
 
@@ -146,10 +167,15 @@ contract DssSpellAction is DssAction {
         // Poll: https://vote.sky.money/polling/Qmetv8fp
 
         // Set the following DC-IAM Values for ALLOCATOR-OBEX-A:
-        // gap: 50 million
-        // maxLine: 2.5 billion
-        // ttl: 86,400 seconds
-        DssExecLib.setIlkAutoLineParameters("ALLOCATOR-OBEX-A", /* amount = */ 2500 * MILLION, /* gap = */ 50 * MILLION, /* ttl = */ 86400 seconds);
+        DssExecLib.setIlkAutoLineParameters({
+            _ilk: "ALLOCATOR-OBEX-A",
+            // Increase `maxLine` by 2.49 billion USDS from 10 million USDS to 2.5 billion USDS
+            _amount: 2500 * MILLION,
+            // Increase `gap` by 40 million USDS from 10 million USDS to 50 million
+            _gap: 50 * MILLION,
+            // Keep `ttl` unchanged at 86,400 seconds
+            _ttl: 86400 seconds
+    });
 
         // ----- Genesis Capital Transfer To Launch Agent 4 -----
         // Forum: https://forum.sky.money/t/out-of-schedule-atlas-edit-proposal/27393
@@ -160,30 +186,33 @@ contract DssSpellAction is DssAction {
 
         // ----- Whitelist Launch Agent 4 (Obex) ALMProxy on the LitePSM -----
         // Forum: https://forum.sky.money/t/proposed-changes-to-launch-agent-4-obex-for-upcoming-spell/27370
-        // Forum: https://forum.sky.money/t/proposed-changes-to-launch-agent-4-obex-for-upcoming-spell/27370/3
+        // Poll: https://vote.sky.money/polling/Qmetv8fp
+        // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2025-11-03/27381
 
-        // MCD_LITE_PSM_USDC_A.kiss(0xb6dD7ae22C9922AFEe0642f9Ac13e58633f715A2)
+        // Whitelist Launch Agent 4 (Obex) ALMProxy at 0xb6dD7ae22C9922AFEe0642f9Ac13e58633f715A2 on the LitePSM
         DssLitePsmLike(MCD_LITE_PSM_USDC_A).kiss(OBEX_ALM_PROXY);
 
         // ----- Execute Spark Proxy Spell -----
+        // Forum: https://forum.sky.money/t/november-13-2025-proposed-changes-to-spark-for-upcoming-spell/27354
+        // Forum: https://forum.sky.money/t/november-13-2025-proposed-changes-to-sparklend-for-upcoming-spell-2/27395/3
+        // Forum: https://forum.sky.money/t/november-13-2025-proposed-changes-to-sparklend-for-upcoming-spell-2/27395
+        // Forum: https://forum.sky.money/t/november-13-2025-proposed-changes-to-spark-for-upcoming-spell/27354/2
+        // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0x4c705ab40a35c3c903adb87466bf563b00abc78b1d161034278d2acd74fb7621
+        // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0xd7397d29254989ce4c5785f3c67a94de21018abc4e9a76b1e7fc359aec36e60a
+        // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0x785d3b23e63e3e6b6fb7927ca0bc529b2dc7b58d429102465e4ba8a36bc23fda
+        // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0xb31a1c997c3186943b57ce9f1528cb02c1dc5399dcdc151e60d136af46d5c126
+        // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0xe697ded18a50e09618c6f34fb89cbb8358d84a4c40602928ae4b44a644b83dcf
+        // Atlas: https://sky-atlas.io/#A.6.1.1.1.2.6.1.2.1.2.3
 
-        // Execute the Spark Proxy Spell at TBD
-        // TODO: Add Spark Proxy Spell code here
-
-        // ----- Execute Grove Proxy Spell -----
-
-        // Execute the Grove Proxy Spell at TBD
-        // TODO: Add Grove Proxy Spell code here
-
-        // ----- Execute Keel Proxy Spell -----
-
-        // Execute the Keel Proxy Spell at TBD
-        // TODO: Add Keel Proxy Spell code here
+        // Whitelist the Spark Proxy Spell deployed to 0x63Fa202a7020e8eE0837196783f0fB768CBFE2f1 with codehash 0x6e88f81cc72989a637f4b87592dcde2016272fbceb08a2af3b2effdb2d20c0fb; direct execution: no in Spark Starguard
+        StarGuardLike(SPARK_STARGUARD).plot(SPARK_SPELL, SPARK_SPELL_HASH);
 
         // ----- Execute Launch Agent 4 (Obex) Proxy Spell -----
+        // Forum: https://forum.sky.money/t/proposed-changes-to-launch-agent-4-obex-for-upcoming-spell/27370
+        // Poll: https://vote.sky.money/polling/Qmetv8fp
 
-        // Execute the Launch Agent 4 (Obex) Proxy Spell at TBD
-        // TODO: Add Launch Agent 4 (Obex) Proxy Spell code here
+        // Execute the Launch Agent 4 (Obex) Proxy Spell at 0xF538909eDF14d2c23002C2b3882Ad60f79d61893
+        ProxyLike(ALLOCATOR_OBEX_A_SUBPROXY).exec(OBEX_SPELL, abi.encodeWithSignature("execute()"));
     }
 
     // ---------- Helper Functions ----------
