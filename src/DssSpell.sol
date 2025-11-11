@@ -109,11 +109,11 @@ contract DssSpellAction is DssAction {
 
         // ----- Add new SkyOFTAdapter to chainlog as USDS_OFT -----
 
-        // TODO: implement this
+        DssExecLib.setChangelogAddress('USDS_OFT', USDS_OFT);
 
-        // ----- Add new SkyOFTAdapter to chainlog as USDS_OFT -----
+        // ----- Add new GovernanceOAppSender to chainlog as LZ_GOV_SENDER -----
 
-        // TODO: implement this
+        DssExecLib.setChangelogAddress('LZ_GOV_SENDER', LZ_GOV_SENDER);
 
         // ----- Bump chainlog PATCH version -----
 

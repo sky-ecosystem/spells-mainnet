@@ -372,7 +372,9 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
-        string[1] memory addedKeys = [
+        string[3] memory addedKeys = [
+            "USDS_OFT",
+            "LZ_GOV_SENDER",
             "LZ_GOV_RELAY"
         ];
 
@@ -1394,8 +1396,8 @@ contract DssSpellTest is DssSpellTestBase {
     uint32  SOL_EID = 30168;
 
     address USDS_OFT_PAUSER = 0x38d1114b4cE3e079CC0f627df6aC2776B5887776;
-    address LZ_GOV_SENDER = 0x27FC1DD771817b53bE48Dc28789533BEa53C9CCA;
-    address USDS_OFT = 0x1e1D42781FC170EF9da004Fb735f56F0276d01B8;
+    address LZ_GOV_SENDER = addr.addr("LZ_GOV_SENDER");
+    address USDS_OFT = addr.addr("USDS_OFT");
 
     OFTAdapterLike oft = OFTAdapterLike(USDS_OFT);
 

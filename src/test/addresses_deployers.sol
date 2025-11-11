@@ -55,7 +55,8 @@ contract Deployers {
             // 0x4953BAe71F6F06b717F7A99DdBe08Cb991412d4D.  // Deployer for Spark 2023-08-30
             // 0x04a733f946C0aD8E2773d9A3891A8CCeD900a0F8.  // Deployer for Spark 2023-09-13
             0x89aAB8CAeEf8d25051cA6E534C6944e51f15DAd2,  // Deployer for ALLOCATOR-NOVA-A,
-            0xe3aeA2949A0b0F3BD4e897C577286766a9F4aed0   // Deployer for SPBEAM
+            0xe3aeA2949A0b0F3BD4e897C577286766a9F4aed0,  // Deployer for SPBEAM
+            0x12E85B7a985283bbFf212A059e2D226397b78F95   // LZ deployer
         ];
     }
 
