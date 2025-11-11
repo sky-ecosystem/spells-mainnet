@@ -119,12 +119,12 @@ contract DssSpellAction is DssAction {
     uint256 internal constant WAD     = 10 ** 18;
 
     // ---------- Contracts ----------
-    GemAbstract internal immutable DAI                       = GemAbstract(DssExecLib.dai());
-    address internal immutable MCD_LITE_PSM_USDC_A           = DssExecLib.getChangelogAddress("MCD_LITE_PSM_USDC_A");
-    address internal immutable DAI_USDS                      = DssExecLib.getChangelogAddress("DAI_USDS");
-    address internal constant  NTT_MANAGER_IMP_V2            = 0xD4DD90bAC23E2a1470681E7cAfFD381FE44c3430;
-    address internal constant  ALLOCATOR_OBEX_A_SUBPROXY     = 0x8be042581f581E3620e29F213EA8b94afA1C8071;
-    address internal constant  OBEX_ALM_PROXY                = 0xb6dD7ae22C9922AFEe0642f9Ac13e58633f715A2;
+    address internal immutable DAI                       = DssExecLib.dai();
+    address internal immutable MCD_LITE_PSM_USDC_A       = DssExecLib.getChangelogAddress("MCD_LITE_PSM_USDC_A");
+    address internal immutable DAI_USDS                  = DssExecLib.getChangelogAddress("DAI_USDS");
+    address internal constant  NTT_MANAGER_IMP_V2        = 0xD4DD90bAC23E2a1470681E7cAfFD381FE44c3430;
+    address internal constant  ALLOCATOR_OBEX_A_SUBPROXY = 0x8be042581f581E3620e29F213EA8b94afA1C8071;
+    address internal constant  OBEX_ALM_PROXY            = 0xb6dD7ae22C9922AFEe0642f9Ac13e58633f715A2;
 
     // ---------- Constant Values ----------
     uint256 internal constant WH_MAX_FEE = 0;
@@ -138,7 +138,7 @@ contract DssSpellAction is DssAction {
     bytes32 internal constant  SPARK_SPELL_HASH = 0x6e88f81cc72989a637f4b87592dcde2016272fbceb08a2af3b2effdb2d20c0fb;
 
     // ---------- Launch Agent 4 (Obex) Spell ----------
-    address internal constant  OBEX_SPELL = 0xF538909eDF14d2c23002C2b3882Ad60f79d61893;
+    address internal constant OBEX_SPELL = 0xF538909eDF14d2c23002C2b3882Ad60f79d61893;
 
     function actions() public override {
         // ---------- Set earliest execution date November 17, 14:00 UTC ----------
