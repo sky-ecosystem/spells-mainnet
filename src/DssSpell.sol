@@ -69,25 +69,38 @@ contract DssSpellAction is DssAction {
 
     function actions() public override {
         // ----- Solana Bridge Migration -----
-        // NOTE: This is a title, the content follows below
+        // Note: This is heading, the content is below.
 
         // ----- Call MigrationInit.initMigrationStep1 with the following parameters: -----
 
         MigrationInit.initMigrationStep1({
+            // oftAdapter – 0x1e1D42781FC170EF9da004Fb735f56F0276d01B8
             oftAdapter: OFT_ADAPTER,
+            // oftPeer – BEvTHkTyXooyaJzP8egDUC7WQK8cyRrq5WvERZNWhuah
             oftPeer: OFT_PEER,
+            // govOapp – 0x27FC1DD771817b53bE48Dc28789533BEa53C9CCA
             govOapp: GOV_OAPP_SENDER,
+            // govPeer – 8vXXGiaXFrKFUDw21H5Z57ex552Lh8WP9rVd2ktzmcCy
             govPeer: GOV_PEER,
             rl: MigrationInit.RateLimitsParams({
+                // rl.outboundWindow: 1 days
                 outboundWindow: 1 days,
+                // rl.outboundLimit: 10,000,000 USDS
                 outboundLimit: 10_000_000 * WAD,
+                // rl.inboundWindow: 1 days
                 inboundWindow: 1 days,
+                // rl.inboundLimit: 10,000,000 USDS
                 inboundLimit: 10_000_000 * WAD,
+                // rl.rlAccountingType: 0 (Net)
                 rlAccountingType: 0
             }),
+            // maxFee expected to be 0 (unless Wormhole.messageFee() returns non-zero value)
             maxFee: WH_MAX_FEE,
+            // transferMintAuthPayload: payload
             transferMintAuthPayload: PAYLOAD_TRANSFER_MINT_AUTH,
+            // transferFreezeAuthPayload: payload
             transferFreezeAuthPayload: PAYLOAD_TRANSFER_FREEZE_AUTH,
+            // transferMetadataUpdateAuthPayload: payload
             transferMetadataUpdateAuthPayload: PAYLOAD_TRANSFER_METADATA_UPDATE_AUTH
         });
 
@@ -98,9 +111,19 @@ contract DssSpellAction is DssAction {
 
         GovernanceRelayInit.init({
             dss: dss,
+            // l1GovernanceRelay – 0x2beBFe397D497b66cB14461cB6ee467b4C3B7D61
             l1GovernanceRelay: L1_GOVERNANCE_RELAY,
+            // l1Oapp – 0x27FC1DD771817b53bE48Dc28789533BEa53C9CCA
             l1Oapp: GOV_OAPP_SENDER
         });
+
+        // ----- Add new SkyOFTAdapter to chainlog as USDS_OFT -----
+
+        // TODO: implement this
+
+        // ----- Add new SkyOFTAdapter to chainlog as USDS_OFT -----
+
+        // TODO: implement this
 
         // ----- Bump chainlog PATCH version -----
 
