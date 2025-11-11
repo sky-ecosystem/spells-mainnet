@@ -52,10 +52,10 @@ contract DssSpellAction is DssAction {
 
     // ---------- Contracts ----------
     address internal constant USDS_OFT        = 0x1e1D42781FC170EF9da004Fb735f56F0276d01B8;
-    // base58: BEvTHkTyXooyaJzP8egDUC7WQK8cyRrq5WvERZNWhuah
+    // Note: base58 BEvTHkTyXooyaJzP8egDUC7WQK8cyRrq5WvERZNWhuah to hex conversion can be checked at https://emn178.github.io/online-tools/base58/decode/?input=BEvTHkTyXooyaJzP8egDUC7WQK8cyRrq5WvERZNWhuah&output_type=hex
     bytes32 internal constant SOLANA_USDS_OFT = 0x9825dc0cbeaf22836931c00cb891592f0a96d0dc6a65a4c67992b01e0db8d122;
     address internal constant LZ_GOV_SENDER   = 0x27FC1DD771817b53bE48Dc28789533BEa53C9CCA;
-    // base58: 8vXXGiaXFrKFUDw21H5Z57ex552Lh8WP9rVd2ktzmcCy
+    // Note: base58 8vXXGiaXFrKFUDw21H5Z57ex552Lh8WP9rVd2ktzmcCy to hex conversion can be checked at https://emn178.github.io/online-tools/base58/decode/?input=8vXXGiaXFrKFUDw21H5Z57ex552Lh8WP9rVd2ktzmcCy&output_type=hex
     bytes32 internal constant SOLANA_LZ_GOV   = 0x75b81a4430dee7012ff31d58540835ccc89a18d1fc0522bc95df16ecd50efc32;
     address internal constant LZ_GOV_RELAY    = 0x2beBFe397D497b66cB14461cB6ee467b4C3B7D61;
 
