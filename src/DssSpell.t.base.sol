@@ -913,7 +913,6 @@ contract DssSpellTestBase is Config, DssTest {
     function _scheduleWaitAndCast(address spell_) internal {
         DssSpell(spell_).schedule();
 
-        // Set auth for
         vm.warp(DssSpell(spell_).nextCastTime());
 
         DssSpell(spell_).cast();
