@@ -539,12 +539,6 @@ interface OsmWrapperLike {
     function osm() external view returns (address);
 }
 
-interface LZOAppLike {
-    function owner() external view returns (address);
-    function transferOwnership(address) external;
-    function setDelegate(address) external;
-}
-
 interface WHNttManagerLike {
     function upgrade(address) external;
 }
@@ -815,8 +809,20 @@ contract DssSpellTestBase is Config, DssTest {
             expectedRate_ - yearlyYield_ : yearlyYield_ - expectedRate_;
     }
 
+    // TODO: Remove once 2025-11-13 spell is deployed so the update doesn't need to be mocked in 2025-11-17
+    function _upgradeNttManagerImpl() internal {
+        WHNttManagerLike nttManager = WHNttManagerLike(0x7d4958454a3f520bDA8be764d06591B054B0bf33);
+        address nttImplV2 = 0xD4DD90bAC23E2a1470681E7cAfFD381FE44c3430;
+
+        vm.prank(pauseProxy);
+        nttManager.upgrade(nttImplV2);
+    }
+
     function _castPreviousSpell() internal {
         address[] memory prevSpells = spellValues.previous_spells;
+
+        // TODO: Remove once 2025-11-13 spell is deployed so the update doesn't need to be mocked in 2025-11-17
+        _upgradeNttManagerImpl();
 
         // warp and cast previous spells so values are up-to-date to test against
         for (uint256 i; i < prevSpells.length; i++) {
@@ -885,19 +891,7 @@ contract DssSpellTestBase is Config, DssTest {
         );
     }
 
-    // TODO: Remove once 2025-11-13 spell is deployed so the update doesn't need to be mocked in 2025-11-17
-    function _upgradeNttManagerImpl() internal {
-        WHNttManagerLike nttManager = WHNttManagerLike(0x7d4958454a3f520bDA8be764d06591B054B0bf33);
-        address nttImplV2 = 0xD4DD90bAC23E2a1470681E7cAfFD381FE44c3430;
-
-        vm.prank(pauseProxy);
-        nttManager.upgrade(nttImplV2);
-    }
-
     function _vote(address spell_) internal {
-        // TODO: Remove once 2025-11-13 spell is deployed so the update doesn't need to be mocked in 2025-11-17
-        _upgradeNttManagerImpl();
-
         if (chief.hat() != spell_) {
             _giveTokens(address(sky), 999999999999 ether);
             sky.approve(address(chief), type(uint256).max);
@@ -1030,7 +1024,7 @@ contract DssSpellTestBase is Config, DssTest {
         // hump values in RAD
         if (values.vow_hump_min == type(uint256).max && values.vow_hump_max == type(uint256).max) {
             assertEq(vow.hump(), type(uint256).max, "TestError/vow-hump");
-        } else {
+        } else { 
             uint256 normalizedHumpMin = values.vow_hump_min * RAD;
             uint256 normalizedHumpMax = values.vow_hump_max * RAD;
             assertTrue(vow.hump() >= normalizedHumpMin && vow.hump() <= normalizedHumpMax, "TestError/vow-hump-min-max");
