@@ -80,9 +80,6 @@ interface WormholeLike {
 }
 
 interface OAppLike {
-    function owner() external view returns (address);
-    function endpoint() external view returns (address);
-    function peers(uint32) external view returns (bytes32);
     function setPeer(uint32 _dstEid, bytes32 _dstOApp) external;
 }
 
@@ -1392,39 +1389,30 @@ contract DssSpellTest is DssSpellTestBase {
 
     event LogMessagePublished(address indexed sender, uint64 sequence, uint32 nonce, bytes payload, uint8 consistencyLevel);
 
-    address nttManager = 0x7d4958454a3f520bDA8be764d06591B054B0bf33;
-    WormholeLike wormholeCoreBridge = WormholeLike(0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B);
-    address ethLZEndpoint = 0x1a44076050125825900e736c501f859c50fE728c;
-    uint32  solEid = 30168;
+    address NTT_MANAGER = 0x7d4958454a3f520bDA8be764d06591B054B0bf33;
+    WormholeLike WH_CORE_BRIDGE = WormholeLike(0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B);
+    uint32  SOL_EID = 30168;
 
-    address oftPauser = 0x38d1114b4cE3e079CC0f627df6aC2776B5887776;
-    address govOapp = 0x27FC1DD771817b53bE48Dc28789533BEa53C9CCA;
-    bytes32 govPeer = 0x9825dc0cbeaf22836931c00cb891592f0a96d0dc6a65a4c67992b01e0db8d122;
-    address oftAdapter = 0x1e1D42781FC170EF9da004Fb735f56F0276d01B8;
-    bytes32 oftPeer = 0x75b81a4430dee7012ff31d58540835ccc89a18d1fc0522bc95df16ecd50efc32;
-    OFTAdapterLike oft = OFTAdapterLike(oftAdapter);
+    address USDS_OFT_PAUSER = 0x38d1114b4cE3e079CC0f627df6aC2776B5887776;
+    address LZ_GOV_SENDER = 0x27FC1DD771817b53bE48Dc28789533BEa53C9CCA;
+    address USDS_OFT = 0x1e1D42781FC170EF9da004Fb735f56F0276d01B8;
 
-    // Rate limit
-    uint48  outWindowFinal = 1 days;
-    uint256 outLimitFinal = 10_000_000 * WAD;
-    uint48  inWindowFinal = 1 days;
-    uint256 inLimitFinal = 10_000_000 * WAD;
+    OFTAdapterLike oft = OFTAdapterLike(USDS_OFT);
 
     function testMigrationStep1() public {
         bytes memory payloadTransferMintAuth = hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc006856f43abf4aaa4a26b32ae8ea4cb8fadc8e02d267703fbd5f9dad85f6d00b300056f776e65720000000000000000000000000000000000000000000000000000000100b53f200f8db357f9e1e982ef0ec4b3b879f9f6516d5247307ebaf00d187be51a00009f92dcb365df21a4a4ec23d8ff4cc020cdd09895f8129c2c2fb43289bc53f95f00000707312d1d41da71f0fb280c1662cd65ebeb2e0859c0cbae3fdbdcb26c86e0af000106ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a90000002857edbb54a8aff14b8dc412529f876c9f3bc01d7c3095bcd6cd1d6d5177b59aa03f04e5c5b422147b";
         bytes memory payloadTransferFreezeAuth = hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc006ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a900020707312d1d41da71f0fb280c1662cd65ebeb2e0859c0cbae3fdbdcb26c86e0af00016f776e6572000000000000000000000000000000000000000000000000000000010000230601018dc412529f876c9f3bc01d7c3095bcd6cd1d6d5177b59aa03f04e5c5b422147b";
         bytes memory payloadTransferMetadataUpdateAuth = hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc00b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f82946000b6f776e657200000000000000000000000000000000000000000000000000000001000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f8294600000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f8294600000707312d1d41da71f0fb280c1662cd65ebeb2e0859c0cbae3fdbdcb26c86e0af000071809dfc828921f70659869a0822bf04c42b823d518bfc11fe9a7b65d221a58f00010b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f829460000706179657200000000000000000000000000000000000000000000000000000001010000000000000000000000000000000000000000000000000000000000000000000006a7d517187bd16635dad40455fdc2c0c124c68f215675a5dbbacb5f0800000000000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f8294600000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f829460000002c3201018dc412529f876c9f3bc01d7c3095bcd6cd1d6d5177b59aa03f04e5c5b422147b000000000000000000";
 
-
-        uint256 oftAdapterPreviousBalance = usds.balanceOf(oftAdapter);
-        uint256 nttManagerPreviousBalance = usds.balanceOf(nttManager);
+        uint256 oftPreviousBalance = usds.balanceOf(USDS_OFT);
+        uint256 nttManagerPreviousBalance = usds.balanceOf(NTT_MANAGER);
 
         // Check pauser address
-        assertTrue(oft.pausers(oftPauser), "TestError/MigrationStep1/pauser-mismatch");
+        assertTrue(oft.pausers(USDS_OFT_PAUSER), "TestError/MigrationStep1/pauser-mismatch");
 
         // Send OFT doesn't work yet
         OFTAdapterLike.SendParam memory sendParams = OFTAdapterLike.SendParam({
-            dstEid: solEid,
+            dstEid: SOL_EID,
             to: bytes32("SolanaAddress"),
             amountLD: 5 ether,
             minAmountLD: 5 ether,
@@ -1436,7 +1424,7 @@ contract DssSpellTest is DssSpellTestBase {
         OFTAdapterLike.MessagingFee memory msgFee = oft.quoteSend(sendParams, false);
 
         GodMode.setBalance(address(usds), address(this), 10 ether);
-        GemAbstract(usds).approve(oftAdapter, 10 ether);
+        GemAbstract(usds).approve(USDS_OFT, 10 ether);
         vm.deal(address(this), 10 ether);
 
         uint256 usdsBalanceBeforeSend = usds.balanceOf(address(this));
@@ -1453,16 +1441,16 @@ contract DssSpellTest is DssSpellTestBase {
             spell.schedule();
             vm.warp(spell.nextCastTime());
 
-            uint64 sequence = wormholeCoreBridge.nextSequence(pauseProxy);
+            uint64 sequence = WH_CORE_BRIDGE.nextSequence(pauseProxy);
 
             // NTT Manager transfer mint authority event
-            vm.expectEmit(true, true, true, true, address(wormholeCoreBridge));
+            vm.expectEmit(true, true, true, true, address(WH_CORE_BRIDGE));
             emit LogMessagePublished(pauseProxy, sequence, 0, payloadTransferMintAuth, 202);
             // NTT Manager transfer freeze authority event
-            vm.expectEmit(true, true, true, true, address(wormholeCoreBridge));
+            vm.expectEmit(true, true, true, true, address(WH_CORE_BRIDGE));
             emit LogMessagePublished(pauseProxy, sequence + 1, 0, payloadTransferFreezeAuth, 202);
             // NTT Manager transfer metadata update event
-            vm.expectEmit(true, true, true, true, address(wormholeCoreBridge));
+            vm.expectEmit(true, true, true, true, address(WH_CORE_BRIDGE));
             emit LogMessagePublished(pauseProxy, sequence + 2, 0, payloadTransferMetadataUpdateAuth, 202);
 
             spell.cast();
@@ -1470,11 +1458,11 @@ contract DssSpellTest is DssSpellTestBase {
         }
 
         // Check locked token migration
-        uint256 oftAdapterAfterBalance = usds.balanceOf(oftAdapter);
-        uint256 nttManagerAfterBalance = usds.balanceOf(nttManager);
+        uint256 oftAfterBalance = usds.balanceOf(USDS_OFT);
+        uint256 nttManagerAfterBalance = usds.balanceOf(NTT_MANAGER);
         assertGe(
-            oftAdapterAfterBalance,
-            oftAdapterPreviousBalance + nttManagerPreviousBalance,
+            oftAfterBalance,
+            oftPreviousBalance + nttManagerPreviousBalance,
             "TestError/MigrationStep1/oft-adapter-balance-not-increased"
         );
         assertEq(
@@ -1484,12 +1472,12 @@ contract DssSpellTest is DssSpellTestBase {
         );
 
         // Check rate limit settings
-        (,uint48 outWindow2,,uint256 outLimit2) = oft.outboundRateLimits(solEid);
-        (,uint48  inWindow2,,uint256  inLimit2) = oft.inboundRateLimits(solEid);
-        assertEq(outWindow2, outWindowFinal,    "TestError/MigrationStep1/outWindow-rl-not-set");
-        assertEq(inWindow2, inWindowFinal,      "TestError/MigrationStep1/inWindow-rl-not-set");
-        assertEq(outLimit2, outLimitFinal,      "TestError/MigrationStep1/outLimit-rl-not-set");
-        assertEq(inLimit2, inLimitFinal,        "TestError/MigrationStep1/inLimit-rl-not-set");
+        (,uint48 outWindow2,,uint256 outLimit2) = oft.outboundRateLimits(SOL_EID);
+        (,uint48  inWindow2,,uint256  inLimit2) = oft.inboundRateLimits(SOL_EID);
+        assertEq(outWindow2, 1 days,    "TestError/MigrationStep1/outWindow-rl-not-set");
+        assertEq(inWindow2, 1 days,      "TestError/MigrationStep1/inWindow-rl-not-set");
+        assertEq(outLimit2, 10_000_000 * WAD,      "TestError/MigrationStep1/outLimit-rl-not-set");
+        assertEq(inLimit2, 10_000_000 * WAD,        "TestError/MigrationStep1/inLimit-rl-not-set");
 
         // OFT send works now
         oft.send{value: msgFee.nativeFee}(sendParams, msgFee, payable(address(this)));
@@ -1500,7 +1488,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
 
         // Pause oft as pauser
-        vm.startPrank(oftPauser);
+        vm.startPrank(USDS_OFT_PAUSER);
         oft.pause();
         vm.stopPrank();
         assertTrue(oft.paused(), "TestError/MigrationStep1/failed-to-pause");
@@ -1514,7 +1502,7 @@ contract DssSpellTest is DssSpellTestBase {
 
     function testGovernanceRelayInit() public {
         L1GovernanceRelayLike l1GovernanceRelay = L1GovernanceRelayLike(addr.addr("LZ_GOV_RELAY"));
-        GovernanceOAppSenderLike govOappSender = GovernanceOAppSenderLike(govOapp);
+        GovernanceOAppSenderLike govOappSender = GovernanceOAppSenderLike(LZ_GOV_SENDER);
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
@@ -1546,10 +1534,10 @@ contract DssSpellTest is DssSpellTestBase {
         });
 
         // Relay to Solana
-        govOappSender.setCanCallTarget(address(l1GovernanceRelay), solEid, bytes32(uint256(uint160(fakeL2GovernanceRelay))), true);
+        govOappSender.setCanCallTarget(address(l1GovernanceRelay), SOL_EID, bytes32(uint256(uint160(fakeL2GovernanceRelay))), true);
         l1GovernanceRelay.relayRaw{value: nativeFee}({
             txParams : L1GovernanceRelayLike.TxParams({
-                dstEid            : solEid,
+                dstEid            : SOL_EID,
                 dstTarget         : bytes32(uint256(uint160(fakeL2GovernanceRelay))),
                 dstCallData       : abi.encodeWithSelector(
                                         bytes4(keccak256("relay(address,string)")),

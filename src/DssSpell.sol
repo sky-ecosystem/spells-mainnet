@@ -51,21 +51,13 @@ contract DssSpellAction is DssAction {
     uint256 internal constant WAD = 10 ** 18;
 
     // ---------- Contracts ----------
-    address internal constant OFT_ADAPTER         = 0x1e1D42781FC170EF9da004Fb735f56F0276d01B8;
+    address internal constant USDS_OFT        = 0x1e1D42781FC170EF9da004Fb735f56F0276d01B8;
     // base58: BEvTHkTyXooyaJzP8egDUC7WQK8cyRrq5WvERZNWhuah
-    bytes32 internal constant OFT_PEER            = 0x9825dc0cbeaf22836931c00cb891592f0a96d0dc6a65a4c67992b01e0db8d122;
-    address internal constant GOV_OAPP_SENDER     = 0x27FC1DD771817b53bE48Dc28789533BEa53C9CCA;
+    bytes32 internal constant SOLANA_USDS_OFT = 0x9825dc0cbeaf22836931c00cb891592f0a96d0dc6a65a4c67992b01e0db8d122;
+    address internal constant LZ_GOV_SENDER   = 0x27FC1DD771817b53bE48Dc28789533BEa53C9CCA;
     // base58: 8vXXGiaXFrKFUDw21H5Z57ex552Lh8WP9rVd2ktzmcCy
-    bytes32 internal constant GOV_PEER            = 0x75b81a4430dee7012ff31d58540835ccc89a18d1fc0522bc95df16ecd50efc32;
-    address internal constant L1_GOVERNANCE_RELAY = 0x2beBFe397D497b66cB14461cB6ee467b4C3B7D61;
-
-    // ---------- Constant Values ----------
-    uint256 internal constant WH_MAX_FEE = 0;
-
-    // ---------- Payloads ----------
-    bytes internal constant PAYLOAD_TRANSFER_MINT_AUTH            = hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc006856f43abf4aaa4a26b32ae8ea4cb8fadc8e02d267703fbd5f9dad85f6d00b300056f776e65720000000000000000000000000000000000000000000000000000000100b53f200f8db357f9e1e982ef0ec4b3b879f9f6516d5247307ebaf00d187be51a00009f92dcb365df21a4a4ec23d8ff4cc020cdd09895f8129c2c2fb43289bc53f95f00000707312d1d41da71f0fb280c1662cd65ebeb2e0859c0cbae3fdbdcb26c86e0af000106ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a90000002857edbb54a8aff14b8dc412529f876c9f3bc01d7c3095bcd6cd1d6d5177b59aa03f04e5c5b422147b";
-    bytes internal constant PAYLOAD_TRANSFER_FREEZE_AUTH          = hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc006ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a900020707312d1d41da71f0fb280c1662cd65ebeb2e0859c0cbae3fdbdcb26c86e0af00016f776e6572000000000000000000000000000000000000000000000000000000010000230601018dc412529f876c9f3bc01d7c3095bcd6cd1d6d5177b59aa03f04e5c5b422147b";
-    bytes internal constant PAYLOAD_TRANSFER_METADATA_UPDATE_AUTH = hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc00b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f82946000b6f776e657200000000000000000000000000000000000000000000000000000001000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f8294600000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f8294600000707312d1d41da71f0fb280c1662cd65ebeb2e0859c0cbae3fdbdcb26c86e0af000071809dfc828921f70659869a0822bf04c42b823d518bfc11fe9a7b65d221a58f00010b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f829460000706179657200000000000000000000000000000000000000000000000000000001010000000000000000000000000000000000000000000000000000000000000000000006a7d517187bd16635dad40455fdc2c0c124c68f215675a5dbbacb5f0800000000000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f8294600000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f829460000002c3201018dc412529f876c9f3bc01d7c3095bcd6cd1d6d5177b59aa03f04e5c5b422147b000000000000000000";
+    bytes32 internal constant SOLANA_LZ_GOV   = 0x75b81a4430dee7012ff31d58540835ccc89a18d1fc0522bc95df16ecd50efc32;
+    address internal constant LZ_GOV_RELAY    = 0x2beBFe397D497b66cB14461cB6ee467b4C3B7D61;
 
     function actions() public override {
         // ----- Solana Bridge Migration -----
@@ -75,13 +67,13 @@ contract DssSpellAction is DssAction {
 
         MigrationInit.initMigrationStep1({
             // oftAdapter – 0x1e1D42781FC170EF9da004Fb735f56F0276d01B8
-            oftAdapter: OFT_ADAPTER,
+            oftAdapter: USDS_OFT,
             // oftPeer – BEvTHkTyXooyaJzP8egDUC7WQK8cyRrq5WvERZNWhuah
-            oftPeer: OFT_PEER,
+            oftPeer: SOLANA_USDS_OFT,
             // govOapp – 0x27FC1DD771817b53bE48Dc28789533BEa53C9CCA
-            govOapp: GOV_OAPP_SENDER,
+            govOapp: LZ_GOV_SENDER,
             // govPeer – 8vXXGiaXFrKFUDw21H5Z57ex552Lh8WP9rVd2ktzmcCy
-            govPeer: GOV_PEER,
+            govPeer: SOLANA_LZ_GOV,
             rl: MigrationInit.RateLimitsParams({
                 // rl.outboundWindow: 1 days
                 outboundWindow: 1 days,
@@ -95,26 +87,24 @@ contract DssSpellAction is DssAction {
                 rlAccountingType: 0
             }),
             // maxFee expected to be 0 (unless Wormhole.messageFee() returns non-zero value)
-            maxFee: WH_MAX_FEE,
-            // transferMintAuthPayload: payload
-            transferMintAuthPayload: PAYLOAD_TRANSFER_MINT_AUTH,
-            // transferFreezeAuthPayload: payload
-            transferFreezeAuthPayload: PAYLOAD_TRANSFER_FREEZE_AUTH,
-            // transferMetadataUpdateAuthPayload: payload
-            transferMetadataUpdateAuthPayload: PAYLOAD_TRANSFER_METADATA_UPDATE_AUTH
+            maxFee: 0,
+            // transferMintAuthPayload: https://raw.githubusercontent.com/keel-fi/crosschain-gov-solana-spell-payloads/b108b90e24e71c3d82dfde9599ce44dda913683a/ntt-transfer-mint-authority-mainnet.txt
+            transferMintAuthPayload: hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc006856f43abf4aaa4a26b32ae8ea4cb8fadc8e02d267703fbd5f9dad85f6d00b300056f776e65720000000000000000000000000000000000000000000000000000000100b53f200f8db357f9e1e982ef0ec4b3b879f9f6516d5247307ebaf00d187be51a00009f92dcb365df21a4a4ec23d8ff4cc020cdd09895f8129c2c2fb43289bc53f95f00000707312d1d41da71f0fb280c1662cd65ebeb2e0859c0cbae3fdbdcb26c86e0af000106ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a90000002857edbb54a8aff14b8dc412529f876c9f3bc01d7c3095bcd6cd1d6d5177b59aa03f04e5c5b422147b",
+            // transferFreezeAuthPayload: https://raw.githubusercontent.com/keel-fi/crosschain-gov-solana-spell-payloads/b108b90e24e71c3d82dfde9599ce44dda913683a/set-token-freeze-authority-mainnet.txt
+            transferFreezeAuthPayload: hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc006ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a900020707312d1d41da71f0fb280c1662cd65ebeb2e0859c0cbae3fdbdcb26c86e0af00016f776e6572000000000000000000000000000000000000000000000000000000010000230601018dc412529f876c9f3bc01d7c3095bcd6cd1d6d5177b59aa03f04e5c5b422147b",
+            // transferMetadtransferMetadataUpdateAuthPayload: https://raw.githubusercontent.com/keel-fi/crosschain-gov-solana-spell-payloads/b108b90e24e71c3d82dfde9599ce44dda913683a/update-mpl-metadata-authority-mainnet.txt
+            transferMetadataUpdateAuthPayload: hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc00b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f82946000b6f776e657200000000000000000000000000000000000000000000000000000001000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f8294600000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f8294600000707312d1d41da71f0fb280c1662cd65ebeb2e0859c0cbae3fdbdcb26c86e0af000071809dfc828921f70659869a0822bf04c42b823d518bfc11fe9a7b65d221a58f00010b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f829460000706179657200000000000000000000000000000000000000000000000000000001010000000000000000000000000000000000000000000000000000000000000000000006a7d517187bd16635dad40455fdc2c0c124c68f215675a5dbbacb5f0800000000000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f8294600000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f829460000002c3201018dc412529f876c9f3bc01d7c3095bcd6cd1d6d5177b59aa03f04e5c5b422147b000000000000000000"
         });
 
         // ----- Call GovernanceRelayInit.init with the following parameters: -----
 
-        // Note: We need dss as an input parameter for governance relay initialization
-        DssInstance memory dss = MCD.loadFromChainlog(DssExecLib.LOG);
-
         GovernanceRelayInit.init({
-            dss: dss,
+            // Note: We need dss as an input parameter for governance relay initialization
+            dss: MCD.loadFromChainlog(DssExecLib.LOG),
             // l1GovernanceRelay – 0x2beBFe397D497b66cB14461cB6ee467b4C3B7D61
-            l1GovernanceRelay: L1_GOVERNANCE_RELAY,
+            l1GovernanceRelay: LZ_GOV_RELAY,
             // l1Oapp – 0x27FC1DD771817b53bE48Dc28789533BEa53C9CCA
-            l1Oapp: GOV_OAPP_SENDER
+            l1Oapp: LZ_GOV_SENDER
         });
 
         // ----- Add new SkyOFTAdapter to chainlog as USDS_OFT -----
