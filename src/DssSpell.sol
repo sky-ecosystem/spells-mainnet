@@ -64,6 +64,9 @@ contract DssSpellAction is DssAction {
         // Note: This is heading, the content is below.
 
         // ----- Call MigrationInit.initMigrationStep1 with the following parameters: -----
+        // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2025-11-03/27381
+        // Poll: https://vote.sky.money/polling/Qmetv8fp
+        // Forum: https://forum.sky.money/t/solana-bridge-migration/27403
 
         MigrationInit.initMigrationStep1({
             // oftAdapter – 0x1e1D42781FC170EF9da004Fb735f56F0276d01B8
