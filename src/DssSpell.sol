@@ -158,7 +158,7 @@ contract DssSpellAction is DssAction {
             nttManagerImpV2: NTT_MANAGER_IMP_V2,
             // maxFee expected to be 0 (unless Wormhole.messageFee() returns non-zero value)
             maxFee:          WH_MAX_FEE,
-            // payload: [payload](https://raw.githubusercontent.com/keel-fi/crosschain-gov-solana-spell-payloads/b108b90e24e71c3d82dfde9599ce44dda913683a/wh-program-upgrade-mainnet.txt)
+            // payload: https://raw.githubusercontent.com/keel-fi/crosschain-gov-solana-spell-payloads/b108b90e24e71c3d82dfde9599ce44dda913683a/wh-program-upgrade-mainnet.txt
             payload:         PAYLOAD_WH_PROGRAM_UPGRADE
         });
 
@@ -175,7 +175,7 @@ contract DssSpellAction is DssAction {
             _gap: 50 * MILLION,
             // Keep `ttl` unchanged at 86,400 seconds
             _ttl: 86400 seconds
-    });
+        });
 
         // ----- Genesis Capital Transfer To Launch Agent 4 -----
         // Forum: https://forum.sky.money/t/out-of-schedule-atlas-edit-proposal/27393
@@ -192,7 +192,7 @@ contract DssSpellAction is DssAction {
         // Whitelist Launch Agent 4 (Obex) ALMProxy at 0xb6dD7ae22C9922AFEe0642f9Ac13e58633f715A2 on the LitePSM
         DssLitePsmLike(MCD_LITE_PSM_USDC_A).kiss(OBEX_ALM_PROXY);
 
-        // ----- Execute Spark Proxy Spell -----
+        // ----- Whitelist Spark Proxy Spell in Starguard -----
         // Forum: https://forum.sky.money/t/november-13-2025-proposed-changes-to-spark-for-upcoming-spell/27354
         // Forum: https://forum.sky.money/t/november-13-2025-proposed-changes-to-sparklend-for-upcoming-spell-2/27395/3
         // Forum: https://forum.sky.money/t/november-13-2025-proposed-changes-to-sparklend-for-upcoming-spell-2/27395
