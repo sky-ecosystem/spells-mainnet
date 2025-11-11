@@ -126,12 +126,6 @@ contract DssSpellAction is DssAction {
     address internal constant  ALLOCATOR_OBEX_A_SUBPROXY = 0x8be042581f581E3620e29F213EA8b94afA1C8071;
     address internal constant  OBEX_ALM_PROXY            = 0xb6dD7ae22C9922AFEe0642f9Ac13e58633f715A2;
 
-    // ---------- Constant Values ----------
-    uint256 internal constant WH_MAX_FEE = 0;
-
-    // ---------- Payloads ----------
-    bytes internal constant PAYLOAD_WH_PROGRAM_UPGRADE = hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc002a8f6914e88a1b0e210153ef763ae2b00c2b93d16c124d2c0537a10048000000007a821ac5164fa9b54fd93b54dba8215550b8fce868f52299169f6619867cac501000106856f43abf4aaa4a26b32ae8ea4cb8fadc8e02d267703fbd5f9dad85f6d00b300012d27f5131975fdaf20a5934c6e90f6d7c9bbde9fcf94c37b48c5a49c7f06aae2000105cab222188023f74394ecaee9daf397c11a2a672511adc34958c1d7bdb1c673000106a7d517192c5c51218cc94c3d4af17f58daee089ba1fd44e3dbd98a00000000000006a7d51718c774c928566398691d5eb68b5eb8a39b4b6d5c73555b210000000000006f776e65720000000000000000000000000000000000000000000000000000000100000403000000";
-
     // ---------- Spark Spell ----------
     address internal immutable SPARK_STARGUARD  = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
     address internal constant  SPARK_SPELL      = 0x63Fa202a7020e8eE0837196783f0fB768CBFE2f1;
@@ -157,9 +151,9 @@ contract DssSpellAction is DssAction {
             // nttManagerImpV2: 0xD4DD90bAC23E2a1470681E7cAfFD381FE44c3430
             nttManagerImpV2: NTT_MANAGER_IMP_V2,
             // maxFee expected to be 0 (unless Wormhole.messageFee() returns non-zero value)
-            maxFee:          WH_MAX_FEE,
+            maxFee:          0,
             // payload: https://raw.githubusercontent.com/keel-fi/crosschain-gov-solana-spell-payloads/b108b90e24e71c3d82dfde9599ce44dda913683a/wh-program-upgrade-mainnet.txt
-            payload:         PAYLOAD_WH_PROGRAM_UPGRADE
+            payload:         hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc002a8f6914e88a1b0e210153ef763ae2b00c2b93d16c124d2c0537a10048000000007a821ac5164fa9b54fd93b54dba8215550b8fce868f52299169f6619867cac501000106856f43abf4aaa4a26b32ae8ea4cb8fadc8e02d267703fbd5f9dad85f6d00b300012d27f5131975fdaf20a5934c6e90f6d7c9bbde9fcf94c37b48c5a49c7f06aae2000105cab222188023f74394ecaee9daf397c11a2a672511adc34958c1d7bdb1c673000106a7d517192c5c51218cc94c3d4af17f58daee089ba1fd44e3dbd98a00000000000006a7d51718c774c928566398691d5eb68b5eb8a39b4b6d5c73555b210000000000006f776e65720000000000000000000000000000000000000000000000000000000100000403000000"
         });
 
         // ----- Parameter Changes to Launch Agent 4 (Obex) -----
