@@ -1518,8 +1518,8 @@ contract DssSpellTest is DssSpellTestBase {
         vm.startPrank(pauseProxy);
         address fakeL2GovernanceRelay = makeAddr('fakeL2GovernanceRelay');
 
-        vm.deal(address(pauseProxy), 1 ether);
-        uint256 nativeFee = 0.01 ether;
+        vm.deal(address(pauseProxy), 10 ether);
+        uint256 nativeFee = 1 ether;
 
         // Relay to EVM L2 (e.g., Arbitrum)
         uint32 arbitrumEid = 30110;
