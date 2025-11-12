@@ -1419,8 +1419,8 @@ contract DssSpellTest is DssSpellTestBase {
         SkyOFTAdapterLike.SendParam memory sendParams = SkyOFTAdapterLike.SendParam({
             dstEid: SOL_EID,
             to: bytes32("SolanaAddress"),
-            amountLD: 5 ether,
-            minAmountLD: 5 ether,
+            amountLD: 5 * WAD,
+            minAmountLD: 5 * WAD,
             extraOptions: bytes(""),
             composeMsg: bytes(""),
             oftCmd: bytes("")
@@ -1428,8 +1428,8 @@ contract DssSpellTest is DssSpellTestBase {
 
         SkyOFTAdapterLike.MessagingFee memory msgFee = oft.quoteSend(sendParams, false);
 
-        GodMode.setBalance(address(usds), address(this), 10 ether);
-        GemAbstract(usds).approve(USDS_OFT, 10 ether);
+        GodMode.setBalance(address(usds), address(this), 10 * WAD);
+        GemAbstract(usds).approve(USDS_OFT, 10 * WAD);
         vm.deal(address(this), 10 ether);
 
         uint256 usdsBalanceBeforeSend = usds.balanceOf(address(this));
@@ -1479,10 +1479,10 @@ contract DssSpellTest is DssSpellTestBase {
         // Check rate limit settings
         (,uint48 outWindow2,,uint256 outLimit2) = oft.outboundRateLimits(SOL_EID);
         (,uint48  inWindow2,,uint256  inLimit2) = oft.inboundRateLimits(SOL_EID);
-        assertEq(outWindow2, 1 days,    "TestError/MigrationStep1/outWindow-rl-not-set");
-        assertEq(inWindow2, 1 days,      "TestError/MigrationStep1/inWindow-rl-not-set");
-        assertEq(outLimit2, 10_000_000 * WAD,      "TestError/MigrationStep1/outLimit-rl-not-set");
-        assertEq(inLimit2, 10_000_000 * WAD,        "TestError/MigrationStep1/inLimit-rl-not-set");
+        assertEq(outWindow2, 1 days,          "TestError/MigrationStep1/outWindow-rl-not-set");
+        assertEq(inWindow2, 1 days,           "TestError/MigrationStep1/inWindow-rl-not-set");
+        assertEq(outLimit2, 10_000_000 * WAD, "TestError/MigrationStep1/outLimit-rl-not-set");
+        assertEq(inLimit2, 10_000_000 * WAD,  "TestError/MigrationStep1/inLimit-rl-not-set");
 
         // OFT send works now
         oft.send{value: msgFee.nativeFee}(sendParams, msgFee, payable(address(this)));
@@ -1516,14 +1516,14 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(l1GovernanceRelay.l1Oapp(), address(govOappSender), "governance-relay-init/wrong-l1-oapp");
 
         vm.startPrank(pauseProxy);
-        address fakeL2GovernanceRelay = address(0x123);
+        address fakeL2GovernanceRelay = makeAddr('fakeL2GovernanceRelay');
 
         vm.deal(address(pauseProxy), 1 ether);
         uint256 nativeFee = 0.01 ether;
 
         // Relay to EVM L2 (e.g., Arbitrum)
         uint32 arbitrumEid = 30110;
-        govOappSender.setPeer(arbitrumEid, bytes32(uint256(uint160(address(fakeL2GovernanceRelay)))));
+        govOappSender.setPeer(arbitrumEid, bytes32(uint256(uint160(fakeL2GovernanceRelay))));
         govOappSender.setCanCallTarget(address(l1GovernanceRelay), arbitrumEid, bytes32(uint256(uint160(fakeL2GovernanceRelay))), true);
         l1GovernanceRelay.relayEVM{value: nativeFee}({
             dstEid            : arbitrumEid,
