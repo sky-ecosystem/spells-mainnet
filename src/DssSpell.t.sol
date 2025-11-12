@@ -1376,10 +1376,10 @@ contract DssSpellTest is DssSpellTestBase {
         uint8 tokenDecimals = GemAbstract(nttManagerToken).decimals();
 
         // Prepare transfer wallet
-        vm.deal(transferWallet, 1 ether);
-        GodMode.setBalance(nttManagerToken, address(transferWallet), 2 ether);
+        vm.deal(transferWallet, 10 ether); // High enough to cover all the fees
+        GodMode.setBalance(nttManagerToken, address(transferWallet), 2 * 10 ** tokenDecimals);
         vm.prank(transferWallet);
-        GemAbstract(nttManagerToken).approve(address(nttManager), 2 ether);
+        GemAbstract(nttManagerToken).approve(address(nttManager), 2 * 10 ** tokenDecimals);
 
         (, uint256 totalDeliveryPrice) = nttManager.quoteDeliveryPrice(solanaWormholeChainId, new bytes(1));
 
