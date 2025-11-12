@@ -163,10 +163,10 @@ contract DssSpellAction is DssAction {
         // Set the following DC-IAM Values for ALLOCATOR-OBEX-A:
         DssExecLib.setIlkAutoLineParameters({
             _ilk: "ALLOCATOR-OBEX-A",
+             // Increase `gap` by 40 million USDS from 10 million USDS to 50 million
+            _gap: 50 * MILLION,
             // Increase `maxLine` by 2.49 billion USDS from 10 million USDS to 2.5 billion USDS
             _amount: 2500 * MILLION,
-            // Increase `gap` by 40 million USDS from 10 million USDS to 50 million
-            _gap: 50 * MILLION,
             // Keep `ttl` unchanged at 86,400 seconds
             _ttl: 86400 seconds
         });
