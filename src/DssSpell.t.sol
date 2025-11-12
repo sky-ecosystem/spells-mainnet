@@ -1516,18 +1516,18 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(l1GovernanceRelay.l1Oapp(), address(govOappSender), "governance-relay-init/wrong-l1-oapp");
 
         vm.startPrank(pauseProxy);
-        address fakeL2GovernanceRelay = makeAddr('fakeL2GovernanceRelay');
 
         vm.deal(address(pauseProxy), 10 ether);
         uint256 nativeFee = 1 ether;
 
         // Relay to EVM L2 (e.g., Arbitrum)
         uint32 arbitrumEid = 30110;
-        govOappSender.setPeer(arbitrumEid, bytes32(uint256(uint160(fakeL2GovernanceRelay))));
-        govOappSender.setCanCallTarget(address(l1GovernanceRelay), arbitrumEid, bytes32(uint256(uint160(fakeL2GovernanceRelay))), true);
+        govOappSender.setPeer(arbitrumEid, bytes32(uint256(uint160(address(0x222)))));
+        address arbitrumGovRelay = makeAddr('arbitrumGovRelay');
+        govOappSender.setCanCallTarget(address(l1GovernanceRelay), arbitrumEid, bytes32(uint256(uint160(arbitrumGovRelay))), true);
         l1GovernanceRelay.relayEVM{value: nativeFee}({
             dstEid            : arbitrumEid,
-            l2GovernanceRelay : fakeL2GovernanceRelay,
+            l2GovernanceRelay : arbitrumGovRelay,
             target            : address(0x222),
             targetData        : bytes("789"),
             extraOptions      : hex"00030100210100000000000000000000000000030d40000000000000000000000000001f1df0",
@@ -1539,17 +1539,13 @@ contract DssSpellTest is DssSpellTestBase {
         });
 
         // Relay to Solana
-        govOappSender.setCanCallTarget(address(l1GovernanceRelay), SOL_EID, bytes32(uint256(uint160(fakeL2GovernanceRelay))), true);
+        bytes32 solanaTarget = bytes32("solanaTarget");
+        govOappSender.setCanCallTarget(address(l1GovernanceRelay), SOL_EID, solanaTarget, true);
         l1GovernanceRelay.relayRaw{value: nativeFee}({
             txParams : L1GovernanceRelayLike.TxParams({
                 dstEid            : SOL_EID,
-                dstTarget         : bytes32(uint256(uint160(fakeL2GovernanceRelay))),
-                dstCallData       : abi.encodeWithSelector(
-                                        bytes4(keccak256("relay(address,string)")),
-                                        bytes4(keccak256("relay(address,string)")),
-                                        0x222,
-                                        "789"
-                                    ),
+                dstTarget         : solanaTarget,
+                dstCallData       : bytes("333"),
                 extraOptions      : hex"00030100210100000000000000000000000000030d40000000000000000000000000001f1df0"
             }),
             fee : L1GovernanceRelayLike.MessagingFee({
