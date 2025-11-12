@@ -142,11 +142,9 @@ contract DssSpellAction is DssAction {
         // ----- Solana Bridge Migration -----
         // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2025-11-03/27381
         // Poll: https://vote.sky.money/polling/Qmetv8fp
-        // Note: This is heading, the content is below.
-
-        // ----- Call MigrationInit.initMigrationStep0 with the following arguments: -----
         // Forum: https://forum.sky.money/t/solana-bridge-migration/27403
 
+        // Call MigrationInit.initMigrationStep0 with the following arguments:
         MigrationInit.initMigrationStep0({
             // nttManagerImpV2: 0xD4DD90bAC23E2a1470681E7cAfFD381FE44c3430
             nttManagerImpV2: NTT_MANAGER_IMP_V2,
@@ -163,7 +161,7 @@ contract DssSpellAction is DssAction {
         // Set the following DC-IAM Values for ALLOCATOR-OBEX-A:
         DssExecLib.setIlkAutoLineParameters({
             _ilk: "ALLOCATOR-OBEX-A",
-             // Increase `gap` by 40 million USDS from 10 million USDS to 50 million
+            // Increase `gap` by 40 million USDS from 10 million USDS to 50 million
             _gap: 50 * MILLION,
             // Increase `maxLine` by 2.49 billion USDS from 10 million USDS to 2.5 billion USDS
             _amount: 2500 * MILLION,
