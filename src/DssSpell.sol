@@ -186,9 +186,7 @@ contract DssSpellAction is DssAction {
 
         // ----- Whitelist Spark Proxy Spell in Starguard -----
         // Forum: https://forum.sky.money/t/november-13-2025-proposed-changes-to-spark-for-upcoming-spell/27354
-        // Forum: https://forum.sky.money/t/november-13-2025-proposed-changes-to-sparklend-for-upcoming-spell-2/27395/3
         // Forum: https://forum.sky.money/t/november-13-2025-proposed-changes-to-sparklend-for-upcoming-spell-2/27395
-        // Forum: https://forum.sky.money/t/november-13-2025-proposed-changes-to-spark-for-upcoming-spell/27354/2
         // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0x4c705ab40a35c3c903adb87466bf563b00abc78b1d161034278d2acd74fb7621
         // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0xd7397d29254989ce4c5785f3c67a94de21018abc4e9a76b1e7fc359aec36e60a
         // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0x785d3b23e63e3e6b6fb7927ca0bc529b2dc7b58d429102465e4ba8a36bc23fda

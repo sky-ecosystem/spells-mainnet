@@ -52,6 +52,7 @@ interface SequencerLike {
 
 interface WormholeLike {
     function nextSequence(address) external view returns (uint64);
+    function messageFee() external view returns (uint256);
 }
 
 contract DssSpellTest is DssSpellTestBase {
@@ -782,7 +783,7 @@ contract DssSpellTest is DssSpellTestBase {
     function testPayments() public { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
-        bool ignoreTotalSupplyMkrSky = true;
+        bool ignoreTotalSupplyMkrSky = false;
 
         // For each payment, create a Payee object with:
         //    the address of the transferred token,
@@ -1401,6 +1402,16 @@ contract DssSpellTest is DssSpellTestBase {
         // _scheduleWaitAndCast run manually to capture the wormhole event
         spell.schedule();
         vm.warp(spell.nextCastTime());
+
+        // Spell reverts when fee is bigger than 0
+        vm.mockCall(
+            address(wormholeCoreBridge),
+            abi.encodeWithSelector(WormholeLike.messageFee.selector),
+            abi.encode(1)
+        );
+        vm.expectRevert();
+        spell.cast();
+        vm.clearMockedCalls();
 
         // NTT Manager implementation upgrade event
         vm.expectEmit(true, true, true, true, address(nttManager));
