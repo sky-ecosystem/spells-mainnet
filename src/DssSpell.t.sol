@@ -1394,6 +1394,7 @@ contract DssSpellTest is DssSpellTestBase {
     // SPELL-SPECIFIC TESTS GO BELOW
 
     event LogMessagePublished(address indexed sender, uint64 sequence, uint32 nonce, bytes payload, uint8 consistencyLevel);
+    error RateLimitExceeded();
 
     address NTT_MANAGER = 0x7d4958454a3f520bDA8be764d06591B054B0bf33;
     WormholeLike WH_CORE_BRIDGE = WormholeLike(0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B);
@@ -1435,7 +1436,7 @@ contract DssSpellTest is DssSpellTestBase {
 
         uint256 usdsBalanceBeforeSend = usds.balanceOf(address(this));
 
-        vm.expectRevert();
+        vm.expectRevert(RateLimitExceeded.selector);
         oft.send{value: msgFee.nativeFee}(sendParams, msgFee, payable(address(this)));
 
         {
@@ -1519,6 +1520,8 @@ contract DssSpellTest is DssSpellTestBase {
     function testGovernanceRelayInit() public {
         L1GovernanceRelayLike l1GovernanceRelay = L1GovernanceRelayLike(addr.addr("LZ_GOV_RELAY"));
         GovernanceOAppSenderLike govOappSender = GovernanceOAppSenderLike(LZ_GOV_SENDER);
+
+        assertEq(l1GovernanceRelay.l1Oapp(), address(0x0), "governance-relay-init/l1-oapp-set-before-spell");
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
