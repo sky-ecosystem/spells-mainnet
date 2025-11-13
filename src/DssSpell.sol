@@ -117,10 +117,10 @@ contract DssSpellAction is DssAction {
         // Forum: https://forum.sky.money/t/solana-bridge-migration/27403
 
         // Add new SkyOFTAdapter to chainlog as USDS_OFT
-        DssExecLib.setChangelogAddress('USDS_OFT', USDS_OFT);
+        DssExecLib.setChangelogAddress("USDS_OFT", USDS_OFT);
 
         // Add new GovernanceOAppSender to chainlog as LZ_GOV_SENDER
-        DssExecLib.setChangelogAddress('LZ_GOV_SENDER', LZ_GOV_SENDER);
+        DssExecLib.setChangelogAddress("LZ_GOV_SENDER", LZ_GOV_SENDER);
 
         // Note: Bump chainlog patch version as new keys are being added
         DssExecLib.setChangelogVersion("1.20.8");

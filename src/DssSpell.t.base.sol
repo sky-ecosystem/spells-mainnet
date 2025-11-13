@@ -1024,7 +1024,7 @@ contract DssSpellTestBase is Config, DssTest {
         // hump values in RAD
         if (values.vow_hump_min == type(uint256).max && values.vow_hump_max == type(uint256).max) {
             assertEq(vow.hump(), type(uint256).max, "TestError/vow-hump");
-        } else { 
+        } else {
             uint256 normalizedHumpMin = values.vow_hump_min * RAD;
             uint256 normalizedHumpMax = values.vow_hump_max * RAD;
             assertTrue(vow.hump() >= normalizedHumpMin && vow.hump() <= normalizedHumpMax, "TestError/vow-hump-min-max");
