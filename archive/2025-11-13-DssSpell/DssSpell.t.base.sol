@@ -1024,7 +1024,7 @@ contract DssSpellTestBase is Config, DssTest {
         // hump values in RAD
         if (values.vow_hump_min == type(uint256).max && values.vow_hump_max == type(uint256).max) {
             assertEq(vow.hump(), type(uint256).max, "TestError/vow-hump");
-        } else { 
+        } else {
             uint256 normalizedHumpMin = values.vow_hump_min * RAD;
             uint256 normalizedHumpMax = values.vow_hump_max * RAD;
             assertTrue(vow.hump() >= normalizedHumpMin && vow.hump() <= normalizedHumpMax, "TestError/vow-hump-min-max");
@@ -3278,7 +3278,7 @@ contract DssSpellTestBase is Config, DssTest {
 
     // The specific date doesn't matter that much since function is checking for difference between warps
     function _testNextCastTime() internal {
-        vm.warp(1762804800); // 2025 Nov 10, 20 UTC (could be casted after pause_delay)
+        vm.warp(1763150400); // 2025 Nov 14, 20 UTC (could be casted after pause_delay)
 
         _vote(address(spell));
         spell.schedule();
@@ -3297,8 +3297,9 @@ contract DssSpellTestBase is Config, DssTest {
             vm.warp(monday_1400_UTC - 2 days);                         // Saturday, 14:00 UTC
             assertEq(spell.nextCastTime(), monday_1400_UTC);           // Monday,   14:00 UTC
 
-            vm.warp(monday_1400_UTC - 3 days);                         // Friday,   14:00 UTC
-            assertEq(spell.nextCastTime(), monday_1400_UTC - 3 days);  // Able to cast
+            // NOTE: skipped due to the custom min ETA logic in the current spell (2025-11-13)
+            // vm.warp(monday_1400_UTC - 3 days);                         // Friday,   14:00 UTC
+            // assertEq(spell.nextCastTime(), monday_1400_UTC - 3 days);  // Able to cast
 
             vm.warp(monday_2100_UTC);                                  // Monday,   21:00 UTC
             assertEq(spell.nextCastTime(), monday_1400_UTC + 1 days);  // Tuesday,  14:00 UTC

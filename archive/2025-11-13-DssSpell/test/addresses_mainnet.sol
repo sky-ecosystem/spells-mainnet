@@ -593,8 +593,5 @@ contract Addresses {
         addr["SPARK_STARGUARD"]                  = 0x6605aa120fe8b656482903E7757BaBF56947E45E;
         addr["CRON_STARGUARD_JOB"]               = 0xB18d211fA69422a9A848B790C5B4a3957F7Aa44E;
         addr["OBEX_ALM_PROXY"]                   = 0xb6dD7ae22C9922AFEe0642f9Ac13e58633f715A2;
-        addr["USDS_OFT"]                         = 0x1e1D42781FC170EF9da004Fb735f56F0276d01B8;
-        addr["LZ_GOV_SENDER"]                    = 0x27FC1DD771817b53bE48Dc28789533BEa53C9CCA;
-        addr["LZ_GOV_RELAY"]                     = 0x2beBFe397D497b66cB14461cB6ee467b4C3B7D61;
     }
 }

@@ -41,96 +41,18 @@ interface SequencerLike {
     function getMaster() external view returns (bytes32);
 }
 
-interface L1GovernanceRelayLike {
-    struct MessagingFee {
-        uint256 nativeFee;
-        uint256 lzTokenFee;
-    }
-
-    struct TxParams {
-        uint32 dstEid;
-        bytes32 dstTarget;
-        bytes dstCallData;
-        bytes extraOptions;
-    }
-
-    function l1Oapp() external view returns (address);
-    function relayEVM(
-        uint32                dstEid,
-        address               l2GovernanceRelay,
-        address               target,
-        bytes calldata        targetData,
-        bytes calldata        extraOptions,
-        MessagingFee calldata fee,
-        address               refundAddress
-    ) external payable;
-    function relayRaw(
-        TxParams calldata     txParams,
-        MessagingFee calldata fee,
-        address               refundAddress
-    ) external payable;
+ interface NttManagerLike {
+    function token() external view returns (address);
+    function migrateLockedTokens(address) external;
+    function quoteDeliveryPrice(
+        uint16 recipientChain,
+        bytes memory transceiverInstructions
+    ) external view returns (uint256[] memory, uint256);
 }
 
 interface WormholeLike {
-    function nextSequence(address emitter) external view returns (uint64);
+    function nextSequence(address) external view returns (uint64);
     function messageFee() external view returns (uint256);
-}
-
-interface OAppLike {
-    function setPeer(uint32 _eid, bytes32 _peer) external;
-}
-
-interface GovernanceOAppSenderLike is OAppLike {
-    function setCanCallTarget(address _srcSender, uint32 _dstEid, bytes32 _dstTarget, bool _canCall) external;
-}
-
-interface SkyOFTAdapterLike is OAppLike {
-    struct MessagingFee {
-        uint256 nativeFee;
-        uint256 lzTokenFee;
-    }
-
-    struct MessagingReceipt {
-        bytes32 guid;
-        uint64 nonce;
-        MessagingFee fee;
-    }
-
-    struct OFTReceipt {
-        uint256 amountSentLD;
-        uint256 amountReceivedLD;
-    }
-
-    struct SendParam {
-        uint32 dstEid;
-        bytes32 to;
-        uint256 amountLD;
-        uint256 minAmountLD;
-        bytes extraOptions;
-        bytes composeMsg;
-        bytes oftCmd;
-    }
-
-    function inboundRateLimits(uint32 srcEid)
-        external
-        view
-        returns (uint128 lastUpdated, uint48 window, uint256 amountInFlight, uint256 limit);
-    function outboundRateLimits(uint32 dstEid)
-        external
-        view
-        returns (uint128 lastUpdated, uint48 window, uint256 amountInFlight, uint256 limit);
-    function pause() external;
-    function paused() external view returns (bool);
-    function pausers(address pauser) external view returns (bool canPause);
-    function quoteSend(SendParam memory _sendParam, bool _payInLzToken)
-        external
-        view
-        returns (MessagingFee memory msgFee);
-    function send(SendParam memory _sendParam, MessagingFee memory _fee, address _refundAddress)
-        external
-        payable
-        returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt);
-    function unpause() external;
 }
 
 contract DssSpellTest is DssSpellTestBase {
@@ -371,11 +293,14 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
-        string[3] memory addedKeys = [
-            "USDS_OFT",
-            "LZ_GOV_SENDER",
-            "LZ_GOV_RELAY"
+    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
+        string[6] memory addedKeys = [
+            "MCD_KICK",
+            "REWARDS_LSSKY_SKY",
+            "REWARDS_DIST_LSSKY_SKY",
+            "SPARK_SUBPROXY",
+            "SPARK_STARGUARD",
+            "CRON_STARGUARD_JOB"
         ];
 
         for(uint256 i = 0; i < addedKeys.length; i++) {
@@ -855,7 +780,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public skipped { // add the `skipped` modifier to skip
+    function testPayments() public { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = false;
@@ -1329,7 +1254,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // Spark tests
-    function testSparkSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
+    function testSparkSpellIsExecuted() public { // add the `skipped` modifier to skip
         _testStarguardExecution({
             starGuardKey: "SPARK_STARGUARD",
             primeAgentSpell: 0x63Fa202a7020e8eE0837196783f0fB768CBFE2f1, // Insert Spark spell address
@@ -1377,7 +1302,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // Obex tests
-    function testObexSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
+    function testObexSpellIsExecuted() public { // add the `skipped` modifier to skip
         address OBEX_PROXY = addr.addr('ALLOCATOR_OBEX_A_SUBPROXY');
         address OBEX_SPELL = address(0xF538909eDF14d2c23002C2b3882Ad60f79d61893); // Insert Obex spell address
 
@@ -1397,181 +1322,167 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
-    event LogMessagePublished(address indexed sender, uint64 sequence, uint32 nonce, bytes payload, uint8 consistencyLevel);
-    error RateLimitExceeded();
+    // 2025-11-17 14:00:00 UTC
+    uint256 constant MIN_ETA = 1763388000;
 
-    address NTT_MANAGER = 0x7d4958454a3f520bDA8be764d06591B054B0bf33;
-    WormholeLike WH_CORE_BRIDGE = WormholeLike(0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B);
-    uint32  SOL_EID = 30168;
-
-    address USDS_OFT_PAUSER = 0x38d1114b4cE3e079CC0f627df6aC2776B5887776;
-    address LZ_GOV_SENDER = addr.addr("LZ_GOV_SENDER");
-    address USDS_OFT = addr.addr("USDS_OFT");
-
-    SkyOFTAdapterLike oft = SkyOFTAdapterLike(USDS_OFT);
-
-    function testMigrationStep1() public {
-        bytes memory payloadTransferMintAuth = hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc006856f43abf4aaa4a26b32ae8ea4cb8fadc8e02d267703fbd5f9dad85f6d00b300056f776e65720000000000000000000000000000000000000000000000000000000100b53f200f8db357f9e1e982ef0ec4b3b879f9f6516d5247307ebaf00d187be51a00009f92dcb365df21a4a4ec23d8ff4cc020cdd09895f8129c2c2fb43289bc53f95f00000707312d1d41da71f0fb280c1662cd65ebeb2e0859c0cbae3fdbdcb26c86e0af000106ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a90000002857edbb54a8aff14b9825dc0cbeaf22836931c00cb891592f0a96d0dc6a65a4c67992b01e0db8d122";
-        bytes memory payloadTransferFreezeAuth = hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc006ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a900020707312d1d41da71f0fb280c1662cd65ebeb2e0859c0cbae3fdbdcb26c86e0af00016f776e6572000000000000000000000000000000000000000000000000000000010000230601018dc412529f876c9f3bc01d7c3095bcd6cd1d6d5177b59aa03f04e5c5b422147b";
-        bytes memory payloadTransferMetadataUpdateAuth = hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc00b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f82946000b6f776e657200000000000000000000000000000000000000000000000000000001000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f8294600000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f8294600000707312d1d41da71f0fb280c1662cd65ebeb2e0859c0cbae3fdbdcb26c86e0af000071809dfc828921f70659869a0822bf04c42b823d518bfc11fe9a7b65d221a58f00010b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f829460000706179657200000000000000000000000000000000000000000000000000000001010000000000000000000000000000000000000000000000000000000000000000000006a7d517187bd16635dad40455fdc2c0c124c68f215675a5dbbacb5f0800000000000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f8294600000b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f829460000002c3201018dc412529f876c9f3bc01d7c3095bcd6cd1d6d5177b59aa03f04e5c5b422147b000000000000000000";
-
-        uint256 oftPreviousBalance = usds.balanceOf(USDS_OFT);
-        uint256 nttManagerPreviousBalance = usds.balanceOf(NTT_MANAGER);
-
-        // Check pauser address
-        assertTrue(oft.pausers(USDS_OFT_PAUSER), "TestError/MigrationStep1/pauser-mismatch");
-
-        // Send OFT doesn't work yet
-        SkyOFTAdapterLike.SendParam memory sendParams = SkyOFTAdapterLike.SendParam({
-            dstEid: SOL_EID,
-            to: bytes32("SolanaAddress"),
-            amountLD: 5 * WAD,
-            minAmountLD: 5 * WAD,
-            extraOptions: bytes(""),
-            composeMsg: bytes(""),
-            oftCmd: bytes("")
-        });
-
-        SkyOFTAdapterLike.MessagingFee memory msgFee = oft.quoteSend(sendParams, false);
-
-        GodMode.setBalance(address(usds), address(this), 10 * WAD);
-        GemAbstract(usds).approve(USDS_OFT, 10 * WAD);
-        vm.deal(address(this), 10 ether);
-
-        uint256 usdsBalanceBeforeSend = usds.balanceOf(address(this));
-
-        vm.expectRevert(RateLimitExceeded.selector);
-        oft.send{value: msgFee.nativeFee}(sendParams, msgFee, payable(address(this)));
-
+    function testNextCastTimeMinEta() public {
+        // Spell obtains approval for execution before MIN_ETA
         {
-            /// Execute spell
+            uint256 before = vm.snapshotState();
 
+            vm.warp(1748736000); // 2025-06-01 00:00:00 UTC - could be any date far enough in the past
             _vote(address(spell));
-
-            // _scheduleWaitAndCast run manually to capture the wormhole event
             spell.schedule();
-            vm.warp(spell.nextCastTime());
 
-            // Spell reverts when fee is bigger than 0
-            vm.mockCall(
-                address(WH_CORE_BRIDGE),
-                abi.encodeWithSelector(WormholeLike.messageFee.selector),
-                abi.encode(1)
-            );
-            vm.expectRevert();
+            // Execute before MIN_ETA is not allowed
+            vm.warp(1763128800); // 2025-11-14 14:00:00 UTC
+
+            // Try execute before MIN_ETA
+            // The error will be overwriten from PauseProxy
+            vm.expectRevert('ds-pause-delegatecall-error');
             spell.cast();
-            vm.clearMockedCalls();
 
-            uint64 sequence = WH_CORE_BRIDGE.nextSequence(pauseProxy);
+            assertEq(spell.nextCastTime(), MIN_ETA, "testNextCastTimeMinEta/min-eta-not-enforced");
 
-            // NTT Manager transfer mint authority event
-            vm.expectEmit(true, true, true, true, address(WH_CORE_BRIDGE));
-            emit LogMessagePublished(pauseProxy, sequence, 0, payloadTransferMintAuth, 202);
-            // NTT Manager transfer freeze authority event
-            vm.expectEmit(true, true, true, true, address(WH_CORE_BRIDGE));
-            emit LogMessagePublished(pauseProxy, sequence + 1, 0, payloadTransferFreezeAuth, 202);
-            // NTT Manager transfer metadata update event
-            vm.expectEmit(true, true, true, true, address(WH_CORE_BRIDGE));
-            emit LogMessagePublished(pauseProxy, sequence + 2, 0, payloadTransferMetadataUpdateAuth, 202);
-
-            spell.cast();
-            assertTrue(spell.done(), "TestError/spell-not-done");
+            vm.revertToStateAndDelete(before);
         }
 
-        // Check locked token migration
-        uint256 oftAfterBalance = usds.balanceOf(USDS_OFT);
-        uint256 nttManagerAfterBalance = usds.balanceOf(NTT_MANAGER);
-        assertGe(
-            oftAfterBalance,
-            oftPreviousBalance + nttManagerPreviousBalance,
-            "TestError/MigrationStep1/oft-adapter-balance-not-increased"
-        );
-        assertEq(
-            nttManagerAfterBalance,
-            0,
-            "TestError/MigrationStep1/ntt-manager-balance-not-zero"
-        );
+        // Spell obtains approval for execution after MIN_ETA
+        {
+            uint256 before = vm.snapshotState();
 
-        // Check rate limit settings
-        (,uint48 outWindow2,,uint256 outLimit2) = oft.outboundRateLimits(SOL_EID);
-        (,uint48  inWindow2,,uint256  inLimit2) = oft.inboundRateLimits(SOL_EID);
-        assertEq(outWindow2, 1 days,          "TestError/MigrationStep1/outWindow-rl-not-set");
-        assertEq(inWindow2, 1 days,           "TestError/MigrationStep1/inWindow-rl-not-set");
-        assertEq(outLimit2, 10_000_000 * WAD, "TestError/MigrationStep1/outLimit-rl-not-set");
-        assertEq(inLimit2, 10_000_000 * WAD,  "TestError/MigrationStep1/inLimit-rl-not-set");
+            vm.warp(MIN_ETA); // As we move closer to MIN_ETA, GSM delay is still applicable
+            _vote(address(spell));
+            spell.schedule();
 
-        // OFT send works now
-        oft.send{value: msgFee.nativeFee}(sendParams, msgFee, payable(address(this)));
-        assertEq(
-            usds.balanceOf(address(this)),
-            usdsBalanceBeforeSend - sendParams.amountLD,
-            "TestError/MigrationStep1/oft-send-didnt-work"
-        );
+            assertGe(spell.nextCastTime(), MIN_ETA + pause.delay(), "testNextCastTimeMinEta/gsm-delay-not-enforced");
 
-        // Pause oft as pauser
-        vm.startPrank(USDS_OFT_PAUSER);
-        oft.pause();
-        vm.stopPrank();
-        assertTrue(oft.paused(), "TestError/MigrationStep1/failed-to-pause");
-
-        // Check owner(pauseProxy) can unpause
-        vm.startPrank(pauseProxy);
-        oft.unpause();
-        vm.stopPrank();
-        assertFalse(oft.paused(), "TestError/MigrationStep1/failed-to-unpause");
+            vm.revertToStateAndDelete(before);
+        }
     }
 
-    function testGovernanceRelayInit() public {
-        L1GovernanceRelayLike l1GovernanceRelay = L1GovernanceRelayLike(addr.addr("LZ_GOV_RELAY"));
-        GovernanceOAppSenderLike govOappSender = GovernanceOAppSenderLike(LZ_GOV_SENDER);
+    event LogMessagePublished(address indexed sender, uint64 sequence, uint32 nonce, bytes payload, uint8 consistencyLevel);
+    event Upgraded(address indexed implementation);
 
-        assertEq(l1GovernanceRelay.l1Oapp(), address(0x0), "governance-relay-init/l1-oapp-set-before-spell");
+    function testMigrationStep0() public {
+        WormholeLike wormholeCoreBridge = WormholeLike(0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B);
+        NttManagerLike nttManager = NttManagerLike(0x7d4958454a3f520bDA8be764d06591B054B0bf33);
+        address transferWallet = makeAddr("transferWallet");
+
+        address nttManagerImpV2 = 0xD4DD90bAC23E2a1470681E7cAfFD381FE44c3430;
+        bytes memory payloadWhProgramUpgrade = hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc002a8f6914e88a1b0e210153ef763ae2b00c2b93d16c124d2c0537a10048000000007a821ac5164fa9b54fd93b54dba8215550b8fce868f52299169f6619867cac501000106856f43abf4aaa4a26b32ae8ea4cb8fadc8e02d267703fbd5f9dad85f6d00b300012d27f5131975fdaf20a5934c6e90f6d7c9bbde9fcf94c37b48c5a49c7f06aae2000105cab222188023f74394ecaee9daf397c11a2a672511adc34958c1d7bdb1c673000106a7d517192c5c51218cc94c3d4af17f58daee089ba1fd44e3dbd98a00000000000006a7d51718c774c928566398691d5eb68b5eb8a39b4b6d5c73555b210000000000006f776e65720000000000000000000000000000000000000000000000000000000100000403000000";
+
+        uint16 solanaWormholeChainId = 1; // Defined in https://wormhole.com/docs/products/reference/chain-ids/
+        address nttManagerToken = nttManager.token();
+        uint8 tokenDecimals = GemAbstract(nttManagerToken).decimals();
+
+        // Prepare transfer wallet
+        vm.deal(transferWallet, 10 ether); // High enough to cover all the fees
+        GodMode.setBalance(nttManagerToken, address(transferWallet), 2 * 10 ** tokenDecimals);
+        vm.prank(transferWallet);
+        GemAbstract(nttManagerToken).approve(address(nttManager), 2 * 10 ** tokenDecimals);
+
+        (, uint256 totalDeliveryPrice) = nttManager.quoteDeliveryPrice(solanaWormholeChainId, new bytes(1));
+
+        // Transfer is possible before upgrade
+        vm.prank(transferWallet);
+        (bool transferBeforeSpell,) =
+            address(nttManager).call{value: totalDeliveryPrice}(
+                abi.encodeWithSignature(
+                    "transfer(uint256,uint16,bytes32)",
+                    1 * 10 ** tokenDecimals,
+                    solanaWormholeChainId,
+                    bytes32("solanaAddress")
+                )
+            );
+        assertTrue(transferBeforeSpell, "Test/MigrationStep0/transfer-call-should-succeed");
+
+        _vote(address(spell));
+
+        // _scheduleWaitAndCast run manually to capture the wormhole event
+        spell.schedule();
+        vm.warp(spell.nextCastTime());
+
+        // Spell reverts when fee is bigger than 0
+        vm.mockCall(
+            address(wormholeCoreBridge),
+            abi.encodeWithSelector(WormholeLike.messageFee.selector),
+            abi.encode(1)
+        );
+        vm.expectRevert();
+        spell.cast();
+        vm.clearMockedCalls();
+
+        // NTT Manager implementation upgrade event
+        vm.expectEmit(true, true, true, true, address(nttManager));
+        emit Upgraded(nttManagerImpV2);
+
+        // Wormhole message sent event
+        vm.expectEmit(true, true, true, true, address(wormholeCoreBridge));
+        emit LogMessagePublished(pauseProxy, wormholeCoreBridge.nextSequence(pauseProxy), 0, payloadWhProgramUpgrade, 202);
+
+        spell.cast();
+
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // Transfer is not possible after upgrade
+        vm.prank(transferWallet);
+        (bool transferAfterSpell,) =
+            address(nttManager).call{value: totalDeliveryPrice}(
+                abi.encodeWithSignature(
+                    "transfer(uint256,uint16,bytes32)",
+                    1 * 10 ** tokenDecimals,
+                    solanaWormholeChainId,
+                    bytes32("solanaAddress")
+                )
+            );
+        assertFalse(transferAfterSpell, "Test/MigrationStep0/transfer-call-should-fail");
+
+        // Test call migrateLockedTokens success
+        uint256 nttManagerBalance = usds.balanceOf(address(nttManager));
+        uint256 pauseProxyBalance = usds.balanceOf(pauseProxy);
+
+        vm.prank(pauseProxy);
+        nttManager.migrateLockedTokens(pauseProxy);
+
+        assertEq(usds.balanceOf(address(nttManager)), 0, "Test/MigrationStep0/lockedTokens-balance-mismatch");
+        assertEq(usds.balanceOf(pauseProxy), pauseProxyBalance + nttManagerBalance, "Test/MigrationStep0/migratedLockedTokens-balance-mismatch");
+    }
+
+    function testWhitelistObexALMProxy() public {
+        address almProxy = addr.addr("OBEX_ALM_PROXY");
+        DssLitePsmLike psmUsdcA = DssLitePsmLike(addr.addr("MCD_LITE_PSM_USDC_A"));
+        GemAbstract usdc = GemAbstract(addr.addr("USDC"));
+
+        // bud is 0 before kiss
+        assertEq(psmUsdcA.bud(almProxy), 0, "TestError/MCD_LITE_PSM_USDC_A/invalid-bud");
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
+        assertTrue(spell.done());
 
-        assertEq(l1GovernanceRelay.l1Oapp(), address(govOappSender), "governance-relay-init/wrong-l1-oapp");
+        // bud is 1 after kiss
+        assertEq(psmUsdcA.bud(almProxy), 1, "TestError/MCD_LITE_PSM_USDC_A/invalid-bud");
 
-        vm.startPrank(pauseProxy);
+        // OBEX can call buyGemNoFee() on MCD_LITE_PSM_USDC_A
+        uint256 daiAmount  = 1_000 * WAD;
+        uint256 usdcAmount = 1_000 * 10**6;
 
-        vm.deal(address(pauseProxy), 10 ether);
-        uint256 nativeFee = 1 ether;
+        // fund proxy
+        deal(address(dai), almProxy, daiAmount);
+        vm.startPrank(almProxy);
 
-        // Relay to EVM L2 (e.g., Arbitrum)
-        uint32 arbitrumEid = 30110;
-        govOappSender.setPeer(arbitrumEid, bytes32(uint256(uint160(address(0x222)))));
-        address arbitrumGovRelay = makeAddr('arbitrumGovRelay');
-        govOappSender.setCanCallTarget(address(l1GovernanceRelay), arbitrumEid, bytes32(uint256(uint160(arbitrumGovRelay))), true);
-        l1GovernanceRelay.relayEVM{value: nativeFee}({
-            dstEid            : arbitrumEid,
-            l2GovernanceRelay : arbitrumGovRelay,
-            target            : address(0x222),
-            targetData        : bytes("789"),
-            extraOptions      : hex"00030100210100000000000000000000000000030d40000000000000000000000000001f1df0",
-            fee : L1GovernanceRelayLike.MessagingFee({
-                nativeFee  : nativeFee,
-                lzTokenFee : 0
-            }),
-            refundAddress     : address(0x333)
-        });
+        // buy gem with no fee
+        dai.approve(address(psmUsdcA), daiAmount);
+        psmUsdcA.buyGemNoFee(almProxy, usdcAmount);
+        assertEq(usdc.balanceOf(almProxy), usdcAmount);
+        assertEq(dai.balanceOf(almProxy), 0);
 
-        // Relay to Solana
-        bytes32 solanaTarget = bytes32("solanaTarget");
-        govOappSender.setCanCallTarget(address(l1GovernanceRelay), SOL_EID, solanaTarget, true);
-        l1GovernanceRelay.relayRaw{value: nativeFee}({
-            txParams : L1GovernanceRelayLike.TxParams({
-                dstEid            : SOL_EID,
-                dstTarget         : solanaTarget,
-                dstCallData       : bytes("333"),
-                extraOptions      : hex"00030100210100000000000000000000000000030d40000000000000000000000000001f1df0"
-            }),
-            fee : L1GovernanceRelayLike.MessagingFee({
-                nativeFee  : nativeFee,
-                lzTokenFee : 0
-            }),
-            refundAddress : address(0x333)
-        });
+        // now sell it back with no fee
+        usdc.approve(address(psmUsdcA), usdcAmount);
+        psmUsdcA.sellGemNoFee(almProxy, usdcAmount);
+        assertEq(usdc.balanceOf(almProxy), 0);
+        assertEq(dai.balanceOf(almProxy), daiAmount);
 
         vm.stopPrank();
     }
