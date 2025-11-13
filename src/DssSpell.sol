@@ -27,8 +27,8 @@ import { GovernanceRelayInit } from "./dependencies/lz-governance-relay/Governan
 contract DssSpellAction is DssAction {
     // Provides a descriptive tag for bot consumption
     // This should be modified weekly to provide a summary of the actions
-    // Hash: cast keccak -- "$(wget 'TODO' -q -O - 2>/dev/null)"
-    string public constant override description = "2025-11-17 MakerDAO Executive Spell | Hash: TODO";
+    // Hash: cast keccak -- "$(wget 'https://raw.githubusercontent.com/sky-ecosystem/executive-votes/9c58a42c41808d17531aa56eeaa9bbe1799fd0f5/2025/oos-executive-vote-2025-11-17-solana-bridge-migration.md' -q -O - 2>/dev/null)"
+    string public constant override description = "2025-11-17 MakerDAO Executive Spell | Hash: 0x6e17f84690e8e325c78ff9fae8ead5fefcd9480d1d46358990e8baf4285ffda7";
 
     // Set office hours according to the summary
     function officeHours() public pure override returns (bool) {
