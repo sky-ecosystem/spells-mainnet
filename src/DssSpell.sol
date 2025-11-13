@@ -18,7 +18,7 @@ pragma solidity 0.8.16;
 
 import "dss-exec-lib/DssExec.sol";
 import "dss-exec-lib/DssAction.sol";
-import { DssInstance, MCD } from "dss-test/MCD.sol";
+import { MCD } from "dss-test/MCD.sol";
 // Note: code matches https://github.com/sky-ecosystem/wh-lz-migration/blob/17397879385d42521b0fe9783046b3cf25a9fec6/deploy/MigrationInit.sol
 import { MigrationInit } from "./dependencies/wh-lz-migration/MigrationInit.sol";
 // Note: code matches https://github.com/sky-ecosystem/lz-governance-relay/blob/d3e3df4db417f196fdd56123e7dbb462d04f32ef/deploy/GovernanceRelayInit.sol

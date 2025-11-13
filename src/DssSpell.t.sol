@@ -77,6 +77,7 @@ interface L1GovernanceRelayLike {
 
 interface WormholeLike {
     function nextSequence(address emitter) external view returns (uint64);
+    function messageFee() external view returns (uint256);
 }
 
 interface OAppLike {
@@ -1445,6 +1446,16 @@ contract DssSpellTest is DssSpellTestBase {
             // _scheduleWaitAndCast run manually to capture the wormhole event
             spell.schedule();
             vm.warp(spell.nextCastTime());
+
+            // Spell reverts when fee is bigger than 0
+            vm.mockCall(
+                address(WH_CORE_BRIDGE),
+                abi.encodeWithSelector(WormholeLike.messageFee.selector),
+                abi.encode(1)
+            );
+            vm.expectRevert();
+            spell.cast();
+            vm.clearMockedCalls();
 
             uint64 sequence = WH_CORE_BRIDGE.nextSequence(pauseProxy);
 
