@@ -150,7 +150,7 @@ contract DssSpellAction is DssAction {
             nttManagerImpV2: NTT_MANAGER_IMP_V2,
             // maxFee expected to be 0 (unless Wormhole.messageFee() returns non-zero value)
             maxFee:          0,
-            // payload: https://raw.githubusercontent.com/keel-fi/crosschain-gov-solana-spell-payloads/b108b90e24e71c3d82dfde9599ce44dda913683a/wh-program-upgrade-mainnet.txt
+            // payload: https://raw.githubusercontent.com/keel-fi/crosschain-gov-solana-spell-payloads/11baa180d4ad6c7579c69c8c0168e17cb73bb6ed/wh-program-upgrade-mainnet.txt
             payload:         hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc002a8f6914e88a1b0e210153ef763ae2b00c2b93d16c124d2c0537a10048000000007a821ac5164fa9b54fd93b54dba8215550b8fce868f52299169f6619867cac501000106856f43abf4aaa4a26b32ae8ea4cb8fadc8e02d267703fbd5f9dad85f6d00b300012d27f5131975fdaf20a5934c6e90f6d7c9bbde9fcf94c37b48c5a49c7f06aae2000105cab222188023f74394ecaee9daf397c11a2a672511adc34958c1d7bdb1c673000106a7d517192c5c51218cc94c3d4af17f58daee089ba1fd44e3dbd98a00000000000006a7d51718c774c928566398691d5eb68b5eb8a39b4b6d5c73555b210000000000006f776e65720000000000000000000000000000000000000000000000000000000100000403000000"
         });
 
