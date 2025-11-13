@@ -122,7 +122,7 @@ contract DssSpellAction is DssAction {
         // Add new GovernanceOAppSender to chainlog as LZ_GOV_SENDER
         DssExecLib.setChangelogAddress('LZ_GOV_SENDER', LZ_GOV_SENDER);
 
-        // Bump chainlog PATCH version
+        // Note: Bump chainlog patch version as new keys are being added
         DssExecLib.setChangelogVersion("1.20.8");
     }
 }
