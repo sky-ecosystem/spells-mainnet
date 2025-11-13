@@ -61,13 +61,11 @@ contract DssSpellAction is DssAction {
 
     function actions() public override {
         // ----- Solana Bridge Migration -----
-        // Note: This is heading, the content is below.
-
-        // ----- Call MigrationInit.initMigrationStep1 with the following parameters: -----
         // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2025-11-03/27381
         // Poll: https://vote.sky.money/polling/Qmetv8fp
         // Forum: https://forum.sky.money/t/solana-bridge-migration/27403
 
+        // Call MigrationInit.initMigrationStep1 with the following parameters:
         MigrationInit.initMigrationStep1({
             // oftAdapter – 0x1e1D42781FC170EF9da004Fb735f56F0276d01B8
             oftAdapter: USDS_OFT,
@@ -100,6 +98,9 @@ contract DssSpellAction is DssAction {
         });
 
         // ----- Call GovernanceRelayInit.init with the following parameters: -----
+        // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2025-11-03/27381
+        // Poll: https://vote.sky.money/polling/Qmetv8fp
+        // Forum: https://forum.sky.money/t/solana-bridge-migration/27403
 
         GovernanceRelayInit.init({
             // Note: We need dss as an input parameter for governance relay initialization
@@ -110,16 +111,18 @@ contract DssSpellAction is DssAction {
             l1Oapp: LZ_GOV_SENDER
         });
 
-        // ----- Add new SkyOFTAdapter to chainlog as USDS_OFT -----
+        // ----- Update Chainlog -----
+        // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2025-11-03/27381
+        // Poll: https://vote.sky.money/polling/Qmetv8fp
+        // Forum: https://forum.sky.money/t/solana-bridge-migration/27403
 
+        // Add new SkyOFTAdapter to chainlog as USDS_OFT
         DssExecLib.setChangelogAddress('USDS_OFT', USDS_OFT);
 
-        // ----- Add new GovernanceOAppSender to chainlog as LZ_GOV_SENDER -----
-
+        // Add new GovernanceOAppSender to chainlog as LZ_GOV_SENDER
         DssExecLib.setChangelogAddress('LZ_GOV_SENDER', LZ_GOV_SENDER);
 
-        // ----- Bump chainlog PATCH version -----
-
+        // Bump chainlog PATCH version
         DssExecLib.setChangelogVersion("1.20.8");
     }
 }
