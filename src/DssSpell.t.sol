@@ -1423,13 +1423,13 @@ contract DssSpellTest is DssSpellTestBase {
         bytes32 solanaLzGov = 0x75b81a4430dee7012ff31d58540835ccc89a18d1fc0522bc95df16ecd50efc32;
         OAppLike lzGovSender = OAppLike(LZ_GOV_SENDER);
 
-        // Check USDS OFT constructor arguments
+        // Check USDS OFT
         assertEq(oft.token(), address(usds), "TestError/NewContractsSanity/USDS OFT has wrong token address");
         assertEq(oft.endpoint(), lzEndpoint, "TestError/NewContractsSanity/USDS OFT has wrong endpoint address");
         assertEq(oft.owner(), pauseProxy, "TestError/NewContractsSanity/USDS OFT has wrong owner address");
         assertEq(oft.peers(SOL_EID), solanaUsdsOft, "TestError/NewContractsSanity/USDS OFT has wrong peer address");
 
-        // Check LZ GOV SENDER contractor argument
+        // Check LZ GOV SENDER
         assertEq(lzGovSender.endpoint(), lzEndpoint, "TestError/NewContractsSanity/LZ GOV SENDER has wrong endpoint address");
         assertEq(lzGovSender.owner(), pauseProxy, "TestError/NewContractsSanity/LZ GOV SENDER has wrong owner address");
         assertEq(lzGovSender.peers(SOL_EID), solanaLzGov, "TestError/NewContractsSanity/LZ GOV SENDER has wrong peer address");
