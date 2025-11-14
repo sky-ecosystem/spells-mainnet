@@ -88,8 +88,6 @@ interface GovernanceOAppSenderLike is OAppLike {
 }
 
 interface SkyOFTAdapterLike is OAppLike {
-    type RateLimitAccountingType is uint8;
-
     struct MessagingFee {
         uint256 nativeFee;
         uint256 lzTokenFee;
@@ -116,6 +114,7 @@ interface SkyOFTAdapterLike is OAppLike {
         bytes oftCmd;
     }
 
+    function feeBps(uint32 dstEid) external view returns (uint16 feeBps, bool enabled);
     function inboundRateLimits(uint32 srcEid)
         external
         view
@@ -131,7 +130,7 @@ interface SkyOFTAdapterLike is OAppLike {
         external
         view
         returns (MessagingFee memory msgFee);
-    function rateLimitAccountingType() external view returns (RateLimitAccountingType);
+    function rateLimitAccountingType() external view returns (uint8);
     function send(SendParam memory _sendParam, MessagingFee memory _fee, address _refundAddress)
         external
         payable
@@ -1417,22 +1416,31 @@ contract DssSpellTest is DssSpellTestBase {
 
     SkyOFTAdapterLike oft = SkyOFTAdapterLike(USDS_OFT);
 
-    function testNewContractsSanity() public {
+    function testLayerZeroContractsSanity() view public {
         address lzEndpoint = 0x1a44076050125825900e736c501f859c50fE728c; // LayerZero Endpoint address on Ethereum Mainnet: https://docs.layerzero.network/v2/deployments/chains/ethereum
         bytes32 solanaUsdsOft = 0x9825dc0cbeaf22836931c00cb891592f0a96d0dc6a65a4c67992b01e0db8d122;
         bytes32 solanaLzGov = 0x75b81a4430dee7012ff31d58540835ccc89a18d1fc0522bc95df16ecd50efc32;
         OAppLike lzGovSender = OAppLike(LZ_GOV_SENDER);
 
         // Check USDS OFT
-        assertEq(oft.token(), address(usds), "TestError/NewContractsSanity/USDS OFT has wrong token address");
-        assertEq(oft.endpoint(), lzEndpoint, "TestError/NewContractsSanity/USDS OFT has wrong endpoint address");
-        assertEq(oft.owner(), pauseProxy, "TestError/NewContractsSanity/USDS OFT has wrong owner address");
-        assertEq(oft.peers(SOL_EID), solanaUsdsOft, "TestError/NewContractsSanity/USDS OFT has wrong peer address");
+        (uint16 feeBps, bool enabled) = oft.feeBps(SOL_EID);
+        (,,,uint256 outLimit) = oft.outboundRateLimits(SOL_EID);
+        (,,,uint256  inLimit) = oft.inboundRateLimits(SOL_EID);
+
+        assertEq(oft.token(), address(usds), "TestError/LayerZeroContractsSanity/USDS OFT has wrong token address");
+        assertEq(oft.endpoint(), lzEndpoint, "TestError/LayerZeroContractsSanity/USDS OFT has wrong endpoint address");
+        assertEq(oft.owner(), pauseProxy, "TestError/LayerZeroContractsSanity/USDS OFT has wrong owner address");
+        assertEq(oft.peers(SOL_EID), solanaUsdsOft, "TestError/LayerZeroContractsSanity/USDS OFT has wrong solana peer address");
+        assertTrue(feeBps == 0 && !enabled, "TestError/LayerZeroContractsSanity/USDS OFT has incorrect solana fee");
+        assertEq(oft.paused(), false, "TestError/LayerZeroContractsSanity/USDS OFT has been paused");
+        assertEq(outLimit, 0, "TestError/LayerZeroContractsSanity/USDS OFT has wrong outbound rate limit");
+        assertEq(inLimit, 0, "TestError/LayerZeroContractsSanity/USDS OFT has wrong inbound rate limit");
+        assertEq(oft.rateLimitAccountingType(), 0, "TestError/LayerZeroContractsSanity/USDS OFT has wrong rate limit accounting type");
 
         // Check LZ GOV SENDER
-        assertEq(lzGovSender.endpoint(), lzEndpoint, "TestError/NewContractsSanity/LZ GOV SENDER has wrong endpoint address");
-        assertEq(lzGovSender.owner(), pauseProxy, "TestError/NewContractsSanity/LZ GOV SENDER has wrong owner address");
-        assertEq(lzGovSender.peers(SOL_EID), solanaLzGov, "TestError/NewContractsSanity/LZ GOV SENDER has wrong peer address");
+        assertEq(lzGovSender.endpoint(), lzEndpoint, "TestError/LayerZeroContractsSanity/LZ GOV SENDER has wrong endpoint address");
+        assertEq(lzGovSender.owner(), pauseProxy, "TestError/LayerZeroContractsSanity/LZ GOV SENDER has wrong owner address");
+        assertEq(lzGovSender.peers(SOL_EID), solanaLzGov, "TestError/LayerZeroContractsSanity/LZ GOV SENDER has wrong solana peer address");
     }
 
     function testMigrationStep1() public {
