@@ -77,6 +77,9 @@ interface WormholeLike {
 }
 
 interface OAppLike {
+    function owner() external view returns (address);
+    function peers(uint32 eid) external view returns (bytes32 peer);
+    function endpoint() external view returns (address);
     function setPeer(uint32 _eid, bytes32 _peer) external;
 }
 
@@ -85,6 +88,8 @@ interface GovernanceOAppSenderLike is OAppLike {
 }
 
 interface SkyOFTAdapterLike is OAppLike {
+    type RateLimitAccountingType is uint8;
+
     struct MessagingFee {
         uint256 nativeFee;
         uint256 lzTokenFee;
@@ -126,10 +131,12 @@ interface SkyOFTAdapterLike is OAppLike {
         external
         view
         returns (MessagingFee memory msgFee);
+    function rateLimitAccountingType() external view returns (RateLimitAccountingType);
     function send(SendParam memory _sendParam, MessagingFee memory _fee, address _refundAddress)
         external
         payable
         returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt);
+    function token() external view returns (address);
     function unpause() external;
 }
 
@@ -1402,13 +1409,31 @@ contract DssSpellTest is DssSpellTestBase {
 
     address NTT_MANAGER = 0x7d4958454a3f520bDA8be764d06591B054B0bf33;
     WormholeLike WH_CORE_BRIDGE = WormholeLike(0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B);
-    uint32  SOL_EID = 30168;
+    uint32  SOL_EID = 30168; // LayerZero Endpoint ID for Solana: https://docs.layerzero.network/v2/deployments/chains/solana
 
     address USDS_OFT_PAUSER = 0x38d1114b4cE3e079CC0f627df6aC2776B5887776;
     address LZ_GOV_SENDER = addr.addr("LZ_GOV_SENDER");
     address USDS_OFT = addr.addr("USDS_OFT");
 
     SkyOFTAdapterLike oft = SkyOFTAdapterLike(USDS_OFT);
+
+    function testNewContractsSanity() public {
+        address lzEndpoint = 0x1a44076050125825900e736c501f859c50fE728c; // LayerZero Endpoint address on Ethereum Mainnet: https://docs.layerzero.network/v2/deployments/chains/ethereum
+        bytes32 solanaUsdsOft = 0x9825dc0cbeaf22836931c00cb891592f0a96d0dc6a65a4c67992b01e0db8d122;
+        bytes32 solanaLzGov = 0x75b81a4430dee7012ff31d58540835ccc89a18d1fc0522bc95df16ecd50efc32;
+        OAppLike lzGovSender = OAppLike(LZ_GOV_SENDER);
+
+        // Check USDS OFT constructor arguments
+        assertEq(oft.token(), address(usds), "TestError/NewContractsSanity/USDS OFT has wrong token address");
+        assertEq(oft.endpoint(), lzEndpoint, "TestError/NewContractsSanity/USDS OFT has wrong endpoint address");
+        assertEq(oft.owner(), pauseProxy, "TestError/NewContractsSanity/USDS OFT has wrong owner address");
+        assertEq(oft.peers(SOL_EID), solanaUsdsOft, "TestError/NewContractsSanity/USDS OFT has wrong peer address");
+
+        // Check LZ GOV SENDER contractor argument
+        assertEq(lzGovSender.endpoint(), lzEndpoint, "TestError/NewContractsSanity/LZ GOV SENDER has wrong endpoint address");
+        assertEq(lzGovSender.owner(), pauseProxy, "TestError/NewContractsSanity/LZ GOV SENDER has wrong owner address");
+        assertEq(lzGovSender.peers(SOL_EID), solanaLzGov, "TestError/NewContractsSanity/LZ GOV SENDER has wrong peer address");
+    }
 
     function testMigrationStep1() public {
         bytes memory payloadTransferMintAuth = hex"000000000000000047656e6572616c507572706f7365476f7665726e616e636502000106742d7ca523a03aaafe48abab02e47eb8aef53415cb603c47a3ccf864d86dc006856f43abf4aaa4a26b32ae8ea4cb8fadc8e02d267703fbd5f9dad85f6d00b300056f776e65720000000000000000000000000000000000000000000000000000000100b53f200f8db357f9e1e982ef0ec4b3b879f9f6516d5247307ebaf00d187be51a00009f92dcb365df21a4a4ec23d8ff4cc020cdd09895f8129c2c2fb43289bc53f95f00000707312d1d41da71f0fb280c1662cd65ebeb2e0859c0cbae3fdbdcb26c86e0af000106ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a90000002857edbb54a8aff14b9825dc0cbeaf22836931c00cb891592f0a96d0dc6a65a4c67992b01e0db8d122";
@@ -1445,7 +1470,6 @@ contract DssSpellTest is DssSpellTestBase {
 
         {
             /// Execute spell
-
             _vote(address(spell));
 
             // _scheduleWaitAndCast run manually to capture the wormhole event
@@ -1456,6 +1480,16 @@ contract DssSpellTest is DssSpellTestBase {
             vm.mockCall(
                 address(WH_CORE_BRIDGE),
                 abi.encodeWithSelector(WormholeLike.messageFee.selector),
+                abi.encode(1)
+            );
+            vm.expectRevert();
+            spell.cast();
+            vm.clearMockedCalls();
+
+            // Spell reverts when rate limit accounting type is not 0
+            vm.mockCall(
+                address(USDS_OFT),
+                abi.encodeWithSelector(SkyOFTAdapterLike.rateLimitAccountingType.selector),
                 abi.encode(1)
             );
             vm.expectRevert();
