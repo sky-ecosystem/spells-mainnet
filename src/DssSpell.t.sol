@@ -1427,20 +1427,20 @@ contract DssSpellTest is DssSpellTestBase {
         (,,,uint256 outLimit) = oft.outboundRateLimits(SOL_EID);
         (,,,uint256  inLimit) = oft.inboundRateLimits(SOL_EID);
 
-        assertEq(oft.token(), address(usds), "TestError/LayerZeroContractsSanity/USDS OFT has wrong token address");
-        assertEq(oft.endpoint(), lzEndpoint, "TestError/LayerZeroContractsSanity/USDS OFT has wrong endpoint address");
-        assertEq(oft.owner(), pauseProxy, "TestError/LayerZeroContractsSanity/USDS OFT has wrong owner address");
-        assertEq(oft.peers(SOL_EID), solanaUsdsOft, "TestError/LayerZeroContractsSanity/USDS OFT has wrong solana peer address");
-        assertTrue(feeBps == 0 && !enabled, "TestError/LayerZeroContractsSanity/USDS OFT has incorrect solana fee");
-        assertEq(oft.paused(), false, "TestError/LayerZeroContractsSanity/USDS OFT has been paused");
-        assertEq(outLimit, 0, "TestError/LayerZeroContractsSanity/USDS OFT has wrong outbound rate limit");
-        assertEq(inLimit, 0, "TestError/LayerZeroContractsSanity/USDS OFT has wrong inbound rate limit");
-        assertEq(oft.rateLimitAccountingType(), 0, "TestError/LayerZeroContractsSanity/USDS OFT has wrong rate limit accounting type");
+        assertEq(oft.token(), address(usds), "TestError/LayerZeroContractsSanity/USDSOFT-wrong-token-address");
+        assertEq(oft.endpoint(), lzEndpoint, "TestError/LayerZeroContractsSanity/USDSOFT-wrong-endpoint-address");
+        assertEq(oft.owner(), pauseProxy, "TestError/LayerZeroContractsSanity/USDSOFT-wrong-owner-address");
+        assertEq(oft.peers(SOL_EID), solanaUsdsOft, "TestError/LayerZeroContractsSanity/USDSOFT-wrong-solana-peer-address");
+        assertTrue(feeBps == 0 && !enabled, "TestError/LayerZeroContractsSanity/USDSOFT-incorrect-solana-fee");
+        assertEq(oft.paused(), false, "TestError/LayerZeroContractsSanity/USDSOFT-been-paused");
+        assertEq(outLimit, 0, "TestError/LayerZeroContractsSanity/USDSOFT-wrong-outbound-rate-limit");
+        assertEq(inLimit, 0, "TestError/LayerZeroContractsSanity/USDSOFT-wrong-inbound-rate-limit");
+        assertEq(oft.rateLimitAccountingType(), 0, "TestError/LayerZeroContractsSanity/USDSOFT-wrong-rate-limit-accounting-type");
 
         // Check LZ GOV SENDER
-        assertEq(lzGovSender.endpoint(), lzEndpoint, "TestError/LayerZeroContractsSanity/LZ GOV SENDER has wrong endpoint address");
-        assertEq(lzGovSender.owner(), pauseProxy, "TestError/LayerZeroContractsSanity/LZ GOV SENDER has wrong owner address");
-        assertEq(lzGovSender.peers(SOL_EID), solanaLzGov, "TestError/LayerZeroContractsSanity/LZ GOV SENDER has wrong solana peer address");
+        assertEq(lzGovSender.endpoint(), lzEndpoint, "TestError/LayerZeroContractsSanity/LZGOVSENDER-wrong-endpoint-address");
+        assertEq(lzGovSender.owner(), pauseProxy, "TestError/LayerZeroContractsSanity/LZGOVSENDER-wrong-owner-address");
+        assertEq(lzGovSender.peers(SOL_EID), solanaLzGov, "TestError/LayerZeroContractsSanity/LZGOVSENDER-wrong-solana-peer-address");
     }
 
     function testMigrationStep1() public {
@@ -1494,11 +1494,11 @@ contract DssSpellTest is DssSpellTestBase {
             spell.cast();
             vm.clearMockedCalls();
 
-            // Spell reverts when rate limit accounting type is not 0
+            // Spell reverts when govOapp sanity check fails in init script
             vm.mockCall(
-                address(USDS_OFT),
-                abi.encodeWithSelector(SkyOFTAdapterLike.rateLimitAccountingType.selector),
-                abi.encode(1)
+                address(LZ_GOV_SENDER),
+                abi.encodeWithSelector(OAppLike.peers.selector, uint32(SOL_EID)),
+                abi.encode(bytes32("fakeAddress"))
             );
             vm.expectRevert();
             spell.cast();
