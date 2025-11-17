@@ -10,19 +10,8 @@ from pathlib import Path
 from typing import Any, Tuple, List
 
 
-def add_project_root_to_path():
-    """Add the project root directory to Python's module search path."""
-    project_root = Path(__file__).parent.parent.resolve()
-    if str(project_root) not in sys.path:
-        sys.path.append(str(project_root))
-
-
-# Add the project root to the Python path for imports
-add_project_root_to_path()
-
 # Import verifiers and contract data utilities from the verification package
-
-from scripts.verification import (
+from . import (
     VerifierEtherscan,
     VerifierSourcify,
     get_chain_id,
@@ -207,3 +196,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
