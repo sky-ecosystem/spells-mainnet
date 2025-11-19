@@ -51,45 +51,27 @@ def get_chain_id() -> str:
 
 def get_library_address() -> str:
     """
-    Find the DssExecLib address from either DssExecLib.address file or foundry.toml.
+    Find the DssExecLib address inside foundry.toml.
     Returns an empty string if no library address is found.
     """
     library_address = ''
 
-    # First try to read from foundry.toml libraries
-    if os.path.exists('foundry.toml'):
-        try:
-            with open('foundry.toml', 'r') as f:
-                config = f.read()
+    # Try to read from foundry.toml libraries
+    try:
+        with open('foundry.toml', 'r', encoding='utf-8') as f:
+            config = f.read()
+    except OSError as e:
+        print(f'Error reading foundry.toml', file=sys.stderr)
+        raise e
 
-            result = re.search(r':DssExecLib:(0x[0-9a-fA-F]{40})', config)
-            if result:
-                library_address = result.group(1)
-                print(
-                    f'Using library {LIBRARY_NAME} at address {library_address}')
-                return library_address
-            else:
-                print('No DssExecLib configured in foundry.toml', file=sys.stderr)
-        except Exception as e:
-            print(f'Error reading foundry.toml: {str(e)}', file=sys.stderr)
+    result = re.search(r':DssExecLib:(0x[0-9a-fA-F]{40})', config)
+    if result:
+        library_address = result.group(1)
+        print(
+            f'Using library {LIBRARY_NAME} at address {library_address}')
+        return library_address
     else:
-        print('No foundry.toml found', file=sys.stderr)
-
-    # If it cannot be found, try DssExecLib.address
-    if os.path.exists('DssExecLib.address'):
-        try:
-            print(f'Trying to read DssExecLib.address...', file=sys.stderr)
-            with open('DssExecLib.address', 'r') as f:
-                library_address = f.read().strip()
-            print(f'Using library {LIBRARY_NAME} at address {library_address}')
-            return library_address
-        except Exception as e:
-            print(
-                f'Error reading DssExecLib.address: {str(e)}', file=sys.stderr)
-
-    # If we get here, no library address was found
-    print('WARNING: Assuming this contract uses no libraries', file=sys.stderr)
-    return ''
+        raise Exception('No DssExecLib configured in foundry.toml')
 
 
 def parse_command_line_args() -> Tuple[str, str, str]:
