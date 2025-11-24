@@ -79,20 +79,20 @@ contract DssSpellAction is DssAction {
     // ---------- Contracts ----------
     address internal immutable CHAINLOG                 = DssExecLib.LOG;
     address internal immutable DAI                      = DssExecLib.dai();
-    address internal immutable MCD_VAT                 = DssExecLib.vat();
-    address internal immutable MCD_JUG                 = DssExecLib.jug();
-    address internal immutable MCD_VOW                 = DssExecLib.vow();
+    address internal immutable MCD_VAT                  = DssExecLib.vat();
+    address internal immutable MCD_JUG                  = DssExecLib.jug();
+    address internal immutable MCD_VOW                  = DssExecLib.vow();
     address internal immutable MCD_SPBEAM               = DssExecLib.getChangelogAddress("MCD_SPBEAM");
     address internal immutable ALLOCATOR_SPARK_A_VAULT  = DssExecLib.getChangelogAddress("ALLOCATOR_SPARK_A_VAULT");
-    address internal immutable ALLOCATOR_BLOOM_A_VAULT = DssExecLib.getChangelogAddress("ALLOCATOR_BLOOM_A_VAULT");
+    address internal immutable ALLOCATOR_BLOOM_A_VAULT  = DssExecLib.getChangelogAddress("ALLOCATOR_BLOOM_A_VAULT");
     address internal immutable SKY                      = DssExecLib.getChangelogAddress("SKY");
-    address internal immutable DAI_USDS                = DssExecLib.getChangelogAddress("DAI_USDS");
+    address internal immutable DAI_USDS                 = DssExecLib.getChangelogAddress("DAI_USDS");
     address internal immutable LZ_GOV_SENDER            = DssExecLib.getChangelogAddress("LZ_GOV_SENDER");
 
-    address internal constant GROVE_STARGUARD = 0xfc51CAa049E8894bEcFfB68c61095C3F3Ec8a880;
-    address internal constant KEEL_STARGUARD = 0xe8fF70481d653Ec31AB9E0cB2A8B316afF8D84ee;
-    address internal constant OBEX_STARGUARD = 0x987f1C31f9935e9926555BcFB76516bb2EcEccaD;
-    address internal constant CRON_STARGUARD_JOB        = 0xB18d211fA69422a9A848B790C5B4a3957F7Aa44E;
+    address internal constant GROVE_STARGUARD       = 0xfc51CAa049E8894bEcFfB68c61095C3F3Ec8a880;
+    address internal constant KEEL_STARGUARD        = 0xe8fF70481d653Ec31AB9E0cB2A8B316afF8D84ee;
+    address internal constant OBEX_STARGUARD        = 0x987f1C31f9935e9926555BcFB76516bb2EcEccaD;
+    address internal constant CRON_STARGUARD_JOB    = 0xB18d211fA69422a9A848B790C5B4a3957F7Aa44E;
 
     // ---------- Spark Spell ----------
     address internal immutable SPARK_STARGUARD  = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
@@ -106,13 +106,13 @@ contract DssSpellAction is DssAction {
     address internal constant CORE_COUNCIL_BUDGET_MULTISIG      = 0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364;
     address internal constant CORE_COUNCIL_DELEGATE_MULTISIG    = 0x37FC5d447c8c54326C62b697f674c93eaD2A93A3;
 
-    address internal constant AEGIS_D        = 0x78C180CF113Fe4845C325f44648b6567BC79d6E0;
-    address internal constant BLUE        = 0xb6C09680D822F162449cdFB8248a7D3FC26Ec9Bf;
-    address internal constant BONAPUBLICA              = 0x167c1a762B08D7e78dbF8f24e5C3f1Ab415021D3;
-    address internal constant CLOAKY_2                     = 0x9244F47D70587Fa2329B89B6f503022b63Ad54A5;
-    address internal constant SKY_STAKING    = 0x05c73AE49fF0ec654496bF4008d73274a919cB5C;
-    address internal constant TANGO                    = 0xB2B86A130B1EC101e4Aed9a88502E08995760307;
-    address internal constant GNOSIS                    = 0x849D52316331967b6fF1198e5E32A0eB168D039d;
+    address internal constant AEGIS_D       = 0x78C180CF113Fe4845C325f44648b6567BC79d6E0;
+    address internal constant BLUE          = 0xb6C09680D822F162449cdFB8248a7D3FC26Ec9Bf;
+    address internal constant BONAPUBLICA   = 0x167c1a762B08D7e78dbF8f24e5C3f1Ab415021D3;
+    address internal constant CLOAKY_2      = 0x9244F47D70587Fa2329B89B6f503022b63Ad54A5;
+    address internal constant SKY_STAKING   = 0x05c73AE49fF0ec654496bF4008d73274a919cB5C;
+    address internal constant TANGO         = 0xB2B86A130B1EC101e4Aed9a88502E08995760307;
+    address internal constant GNOSIS        = 0x849D52316331967b6fF1198e5E32A0eB168D039d;
 
     // ---------- LayerZero ----------
     address internal constant SOL_EID = 30168;
@@ -127,15 +127,15 @@ contract DssSpellAction is DssAction {
 
     // ---------- Grove Proxy ----------
     // Note: The deployment address for the Grove Proxy can be found at https://forum.sky.money/t/technical-scope-of-the-star-2-allocator-launch/26190
-    address internal constant GROVE_SUBPROXY    = 0x1369f7b2b38c76B6478c0f0E66D94923421891Ba;
+    address internal constant GROVE_SUBPROXY = 0x1369f7b2b38c76B6478c0f0E66D94923421891Ba;
 
     // ---------- Keel Proxy ----------
     // Note: The deployment address of the Keel Proxy can be found at https://forum.sky.money/t/technical-scope-of-the-nova-allocator-adjustment/27175
-    address internal constant KEEL_SUBPROXY   = 0x355CD90Ecb1b409Fdf8b64c4473C3B858dA2c310;
+    address internal constant KEEL_SUBPROXY = 0x355CD90Ecb1b409Fdf8b64c4473C3B858dA2c310;
 
     // ---------- Obex Proxy ----------
     // Note: The deployment address of the Obex Proxy can be found at https://forum.sky.money/t/technical-scope-launch-of-the-agent-4-allocation-system/27314
-    address internal constant OBEX_SUBPROXY   = 0x8be042581f581E3620e29F213EA8b94afA1C8071;
+    address internal constant OBEX_SUBPROXY = 0x8be042581f581E3620e29F213EA8b94afA1C8071;
 
     function actions() public override {
         // ---------- Launch Grove StarGuard ----------
