@@ -115,7 +115,7 @@ contract DssSpellAction is DssAction {
     address internal constant GNOSIS        = 0x849D52316331967b6fF1198e5E32A0eB168D039d;
 
     // ---------- LayerZero ----------
-    address internal constant SOL_EID = 30168;
+    uint32 internal constant SOL_EID = 30168;
     // Note: base58 ALM1JSnEhc5PkNecbSZotgprBuJujL5objTbwGtpTgTd to hex conversion can be checked at https://emn178.github.io/online-tools/base58/decode/?input=ALM1JSnEhc5PkNecbSZotgprBuJujL5objTbwGtpTgTd&output_type=hex
     bytes32 internal constant SVM_CONTROLLER = 0x8aadd66fe8f142fb55a08e900228f5488fcc7d73938bbce28e313e1b87da3624;
     // Note: base58 BPFLoaderUpgradeab1e11111111111111111111111 to hex conversion can be checked at https://emn178.github.io/online-tools/base58/decode/?input=BPFLoaderUpgradeab1e11111111111111111111111&output_type=hex
@@ -216,6 +216,9 @@ contract DssSpellAction is DssAction {
         // Add Obex StarGuard to StarGuardJob
         StarGuardJobLike(CRON_STARGUARD_JOB).add(OBEX_STARGUARD);
 
+        // Note: Bump chainlog patch version as new keys are being added
+        DssExecLib.setChangelogVersion("1.20.8");
+
         // ---------- Monthly Settlement Cycle and Treasury Management Function for October ----------
         // Forum: https://forum.sky.money/t/msc-3-settlemnt-summary-october-2025-initial-calculation/27397/3
         // Atlas: https://sky-atlas.io/#A.2.5
@@ -249,7 +252,7 @@ contract DssSpellAction is DssAction {
         // Poll: https://vote.sky.money/polling/QmdomJ7o
 
         // Call setCanCallTarget on LZ_GOV_SENDER with the following parameters:
-        GovernanceOAppSenderLike(LZ_GOV_SENDER).setCanCallTarget({
+        GovernanceOAppSenderLike(LZ_GOV_SENDER).setCanCallTarget(
             // _srcSender: KEEL_SUBPROXY
             KEEL_SUBPROXY,
             // _dstEID: SOL_EID defined by LayerZero
@@ -258,10 +261,10 @@ contract DssSpellAction is DssAction {
             SVM_CONTROLLER,
             // _canCall: true
             true
-        });
+        );
 
         // Call setCanCallTarget on LZ_GOV_SENDER with the following parameters:
-        GovernanceOAppSenderLike(LZ_GOV_SENDER).setCanCallTarget({
+        GovernanceOAppSenderLike(LZ_GOV_SENDER).setCanCallTarget(
             // _srcSender: KEEL_SUBPROXY
             KEEL_SUBPROXY,
             // _dstEID: SOL_EID defined by LayerZero
@@ -270,7 +273,7 @@ contract DssSpellAction is DssAction {
             BPF_LOADER,
             // _canCall: true
             true
-        });
+        );
 
         // ---------- Delegate Compensation for October ----------
         // Forum: https://forum.sky.money/t/october-2025-ranked-delegate-compensation/27412
