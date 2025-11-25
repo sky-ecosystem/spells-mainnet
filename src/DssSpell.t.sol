@@ -38,6 +38,36 @@ interface SpellActionLike {
 
 interface SequencerLike {
     function hasJob(address job) external view returns (bool);
+    function getMaster() external view returns (bytes32);
+}
+
+interface CronJobLike {
+    function work(bytes32 network, bytes memory args) external;
+    function workable(bytes32 network) external returns (bool, bytes memory);
+}
+
+interface L1GovernanceRelayLike {
+    struct MessagingFee {
+        uint256 nativeFee;
+        uint256 lzTokenFee;
+    }
+
+    struct TxParams {
+        uint32 dstEid;
+        bytes32 dstTarget;
+        bytes dstCallData;
+        bytes extraOptions;
+    }
+
+    function relayRaw(
+        TxParams calldata     txParams,
+        MessagingFee calldata fee,
+        address               refundAddress
+    ) external payable;
+}
+
+interface GovernanceOAppSenderLike {
+    function canCallTarget(address _srcSender, uint32 _dstEid, bytes32 _dstTarget) external view returns (bool);
 }
 
 contract DssSpellTest is DssSpellTestBase {
@@ -278,11 +308,11 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
+    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
         string[3] memory addedKeys = [
-            "USDS_OFT",
-            "LZ_GOV_SENDER",
-            "LZ_GOV_RELAY"
+            "GROVE_STARGUARD",
+            "KEEL_STARGUARD",
+            "OBEX_STARGUARD"
         ];
 
         for(uint256 i = 0; i < addedKeys.length; i++) {
@@ -762,26 +792,37 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public skipped { // add the `skipped` modifier to skip
+    function testPayments() public { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
-        bool ignoreTotalSupplyDaiUsds = false;
-        bool ignoreTotalSupplyMkrSky = false;
+        bool ignoreTotalSupplyDaiUsds = true;
+        bool ignoreTotalSupplyMkrSky = true;
 
         // For each payment, create a Payee object with:
         //    the address of the transferred token,
         //    the destination address,
         //    the amount to be paid
         // Initialize the array with the number of payees
-        Payee[1] memory payees = [
-            Payee(address(usds), addr.addr("ALLOCATOR_OBEX_A_SUBPROXY"), 21_000_000 ether) // Note: ether is only a keyword helper
+        Payee[12] memory payees = [
+            Payee(address(usds), wallets.addr("AEGIS_D"), 4_000 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("BLUE"), 54_167 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("BONAPUBLICA"), 4_000 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CLOAKY_2"), 20_417 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("SKY_STAKING"), 3_783 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("TANGO"), 3_696 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("GNOSIS"), 1_806_670 ether), // Note: ether is only a keyword helper
+            Payee(address(sky), wallets.addr("BLUE"), 330_000 ether), // Note: ether is only a keyword helper
+            Payee(address(sky), wallets.addr("CLOAKY_2"), 288_000 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("SPARK_SUBPROXY"), 4_642_240 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG"), 3_177_413 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CORE_COUNCIL_DELEGATE_MULTISIG"), 158_871 ether) // Note: ether is only a keyword helper
         ];
 
         // Fill the total values from exec sheet
         PaymentAmounts memory expectedTotalPayments = PaymentAmounts({
             dai:                               0 ether, // Note: ether is only a keyword helper
             mkr:                               0 ether, // Note: ether is only a keyword helper
-            usds:                     21_000_000 ether, // Note: ether is only a keyword helper
-            sky:                               0 ether  // Note: ether is only a keyword helper
+            usds:                      9_875_257 ether, // Note: ether is only a keyword helper
+            sky:                         618_000 ether  // Note: ether is only a keyword helper
         });
 
         // Fill the total values based on the source for the transfers above
@@ -1184,16 +1225,16 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 
-    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
+    function testMonthlySettlementCycleInflows() public { // add the `skipped` modifier to skip
         address ALLOCATOR_BLOOM_A_VAULT = addr.addr("ALLOCATOR_BLOOM_A_VAULT");
         address ALLOCATOR_SPARK_A_VAULT = addr.addr("ALLOCATOR_SPARK_A_VAULT");
 
         AllocatorPayment[2] memory payments = [
-            AllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 16_931_086 * WAD),
-            AllocatorPayment(ALLOCATOR_BLOOM_A_VAULT, 6_382_973 * WAD)
+            AllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 16_332_535 * WAD),
+            AllocatorPayment(ALLOCATOR_BLOOM_A_VAULT, 4_196_768 * WAD)
         ];
 
-        uint256 expectedTotalAmount = 23_314_059 * WAD;
+        uint256 expectedTotalAmount = 20_529_303 * WAD;
 
         MscIlkValues[] memory expectedValues = new MscIlkValues[](payments.length);
         uint256 totalDtab = 0;
@@ -1236,11 +1277,11 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // Spark tests
-    function testSparkSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
+    function testSparkSpellIsExecuted() public { // add the `skipped` modifier to skip
         _testStarguardExecution({
             starGuardKey: "SPARK_STARGUARD",
-            primeAgentSpell: 0x63Fa202a7020e8eE0837196783f0fB768CBFE2f1, // Insert Spark spell address
-            primeAgentSpellHash: 0x6e88f81cc72989a637f4b87592dcde2016272fbceb08a2af3b2effdb2d20c0fb, // Insert Spark spell hash
+            primeAgentSpell: 0x2C9E477313EC440fe4Ab6C98529da2793e6890F2, // Insert Spark spell address
+            primeAgentSpellHash: 0xfad4d50e95e43a5d172619770dac42160a77258693d15be09343c5b29f88c521, // Insert Spark spell hash
             directExecutionEnabled: false // Set to true if the spark spell is executed directly from core spell
         });
     }
@@ -1265,9 +1306,9 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // Nova/Keel tests
-    function testNovaSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
+    function testNovaSpellIsExecuted() public { // add the `skipped` modifier to skip
         address NOVA_PROXY = addr.addr('ALLOCATOR_NOVA_A_SUBPROXY');
-        address NOVA_SPELL = address(0x7ae136b7e677C6A9B909a0ef0a4E29f0a1c3c7fE); // Insert Nova spell address
+        address NOVA_SPELL = address(0x2395AF361CdF86d348B07E109E710943AFDb23aa); // Insert Nova spell address
 
         vm.expectCall(
             NOVA_PROXY,
@@ -1300,5 +1341,261 @@ contract DssSpellTest is DssSpellTestBase {
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
+    }
+
+    // SPELL-SPECIFIC TESTS GO BELOW
+
+    struct StarguardValues {
+        address proxy;
+        address starGuard;
+    }
+
+    function testStarGuards() public {
+        StarguardValues[3] memory starGuardValues = [
+            StarguardValues(addr.addr('ALLOCATOR_BLOOM_A_SUBPROXY'), addr.addr("GROVE_STARGUARD")),
+            StarguardValues(addr.addr('ALLOCATOR_NOVA_A_SUBPROXY'), addr.addr("KEEL_STARGUARD")),
+            StarguardValues(addr.addr('ALLOCATOR_OBEX_A_SUBPROXY'), addr.addr("OBEX_STARGUARD"))
+        ];
+
+        uint256 starGuardLength = starGuardValues.length;
+        for(uint256 i; i < starGuardValues.length; ++i) {
+            assertFalse(StarGuardJobLike(addr.addr("CRON_STARGUARD_JOB")).has(starGuardValues[i].starGuard), "StarGuardJob/stars-not-set");
+        }
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        for(uint256 i; i < starGuardLength; ++i) {
+            assertEq(SubProxyLike(starGuardValues[i].proxy).wards(starGuardValues[i].starGuard), 1, "SubProxy/wards-not-set");
+            assertEq(StarGuardLike(starGuardValues[i].starGuard).subProxy(), starGuardValues[i].proxy, "StarGuard/subProxy-not-set");
+            assertEq(StarGuardLike(starGuardValues[i].starGuard).wards(pauseProxy), 1, "StarGuard/wards-not-set");
+            assertEq(StarGuardLike(starGuardValues[i].starGuard).maxDelay(), 7 days, "StarGuard/maxDelay-not-set");
+
+            (address spellAddr,,) = StarGuardLike(starGuardValues[i].starGuard).spellData();
+            assertEq(spellAddr, address(0), "StarGuard/unexpected-plotted-spell");
+
+            assertTrue(StarGuardJobLike(addr.addr("CRON_STARGUARD_JOB")).has(starGuardValues[i].starGuard), "StarGuardJob/stars-not-set");
+        }
+    }
+
+    function testStarGuardSpellExecution() public {
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        StarguardValues[3] memory starGuardValues = [
+            StarguardValues(addr.addr('ALLOCATOR_BLOOM_A_SUBPROXY'), addr.addr("GROVE_STARGUARD")),
+            StarguardValues(addr.addr('ALLOCATOR_NOVA_A_SUBPROXY'), addr.addr("KEEL_STARGUARD")),
+            StarguardValues(addr.addr('ALLOCATOR_OBEX_A_SUBPROXY'), addr.addr("OBEX_STARGUARD"))
+        ];
+
+        // Deploy a simple payload that is always executable
+        MockStarSpell payload = new MockStarSpell();
+
+        uint256 starGuardLength = starGuardValues.length;
+        for(uint256 i; i < starGuardLength; ++i) {
+            StarGuardLike starGuard = StarGuardLike(starGuardValues[i].starGuard);
+            // Plot the payload as the Pause Proxy (admin)
+            vm.startPrank(pauseProxy);
+            starGuard.plot(address(payload), address(payload).codehash);
+            vm.stopPrank();
+
+            // Should be executable now
+            assertTrue(starGuard.prob(), "StarGuard/prob-not-true");
+
+            // Expect the starGuard to emit its Exec event upon exec()
+            vm.expectEmit();
+            emit Executed();
+            vm.expectEmit(true, false, false, false, address(starGuard));
+            emit Exec(address(payload));
+            address executed = starGuard.exec();
+            assertEq(executed, address(payload), "StarGuard/exec-wrong-target");
+
+            // Still owner of subProxy, and no longer plotted
+            assertEq(SubProxyLike(starGuardValues[i].proxy).wards(address(starGuard)), 1, "StarGuard/subProxy-wards-changed");
+            assertFalse(starGuard.prob(), "StarGuard/spell-not-cleared");
+        }
+    }
+
+    function testStarGuardDrop() public {
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        StarguardValues[3] memory starGuardValues = [
+            StarguardValues(addr.addr('ALLOCATOR_BLOOM_A_SUBPROXY'), addr.addr("GROVE_STARGUARD")),
+            StarguardValues(addr.addr('ALLOCATOR_NOVA_A_SUBPROXY'), addr.addr("KEEL_STARGUARD")),
+            StarguardValues(addr.addr('ALLOCATOR_OBEX_A_SUBPROXY'), addr.addr("OBEX_STARGUARD"))
+        ];
+
+        // Deploy a simple payload and plot it
+        MockStarSpell payload = new MockStarSpell();
+        
+        uint256 starGuardLength = starGuardValues.length;
+        for(uint256 i; i < starGuardLength; ++i) {
+            StarGuardLike starGuard = StarGuardLike(starGuardValues[i].starGuard);
+            vm.startPrank(pauseProxy);
+            starGuard.plot(address(payload), address(payload).codehash);
+            vm.stopPrank();
+
+            assertTrue(starGuard.prob(), "StarGuard/prob-not-true-after-plot");
+
+            // Expect a Drop event and cancel the plotted spell
+            vm.startPrank(pauseProxy);
+            vm.expectEmit(true, false, false, false, address(starGuard));
+            emit Drop(address(payload));
+            starGuard.drop();
+            vm.stopPrank();
+
+            // After drop, it should not be executable and spellData cleared
+            assertFalse(starGuard.prob(), "StarGuard/prob-true-after-drop");
+            (address plotted,,) = starGuard.spellData();
+            assertEq(plotted, address(0), "StarGuard/spellData-not-cleared");
+
+            // Exec should revert when nothing is plotted
+            vm.expectRevert("StarGuard/unplotted-spell");
+            starGuard.exec();
+        }
+    }
+
+    event Drop(address indexed addr);
+    event Executed();
+
+    function testGovernanceCanCallTargetsAndHappyPath() public {
+        uint32  SOL_EID = 30168;
+        bytes32 SVM_CONTROLLER = 0x8aadd66fe8f142fb55a08e900228f5488fcc7d73938bbce28e313e1b87da3623;
+        bytes32 BPF_LOADER     = 0x02a8f6914e88a1b0e210153ef763ae2b00c2b93d16c124d2c0537a1004800000;
+
+        address govSender    = addr.addr("LZ_GOV_SENDER");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        assertTrue(GovernanceOAppSenderLike(govSender).canCallTarget(addr.addr("LZ_GOV_RELAY"), SOL_EID, SVM_CONTROLLER), "GovernanceOAppSender/canCallTarget-not-set");
+        assertTrue(GovernanceOAppSenderLike(govSender).canCallTarget(addr.addr("LZ_GOV_RELAY"), SOL_EID, BPF_LOADER), "GovernanceOAppSender/canCallTarget-not-set");
+
+        // Happy path relay to Solana for both targets via the L1 Governance Relay
+        // Note: We authorize the relay itself for the two targets to perform the sends in this test.
+        L1GovernanceRelayLike l1GovernanceRelay = L1GovernanceRelayLike(addr.addr("LZ_GOV_RELAY"));
+
+        vm.startPrank(pauseProxy);
+        vm.deal(address(pauseProxy), 10 ether);
+        uint256 nativeFee = 1 ether;
+
+        // Send to SVM_CONTROLLER (bytes("abc") is arbitrary payload)
+        l1GovernanceRelay.relayRaw{value: nativeFee}({
+            txParams : L1GovernanceRelayLike.TxParams({
+                dstEid      : SOL_EID,
+                dstTarget   : SVM_CONTROLLER,
+                dstCallData : bytes("abc"),
+                // generic executor options copied from init test so encoding matches expectations
+                extraOptions: hex"00030100210100000000000000000000000000030d40000000000000000000000000001f1df0"
+            }),
+            fee : L1GovernanceRelayLike.MessagingFee({
+                nativeFee  : nativeFee,
+                lzTokenFee : 0
+            }),
+            refundAddress : address(0x333)
+        });
+
+        // Send to BPF_LOADER (bytes("def") is arbitrary payload)
+        l1GovernanceRelay.relayRaw{value: nativeFee}({
+            txParams : L1GovernanceRelayLike.TxParams({
+                dstEid      : SOL_EID,
+                dstTarget   : BPF_LOADER,
+                dstCallData : bytes("def"),
+                extraOptions: hex"00030100210100000000000000000000000000030d40000000000000000000000000001f1df0"
+            }),
+            fee : L1GovernanceRelayLike.MessagingFee({
+                nativeFee  : nativeFee,
+                lzTokenFee : 0
+            }),
+            refundAddress : address(0x333)
+        });
+        vm.stopPrank();
+    }
+
+    function testSpbeamAllocatorObexAConfig() public {
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        (uint16 minBps, uint16 maxBps, uint16 stepBps) = spbeam.cfgs("ALLOCATOR-OBEX-A");
+        assertEq(minBps, 0, "SPBEAM/ALLOCATOR-OBEX-A/min");
+        assertEq(maxBps, 3_000, "SPBEAM/ALLOCATOR-OBEX-A/max");
+        assertEq(stepBps, 400, "SPBEAM/ALLOCATOR-OBEX-A/step");
+    }
+
+    function testCronStarGuardJobWorkAndWorkable() public {
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        StarguardValues[4] memory starGuardValues = [
+            StarguardValues(addr.addr('SPARK_SUBPROXY'), addr.addr("SPARK_STARGUARD")),
+            StarguardValues(addr.addr('ALLOCATOR_BLOOM_A_SUBPROXY'), addr.addr("GROVE_STARGUARD")),
+            StarguardValues(addr.addr('ALLOCATOR_NOVA_A_SUBPROXY'), addr.addr("KEEL_STARGUARD")),
+            StarguardValues(addr.addr('ALLOCATOR_OBEX_A_SUBPROXY'), addr.addr("OBEX_STARGUARD"))
+        ];
+
+        SequencerLike  seq       = SequencerLike(addr.addr("CRON_SEQUENCER"));
+        CronJobLike    job       = CronJobLike(addr.addr("CRON_STARGUARD_JOB"));
+
+        // Ensure job is registered
+        assertTrue(seq.hasJob(address(job)), "StarGuardJob/not-in-sequencer");
+
+        // Plot an executable payload so the job becomes workable
+        MockStarSpell payload = new MockStarSpell();
+
+        uint256 starGuardLength = starGuardValues.length;
+        for(uint256 i; i < starGuardLength; ++i) {
+            StarGuardLike starGuard = StarGuardLike(starGuardValues[i].starGuard);
+            
+            vm.startPrank(pauseProxy);
+            starGuard.plot(address(payload), address(payload).codehash);
+            vm.stopPrank();
+
+            assertTrue(starGuard.prob(), "StarGuard/prob-not-true-after-plot");
+
+            bytes32 network = seq.getMaster();
+
+            // workable() may mutate; snapshot and revert around the check
+            bool isWorkable;
+            bytes memory args;
+            {
+                uint256 before = vm.snapshotState();
+                (isWorkable, args) = job.workable(network);
+                vm.revertToStateAndDelete(before);
+            }
+            assertTrue(isWorkable, "StarGuardJob/not-workable");
+
+            job.work(network, args);
+
+            // After work, plotted spell should be cleared and not executable
+            assertFalse(starGuard.prob(), "StarGuard/prob-true-after-job");
+            (address plotted,,) = starGuard.spellData();
+            assertEq(plotted, address(0), "StarGuard/spellData-not-cleared-by-job");
+
+            // Not immediately workable again
+            {
+                uint256 before = vm.snapshotState();
+                (bool again, ) = job.workable(network);
+                vm.revertToStateAndDelete(before);
+                assertFalse(again, "StarGuardJob/still-workable-after-work");
+            }
+        }
+    }
+}
+
+contract MockStarSpell {
+    event Executed();
+
+    function execute() external {
+        emit Executed();
+    }
+
+    function isExecutable() external pure returns (bool) {
+        return true;
     }
 }

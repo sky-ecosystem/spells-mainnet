@@ -541,10 +541,14 @@ interface OsmWrapperLike {
 }
 
 interface StarGuardLike {
+    function maxDelay() external view returns (uint256);
+    function subProxy() external view returns (address subProxy);
     function spellData() external view returns (address addr, bytes32 tag, uint256 deadline);
-    function subProxy() external view returns (address);
-    function exec() external returns (address addr);
+    function wards(address usr) external view returns (uint256 allowed);
+    function plot(address addr_, bytes32 tag_) external;
     function prob() external view returns (bool);
+    function exec() external returns (address addr);
+    function drop() external;
 }
 
 interface StarGuardJobLike {
@@ -553,6 +557,7 @@ interface StarGuardJobLike {
 
 interface SubProxyLike {
     function exec(address target, bytes calldata args) external payable returns (bytes memory out);
+    function wards(address usr) external view returns (uint256 allowed);
 }
 
 contract DssSpellTestBase is Config, DssTest {

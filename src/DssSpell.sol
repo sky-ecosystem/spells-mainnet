@@ -217,7 +217,7 @@ contract DssSpellAction is DssAction {
         StarGuardJobLike(CRON_STARGUARD_JOB).add(OBEX_STARGUARD);
 
         // Note: Bump chainlog patch version as new keys are being added
-        DssExecLib.setChangelogVersion("1.20.8");
+        DssExecLib.setChangelogVersion("1.20.9");
 
         // ---------- Monthly Settlement Cycle and Treasury Management Function for October ----------
         // Forum: https://forum.sky.money/t/msc-3-settlemnt-summary-october-2025-initial-calculation/27397/3
