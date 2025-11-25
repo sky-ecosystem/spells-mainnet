@@ -87,11 +87,11 @@ contract DssSpellAction is DssAction {
     address internal immutable SKY                      = DssExecLib.getChangelogAddress("SKY");
     address internal immutable DAI_USDS                 = DssExecLib.getChangelogAddress("DAI_USDS");
     address internal immutable LZ_GOV_SENDER            = DssExecLib.getChangelogAddress("LZ_GOV_SENDER");
+    address internal immutable CRON_STARGUARD_JOB       = DssExecLib.getChangelogAddress("CRON_STARGUARD_JOB");
 
     address internal constant GROVE_STARGUARD       = 0xfc51CAa049E8894bEcFfB68c61095C3F3Ec8a880;
     address internal constant KEEL_STARGUARD        = 0xe8fF70481d653Ec31AB9E0cB2A8B316afF8D84ee;
     address internal constant OBEX_STARGUARD        = 0x987f1C31f9935e9926555BcFB76516bb2EcEccaD;
-    address internal constant CRON_STARGUARD_JOB    = 0xB18d211fA69422a9A848B790C5B4a3957F7Aa44E;
 
     // ---------- Spark Spell ----------
     address internal immutable SPARK_STARGUARD  = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
