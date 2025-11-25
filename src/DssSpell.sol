@@ -21,7 +21,6 @@ import "dss-exec-lib/DssAction.sol";
 import { GemAbstract } from "dss-interfaces/ERC/GemAbstract.sol";
 import { VatAbstract } from "dss-interfaces/dss/VatAbstract.sol";
 import { JugAbstract } from "dss-interfaces/dss/JugAbstract.sol";
-import { MCD } from "dss-test/MCD.sol";
 // Note: code matches https://github.com/sky-ecosystem/star-guard/blob/52239d716a89188b303f137fc43fb9288735ba2e/deploy/StarGuardInit.sol
 import { StarGuardInit, StarGuardConfig } from "src/dependencies/star-guard/StarGuardInit.sol";
 
@@ -225,17 +224,11 @@ contract DssSpellAction is DssAction {
         // Atlas: https://sky-atlas.io/#A.2.4.1.4.1.1
         // Atlas: https://sky-atlas.io/#A.2.4.1.4.1.2
 
-        // Spark
-        // Note: This is only a subheading, actual instructions follow below.
-
         // Mint 16,332,535 USDS debt in ALLOCATOR-SPARK-A and transfer the amount to the Surplus Buffer
         _takeAllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 16_332_535 * WAD);
 
         // Transfer 4,642,240 USDS from the Surplus Buffer to the Spark SubProxy at 0x3300f198988e4C9C63F75dF86De36421f06af8c4
         _transferUsds(SPARK_SUBPROXY, 4_642_240 * WAD);
-
-        // Bloom/Grove
-        // Note: This is only a subheading, actual instructions follow below.
 
         // Mint 4,196,768 USDS debt in ALLOCATOR-BLOOM-A and transfer the amount to the Surplus Buffer
         _takeAllocatorPayment(ALLOCATOR_BLOOM_A_VAULT, 4_196_768 * WAD);
