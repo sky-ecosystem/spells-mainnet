@@ -139,7 +139,8 @@ contract DssSpellAction is DssAction {
 
     function actions() public override {
         // ---------- Launch Grove StarGuard ----------
-        // Forum:
+        // Forum: https://forum.sky.money/t/technical-scope-of-the-starguard-launches-for-grove-keel-and-obex/27441
+        // Poll: TODO
 
         // Call StarGuardInit.init with the following parameters:
         StarGuardInit.init(
@@ -164,7 +165,8 @@ contract DssSpellAction is DssAction {
         StarGuardJobLike(CRON_STARGUARD_JOB).add(GROVE_STARGUARD);
 
         // ---------- Launch Keel StarGuard ----------
-        // Forum:
+        // Forum: https://forum.sky.money/t/technical-scope-of-the-starguard-launches-for-grove-keel-and-obex/27441
+        // Poll: TODO
 
         // Call StarGuardInit.init with the following parameters:
         StarGuardInit.init(
@@ -189,7 +191,8 @@ contract DssSpellAction is DssAction {
         StarGuardJobLike(CRON_STARGUARD_JOB).add(KEEL_STARGUARD);
 
         // ---------- Launch Obex StarGuard ----------
-        // Forum:
+        // Forum: https://forum.sky.money/t/technical-scope-of-the-starguard-launches-for-grove-keel-and-obex/27441
+        // Poll: TODO
 
         // Call StarGuardInit.init with the following parameters:
         StarGuardInit.init(
@@ -214,7 +217,10 @@ contract DssSpellAction is DssAction {
         StarGuardJobLike(CRON_STARGUARD_JOB).add(OBEX_STARGUARD);
 
         // ---------- Monthly Settlement Cycle and Treasury Management Function for October ----------
-        // Forum:
+        // Forum: https://forum.sky.money/t/msc-3-settlemnt-summary-october-2025-initial-calculation/27397/3
+        // Atlas: https://sky-atlas.io/#A.2.5
+        // Atlas: https://sky-atlas.io/#A.2.4.1.4.1.1
+        // Atlas: https://sky-atlas.io/#A.2.4.1.4.1.2
 
         // Spark
         // Note: This is only a subheading, actual instructions follow below.
@@ -238,7 +244,9 @@ contract DssSpellAction is DssAction {
         _transferUsds(CORE_COUNCIL_DELEGATE_MULTISIG, 158_871 * WAD);
 
         // ---------- Whitelist the Keel SubProxy to Send Cross-Chain Messages to Solana ----------
-        // Forum:
+        // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2025-11-17/27421
+        // Forum: https://forum.sky.money/t/executive-inclusion-whitelisting-the-keel-subproxy-to-send-cross-chain-messages-to-solana/27447
+        // Poll: https://vote.sky.money/polling/QmdomJ7o
 
         // Call setCanCallTarget on LZ_GOV_SENDER with the following parameters:
         GovernanceOAppSenderLike(LZ_GOV_SENDER).setCanCallTarget({
@@ -265,7 +273,8 @@ contract DssSpellAction is DssAction {
         });
 
         // ---------- Delegate Compensation for October ----------
-        // Forum:
+        // Forum: https://forum.sky.money/t/october-2025-ranked-delegate-compensation/27412
+        // Atlas: https://sky-atlas.io/#A.1.5
 
         // Transfer 4,000 USDS to AegisD at 0x78C180CF113Fe4845C325f44648b6567BC79d6E0
         _transferUsds(AEGIS_D, 4_000 * WAD);
@@ -286,7 +295,8 @@ contract DssSpellAction is DssAction {
         _transferUsds(TANGO, 3_696 * WAD);
 
         // ---------- Atlas Core Development USDS Payments ----------
-        // Forum:
+        // Forum: https://forum.sky.money/t/atlas-core-development-payment-requests-november-2025/27402
+        // Atlas: https://sky-atlas.io/#A.2.2.1.1
 
         // Transfer 50,167 USDS to BLUE at 0xb6C09680D822F162449cdFB8248a7D3FC26Ec9Bf
         _transferUsds(BLUE, 50_167 * WAD);
@@ -295,7 +305,8 @@ contract DssSpellAction is DssAction {
         _transferUsds(CLOAKY_2, 16_417 * WAD);
 
         // ---------- Atlas Core Development SKY Payments ----------
-        // Forum:
+        // Forum: https://forum.sky.money/t/atlas-core-development-payment-requests-november-2025/27402
+        // Atlas: https://sky-atlas.io/#A.2.2.1.1
 
         // Transfer 330,000 SKY to BLUE at 0xb6C09680D822F162449cdFB8248a7D3FC26Ec9Bf
         GemAbstract(SKY).transfer(BLUE, 330_000 * WAD);
@@ -304,13 +315,15 @@ contract DssSpellAction is DssAction {
         GemAbstract(SKY).transfer(CLOAKY_2, 288_000 * WAD);
 
         // ---------- Payment to Gnosis ----------
-        // Forum:
+        // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2025-11-10/27400
+        // Atlas: https://sky-atlas.io/#A.4.1.1.1.1
 
         // Transfer 1,806,670 USDS to Gnosis at 0x849D52316331967b6fF1198e5E32A0eB168D039d
         _transferUsds(GNOSIS, 1_806_670 * WAD);
 
         // ---------- Add ALLOCATOR-OBEX-A to SP-BEAM ----------
-        // Forum:
+        // Forum: https://forum.sky.money/t/executive-inclusion-add-allocator-obex-a-to-the-sp-beam/27442
+        // Atlas: https://sky-atlas.io/#A.3.7.1.2.3
 
         // Add ALLOCATOR-OBEX-A to SP-BEAM with the following parameters:
         // max: 3,000 basis points
@@ -321,13 +334,29 @@ contract DssSpellAction is DssAction {
         DssExecLib.setValue(MCD_SPBEAM, "ALLOCATOR-OBEX-A", "step", 400);
 
         // ---------- Whitelist Spark Proxy Spell in Starguard ----------
-        // Forum:
+        // Forum: https://forum.sky.money/t/november-27-2025-proposed-changes-to-spark-for-upcoming-spell/27418
+        // Forum: https://forum.sky.money/t/november-27-2025-proposed-changes-to-spark-for-upcoming-spell/27419
+        // Forum: https://forum.sky.money/t/november-27-2025-proposed-changes-to-spark-for-upcoming-spell/27420
+        // Forum: https://forum.sky.money/t/november-27-2025-proposed-changes-to-spark-for-upcoming-spell/27421
+        // Forum: https://forum.sky.money/t/november-27-2025-proposed-changes-to-spark-for-upcoming-spell/27422
+        // Forum: https://forum.sky.money/t/november-27-2025-proposed-changes-to-spark-for-upcoming-spell/27423
+        // Forum: https://forum.sky.money/t/november-27-2025-proposed-changes-to-spark-for-upcoming-spell/27424
+        // Forum: https://forum.sky.money/t/november-27-2025-proposed-changes-to-spark-for-upcoming-spell/27425
+        // Forum: https://forum.sky.money/t/november-27-2025-proposed-changes-to-spark-for-upcoming-spell/27426
+        // Forum: https://forum.sky.money/t/november-27-2025-proposed-changes-to-spark-for-upcoming-spell/27427
+        // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0x9dd06e68b3b109b616cc7cf7af7f1cf78ed9408312bfb9fe43764a3b3dba563a
+        // Poll: https://vote.sky.money/polling/QmTNrfXk
+        // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0xcaafeb100a8ec75ae1e1e9d4059f7d2ec2db31aa55a09be2ec2c7467e0f10799
+        // Atlas: https://sky-atlas.io/#A.2.9.2.2.2.5.5.1
+        // Atlas: https://sky-atlas.io/#A.6.1.1.1.2.6.1.2.1.2.3
 
         // Whitelist the Spark Proxy Spell deployed to 0x2C9E477313EC440fe4Ab6C98529da2793e6890F2 with codehash 0xfad4d50e95e43a5d172619770dac42160a77258693d15be09343c5b29f88c521; direct execution: no in Spark Starguard
         StarGuardLike(SPARK_STARGUARD).plot(SPARK_SPELL, SPARK_SPELL_HASH);
 
         // ---------- Execute Keel Proxy Spell ----------
-        // Forum:
+        // Forum: https://forum.sky.money/t/november-27-2025-prime-technical-scope-parameter-change-for-upcoming-spell/27406
+        // Forum: https://forum.sky.money/t/november-27-2025-prime-technical-scope-solana-pre-configuration-for-upcoming-spell/27404
+        // Poll: https://vote.sky.money/polling/QmdomJ7o
 
         // Execute Keel Proxy Spell at 0x2395AF361CdF86d348B07E109E710943AFDb23aa
         ProxyLike(KEEL_SUBPROXY).exec(KEEL_SPELL, abi.encodeWithSignature("execute()"));
