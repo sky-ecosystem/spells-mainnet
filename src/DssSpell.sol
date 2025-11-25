@@ -324,8 +324,10 @@ contract DssSpellAction is DssAction {
         // Add ALLOCATOR-OBEX-A to SP-BEAM with the following parameters:
         // max: 3,000 basis points
         DssExecLib.setValue(MCD_SPBEAM, "ALLOCATOR-OBEX-A", "max", 3_000);
+        
         // min: 0 basis points
         // Note: min is not set as it is set to 0 basis points by default
+        
         // step: 400 basis points
         DssExecLib.setValue(MCD_SPBEAM, "ALLOCATOR-OBEX-A", "step", 400);
 
