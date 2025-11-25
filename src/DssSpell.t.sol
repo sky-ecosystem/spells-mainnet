@@ -1440,18 +1440,18 @@ contract DssSpellTest is DssSpellTestBase {
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        StarguardValues[3] memory starGuardValues = [
-            StarguardValues(addr.addr('GROVE_SUBPROXY'), addr.addr("GROVE_STARGUARD")),
-            StarguardValues(addr.addr('KEEL_SUBPROXY'), addr.addr("KEEL_STARGUARD")),
-            StarguardValues(addr.addr('OBEX_SUBPROXY'), addr.addr("OBEX_STARGUARD"))
+        address[3] memory starGuards = [
+            addr.addr("GROVE_STARGUARD"),
+            addr.addr("KEEL_STARGUARD"),
+            addr.addr("OBEX_STARGUARD")
         ];
 
         // Deploy a simple payload and plot it
         MockStarSpell payload = new MockStarSpell();
         
-        uint256 starGuardLength = starGuardValues.length;
+        uint256 starGuardLength = starGuards.length;
         for(uint256 i; i < starGuardLength; ++i) {
-            StarGuardLike starGuard = StarGuardLike(starGuardValues[i].starGuard);
+            StarGuardLike starGuard = StarGuardLike(starGuards[i]);
             vm.startPrank(pauseProxy);
             starGuard.plot(address(payload), address(payload).codehash);
             vm.stopPrank();
