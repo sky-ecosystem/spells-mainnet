@@ -121,8 +121,7 @@ contract DssSpellAction is DssAction {
     bytes32 internal constant BPF_LOADER = 0x02a8f6914e88a1b0e210153ef763ae2b00c2b93d16c124d2c0537a1004800000;
 
     // ---------- Spark Proxy ----------
-    // Note: Spark Proxy: https://github.com/sparkdotfi/sparklend-deployments/blob/bba4c57d54deb6a14490b897c12a949aa035a99b/script/output/1/primary-sce-latest.json#L2
-    address internal constant SPARK_SUBPROXY = 0x3300f198988e4C9C63F75dF86De36421f06af8c4;
+    address internal immutable SPARK_SUBPROXY = DssExecLib.getChangelogAddress("SPARK_SUBPROXY");
 
     // ---------- Grove Proxy ----------
     // Note: The deployment address for the Grove Proxy can be found at https://forum.sky.money/t/technical-scope-of-the-star-2-allocator-launch/26190

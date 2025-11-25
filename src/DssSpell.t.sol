@@ -413,7 +413,7 @@ contract DssSpellTest is DssSpellTestBase {
             roles:          addr.addr("ALLOCATOR_ROLES"),
             buffer:         addr.addr("ALLOCATOR_OBEX_A_BUFFER"),
             vault:          addr.addr("ALLOCATOR_OBEX_A_VAULT"),
-            allocatorProxy: addr.addr("ALLOCATOR_OBEX_A_SUBPROXY"),
+            allocatorProxy: addr.addr("OBEX_SUBPROXY"),
             owner:          addr.addr("MCD_PAUSE_PROXY")
         });
 
@@ -1306,7 +1306,7 @@ contract DssSpellTest is DssSpellTestBase {
 
     // Bloom/Grove tests
     function testBloomSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
-        address BLOOM_PROXY = addr.addr('ALLOCATOR_BLOOM_A_SUBPROXY');
+        address BLOOM_PROXY = addr.addr('GROVE_SUBPROXY');
         address BLOOM_SPELL = address(0x8b4A92f8375ef89165AeF4639E640e077d7C656b); // Insert Bloom spell address
 
         vm.expectCall(
@@ -1325,7 +1325,7 @@ contract DssSpellTest is DssSpellTestBase {
 
     // Nova/Keel tests
     function testNovaSpellIsExecuted() public { // add the `skipped` modifier to skip
-        address NOVA_PROXY = addr.addr('ALLOCATOR_NOVA_A_SUBPROXY');
+        address NOVA_PROXY = addr.addr('KEEL_SUBPROXY');
         address NOVA_SPELL = address(0x2395AF361CdF86d348B07E109E710943AFDb23aa); // Insert Nova spell address
 
         vm.expectCall(
@@ -1344,7 +1344,7 @@ contract DssSpellTest is DssSpellTestBase {
 
     // Obex tests
     function testObexSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
-        address OBEX_PROXY = addr.addr('ALLOCATOR_OBEX_A_SUBPROXY');
+        address OBEX_PROXY = addr.addr('OBEX_SUBPROXY');
         address OBEX_SPELL = address(0xF538909eDF14d2c23002C2b3882Ad60f79d61893); // Insert Obex spell address
 
         vm.expectCall(
@@ -1550,9 +1550,9 @@ contract DssSpellTest is DssSpellTestBase {
 
         StarguardValues[4] memory starGuardValues = [
             StarguardValues(addr.addr('SPARK_SUBPROXY'), addr.addr("SPARK_STARGUARD")),
-            StarguardValues(addr.addr('ALLOCATOR_BLOOM_A_SUBPROXY'), addr.addr("GROVE_STARGUARD")),
-            StarguardValues(addr.addr('ALLOCATOR_NOVA_A_SUBPROXY'), addr.addr("KEEL_STARGUARD")),
-            StarguardValues(addr.addr('ALLOCATOR_OBEX_A_SUBPROXY'), addr.addr("OBEX_STARGUARD"))
+            StarguardValues(addr.addr('GROVE_SUBPROXY'), addr.addr("GROVE_STARGUARD")),
+            StarguardValues(addr.addr('KEEL_SUBPROXY'), addr.addr("KEEL_STARGUARD")),
+            StarguardValues(addr.addr('OBEX_SUBPROXY'), addr.addr("OBEX_STARGUARD"))
         ];
 
         SequencerLike  seq       = SequencerLike(addr.addr("CRON_SEQUENCER"));
