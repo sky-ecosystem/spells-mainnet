@@ -67,7 +67,25 @@ interface L1GovernanceRelayLike {
 }
 
 interface GovernanceOAppSenderLike {
+    struct MessagingFee {
+        uint256 nativeFee;
+        uint256 lzTokenFee;
+    }
+    struct TxParams {
+        uint32 dstEid;
+        bytes32 dstTarget;
+        bytes dstCallData;
+        bytes extraOptions;
+    }
+    struct MessagingReceipt {
+        bytes32 guid;
+    }
     function canCallTarget(address _srcSender, uint32 _dstEid, bytes32 _dstTarget) external view returns (bool);
+    function sendTx(
+        TxParams calldata _params,
+        MessagingFee calldata _fee,
+        address _refundAddress
+    ) external payable returns (MessagingReceipt memory msgReceipt);
 }
 
 contract DssSpellTest is DssSpellTestBase {
@@ -1352,9 +1370,9 @@ contract DssSpellTest is DssSpellTestBase {
 
     function testStarGuards() public {
         StarguardValues[3] memory starGuardValues = [
-            StarguardValues(addr.addr('ALLOCATOR_BLOOM_A_SUBPROXY'), addr.addr("GROVE_STARGUARD")),
-            StarguardValues(addr.addr('ALLOCATOR_NOVA_A_SUBPROXY'), addr.addr("KEEL_STARGUARD")),
-            StarguardValues(addr.addr('ALLOCATOR_OBEX_A_SUBPROXY'), addr.addr("OBEX_STARGUARD"))
+            StarguardValues(addr.addr('GROVE_SUBPROXY'), addr.addr("GROVE_STARGUARD")),
+            StarguardValues(addr.addr('KEEL_SUBPROXY'), addr.addr("KEEL_STARGUARD")),
+            StarguardValues(addr.addr('OBEX_SUBPROXY'), addr.addr("OBEX_STARGUARD"))
         ];
 
         uint256 starGuardLength = starGuardValues.length;
@@ -1384,9 +1402,9 @@ contract DssSpellTest is DssSpellTestBase {
         assertTrue(spell.done(), "TestError/spell-not-done");
 
         StarguardValues[3] memory starGuardValues = [
-            StarguardValues(addr.addr('ALLOCATOR_BLOOM_A_SUBPROXY'), addr.addr("GROVE_STARGUARD")),
-            StarguardValues(addr.addr('ALLOCATOR_NOVA_A_SUBPROXY'), addr.addr("KEEL_STARGUARD")),
-            StarguardValues(addr.addr('ALLOCATOR_OBEX_A_SUBPROXY'), addr.addr("OBEX_STARGUARD"))
+            StarguardValues(addr.addr('GROVE_SUBPROXY'), addr.addr("GROVE_STARGUARD")),
+            StarguardValues(addr.addr('KEEL_SUBPROXY'), addr.addr("KEEL_STARGUARD")),
+            StarguardValues(addr.addr('OBEX_SUBPROXY'), addr.addr("OBEX_STARGUARD"))
         ];
 
         // Deploy a simple payload that is always executable
@@ -1423,9 +1441,9 @@ contract DssSpellTest is DssSpellTestBase {
         assertTrue(spell.done(), "TestError/spell-not-done");
 
         StarguardValues[3] memory starGuardValues = [
-            StarguardValues(addr.addr('ALLOCATOR_BLOOM_A_SUBPROXY'), addr.addr("GROVE_STARGUARD")),
-            StarguardValues(addr.addr('ALLOCATOR_NOVA_A_SUBPROXY'), addr.addr("KEEL_STARGUARD")),
-            StarguardValues(addr.addr('ALLOCATOR_OBEX_A_SUBPROXY'), addr.addr("OBEX_STARGUARD"))
+            StarguardValues(addr.addr('GROVE_SUBPROXY'), addr.addr("GROVE_STARGUARD")),
+            StarguardValues(addr.addr('KEEL_SUBPROXY'), addr.addr("KEEL_STARGUARD")),
+            StarguardValues(addr.addr('OBEX_SUBPROXY'), addr.addr("OBEX_STARGUARD"))
         ];
 
         // Deploy a simple payload and plot it
@@ -1463,7 +1481,7 @@ contract DssSpellTest is DssSpellTestBase {
 
     function testGovernanceCanCallTargetsAndHappyPath() public {
         uint32  SOL_EID = 30168;
-        bytes32 SVM_CONTROLLER = 0x8aadd66fe8f142fb55a08e900228f5488fcc7d73938bbce28e313e1b87da3623;
+        bytes32 SVM_CONTROLLER = 0x8aadd66fe8f142fb55a08e900228f5488fcc7d73938bbce28e313e1b87da3624;
         bytes32 BPF_LOADER     = 0x02a8f6914e88a1b0e210153ef763ae2b00c2b93d16c124d2c0537a1004800000;
 
         address govSender    = addr.addr("LZ_GOV_SENDER");
@@ -1472,47 +1490,45 @@ contract DssSpellTest is DssSpellTestBase {
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        assertTrue(GovernanceOAppSenderLike(govSender).canCallTarget(addr.addr("LZ_GOV_RELAY"), SOL_EID, SVM_CONTROLLER), "GovernanceOAppSender/canCallTarget-not-set");
-        assertTrue(GovernanceOAppSenderLike(govSender).canCallTarget(addr.addr("LZ_GOV_RELAY"), SOL_EID, BPF_LOADER), "GovernanceOAppSender/canCallTarget-not-set");
+        assertTrue(GovernanceOAppSenderLike(govSender).canCallTarget(addr.addr("KEEL_SUBPROXY"), SOL_EID, SVM_CONTROLLER), "GovernanceOAppSender/canCallTarget-not-set");
+        assertTrue(GovernanceOAppSenderLike(govSender).canCallTarget(addr.addr("KEEL_SUBPROXY"), SOL_EID, BPF_LOADER), "GovernanceOAppSender/canCallTarget-not-set");
 
-        // Happy path relay to Solana for both targets via the L1 Governance Relay
-        // Note: We authorize the relay itself for the two targets to perform the sends in this test.
-        L1GovernanceRelayLike l1GovernanceRelay = L1GovernanceRelayLike(addr.addr("LZ_GOV_RELAY"));
+        // Happy path: call the Governance OApp sender directly from KEEL_SUBPROXY
+        GovernanceOAppSenderLike govOappSender  = GovernanceOAppSenderLike(govSender);
 
-        vm.startPrank(pauseProxy);
-        vm.deal(address(pauseProxy), 10 ether);
+        vm.startPrank(addr.addr("KEEL_SUBPROXY"));
+        vm.deal(address(addr.addr("KEEL_SUBPROXY")), 10 ether);
         uint256 nativeFee = 1 ether;
 
         // Send to SVM_CONTROLLER (bytes("abc") is arbitrary payload)
-        l1GovernanceRelay.relayRaw{value: nativeFee}({
-            txParams : L1GovernanceRelayLike.TxParams({
+        govOappSender.sendTx{value: nativeFee}(
+            GovernanceOAppSenderLike.TxParams({
                 dstEid      : SOL_EID,
                 dstTarget   : SVM_CONTROLLER,
                 dstCallData : bytes("abc"),
-                // generic executor options copied from init test so encoding matches expectations
                 extraOptions: hex"00030100210100000000000000000000000000030d40000000000000000000000000001f1df0"
             }),
-            fee : L1GovernanceRelayLike.MessagingFee({
+            GovernanceOAppSenderLike.MessagingFee({
                 nativeFee  : nativeFee,
                 lzTokenFee : 0
             }),
-            refundAddress : address(0x333)
-        });
+            address(0x333)
+        );
 
         // Send to BPF_LOADER (bytes("def") is arbitrary payload)
-        l1GovernanceRelay.relayRaw{value: nativeFee}({
-            txParams : L1GovernanceRelayLike.TxParams({
+        govOappSender.sendTx{value: nativeFee}(
+            GovernanceOAppSenderLike.TxParams({
                 dstEid      : SOL_EID,
                 dstTarget   : BPF_LOADER,
                 dstCallData : bytes("def"),
                 extraOptions: hex"00030100210100000000000000000000000000030d40000000000000000000000000001f1df0"
             }),
-            fee : L1GovernanceRelayLike.MessagingFee({
+            GovernanceOAppSenderLike.MessagingFee({
                 nativeFee  : nativeFee,
                 lzTokenFee : 0
             }),
-            refundAddress : address(0x333)
-        });
+            address(0x333)
+        );
         vm.stopPrank();
     }
 

@@ -180,7 +180,7 @@ contract Config {
         afterSpell.vest_sky_mint_cap      = 176_000_000 * WAD / 182 days;                   // In WAD SKY per second
         afterSpell.vest_spk_cap           = 2_502_500_000 * WAD / 730 days;                 // In WAD SKY per second
         afterSpell.ilk_count              = 31;                                             // Num expected in system
-        afterSpell.chainlog_version       = "1.20.8";                                       // String expected in system
+        afterSpell.chainlog_version       = "1.20.9";                                       // String expected in system
 
         afterSpell.SP_tau       = 57_600 seconds;                             // In seconds
         afterSpell.SP_bud       = 0xe1c6f81D0c3CD570A77813b81AA064c5fff80309; // Address of SPBEAM Bud
