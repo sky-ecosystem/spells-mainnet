@@ -51,8 +51,8 @@ interface SubProxyLike {
 contract DssSpellAction is DssAction {
     // Provides a descriptive tag for bot consumption
     // This should be modified weekly to provide a summary of the actions
-    // Hash: cast keccak -- "$(wget 'https://raw.githubusercontent.com/sky-ecosystem/executive-votes/3df3d0517944f7a40476212f33d79198b38aa913/2025/executive-vote-2025-11-27-launch-starguards.md' -q -O - 2>/dev/null)"
-    string public constant override description = "2025-11-27 MakerDAO Executive Spell | Hash: 0x69477b772a3f1c8ac49a0165f05c3f074e723b58cf30621bfff2f464e9951b4f";
+    // Hash: cast keccak -- "$(wget 'https://raw.githubusercontent.com/sky-ecosystem/executive-votes/8087db09fefaa3e7103cf34b92f329dd0123dfea/2025/executive-vote-2025-11-27-launch-starguards.md' -q -O - 2>/dev/null)"
+    string public constant override description = "2025-11-27 MakerDAO Executive Spell | Hash: 0xe74e13b7a9e87ab09ce7498e188986846c6d78bb30f6b11e7ee828f25fe02ca8";
 
     // Set office hours according to the summary
     function officeHours() public pure override returns (bool) {
