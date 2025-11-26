@@ -44,7 +44,7 @@ interface StarGuardLike {
     function plot(address addr_, bytes32 tag_) external;
 }
 
-interface ProxyLike {
+interface SubProxyLike {
     function exec(address target, bytes calldata args) external payable returns (bytes memory out);
 }
 
@@ -138,7 +138,7 @@ contract DssSpellAction is DssAction {
     function actions() public override {
         // ---------- Launch Grove StarGuard ----------
         // Forum: https://forum.sky.money/t/technical-scope-of-the-starguard-launches-for-grove-keel-and-obex/27441
-        // Poll: TODO
+        // Poll: https://vote.sky.money/polling/QmSKnB98
 
         // Call StarGuardInit.init with the following parameters:
         StarGuardInit.init(
@@ -164,7 +164,7 @@ contract DssSpellAction is DssAction {
 
         // ---------- Launch Keel StarGuard ----------
         // Forum: https://forum.sky.money/t/technical-scope-of-the-starguard-launches-for-grove-keel-and-obex/27441
-        // Poll: TODO
+        // Poll: https://vote.sky.money/polling/QmSKnB98
 
         // Call StarGuardInit.init with the following parameters:
         StarGuardInit.init(
@@ -190,7 +190,7 @@ contract DssSpellAction is DssAction {
 
         // ---------- Launch Obex StarGuard ----------
         // Forum: https://forum.sky.money/t/technical-scope-of-the-starguard-launches-for-grove-keel-and-obex/27441
-        // Poll: TODO
+        // Poll: https://vote.sky.money/polling/QmSKnB98
 
         // Call StarGuardInit.init with the following parameters:
         StarGuardInit.init(
@@ -356,7 +356,7 @@ contract DssSpellAction is DssAction {
         // Poll: https://vote.sky.money/polling/QmdomJ7o
 
         // Execute Keel Proxy Spell at 0x2395AF361CdF86d348B07E109E710943AFDb23aa
-        ProxyLike(KEEL_SUBPROXY).exec(KEEL_SPELL, abi.encodeWithSignature("execute()"));
+        SubProxyLike(KEEL_SUBPROXY).exec(KEEL_SPELL, abi.encodeWithSignature("execute()"));
     }
 
     // ---------- Helper Functions ----------

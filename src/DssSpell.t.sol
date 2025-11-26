@@ -1376,7 +1376,7 @@ contract DssSpellTest is DssSpellTestBase {
         ];
 
         uint256 starGuardLength = starGuardValues.length;
-        for(uint256 i; i < starGuardValues.length; ++i) {
+        for(uint256 i; i < starGuardLength; ++i) {
             assertFalse(StarGuardJobLike(addr.addr("CRON_STARGUARD_JOB")).has(starGuardValues[i].starGuard), "StarGuardJob/stars-not-set");
         }
         _vote(address(spell));
