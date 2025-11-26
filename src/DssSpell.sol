@@ -28,10 +28,6 @@ interface StarGuardJobLike {
     function add(address starGuard) external;
 }
 
-interface GovernanceOAppSenderLike {
-    function setCanCallTarget(address _srcSender, uint32 _dstEid, bytes32 _dstTarget, bool _canCall) external;
-}
-
 interface DaiUsdsLike {
     function daiToUsds(address usr, uint256 wad) external;
 }
@@ -86,7 +82,6 @@ contract DssSpellAction is DssAction {
     address internal immutable ALLOCATOR_BLOOM_A_VAULT  = DssExecLib.getChangelogAddress("ALLOCATOR_BLOOM_A_VAULT");
     address internal immutable SKY                      = DssExecLib.getChangelogAddress("SKY");
     address internal immutable DAI_USDS                 = DssExecLib.getChangelogAddress("DAI_USDS");
-    address internal immutable LZ_GOV_SENDER            = DssExecLib.getChangelogAddress("LZ_GOV_SENDER");
     address internal immutable CRON_STARGUARD_JOB       = DssExecLib.getChangelogAddress("CRON_STARGUARD_JOB");
 
     address internal constant GROVE_STARGUARD       = 0xfc51CAa049E8894bEcFfB68c61095C3F3Ec8a880;
@@ -112,13 +107,6 @@ contract DssSpellAction is DssAction {
     address internal constant SKY_STAKING   = 0x05c73AE49fF0ec654496bF4008d73274a919cB5C;
     address internal constant TANGO         = 0xB2B86A130B1EC101e4Aed9a88502E08995760307;
     address internal constant GNOSIS        = 0x849D52316331967b6fF1198e5E32A0eB168D039d;
-
-    // ---------- LayerZero ----------
-    uint32 internal constant SOL_EID = 30168;
-    // Note: base58 ALM1JSnEhc5PkNecbSZotgprBuJujL5objTbwGtpTgTd to hex conversion can be checked at https://emn178.github.io/online-tools/base58/decode/?input=ALM1JSnEhc5PkNecbSZotgprBuJujL5objTbwGtpTgTd&output_type=hex
-    bytes32 internal constant SVM_CONTROLLER = 0x8aadd66fe8f142fb55a08e900228f5488fcc7d73938bbce28e313e1b87da3624;
-    // Note: base58 BPFLoaderUpgradeab1e11111111111111111111111 to hex conversion can be checked at https://emn178.github.io/online-tools/base58/decode/?input=BPFLoaderUpgradeab1e11111111111111111111111&output_type=hex
-    bytes32 internal constant BPF_LOADER = 0x02a8f6914e88a1b0e210153ef763ae2b00c2b93d16c124d2c0537a1004800000;
 
     // ---------- Spark Proxy ----------
     address internal immutable SPARK_SUBPROXY = DssExecLib.getChangelogAddress("SPARK_SUBPROXY");
@@ -237,35 +225,6 @@ contract DssSpellAction is DssAction {
 
         // Transfer 158,871 USDS to the Aligned Delegates Buffer Multisig at 0x37FC5d447c8c54326C62b697f674c93eaD2A93A3
         _transferUsds(CORE_COUNCIL_DELEGATE_MULTISIG, 158_871 * WAD);
-
-        // ---------- Whitelist the Keel SubProxy to Send Cross-Chain Messages to Solana ----------
-        // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2025-11-17/27421
-        // Forum: https://forum.sky.money/t/executive-inclusion-whitelisting-the-keel-subproxy-to-send-cross-chain-messages-to-solana/27447
-        // Poll: https://vote.sky.money/polling/QmdomJ7o
-
-        // Call setCanCallTarget on LZ_GOV_SENDER with the following parameters:
-        GovernanceOAppSenderLike(LZ_GOV_SENDER).setCanCallTarget(
-            // _srcSender: KEEL_SUBPROXY
-            KEEL_SUBPROXY,
-            // _dstEID: SOL_EID defined by LayerZero
-            SOL_EID,
-            // _dstTarget: ALM1JSnEhc5PkNecbSZotgprBuJujL5objTbwGtpTgTd
-            SVM_CONTROLLER,
-            // _canCall: true
-            true
-        );
-
-        // Call setCanCallTarget on LZ_GOV_SENDER with the following parameters:
-        GovernanceOAppSenderLike(LZ_GOV_SENDER).setCanCallTarget(
-            // _srcSender: KEEL_SUBPROXY
-            KEEL_SUBPROXY,
-            // _dstEID: SOL_EID defined by LayerZero
-            SOL_EID,
-            // _dstTarget: BPFLoaderUpgradeab1e11111111111111111111111
-            BPF_LOADER,
-            // _canCall: true
-            true
-        );
 
         // ---------- Delegate Compensation for October ----------
         // Forum: https://forum.sky.money/t/october-2025-ranked-delegate-compensation/27412
