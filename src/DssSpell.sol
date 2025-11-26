@@ -51,8 +51,8 @@ interface SubProxyLike {
 contract DssSpellAction is DssAction {
     // Provides a descriptive tag for bot consumption
     // This should be modified weekly to provide a summary of the actions
-    // Hash: cast keccak -- "$(wget 'TODO' -q -O - 2>/dev/null)"
-    string public constant override description = "2025-11-27 MakerDAO Executive Spell | Hash: TODO";
+    // Hash: cast keccak -- "$(wget 'https://raw.githubusercontent.com/sky-ecosystem/executive-votes/f137104c9730c9fb487c158843112e127a0bb38c/2025/executive-vote-2025-11-27-launch-starguards.md' -q -O - 2>/dev/null)"
+    string public constant override description = "2025-11-27 MakerDAO Executive Spell | Hash: 0x69477b772a3f1c8ac49a0165f05c3f074e723b58cf30621bfff2f464e9951b4f";
 
     // Set office hours according to the summary
     function officeHours() public pure override returns (bool) {
