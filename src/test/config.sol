@@ -1132,10 +1132,10 @@ contract Config {
             calc_tau:     0,
             calc_step:    0,
             calc_cut:     0,
-            SP_enabled:   false,
+            SP_enabled:   true,
             SP_min:       0,
-            SP_max:       0,
-            SP_step:      0,
+            SP_max:       3_000,
+            SP_step:      400,
             offboarding:  false
         });
     }

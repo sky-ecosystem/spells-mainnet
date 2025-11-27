@@ -1437,17 +1437,6 @@ contract DssSpellTest is DssSpellTestBase {
     event Drop(address indexed addr);
     event Executed();
 
-    function testSpbeamAllocatorObexAConfig() public {
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        (uint16 minBps, uint16 maxBps, uint16 stepBps) = spbeam.cfgs("ALLOCATOR-OBEX-A");
-        assertEq(minBps, 0, "SPBEAM/ALLOCATOR-OBEX-A/min");
-        assertEq(maxBps, 3_000, "SPBEAM/ALLOCATOR-OBEX-A/max");
-        assertEq(stepBps, 400, "SPBEAM/ALLOCATOR-OBEX-A/step");
-    }
-
     function testCronStarGuardJobWorkAndWorkable() public {
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
