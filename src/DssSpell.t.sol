@@ -285,10 +285,13 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
-        string[3] memory addedKeys = [
+        string[6] memory addedKeys = [
             "GROVE_STARGUARD",
             "KEEL_STARGUARD",
-            "OBEX_STARGUARD"
+            "OBEX_STARGUARD",
+            "GROVE_SUBPROXY",
+            "KEEL_SUBPROXY",
+            "OBEX_SUBPROXY"
         ];
 
         for(uint256 i = 0; i < addedKeys.length; i++) {
