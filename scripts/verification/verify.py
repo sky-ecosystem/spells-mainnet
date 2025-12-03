@@ -6,18 +6,10 @@ using forge verify-contract --flatten with robust retry mechanisms and fallback 
 """
 import os
 import sys
-from pathlib import Path
-from typing import Any, Tuple, List
+import subprocess
+from typing import Tuple, List
 
-
-# Import verifiers and contract data utilities from the verification package
-from . import (
-    VerifierEtherscan,
-    VerifierSourcify,
-    get_chain_id,
-    get_library_address,
-    get_action_address
-)
+from . import get_chain_id, get_library_address, get_action_address
 
 # Constants
 SOURCE_FILE_PATH = 'src/DssSpell.sol'
@@ -53,83 +45,134 @@ def parse_command_line_args() -> Tuple[str, str, str]:
     return contract_name, contract_address, constructor_args
 
 
-def setup_verifiers(chain_id: str) -> List[Any]:
-    """Setup available verifiers for the given chain."""
-    verifiers = []
-    
-    # Setup Etherscan verifier
+def build_forge_cmd(
+    verifier: str,
+    address: str,
+    contract_name: str,
+    constructor_args: str,
+    library_address: str,
+    retries: int,
+    delay: int,
+    etherscan_api_key: str = "",
+) -> List[str]:
+    cmd: List[str] = [
+        "forge",
+        "verify-contract",
+        address,
+        f"{SOURCE_FILE_PATH}:{contract_name}",
+        "--verifier",
+        verifier,
+        "--flatten",
+        "--watch",
+        "--retries",
+        str(retries),
+        "--delay",
+        str(delay),
+    ]
+
+    if constructor_args:
+        cmd.extend(["--constructor-args", constructor_args])
+
+    if library_address:
+        cmd.extend(["--libraries", f"src/DssExecLib.sol:DssExecLib:{library_address}"])
+
+    if verifier == "etherscan" and etherscan_api_key:
+        cmd.extend(["--etherscan-api-key", etherscan_api_key])
+
+    return cmd
+
+
+def verify_once_on(
+    verifier: str,
+    address: str,
+    contract_name: str,
+    constructor_args: str,
+    library_address: str,
+    retries: int,
+    delay: int,
+    etherscan_api_key: str = "",
+) -> bool:
+    cmd = build_forge_cmd(
+        verifier=verifier,
+        address=address,
+        contract_name=contract_name,
+        constructor_args=constructor_args,
+        library_address=library_address,
+        retries=retries,
+        delay=delay,
+        etherscan_api_key=etherscan_api_key,
+    )
+
+    print(f"\nVerifying {contract_name} at {address} on {verifier}...")
     try:
-        etherscan_api_key = get_env_var(
-            'ETHERSCAN_API_KEY',
-            "Etherscan API key not found. Set ETHERSCAN_API_KEY environment variable."
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=True,
         )
-        etherscan_verifier = VerifierEtherscan(etherscan_api_key, chain_id)
-        if etherscan_verifier.is_available():
-            verifiers.append(etherscan_verifier)
-            print(f"✓ Etherscan verifier available for chain {chain_id}")
-        else:
-            print(f"✗ Etherscan verifier not available for chain {chain_id}")
-    except Exception as e:
-        print(f"✗ Failed to setup Etherscan verifier: {str(e)}", file=sys.stderr)
-    
-    # Setup Sourcify verifier
-    # Note: Blockscout automatically picks up any code verification from Sourcify
-    try:
-        sourcify_verifier = VerifierSourcify(chain_id)
-        if sourcify_verifier.is_available():
-            verifiers.append(sourcify_verifier)
-            print(f"✓ Sourcify verifier available for chain {chain_id}")
-        else:
-            print(f"✗ Sourcify verifier not available for chain {chain_id}")
-    except Exception as e:
-        print(f"✗ Failed to setup Sourcify verifier: {str(e)}", file=sys.stderr)
-    
-    if not verifiers:
-        raise Exception("No verifiers available for the current chain")
-    
-    return verifiers
+        # forge prints useful info; surface stdout
+        if result.stdout:
+            print(result.stdout.strip())
+        print(f"✓ {verifier} verification OK")
+        return True
+    except subprocess.CalledProcessError as e:
+        combined = (e.stdout or "") + "\n" + (e.stderr or "")
+        if "already verified" in combined.lower():
+            print(f"✓ {verifier}: already verified")
+            return True
+        print(f"✗ {verifier} verification failed\n{combined}", file=sys.stderr)
+        return False
 
 
 def verify_contract_with_verifiers(
     contract_name: str,
     contract_address: str,
     constructor_args: str,
-    library_address: str,
-    verifiers: List[Any]
+    library_address: str
 ) -> bool:
-    """Verify contract using multiple verifiers with fallback."""
-    print(f'\nVerifying {contract_name} at {contract_address}...')
-    
-    successful_verifications = 0
-    total_verifiers = len(verifiers)
-    
-    for i, verifier in enumerate(verifiers):
-        print(f"\n--- Attempting verification with {verifier.__class__.__name__} ({i+1}/{total_verifiers}) ---")
-        
-        try:
-            success = verifier.verify_contract(
-                contract_name=contract_name,
-                contract_address=contract_address,
-                constructor_args=constructor_args,
-                library_address=library_address,
-            )
-            
-            if success:
-                successful_verifications += 1
-                
-        except Exception as e:
-            print(f"✗ Error during verification with {verifier.__class__.__name__}: {str(e)}", file=sys.stderr)
-    
-    # Report final results after trying all verifiers
-    if successful_verifications == 0:
-        print(f"\n❌ Failed to verify contract on all verifiers ({total_verifiers} attempted)")
-        return False
-    elif successful_verifications < total_verifiers:
-        print(f"\n⚠️ Contract verified successfully in only {successful_verifications}/{total_verifiers} verifiers!")
-        return True
+    """Verify contract by issuing forge commands per explorer."""
+    # Configure retries/delay via env or defaults
+    retries = int(os.environ.get("VERIFY_RETRIES", "5"))
+    delay = int(os.environ.get("VERIFY_DELAY", "5"))
+
+    chain_id = get_chain_id()
+    etherscan_api_key = os.environ.get("ETHERSCAN_API_KEY", "")
+
+    successes = 0
+
+    # Sourcify (works without API key); blockscout pulls from it
+    if chain_id == "1":
+        if verify_once_on(
+            verifier="sourcify",
+            address=contract_address,
+            contract_name=contract_name,
+            constructor_args=constructor_args,
+            library_address=library_address,
+            retries=retries,
+            delay=delay,
+        ):
+            successes += 1
     else:
-        print(f"\n🎉 Contract verified successfully in {total_verifiers} verifiers!")
-        return True
+        print(f"Sourcify not configured for CHAIN_ID {chain_id}, skipping.")
+
+    # Etherscan (requires API key)
+    if chain_id == "1" and etherscan_api_key:
+        if verify_once_on(
+            verifier="etherscan",
+            address=contract_address,
+            contract_name=contract_name,
+            constructor_args=constructor_args,
+            library_address=library_address,
+            retries=retries,
+            delay=delay,
+            etherscan_api_key=etherscan_api_key,
+        ):
+            successes += 1
+    elif chain_id == "1":
+        print("ETHERSCAN_API_KEY not set; skipping Etherscan.")
+
+    return successes > 0
 
 
 def main():
@@ -146,23 +189,15 @@ def main():
         # Parse command line arguments
         spell_name, spell_address, constructor_args = parse_command_line_args()
 
-        # Get chain ID
-        chain_id = get_chain_id()
-
         # Get library address
         library_address = get_library_address()
-
-        # Setup verifiers
-        print("Setting up verifiers...")
-        verifiers = setup_verifiers(chain_id)
 
         # Verify spell contract
         spell_success = verify_contract_with_verifiers(
             contract_name=spell_name,
             contract_address=spell_address,
             constructor_args=constructor_args,
-            library_address=library_address,
-            verifiers=verifiers
+            library_address=library_address
         )
 
         if not spell_success:
@@ -179,8 +214,7 @@ def main():
             contract_name="DssSpellAction",
             contract_address=action_address,
             constructor_args=constructor_args,
-            library_address=library_address,
-            verifiers=verifiers
+            library_address=library_address
         )
 
         if not action_success:
