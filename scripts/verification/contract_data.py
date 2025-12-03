@@ -10,16 +10,13 @@ import subprocess
 import sys
 from typing import Optional
 
-from .retry import retry_with_backoff
-
 # Constants
 SOURCE_FILE_PATH = "src/DssSpell.sol"
 LIBRARY_NAME = "DssExecLib"
 
 
-@retry_with_backoff(max_retries=2, base_delay=1)
 def get_chain_id() -> str:
-    """Get the current chain ID with retry mechanism."""
+    """Get the current chain ID."""
     print("Obtaining chain ID... ")
     result = subprocess.run(
         ["cast", "chain-id"], capture_output=True, text=True, check=True
@@ -56,9 +53,8 @@ def get_library_address() -> str:
     return ""
 
 
-@retry_with_backoff(max_retries=2, base_delay=1)
 def get_action_address(spell_address: str) -> Optional[str]:
-    """Get the action contract address from the spell contract with retry mechanism."""
+    """Get the action contract address from the spell contract."""
     try:
         result = subprocess.run(
             ["cast", "call", spell_address, "action()(address)"],
