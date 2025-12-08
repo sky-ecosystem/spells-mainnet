@@ -38,6 +38,16 @@ interface SpellActionLike {
 
 interface SequencerLike {
     function hasJob(address job) external view returns (bool);
+    function getMaster() external view returns (bytes32);
+}
+
+interface VestedRewardsDistributionLike {
+    function vestId() external view returns (uint256);
+}
+
+interface CronJobLike {
+    function work(bytes32 network, bytes memory args) external;
+    function workable(bytes32 network) external returns (bool, bytes memory);
 }
 
 contract DssSpellTest is DssSpellTestBase {
@@ -278,14 +288,10 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
-        string[6] memory addedKeys = [
-            "GROVE_STARGUARD",
-            "KEEL_STARGUARD",
-            "OBEX_STARGUARD",
-            "GROVE_SUBPROXY",
-            "KEEL_SUBPROXY",
-            "OBEX_SUBPROXY"
+    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+        string[2] memory addedKeys = [
+            "CCEA1_SUBPROXY",
+            "CCEA1_STARGUARD"
         ];
 
         for(uint256 i = 0; i < addedKeys.length; i++) {
@@ -644,26 +650,34 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public skipped { // add the `skipped` modifier to skip
+    function testVestSky() public { // add the `skipped` modifier to skip
+        // Provide human-readable names for timestamps
+        uint256 APR_08_2026_16_37_23 = 1775666243;
+
         uint256 spellCastTime = _getSpellCastTime();
 
         // Build expected new stream
         NewVestStream[] memory newStreams = new NewVestStream[](1);
         newStreams[0] = NewVestStream({
-            id:  8,
-            usr: addr.addr("REWARDS_DIST_LSSKY_SKY"),
-            bgn: spellCastTime - 7 days,
-            clf: spellCastTime - 7 days,
-            fin: (spellCastTime - 7 days) + 180 days,
-            tau: 180 days,
+            id:  9,
+            usr: addr.addr("REWARDS_DIST_USDS_SKY"),
+            bgn: spellCastTime,
+            clf: spellCastTime,
+            fin: spellCastTime + 182 days,
+            tau: 182 days,
             mgr: address(0),
             res: 1,
-            tot: 1_000_000_000 * WAD,
-            rxd: (7 days * 1_000_000_000 * WAD) / 180 days
+            tot: 60_297_057 * WAD,
+            rxd: 0 // Amount already claimed
         });
 
-        // No yanked streams expected
-        YankedVestStream[] memory yankedStreams = new YankedVestStream[](0);
+        // For each yanked stream, provide Stream object and initialize the array with the current number of yanked streams
+        YankedVestStream[] memory yankedStreams = new YankedVestStream[](1);
+        yankedStreams[0] = YankedVestStream({
+            id:  7,
+            fin: APR_08_2026_16_37_23,
+            end: spellCastTime
+        });
 
         _checkVest(
             VestInst({vest: vestSky, gem: sky, name: "sky", isTransferrable: true}),
@@ -765,9 +779,9 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public skipped { // add the `skipped` modifier to skip
+    function testPayments() public { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
-        bool ignoreTotalSupplyDaiUsds = true;
+        bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
 
         // For each payment, create a Payee object with:
@@ -775,26 +789,24 @@ contract DssSpellTest is DssSpellTestBase {
         //    the destination address,
         //    the amount to be paid
         // Initialize the array with the number of payees
-        Payee[12] memory payees = [
+        Payee[10] memory payees = [
+            Payee(address(usds), addr.addr("CCEA1_SUBPROXY"), 20_000_000 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG"), 5_000_000 ether), // Note: ether is only a keyword helper
             Payee(address(usds), wallets.addr("AEGIS_D"), 4_000 ether), // Note: ether is only a keyword helper
             Payee(address(usds), wallets.addr("BLUE"), 54_167 ether), // Note: ether is only a keyword helper
             Payee(address(usds), wallets.addr("BONAPUBLICA"), 4_000 ether), // Note: ether is only a keyword helper
             Payee(address(usds), wallets.addr("CLOAKY_2"), 20_417 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("SKY_STAKING"), 3_783 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("TANGO"), 3_696 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("GNOSIS"), 1_806_670 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("TANGO"), 3_788 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("SKY_STAKING"), 3_027 ether), // Note: ether is only a keyword helper
             Payee(address(sky), wallets.addr("BLUE"), 330_000 ether), // Note: ether is only a keyword helper
-            Payee(address(sky), wallets.addr("CLOAKY_2"), 288_000 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("SPARK_SUBPROXY"), 4_642_240 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG"), 3_177_413 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("CORE_COUNCIL_DELEGATE_MULTISIG"), 158_871 ether) // Note: ether is only a keyword helper
+            Payee(address(sky), wallets.addr("CLOAKY_2"), 288_000 ether) // Note: ether is only a keyword helper
         ];
 
         // Fill the total values from exec sheet
         PaymentAmounts memory expectedTotalPayments = PaymentAmounts({
             dai:                               0 ether, // Note: ether is only a keyword helper
             mkr:                               0 ether, // Note: ether is only a keyword helper
-            usds:                      9_875_257 ether, // Note: ether is only a keyword helper
+            usds:                     25_089_399 ether, // Note: ether is only a keyword helper
             sky:                         618_000 ether  // Note: ether is only a keyword helper
         });
 
@@ -1155,11 +1167,11 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(Art, 0, "GUSD-A Art is not 0");
     }
 
-    function testDaoResolutions() public skipped { // replace `view` with the `skipped` modifier to skip
+    function testDaoResolutions() public view { // replace `view` with the `skipped` modifier to skip
         // For each resolution, add IPFS hash as item to the resolutions array
         // Initialize the array with the number of resolutions
         string[1] memory resolutions = [
-            "bafkreidm3bqfiwv224m6w4zuabsiwqruy22sjfaxfvgx4kgcnu3wndxmva"
+            "bafkreifaflhcwe7jd5r3v7wmsq5tx7b56w5bcxjmgzgzqd6gwl3zrmkviq"
         ];
 
         string memory comma_separated_resolutions = "";
@@ -1318,4 +1330,241 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
+    function testRewardsDistUsdsSkyUpdatedVestIdAndDistribute() public {
+        address REWARDS_DIST_USDS_SKY = addr.addr("REWARDS_DIST_USDS_SKY");
+        address REWARDS_USDS_SKY = addr.addr("REWARDS_USDS_SKY");
+
+        uint256 vestId = VestedRewardsDistributionLike(REWARDS_DIST_USDS_SKY).vestId();
+        assertEq(vestId, 7, "TestError/rewards-dist-usds-sky-invalid-vest-id-before");
+
+        uint256 unpaidAmount = vestSky.unpaid(7);
+        assertTrue(unpaidAmount > 0, "TestError/rewards-dist-usds-sky-unpaid-zero-early");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        vestId = VestedRewardsDistributionLike(REWARDS_DIST_USDS_SKY).vestId();
+        assertEq(vestId, 9, "TestError/rewards-dist-usds-sky-invalid-vest-id-after");
+
+        unpaidAmount = vestSky.unpaid(7);
+        assertEq(unpaidAmount, 0, "TestError/rewards-dist-usds-sky-unpaid-not-cleared");
+
+        assertEq(StakingRewardsLike(REWARDS_USDS_SKY).lastUpdateTime(), block.timestamp, "TestError/rewards-usds-sky-invalid-last-update-time");
+    }
+
+    function testMkrSkyDelayedUpgradePenaltyIncrease() public {
+        uint256 currentFee = mkrSky.fee();
+        assertEq(currentFee, 1 * WAD / 100, "TestError/mkr-sky-invalid-fee-before");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        currentFee = mkrSky.fee();
+        assertEq(currentFee, 2 * WAD / 100, "TestError/mkr-sky-invalid-fee-after");
+
+        uint256 prevTake = mkrSky.take();
+
+        address mkrHolder = makeAddr("mkrHolder");
+        deal(address(mkr), mkrHolder, 1_000 * WAD);
+        address skyHolder = makeAddr("skyHolder");
+
+        uint256 prevMkrBalance = mkr.balanceOf(mkrHolder);
+        uint256 prevSkyBalance = sky.balanceOf(skyHolder);
+
+        vm.startPrank(mkrHolder);
+        mkr.approve(address(mkrSky), type(uint256).max);
+        mkrSky.mkrToSky(skyHolder, prevMkrBalance);
+        vm.stopPrank();
+
+        uint256 take = mkrSky.take();
+        uint256 feeCut = (prevMkrBalance * afterSpell.sky_mkr_rate * currentFee) / WAD;
+        uint256 expectedTakeAfter = prevTake + feeCut;
+        assertEq(take, expectedTakeAfter, "TestError/mkr-sky-take-not-increased");
+
+        uint256 expectedSkyBalance = prevSkyBalance + ((prevMkrBalance * afterSpell.sky_mkr_rate) - feeCut);
+        assertEq(mkr.balanceOf(mkrHolder), 0,                  "TestError/MKR/bad-mkr-to-sky-conversion");
+        assertEq(sky.balanceOf(skyHolder), expectedSkyBalance, "TestError/SKY/bad-mkr-to-sky-conversion");
+    }
+
+    struct StarguardValues {
+        address subProxy;
+        address starGuard;
+    }
+
+    function testStarGuards() public {
+        StarguardValues[1] memory starGuardValues = [
+            StarguardValues(addr.addr('CCEA1_SUBPROXY'), addr.addr("CCEA1_STARGUARD"))
+        ];
+
+        uint256 starGuardLength = starGuardValues.length;
+        for(uint256 i; i < starGuardLength; ++i) {
+            assertFalse(StarGuardJobLike(addr.addr("CRON_STARGUARD_JOB")).has(starGuardValues[i].starGuard), "StarGuardJob/stars-not-set");
+        }
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        for(uint256 i; i < starGuardLength; ++i) {
+            assertEq(SubProxyLike(starGuardValues[i].subProxy).wards(starGuardValues[i].starGuard), 1, "SubProxy/wards-not-set");
+            assertEq(StarGuardLike(starGuardValues[i].starGuard).subProxy(), starGuardValues[i].subProxy, "StarGuard/subProxy-not-set");
+            assertEq(StarGuardLike(starGuardValues[i].starGuard).wards(pauseProxy), 1, "StarGuard/wards-not-set");
+            assertEq(StarGuardLike(starGuardValues[i].starGuard).maxDelay(), 7 days, "StarGuard/maxDelay-not-set");
+
+            (address spellAddr,,) = StarGuardLike(starGuardValues[i].starGuard).spellData();
+            assertEq(spellAddr, address(0), "StarGuard/unexpected-plotted-spell");
+
+            assertTrue(StarGuardJobLike(addr.addr("CRON_STARGUARD_JOB")).has(starGuardValues[i].starGuard), "StarGuardJob/stars-not-set");
+        }
+    }
+
+    function testStarGuardSpellExecution() public {
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        StarguardValues[1] memory starGuardValues = [
+            StarguardValues(addr.addr('CCEA1_SUBPROXY'), addr.addr("CCEA1_STARGUARD"))
+        ];
+
+        // Deploy a simple payload that is always executable
+        MockStarSpell payload = new MockStarSpell();
+
+        uint256 starGuardLength = starGuardValues.length;
+        for(uint256 i; i < starGuardLength; ++i) {
+            StarGuardLike starGuard = StarGuardLike(starGuardValues[i].starGuard);
+            // Plot the payload as the Pause Proxy (admin)
+            vm.startPrank(pauseProxy);
+            starGuard.plot(address(payload), address(payload).codehash);
+            vm.stopPrank();
+
+            // Should be executable now
+            assertTrue(starGuard.prob(), "StarGuard/prob-not-true");
+
+            // Expect the starGuard to emit its Exec event upon exec()
+            vm.expectEmit();
+            emit Executed();
+            vm.expectEmit(true, false, false, false, address(starGuard));
+            emit Exec(address(payload));
+            address executed = starGuard.exec();
+            assertEq(executed, address(payload), "StarGuard/exec-wrong-target");
+
+            // Still owner of subProxy, and no longer plotted
+            assertEq(SubProxyLike(starGuardValues[i].subProxy).wards(address(starGuard)), 1, "StarGuard/subProxy-wards-changed");
+            assertFalse(starGuard.prob(), "StarGuard/spell-not-cleared");
+        }
+    }
+
+    function testStarGuardDrop() public {
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        address[1] memory starGuards = [
+            addr.addr("CCEA1_STARGUARD")
+        ];
+
+        // Deploy a simple payload and plot it
+        MockStarSpell payload = new MockStarSpell();
+
+        uint256 starGuardLength = starGuards.length;
+        for(uint256 i; i < starGuardLength; ++i) {
+            StarGuardLike starGuard = StarGuardLike(starGuards[i]);
+            vm.startPrank(pauseProxy);
+            starGuard.plot(address(payload), address(payload).codehash);
+            vm.stopPrank();
+
+            assertTrue(starGuard.prob(), "StarGuard/prob-not-true-after-plot");
+
+            // Expect a Drop event and cancel the plotted spell
+            vm.startPrank(pauseProxy);
+            vm.expectEmit(true, false, false, false, address(starGuard));
+            emit Drop(address(payload));
+            starGuard.drop();
+            vm.stopPrank();
+
+            // After drop, it should not be executable and spellData cleared
+            assertFalse(starGuard.prob(), "StarGuard/prob-true-after-drop");
+            (address plotted,,) = starGuard.spellData();
+            assertEq(plotted, address(0), "StarGuard/spellData-not-cleared");
+
+            // Exec should revert when nothing is plotted
+            vm.expectRevert("StarGuard/unplotted-spell");
+            starGuard.exec();
+        }
+    }
+
+    event Drop(address indexed addr);
+    event Executed();
+
+    function testCronStarGuardJobWorkAndWorkable() public {
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        address[1] memory starGuards = [
+            addr.addr("CCEA1_STARGUARD")
+        ];
+
+        SequencerLike  seq       = SequencerLike(addr.addr("CRON_SEQUENCER"));
+        CronJobLike    job       = CronJobLike(addr.addr("CRON_STARGUARD_JOB"));
+
+        // Ensure job is registered
+        assertTrue(seq.hasJob(address(job)), "StarGuardJob/not-in-sequencer");
+
+        // Plot an executable payload so the job becomes workable
+        MockStarSpell payload = new MockStarSpell();
+
+        uint256 starGuardLength = starGuards.length;
+        for(uint256 i; i < starGuardLength; ++i) {
+            StarGuardLike starGuard = StarGuardLike(starGuards[i]);
+
+            vm.startPrank(pauseProxy);
+            starGuard.plot(address(payload), address(payload).codehash);
+            vm.stopPrank();
+
+            assertTrue(starGuard.prob(), "StarGuard/prob-not-true-after-plot");
+
+            bytes32 network = seq.getMaster();
+
+            // workable() may mutate; snapshot and revert around the check
+            bool isWorkable;
+            bytes memory args;
+            {
+                uint256 before = vm.snapshotState();
+                (isWorkable, args) = job.workable(network);
+                vm.revertToStateAndDelete(before);
+            }
+            assertTrue(isWorkable, "StarGuardJob/not-workable");
+
+            job.work(network, args);
+
+            // After work, plotted spell should be cleared and not executable
+            assertFalse(starGuard.prob(), "StarGuard/prob-true-after-job");
+            (address plotted,,) = starGuard.spellData();
+            assertEq(plotted, address(0), "StarGuard/spellData-not-cleared-by-job");
+
+            // Not immediately workable again
+            {
+                uint256 before = vm.snapshotState();
+                (bool again, ) = job.workable(network);
+                vm.revertToStateAndDelete(before);
+                assertFalse(again, "StarGuardJob/still-workable-after-work");
+            }
+        }
+    }
+
+}
+
+contract MockStarSpell {
+    event Executed();
+
+    function execute() external {
+        emit Executed();
+    }
+
+    function isExecutable() external pure returns (bool) {
+        return true;
+    }
 }

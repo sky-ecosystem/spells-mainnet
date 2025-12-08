@@ -598,5 +598,7 @@ contract Addresses {
         addr["GROVE_STARGUARD"]                  = 0xfc51CAa049E8894bEcFfB68c61095C3F3Ec8a880;
         addr["KEEL_STARGUARD"]                   = 0xe8fF70481d653Ec31AB9E0cB2A8B316afF8D84ee;
         addr["OBEX_STARGUARD"]                   = 0x987f1C31f9935e9926555BcFB76516bb2EcEccaD;
+        addr["CCEA1_SUBPROXY"]                   = 0x64a2b7CfA832fE83BE6a7C1a67521B350519B9c1;
+        addr["CCEA1_STARGUARD"]                  = 0x13D95B35248D04FB60597dd1b27BE13E73Fe0a12;
     }
 }

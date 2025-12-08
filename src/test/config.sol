@@ -180,7 +180,7 @@ contract Config {
         afterSpell.vest_sky_mint_cap      = 176_000_000 * WAD / 182 days;                   // In WAD SKY per second
         afterSpell.vest_spk_cap           = 2_502_500_000 * WAD / 730 days;                 // In WAD SKY per second
         afterSpell.ilk_count              = 31;                                             // Num expected in system
-        afterSpell.chainlog_version       = "1.20.9";                                       // String expected in system
+        afterSpell.chainlog_version       = "1.20.10";                                      // String expected in system
 
         afterSpell.SP_tau       = 57_600 seconds;                             // In seconds
         afterSpell.SP_bud       = 0xe1c6f81D0c3CD570A77813b81AA064c5fff80309; // Address of SPBEAM Bud
@@ -197,10 +197,10 @@ contract Config {
         afterSpell.stusds_rate_setter_maxCap   = 1_000_000_000; // USDS units
         afterSpell.stusds_rate_setter_minStr   = 2_00;          // Minimum allowed rate in bps
         afterSpell.stusds_rate_setter_maxStr   = 50_00;         // Maximum allowed rate in bps
-        afterSpell.stusds_rate_setter_strStep  = 5_00;          // Maximum allowed rate change per update (bps)
+        afterSpell.stusds_rate_setter_strStep  = 15_00;         // Maximum allowed rate change per update (bps)
         afterSpell.stusds_rate_setter_minDuty  = 2_10;          // Minimum allowed rate in bps
         afterSpell.stusds_rate_setter_maxDuty  = 50_00;         // Maximum allowed rate in bps
-        afterSpell.stusds_rate_setter_dutyStep = 5_00;          // Maximum allowed rate change per update (bps)
+        afterSpell.stusds_rate_setter_dutyStep = 15_00;         // Maximum allowed rate change per update (bps)
 
         address[] memory buds = new address[](1);
         buds[0] = 0xBB865F94B8A92E57f79fCc89Dfd4dcf0D3fDEA16;
