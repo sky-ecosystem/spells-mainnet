@@ -132,8 +132,8 @@ contract Config {
     function setValues() public {
         // Add spells if there is a need to test prior to their cast() functions
         // being called on-chain. They will be executed in order from index 0.
-        address[] memory prevSpells = new address[](1);
-        prevSpells[0] = address(0xed3de16bDF69F697FecF1b4103b9f48d71BdDF20); // 2025-11-13 Spell
+        address[] memory prevSpells = new address[](0);
+        // prevSpells[0] = address(0);
 
         //
         // Values for spell-specific parameters

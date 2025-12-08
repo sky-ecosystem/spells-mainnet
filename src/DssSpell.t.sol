@@ -38,7 +38,6 @@ interface SpellActionLike {
 
 interface SequencerLike {
     function hasJob(address job) external view returns (bool);
-    function getMaster() external view returns (bytes32);
 }
 
 contract DssSpellTest is DssSpellTestBase {
