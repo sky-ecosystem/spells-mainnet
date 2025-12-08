@@ -182,6 +182,13 @@ contract DssSpellAction is DssAction {
         DssExecLib.setValue(MKR_SKY, "fee", 2 * WAD / 100);
 
         // ---------- stUSDS capped OSM and Liquidation Ratio adjustments (Pending Atlas Edit Post) ----------
+        // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2025-12-08/27524
+
+        // Decrease the stUSDS Liquidation Ratio by 25%, from 145% to 120%
+        // TODO
+
+        // Decrease the stUSDS OSM cap by 0.015 USDS, from 0.04 USDS to 0.025 USDS
+        // TODO
 
         // ---------- Adjust stUSDS-BEAM Parameters ----------
         // Forum: https://forum.sky.money/t/stusds-beam-rate-setter-configuration/27161/76
@@ -252,7 +259,8 @@ contract DssSpellAction is DssAction {
         // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0x007a555d46f2c215b7d69163e763f03c3b91f31cd43dd08de88a1531631a4766
         // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0x9b21777dfa9f7628060443a046b76a5419740f692557ef45c92f6fac1ff31801
 
-        // Whitelist the Spark Proxy Spell deployed to TBD with codehash TBD; direct execution: no in Spark Starguard
+        // Whitelist the Spark Proxy Spell deployed to 0x2cB9Fa737603cB650d4919937a36EA732ACfe963 with codehash 0x5fdec666ca088e84b1e330ce686b9b4bb84d01022c8de54529dc90cacfd56e37; direct execution: no in Spark Starguard
+        // TODO
 
         // ---------- Whitelist Grove Proxy Spell in Starguard ----------
         // Forum: https://forum.sky.money/t/december-11th-2025-proposed-changes-to-grove-for-upcoming-spell/27459
@@ -262,7 +270,8 @@ contract DssSpellAction is DssAction {
         // Atlas: https://sky-atlas.io/#A.6.1.1.2.2.6.1.3.1.10.1.2
         // Atlas: https://sky-atlas.io/#A.6.1.1.2.2.6.1.3.1.11.1.2
 
-        // Whitelist the Grove Proxy Spell deployed to TBD with codehash TBD; direct execution: no in Grove Starguard
+        // Whitelist the Grove Proxy Spell deployed to 0x6772d7eaab1c2e275f46b99d8cce8d470fa790ab with codehash 0x62e0ddd487406519e23c4c6e26414e898c2442dd90365ee1a4a7cb188114e614; direct execution: no in Grove Starguard
+        // TODO
     }
 
     // ---------- Helper Functions ----------
