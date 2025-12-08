@@ -41,11 +41,6 @@ interface SequencerLike {
     function getMaster() external view returns (bytes32);
 }
 
-interface CronJobLike {
-    function work(bytes32 network, bytes memory args) external;
-    function workable(bytes32 network) external returns (bool, bytes memory);
-}
-
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -284,7 +279,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
         string[6] memory addedKeys = [
             "GROVE_STARGUARD",
             "KEEL_STARGUARD",
@@ -771,7 +766,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public { // add the `skipped` modifier to skip
+    function testPayments() public skipped { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = true;
         bool ignoreTotalSupplyMkrSky = true;
@@ -1204,7 +1199,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 
-    function testMonthlySettlementCycleInflows() public { // add the `skipped` modifier to skip
+    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
         address ALLOCATOR_BLOOM_A_VAULT = addr.addr("ALLOCATOR_BLOOM_A_VAULT");
         address ALLOCATOR_SPARK_A_VAULT = addr.addr("ALLOCATOR_SPARK_A_VAULT");
 
@@ -1256,7 +1251,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // Spark tests
-    function testSparkSpellIsExecuted() public { // add the `skipped` modifier to skip
+    function testSparkSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
         _testStarguardExecution({
             starGuardKey: "SPARK_STARGUARD",
             primeAgentSpell: 0x2C9E477313EC440fe4Ab6C98529da2793e6890F2, // Insert Spark spell address
@@ -1285,7 +1280,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // Nova/Keel tests
-    function testNovaSpellIsExecuted() public { // add the `skipped` modifier to skip
+    function testNovaSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
         address NOVA_PROXY = addr.addr('KEEL_SUBPROXY');
         address NOVA_SPELL = address(0x2395AF361CdF86d348B07E109E710943AFDb23aa); // Insert Nova spell address
 
@@ -1324,191 +1319,4 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
-    struct StarguardValues {
-        address proxy;
-        address starGuard;
-    }
-
-    function testStarGuards() public {
-        StarguardValues[3] memory starGuardValues = [
-            StarguardValues(addr.addr('GROVE_SUBPROXY'), addr.addr("GROVE_STARGUARD")),
-            StarguardValues(addr.addr('KEEL_SUBPROXY'), addr.addr("KEEL_STARGUARD")),
-            StarguardValues(addr.addr('OBEX_SUBPROXY'), addr.addr("OBEX_STARGUARD"))
-        ];
-
-        uint256 starGuardLength = starGuardValues.length;
-        for(uint256 i; i < starGuardLength; ++i) {
-            assertFalse(StarGuardJobLike(addr.addr("CRON_STARGUARD_JOB")).has(starGuardValues[i].starGuard), "StarGuardJob/stars-not-set");
-        }
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        for(uint256 i; i < starGuardLength; ++i) {
-            assertEq(SubProxyLike(starGuardValues[i].proxy).wards(starGuardValues[i].starGuard), 1, "SubProxy/wards-not-set");
-            assertEq(StarGuardLike(starGuardValues[i].starGuard).subProxy(), starGuardValues[i].proxy, "StarGuard/subProxy-not-set");
-            assertEq(StarGuardLike(starGuardValues[i].starGuard).wards(pauseProxy), 1, "StarGuard/wards-not-set");
-            assertEq(StarGuardLike(starGuardValues[i].starGuard).maxDelay(), 7 days, "StarGuard/maxDelay-not-set");
-
-            (address spellAddr,,) = StarGuardLike(starGuardValues[i].starGuard).spellData();
-            assertEq(spellAddr, address(0), "StarGuard/unexpected-plotted-spell");
-
-            assertTrue(StarGuardJobLike(addr.addr("CRON_STARGUARD_JOB")).has(starGuardValues[i].starGuard), "StarGuardJob/stars-not-set");
-        }
-    }
-
-    function testStarGuardSpellExecution() public {
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        StarguardValues[3] memory starGuardValues = [
-            StarguardValues(addr.addr('GROVE_SUBPROXY'), addr.addr("GROVE_STARGUARD")),
-            StarguardValues(addr.addr('KEEL_SUBPROXY'), addr.addr("KEEL_STARGUARD")),
-            StarguardValues(addr.addr('OBEX_SUBPROXY'), addr.addr("OBEX_STARGUARD"))
-        ];
-
-        // Deploy a simple payload that is always executable
-        MockStarSpell payload = new MockStarSpell();
-
-        uint256 starGuardLength = starGuardValues.length;
-        for(uint256 i; i < starGuardLength; ++i) {
-            StarGuardLike starGuard = StarGuardLike(starGuardValues[i].starGuard);
-            // Plot the payload as the Pause Proxy (admin)
-            vm.startPrank(pauseProxy);
-            starGuard.plot(address(payload), address(payload).codehash);
-            vm.stopPrank();
-
-            // Should be executable now
-            assertTrue(starGuard.prob(), "StarGuard/prob-not-true");
-
-            // Expect the starGuard to emit its Exec event upon exec()
-            vm.expectEmit();
-            emit Executed();
-            vm.expectEmit(true, false, false, false, address(starGuard));
-            emit Exec(address(payload));
-            address executed = starGuard.exec();
-            assertEq(executed, address(payload), "StarGuard/exec-wrong-target");
-
-            // Still owner of subProxy, and no longer plotted
-            assertEq(SubProxyLike(starGuardValues[i].proxy).wards(address(starGuard)), 1, "StarGuard/subProxy-wards-changed");
-            assertFalse(starGuard.prob(), "StarGuard/spell-not-cleared");
-        }
-    }
-
-    function testStarGuardDrop() public {
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        address[3] memory starGuards = [
-            addr.addr("GROVE_STARGUARD"),
-            addr.addr("KEEL_STARGUARD"),
-            addr.addr("OBEX_STARGUARD")
-        ];
-
-        // Deploy a simple payload and plot it
-        MockStarSpell payload = new MockStarSpell();
-        
-        uint256 starGuardLength = starGuards.length;
-        for(uint256 i; i < starGuardLength; ++i) {
-            StarGuardLike starGuard = StarGuardLike(starGuards[i]);
-            vm.startPrank(pauseProxy);
-            starGuard.plot(address(payload), address(payload).codehash);
-            vm.stopPrank();
-
-            assertTrue(starGuard.prob(), "StarGuard/prob-not-true-after-plot");
-
-            // Expect a Drop event and cancel the plotted spell
-            vm.startPrank(pauseProxy);
-            vm.expectEmit(true, false, false, false, address(starGuard));
-            emit Drop(address(payload));
-            starGuard.drop();
-            vm.stopPrank();
-
-            // After drop, it should not be executable and spellData cleared
-            assertFalse(starGuard.prob(), "StarGuard/prob-true-after-drop");
-            (address plotted,,) = starGuard.spellData();
-            assertEq(plotted, address(0), "StarGuard/spellData-not-cleared");
-
-            // Exec should revert when nothing is plotted
-            vm.expectRevert("StarGuard/unplotted-spell");
-            starGuard.exec();
-        }
-    }
-
-    event Drop(address indexed addr);
-    event Executed();
-
-    function testCronStarGuardJobWorkAndWorkable() public {
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        StarguardValues[4] memory starGuardValues = [
-            StarguardValues(addr.addr('SPARK_SUBPROXY'), addr.addr("SPARK_STARGUARD")),
-            StarguardValues(addr.addr('GROVE_SUBPROXY'), addr.addr("GROVE_STARGUARD")),
-            StarguardValues(addr.addr('KEEL_SUBPROXY'), addr.addr("KEEL_STARGUARD")),
-            StarguardValues(addr.addr('OBEX_SUBPROXY'), addr.addr("OBEX_STARGUARD"))
-        ];
-
-        SequencerLike  seq       = SequencerLike(addr.addr("CRON_SEQUENCER"));
-        CronJobLike    job       = CronJobLike(addr.addr("CRON_STARGUARD_JOB"));
-
-        // Ensure job is registered
-        assertTrue(seq.hasJob(address(job)), "StarGuardJob/not-in-sequencer");
-
-        // Plot an executable payload so the job becomes workable
-        MockStarSpell payload = new MockStarSpell();
-
-        uint256 starGuardLength = starGuardValues.length;
-        for(uint256 i; i < starGuardLength; ++i) {
-            StarGuardLike starGuard = StarGuardLike(starGuardValues[i].starGuard);
-            
-            vm.startPrank(pauseProxy);
-            starGuard.plot(address(payload), address(payload).codehash);
-            vm.stopPrank();
-
-            assertTrue(starGuard.prob(), "StarGuard/prob-not-true-after-plot");
-
-            bytes32 network = seq.getMaster();
-
-            // workable() may mutate; snapshot and revert around the check
-            bool isWorkable;
-            bytes memory args;
-            {
-                uint256 before = vm.snapshotState();
-                (isWorkable, args) = job.workable(network);
-                vm.revertToStateAndDelete(before);
-            }
-            assertTrue(isWorkable, "StarGuardJob/not-workable");
-
-            job.work(network, args);
-
-            // After work, plotted spell should be cleared and not executable
-            assertFalse(starGuard.prob(), "StarGuard/prob-true-after-job");
-            (address plotted,,) = starGuard.spellData();
-            assertEq(plotted, address(0), "StarGuard/spellData-not-cleared-by-job");
-
-            // Not immediately workable again
-            {
-                uint256 before = vm.snapshotState();
-                (bool again, ) = job.workable(network);
-                vm.revertToStateAndDelete(before);
-                assertFalse(again, "StarGuardJob/still-workable-after-work");
-            }
-        }
-    }
-}
-
-contract MockStarSpell {
-    event Executed();
-
-    function execute() external {
-        emit Executed();
-    }
-
-    function isExecutable() external pure returns (bool) {
-        return true;
-    }
 }
