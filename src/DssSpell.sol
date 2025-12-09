@@ -199,10 +199,11 @@ contract DssSpellAction is DssAction {
         // Increase delayed upgrade penalty by 1 percentage point, from 1% to 2% fee on MKR_SKY
         DssExecLib.setValue(MKR_SKY, "fee", 2 * WAD / 100);
 
-        // ---------- stUSDS capped OSM and Liquidation Ratio adjustments (Pending Atlas Edit Post) ----------
+        // ---------- stUSDS capped OSM and Liquidation Ratio adjustments ----------
         // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2025-12-08/27524
+        // Poll: https://vote.sky.money/polling/QmQ95c8b
 
-        // Decrease the stUSDS Liquidation Ratio by 15%, from 145% to 120%
+        // Decrease the stUSDS Liquidation Ratio by 25%, from 145% to 120%
         DssExecLib.setIlkLiquidationRatio("LSEV2-SKY-A", 120_00);
 
         // Decrease the stUSDS OSM cap by 0.015 USDS, from 0.04 USDS to 0.025 USDS
@@ -213,6 +214,7 @@ contract DssSpellAction is DssAction {
 
         // ---------- Adjust stUSDS-BEAM Parameters ----------
         // Forum: https://forum.sky.money/t/stusds-beam-rate-setter-configuration/27161/76
+        // Poll: https://vote.sky.money/polling/QmTpQ7KW
 
         // Increase stepStrBps by 1,000 basis points, from 500 bps to 1,500 bps
         DssExecLib.setValue(STUSDS_RATE_SETTER, "STR", "step", 1_500);
@@ -291,7 +293,7 @@ contract DssSpellAction is DssAction {
         // Atlas: https://sky-atlas.io/#A.6.1.1.2.2.6.1.3.1.10.1.2
         // Atlas: https://sky-atlas.io/#A.6.1.1.2.2.6.1.3.1.11.1.2
 
-        // Whitelist the Grove Proxy Spell deployed to 0x6772d7eaab1c2e275f46b99d8cce8d470fa790ab with codehash 0x62e0ddd487406519e23c4c6e26414e898c2442dd90365ee1a4a7cb188114e614; direct execution: no in Grove Starguard
+        // Whitelist the Grove Proxy Spell deployed to 0x6772d7eaaB1c2e275f46B99D8cce8d470fA790Ab with codehash 0x62e0ddd487406519e23c4c6e26414e898c2442dd90365ee1a4a7cb188114e614; direct execution: no in Grove Starguard
         StarGuardLike(GROVE_STARGUARD).plot(GROVE_PROXY_SPELL, GROVE_PROXY_SPELL_CODEHASH);
     }
 

@@ -1503,8 +1503,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertTrue(seq.hasJob(address(job)), "StarGuardJob/not-in-sequencer");
 
         // Work off workables from spell to ensure clean state
-        bool isSpellWorkLeft = true;
-        while (isSpellWorkLeft) {
+        while (true) {
             bytes32 network = seq.getMaster();
 
             bool isWorkable;
@@ -1516,7 +1515,6 @@ contract DssSpellTest is DssSpellTestBase {
             }
 
             if (!isWorkable) {
-                isSpellWorkLeft = false;
                 break;
             }
 
