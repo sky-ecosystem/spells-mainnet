@@ -1001,7 +1001,7 @@ contract Config {
             line:         0,
             dust:         30_000,
             pct:          0,
-            mat:          145_00,
+            mat:          120_00,
             liqType:      "clip",
             liqOn:        false,
             chop:         13_00,

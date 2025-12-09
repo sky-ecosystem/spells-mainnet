@@ -34,6 +34,14 @@ interface VestedRewardsDistributionLike {
     function distribute() external returns (uint256 amount);
 }
 
+interface StarGuardLike {
+    function plot(address addr_, bytes32 tag_) external;
+}
+
+interface LockstakeCappedOsmWrapperLike {
+    function poke() external;
+}
+
 contract DssSpellAction is DssAction {
     // Provides a descriptive tag for bot consumption
     // This should be modified weekly to provide a summary of the actions
@@ -73,6 +81,9 @@ contract DssSpellAction is DssAction {
     address internal immutable MCD_VEST_SKY_TREASURY = DssExecLib.getChangelogAddress("MCD_VEST_SKY_TREASURY");
     address internal immutable REWARDS_DIST_USDS_SKY = DssExecLib.getChangelogAddress("REWARDS_DIST_USDS_SKY");
     address internal immutable STUSDS_RATE_SETTER    = DssExecLib.getChangelogAddress("STUSDS_RATE_SETTER");
+    address internal immutable SPARK_STARGUARD       = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
+    address internal immutable GROVE_STARGUARD       = DssExecLib.getChangelogAddress("GROVE_STARGUARD");
+    address internal immutable LOCKSTAKE_ORACLE      = DssExecLib.getChangelogAddress("LOCKSTAKE_ORACLE");
 
     address internal constant CCEA1_STARGUARD = 0x13D95B35248D04FB60597dd1b27BE13E73Fe0a12;
 
@@ -89,8 +100,15 @@ contract DssSpellAction is DssAction {
     // Note: The deployment address for the Core Council Executor Agent 1 Proxy can be found at https://forum.sky.money/t/technical-scope-of-the-core-council-executor-agent-1-launch/27514
     address internal constant CCEA1_SUBPROXY = 0x64a2b7CfA832fE83BE6a7C1a67521B350519B9c1;
 
-    function actions() public override {
+    // ---------- Spark Proxy Spell ----------
+    address internal constant SPARK_PROXY_SPELL          = 0x2cB9Fa737603cB650d4919937a36EA732ACfe963;
+    bytes32 internal constant SPARK_PROXY_SPELL_CODEHASH = 0x5fdec666ca088e84b1e330ce686b9b4bb84d01022c8de54529dc90cacfd56e37;
 
+    // ---------- Grove Proxy Spell ----------
+    address internal constant GROVE_PROXY_SPELL          = 0x6772d7eaaB1c2e275f46B99D8cce8d470fA790Ab;
+    bytes32 internal constant GROVE_PROXY_SPELL_CODEHASH = 0x62e0ddd487406519e23c4c6e26414e898c2442dd90365ee1a4a7cb188114e614;
+
+    function actions() public override {
         // ---------- Core Council Executor Agent 1 Launch and Funding ----------
         // Forum: https://forum.sky.money/t/technical-scope-of-the-core-council-executor-agent-1-launch/27514
         // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2025-11-24/27452
@@ -184,11 +202,14 @@ contract DssSpellAction is DssAction {
         // ---------- stUSDS capped OSM and Liquidation Ratio adjustments (Pending Atlas Edit Post) ----------
         // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2025-12-08/27524
 
-        // Decrease the stUSDS Liquidation Ratio by 25%, from 145% to 120%
-        // TODO
+        // Decrease the stUSDS Liquidation Ratio by 15%, from 145% to 120%
+        DssExecLib.setIlkLiquidationRatio("LSEV2-SKY-A", 120_00);
 
         // Decrease the stUSDS OSM cap by 0.015 USDS, from 0.04 USDS to 0.025 USDS
-        // TODO
+        DssExecLib.setValue(LOCKSTAKE_ORACLE, "cap", 0.025 ether); // Note: ether is a keyword that represents 10**18, not the ETH token
+
+        // Note: poke the oracle to apply the new cap to the current value immediately
+        LockstakeCappedOsmWrapperLike(LOCKSTAKE_ORACLE).poke();
 
         // ---------- Adjust stUSDS-BEAM Parameters ----------
         // Forum: https://forum.sky.money/t/stusds-beam-rate-setter-configuration/27161/76
@@ -260,7 +281,7 @@ contract DssSpellAction is DssAction {
         // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0x9b21777dfa9f7628060443a046b76a5419740f692557ef45c92f6fac1ff31801
 
         // Whitelist the Spark Proxy Spell deployed to 0x2cB9Fa737603cB650d4919937a36EA732ACfe963 with codehash 0x5fdec666ca088e84b1e330ce686b9b4bb84d01022c8de54529dc90cacfd56e37; direct execution: no in Spark Starguard
-        // TODO
+        StarGuardLike(SPARK_STARGUARD).plot(SPARK_PROXY_SPELL, SPARK_PROXY_SPELL_CODEHASH);
 
         // ---------- Whitelist Grove Proxy Spell in Starguard ----------
         // Forum: https://forum.sky.money/t/december-11th-2025-proposed-changes-to-grove-for-upcoming-spell/27459
@@ -271,7 +292,7 @@ contract DssSpellAction is DssAction {
         // Atlas: https://sky-atlas.io/#A.6.1.1.2.2.6.1.3.1.11.1.2
 
         // Whitelist the Grove Proxy Spell deployed to 0x6772d7eaab1c2e275f46b99d8cce8d470fa790ab with codehash 0x62e0ddd487406519e23c4c6e26414e898c2442dd90365ee1a4a7cb188114e614; direct execution: no in Grove Starguard
-        // TODO
+        StarGuardLike(GROVE_STARGUARD).plot(GROVE_PROXY_SPELL, GROVE_PROXY_SPELL_CODEHASH);
     }
 
     // ---------- Helper Functions ----------

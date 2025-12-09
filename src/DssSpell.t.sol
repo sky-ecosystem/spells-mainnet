@@ -50,6 +50,10 @@ interface CronJobLike {
     function workable(bytes32 network) external returns (bool, bytes memory);
 }
 
+interface LockstakeCappedOsmWrapperLike {
+    function cap() external view returns (uint256);
+}
+
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -1261,71 +1265,41 @@ contract DssSpellTest is DssSpellTestBase {
         _testExpectedMscValues(payments, expectedValues, expectedDaiVow);
     }
 
-    // Spark tests
-    function testSparkSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
-        _testStarguardExecution({
-            starGuardKey: "SPARK_STARGUARD",
-            primeAgentSpell: 0x2C9E477313EC440fe4Ab6C98529da2793e6890F2, // Insert Spark spell address
-            primeAgentSpellHash: 0xfad4d50e95e43a5d172619770dac42160a77258693d15be09343c5b29f88c521, // Insert Spark spell hash
-            directExecutionEnabled: false // Set to true if the spark spell is executed directly from core spell
-        });
+    struct PrimeAgentSpell {
+        bytes32 starGuardKey;
+        address addr;
+        bytes32 codehash;
+        bool directExecutionEnabled;
     }
 
-    // Bloom/Grove tests
-    function testBloomSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
-        address BLOOM_PROXY = addr.addr('GROVE_SUBPROXY');
-        address BLOOM_SPELL = address(0x8b4A92f8375ef89165AeF4639E640e077d7C656b); // Insert Bloom spell address
+    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
+        PrimeAgentSpell[2] memory primeAgentSpells = [
+            PrimeAgentSpell({
+                starGuardKey: "SPARK_STARGUARD",                                              // Insert Prime Agent StarGuards Chainlog key
+                addr: 0x2cB9Fa737603cB650d4919937a36EA732ACfe963,                             // Insert Prime Agent spell address
+                codehash: 0x5fdec666ca088e84b1e330ce686b9b4bb84d01022c8de54529dc90cacfd56e37, // Insert Prime Agent spell codehash
+                directExecutionEnabled: false                                                 // Set to true if the Prime Agent spell is executed directly from core spell
+            }),
+            PrimeAgentSpell({
+                starGuardKey: "GROVE_STARGUARD",
+                addr: 0x6772d7eaaB1c2e275f46B99D8cce8d470fA790Ab,
+                codehash: 0x62e0ddd487406519e23c4c6e26414e898c2442dd90365ee1a4a7cb188114e614,
+                directExecutionEnabled: false
+            })
+        ];
 
-        vm.expectCall(
-            BLOOM_PROXY,
-            /* value = */ 0,
-            abi.encodeCall(
-                SubProxyLike(BLOOM_PROXY).exec,
-                (BLOOM_SPELL, abi.encodeWithSignature("execute()"))
-            )
-        );
+        uint256 before = vm.snapshotState();
 
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-    }
+        for (uint256 i = 0; i < primeAgentSpells.length; i++) {
+            _testStarguardExecution({
+                starGuardKey: primeAgentSpells[i].starGuardKey,
+                primeAgentSpell: primeAgentSpells[i].addr,
+                primeAgentSpellHash: primeAgentSpells[i].codehash,
+                directExecutionEnabled: primeAgentSpells[i].directExecutionEnabled
+            });
 
-    // Nova/Keel tests
-    function testNovaSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
-        address NOVA_PROXY = addr.addr('KEEL_SUBPROXY');
-        address NOVA_SPELL = address(0x2395AF361CdF86d348B07E109E710943AFDb23aa); // Insert Nova spell address
-
-        vm.expectCall(
-            NOVA_PROXY,
-            /* value = */ 0,
-            abi.encodeCall(
-                SubProxyLike(NOVA_PROXY).exec,
-                (NOVA_SPELL, abi.encodeWithSignature("execute()"))
-            )
-        );
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-    }
-
-    // Obex tests
-    function testObexSpellIsExecuted() public skipped { // add the `skipped` modifier to skip
-        address OBEX_PROXY = addr.addr('OBEX_SUBPROXY');
-        address OBEX_SPELL = address(0xF538909eDF14d2c23002C2b3882Ad60f79d61893); // Insert Obex spell address
-
-        vm.expectCall(
-            OBEX_PROXY,
-            /* value = */ 0,
-            abi.encodeCall(
-                SubProxyLike(OBEX_PROXY).exec,
-                (OBEX_SPELL, abi.encodeWithSignature("execute()"))
-            )
-        );
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
+            vm.revertToStateAndDelete(before);
+        }
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
@@ -1386,6 +1360,20 @@ contract DssSpellTest is DssSpellTestBase {
         uint256 expectedSkyBalance = prevSkyBalance + ((prevMkrBalance * afterSpell.sky_mkr_rate) - feeCut);
         assertEq(mkr.balanceOf(mkrHolder), 0,                  "TestError/MKR/bad-mkr-to-sky-conversion");
         assertEq(sky.balanceOf(skyHolder), expectedSkyBalance, "TestError/SKY/bad-mkr-to-sky-conversion");
+    }
+
+    function testLockstakeCappedOsmCapDecrease() public {
+        address LOCKSTAKE_ORACLE = addr.addr("LOCKSTAKE_ORACLE");
+
+        uint256 cap = LockstakeCappedOsmWrapperLike(LOCKSTAKE_ORACLE).cap();
+        assertEq(cap, 0.04 ether, "TestError/lockstake-osm-cap-invalid-before");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        cap = LockstakeCappedOsmWrapperLike(LOCKSTAKE_ORACLE).cap();
+        assertEq(cap, 0.025 ether, "TestError/lockstake-osm-cap-invalid-after");
     }
 
     struct StarguardValues {
@@ -1503,12 +1491,14 @@ contract DssSpellTest is DssSpellTestBase {
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        address[1] memory starGuards = [
+        address[3] memory starGuards = [
+            addr.addr("SPARK_STARGUARD"),
+            addr.addr("GROVE_STARGUARD"),
             addr.addr("CCEA1_STARGUARD")
         ];
 
-        SequencerLike  seq       = SequencerLike(addr.addr("CRON_SEQUENCER"));
-        CronJobLike    job       = CronJobLike(addr.addr("CRON_STARGUARD_JOB"));
+        SequencerLike  seq = SequencerLike(addr.addr("CRON_SEQUENCER"));
+        CronJobLike    job = CronJobLike(addr.addr("CRON_STARGUARD_JOB"));
 
         // Ensure job is registered
         assertTrue(seq.hasJob(address(job)), "StarGuardJob/not-in-sequencer");
