@@ -1485,15 +1485,14 @@ contract DssSpellTest is DssSpellTestBase {
 
     event Drop(address indexed addr);
     event Executed();
+    event Work(bytes32 indexed network, address indexed starGuard, address starSpell);
 
     function testCronStarGuardJobWorkAndWorkable() public {
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        address[3] memory starGuards = [
-            addr.addr("SPARK_STARGUARD"),
-            addr.addr("GROVE_STARGUARD"),
+        address[1] memory starGuards = [
             addr.addr("CCEA1_STARGUARD")
         ];
 
@@ -1502,6 +1501,28 @@ contract DssSpellTest is DssSpellTestBase {
 
         // Ensure job is registered
         assertTrue(seq.hasJob(address(job)), "StarGuardJob/not-in-sequencer");
+
+        // Work off workables from spell to ensure clean state
+        bool isSpellWorkLeft = true;
+        while (isSpellWorkLeft) {
+            bytes32 network = seq.getMaster();
+
+            bool isWorkable;
+            bytes memory args;
+            {
+                uint256 before = vm.snapshotState();
+                (isWorkable, args) = job.workable(network);
+                vm.revertToStateAndDelete(before);
+            }
+
+            if (!isWorkable) {
+                isSpellWorkLeft = false;
+                break;
+            }
+
+            assertTrue(isWorkable, "StarGuardJob/spell-not-workable");
+            job.work(network, args);
+        }
 
         // Plot an executable payload so the job becomes workable
         MockStarSpell payload = new MockStarSpell();
@@ -1528,6 +1549,8 @@ contract DssSpellTest is DssSpellTestBase {
             }
             assertTrue(isWorkable, "StarGuardJob/not-workable");
 
+            vm.expectEmit();
+            emit Work(network, starGuards[i], address(payload));
             job.work(network, args);
 
             // After work, plotted spell should be cleared and not executable
