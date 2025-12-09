@@ -2958,11 +2958,7 @@ contract DssSpellTestBase is Config, DssTest {
             assertGe(balance, vestableAmt, _concat(string("TestError/insufficient-transferrable-vest-balance-"), _errSuffix));
         } else {
             // Note: SKY streams will operate out of buybacks, check that balance is sufficient for short term (20 days)
-            // Note: As discussed with GovOps, when the 2025-10-30 spell is executed, 500 million SKY will be transferred to the PauseProxy.
-            // TODO: This is a one-time transfer. Update in next spells.
-            GodMode.setBalance(address(sky), pauseProxy, balance +500_000_000 * WAD);
             vm.warp(block.timestamp + 20 days);
-
 
             uint256 requiredBalance;
             for (uint256 i = 1; i <= vest.ids(); i++) {
