@@ -38,10 +38,6 @@ interface StarGuardLike {
     function plot(address addr_, bytes32 tag_) external;
 }
 
-interface LockstakeCappedOsmWrapperLike {
-    function poke() external;
-}
-
 contract DssSpellAction is DssAction {
     // Provides a descriptive tag for bot consumption
     // This should be modified weekly to provide a summary of the actions
@@ -209,8 +205,8 @@ contract DssSpellAction is DssAction {
         // Decrease the stUSDS OSM cap by 0.015 USDS, from 0.04 USDS to 0.025 USDS
         DssExecLib.setValue(LOCKSTAKE_ORACLE, "cap", 0.025 ether); // Note: ether is a keyword that represents 10**18, not the ETH token
 
-        // Note: poke the oracle to apply the new cap to the current value immediately
-        LockstakeCappedOsmWrapperLike(LOCKSTAKE_ORACLE).poke();
+        // Note: Poke the spotter to make the updated price immediately available
+        DssExecLib.updateCollateralPrice("LSEV2-SKY-A");
 
         // ---------- Adjust stUSDS-BEAM Parameters ----------
         // Forum: https://forum.sky.money/t/stusds-beam-rate-setter-configuration/27161/76
