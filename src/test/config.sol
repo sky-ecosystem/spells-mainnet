@@ -178,7 +178,7 @@ contract Config {
         afterSpell.vest_usds_cap          = 46_200 * WAD /  30 days;                        // In WAD USDS per second
         afterSpell.vest_sky_cap           = 110 * (1_000_000_000 * WAD / 180 days) / 100;   // In WAD SKY per second
         afterSpell.vest_sky_mint_cap      = 176_000_000 * WAD / 182 days;                   // In WAD SKY per second
-        afterSpell.vest_spk_cap           = 2_502_500_000 * WAD / 730 days;                 // In WAD SKY per second
+        afterSpell.vest_spk_cap           = 2_502_500_000 * WAD / 730 days;                 // In WAD SPK per second
         afterSpell.ilk_count              = 31;                                             // Num expected in system
         afterSpell.chainlog_version       = "1.20.10";                                      // String expected in system
 

@@ -895,7 +895,7 @@ contract DssSpellTest is DssSpellTestBase {
         });
 
         if (ignoreTotalSupplyDaiUsds == false) {
-            // Assume USDS or Dai payments are made form the surplus buffer, meaning new ERC-20 tokens are emitted
+            // Assume USDS or Dai payments are made from the surplus buffer, meaning new ERC-20 tokens are emitted
             assertEq(
                 totalSupplyDiff.dai + totalSupplyDiff.usds,
                 calculatedTotalPayments.dai + calculatedTotalPayments.usds,

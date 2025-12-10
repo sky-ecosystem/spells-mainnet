@@ -41,8 +41,8 @@ interface StarGuardLike {
 contract DssSpellAction is DssAction {
     // Provides a descriptive tag for bot consumption
     // This should be modified weekly to provide a summary of the actions
-    // Hash: cast keccak -- "$(wget 'https://raw.githubusercontent.com/sky-ecosystem/executive-votes/f04712408729f7074ddabb300141569d4e87068e/2025/executive-vote-2025-12-11-launch-ccea1-subproxy-and-starguard.md' -q -O - 2>/dev/null)"
-    string public constant override description = "2025-12-11 MakerDAO Executive Spell | Hash: 0x13960e88b68210caa0131aa6aab1e9cd92889326cab24caa13c0f274d1bd6a40";
+    // Hash: cast keccak -- "$(wget 'https://raw.githubusercontent.com/sky-ecosystem/executive-votes/2dbaa7254daeafe71ceed9f163fe068d43a885ab/2025/executive-vote-2025-12-11-launch-ccea1-subproxy-and-starguard.md' -q -O - 2>/dev/null)"
+    string public constant override description = "2025-12-11 MakerDAO Executive Spell | Hash: 0x2a8b02350448750e1552832cf8bf96279dd2c30e633fd65087a4159c97b3b048";
 
     // Set office hours according to the summary
     function officeHours() public pure override returns (bool) {
@@ -144,7 +144,7 @@ contract DssSpellAction is DssAction {
         // Note: Bump chainlog patch version as new keys are being added
         DssExecLib.setChangelogVersion("1.20.10");
 
-        // ---------- Adjust USDS >> SKY Farm (Pending Forum Post) ----------
+        // ---------- Adjust USDS >> SKY Farm ----------
         // Forum: https://forum.sky.money/t/sky-token-rewards-usds-to-sky-rewards-normalization-configuration/26638/24
         // Forum: https://forum.sky.money/t/sky-token-rewards-usds-to-sky-rewards-normalization-configuration/26638/25
         // Atlas: https://sky-atlas.io/#A.4.3.2.1
@@ -178,7 +178,7 @@ contract DssSpellAction is DssAction {
             uint256 yallowance = ytot - yrxd;
             // Note: Calculate the new allowance
             uint256 allowance = pallowance - yallowance + 60_297_057 * WAD;
-            // Note: set the allowance
+            // Note: Set the allowance
             GemAbstract(SKY).approve(MCD_VEST_SKY_TREASURY, allowance);
         }
 
