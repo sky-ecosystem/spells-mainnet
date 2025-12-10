@@ -1302,80 +1302,6 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    // SPELL-SPECIFIC TESTS GO BELOW
-
-    function testRewardsDistUsdsSkyUpdatedVestIdAndDistribute() public {
-        address REWARDS_DIST_USDS_SKY = addr.addr("REWARDS_DIST_USDS_SKY");
-        address REWARDS_USDS_SKY = addr.addr("REWARDS_USDS_SKY");
-
-        uint256 vestId = VestedRewardsDistributionLike(REWARDS_DIST_USDS_SKY).vestId();
-        assertEq(vestId, 7, "TestError/rewards-dist-usds-sky-invalid-vest-id-before");
-
-        uint256 unpaidAmount = vestSky.unpaid(7);
-        assertTrue(unpaidAmount > 0, "TestError/rewards-dist-usds-sky-unpaid-zero-early");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        vestId = VestedRewardsDistributionLike(REWARDS_DIST_USDS_SKY).vestId();
-        assertEq(vestId, 9, "TestError/rewards-dist-usds-sky-invalid-vest-id-after");
-
-        unpaidAmount = vestSky.unpaid(7);
-        assertEq(unpaidAmount, 0, "TestError/rewards-dist-usds-sky-unpaid-not-cleared");
-
-        assertEq(StakingRewardsLike(REWARDS_USDS_SKY).lastUpdateTime(), block.timestamp, "TestError/rewards-usds-sky-invalid-last-update-time");
-    }
-
-    function testMkrSkyDelayedUpgradePenaltyIncrease() public {
-        uint256 currentFee = mkrSky.fee();
-        assertEq(currentFee, 1 * WAD / 100, "TestError/mkr-sky-invalid-fee-before");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        currentFee = mkrSky.fee();
-        assertEq(currentFee, 2 * WAD / 100, "TestError/mkr-sky-invalid-fee-after");
-
-        uint256 prevTake = mkrSky.take();
-
-        address mkrHolder = makeAddr("mkrHolder");
-        deal(address(mkr), mkrHolder, 1_000 * WAD);
-        address skyHolder = makeAddr("skyHolder");
-
-        uint256 prevMkrBalance = mkr.balanceOf(mkrHolder);
-        uint256 prevSkyBalance = sky.balanceOf(skyHolder);
-
-        vm.startPrank(mkrHolder);
-        mkr.approve(address(mkrSky), type(uint256).max);
-        mkrSky.mkrToSky(skyHolder, prevMkrBalance);
-        vm.stopPrank();
-
-        uint256 take = mkrSky.take();
-        uint256 feeCut = (prevMkrBalance * afterSpell.sky_mkr_rate * currentFee) / WAD;
-        uint256 expectedTakeAfter = prevTake + feeCut;
-        assertEq(take, expectedTakeAfter, "TestError/mkr-sky-take-not-increased");
-
-        uint256 expectedSkyBalance = prevSkyBalance + ((prevMkrBalance * afterSpell.sky_mkr_rate) - feeCut);
-        assertEq(mkr.balanceOf(mkrHolder), 0,                  "TestError/MKR/bad-mkr-to-sky-conversion");
-        assertEq(sky.balanceOf(skyHolder), expectedSkyBalance, "TestError/SKY/bad-mkr-to-sky-conversion");
-    }
-
-    function testLockstakeCappedOsmCapDecrease() public {
-        address LOCKSTAKE_ORACLE = addr.addr("LOCKSTAKE_ORACLE");
-
-        uint256 cap = LockstakeCappedOsmWrapperLike(LOCKSTAKE_ORACLE).cap();
-        assertEq(cap, 0.04 ether, "TestError/lockstake-osm-cap-invalid-before");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        cap = LockstakeCappedOsmWrapperLike(LOCKSTAKE_ORACLE).cap();
-        assertEq(cap, 0.025 ether, "TestError/lockstake-osm-cap-invalid-after");
-    }
-
     struct StarguardValues {
         address subProxy;
         address starGuard;
@@ -1564,6 +1490,80 @@ contract DssSpellTest is DssSpellTestBase {
                 assertFalse(again, "StarGuardJob/still-workable-after-work");
             }
         }
+    }
+
+    // SPELL-SPECIFIC TESTS GO BELOW
+
+    function testRewardsDistUsdsSkyUpdatedVestIdAndDistribute() public {
+        address REWARDS_DIST_USDS_SKY = addr.addr("REWARDS_DIST_USDS_SKY");
+        address REWARDS_USDS_SKY = addr.addr("REWARDS_USDS_SKY");
+
+        uint256 vestId = VestedRewardsDistributionLike(REWARDS_DIST_USDS_SKY).vestId();
+        assertEq(vestId, 7, "TestError/rewards-dist-usds-sky-invalid-vest-id-before");
+
+        uint256 unpaidAmount = vestSky.unpaid(7);
+        assertTrue(unpaidAmount > 0, "TestError/rewards-dist-usds-sky-unpaid-zero-early");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        vestId = VestedRewardsDistributionLike(REWARDS_DIST_USDS_SKY).vestId();
+        assertEq(vestId, 9, "TestError/rewards-dist-usds-sky-invalid-vest-id-after");
+
+        unpaidAmount = vestSky.unpaid(7);
+        assertEq(unpaidAmount, 0, "TestError/rewards-dist-usds-sky-unpaid-not-cleared");
+
+        assertEq(StakingRewardsLike(REWARDS_USDS_SKY).lastUpdateTime(), block.timestamp, "TestError/rewards-usds-sky-invalid-last-update-time");
+    }
+
+    function testMkrSkyDelayedUpgradePenaltyIncrease() public {
+        uint256 currentFee = mkrSky.fee();
+        assertEq(currentFee, 1 * WAD / 100, "TestError/mkr-sky-invalid-fee-before");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        currentFee = mkrSky.fee();
+        assertEq(currentFee, 2 * WAD / 100, "TestError/mkr-sky-invalid-fee-after");
+
+        uint256 prevTake = mkrSky.take();
+
+        address mkrHolder = makeAddr("mkrHolder");
+        deal(address(mkr), mkrHolder, 1_000 * WAD);
+        address skyHolder = makeAddr("skyHolder");
+
+        uint256 prevMkrBalance = mkr.balanceOf(mkrHolder);
+        uint256 prevSkyBalance = sky.balanceOf(skyHolder);
+
+        vm.startPrank(mkrHolder);
+        mkr.approve(address(mkrSky), type(uint256).max);
+        mkrSky.mkrToSky(skyHolder, prevMkrBalance);
+        vm.stopPrank();
+
+        uint256 take = mkrSky.take();
+        uint256 feeCut = (prevMkrBalance * afterSpell.sky_mkr_rate * currentFee) / WAD;
+        uint256 expectedTakeAfter = prevTake + feeCut;
+        assertEq(take, expectedTakeAfter, "TestError/mkr-sky-take-not-increased");
+
+        uint256 expectedSkyBalance = prevSkyBalance + ((prevMkrBalance * afterSpell.sky_mkr_rate) - feeCut);
+        assertEq(mkr.balanceOf(mkrHolder), 0,                  "TestError/MKR/bad-mkr-to-sky-conversion");
+        assertEq(sky.balanceOf(skyHolder), expectedSkyBalance, "TestError/SKY/bad-mkr-to-sky-conversion");
+    }
+
+    function testLockstakeCappedOsmCapDecrease() public {
+        address LOCKSTAKE_ORACLE = addr.addr("LOCKSTAKE_ORACLE");
+
+        uint256 cap = LockstakeCappedOsmWrapperLike(LOCKSTAKE_ORACLE).cap();
+        assertEq(cap, 0.04 ether, "TestError/lockstake-osm-cap-invalid-before");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        cap = LockstakeCappedOsmWrapperLike(LOCKSTAKE_ORACLE).cap();
+        assertEq(cap, 0.025 ether, "TestError/lockstake-osm-cap-invalid-after");
     }
 
 }
