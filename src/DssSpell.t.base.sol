@@ -4081,60 +4081,65 @@ contract DssSpellTestBase is Config, DssTest {
 
         uint256 before = vm.snapshotState();
 
-        // Expect the starGuard to emit its Exec event upon exec()
-        vm.expectEmit();
-        emit Executed();
-        vm.expectEmit(true, false, false, false, address(starGuard));
-        emit Exec(address(payload));
-        address executed = starGuard.exec();
-        assertEq(executed, address(payload), "StarGuard/exec-wrong-target");
-        // Still owner of subProxy, and no longer plotted
-        assertEq(SubProxyLike(subProxyAddr).wards(address(starGuard)), 1, "StarGuard/subProxy-wards-changed");
-        assertFalse(starGuard.prob(), "StarGuard/spell-not-cleared");
-        vm.revertToState(before);
-
-        vm.warp(block.timestamp + 7 days + 1 seconds);
-        // Now beyond deadline, should not be executable
-        assertFalse(starGuard.prob(), "StarGuard/prob-true-after-deadline");
-        // Exec should revert when past deadline
-        vm.expectRevert("StarGuard/expired-spell");
-        starGuard.exec();
-        vm.revertToState(before);
-
-        // Expect a Drop event and cancel the plotted spell
-        vm.startPrank(pauseProxy);
-        vm.expectEmit(true, false, false, false, address(starGuard));
-        emit Drop(address(payload));
-        starGuard.drop();
-        vm.stopPrank();
-        // After drop, it should not be executable and spellData cleared
-        assertFalse(starGuard.prob(), "StarGuard/prob-true-after-drop");
-        (address plotted,,) = starGuard.spellData();
-        assertEq(plotted, address(0), "StarGuard/spellData-not-cleared");
-        // Exec should revert when nothing is plotted
-        vm.expectRevert("StarGuard/unplotted-spell");
-        starGuard.exec();
-        vm.revertToStateAndDelete(before);
-
         {
-            uint256 beforeWorkable = vm.snapshotState();
-            (isWorkable, args) = job.workable(network);
-            vm.revertToStateAndDelete(beforeWorkable);
+            // Expect the starGuard to emit its Exec event upon exec()
+            vm.expectEmit();
+            emit Executed();
+            vm.expectEmit(true, false, false, false, address(starGuard));
+            emit Exec(address(payload));
+            address executed = starGuard.exec();
+            assertEq(executed, address(payload), "StarGuard/exec-wrong-target");
+            // Still owner of subProxy, and no longer plotted
+            assertEq(SubProxyLike(subProxyAddr).wards(address(starGuard)), 1, "StarGuard/subProxy-wards-changed");
+            assertFalse(starGuard.prob(), "StarGuard/spell-not-cleared");
+            vm.revertToState(before);
         }
-        assertTrue(isWorkable, "StarGuardJob/not-workable");
-        vm.expectEmit();
-        emit Work(network, starGuardAddr, address(payload));
-        job.work(network, args);
-        // After work, plotted spell should be cleared and not executable
-        assertFalse(starGuard.prob(), "StarGuard/prob-true-after-job");
-        (plotted,,) = starGuard.spellData();
-        assertEq(plotted, address(0), "StarGuard/spellData-not-cleared-by-job");
-        // Not immediately workable again
         {
-            uint256 beforeWorkable = vm.snapshotState();
-            (bool again, ) = job.workable(network);
-            vm.revertToStateAndDelete(beforeWorkable);
-            assertFalse(again, "StarGuardJob/still-workable-after-work");
+            vm.warp(block.timestamp + 7 days + 1 seconds);
+            // Now beyond deadline, should not be executable
+            assertFalse(starGuard.prob(), "StarGuard/prob-true-after-deadline");
+            // Exec should revert when past deadline
+            vm.expectRevert("StarGuard/expired-spell");
+            starGuard.exec();
+            vm.revertToState(before);
+        }
+        {
+            // Expect a Drop event and cancel the plotted spell
+            vm.startPrank(pauseProxy);
+            vm.expectEmit(true, false, false, false, address(starGuard));
+            emit Drop(address(payload));
+            starGuard.drop();
+            vm.stopPrank();
+            // After drop, it should not be executable and spellData cleared
+            assertFalse(starGuard.prob(), "StarGuard/prob-true-after-drop");
+            (address plotted,,) = starGuard.spellData();
+            assertEq(plotted, address(0), "StarGuard/spellData-not-cleared");
+            // Exec should revert when nothing is plotted
+            vm.expectRevert("StarGuard/unplotted-spell");
+            starGuard.exec();
+            vm.revertToStateAndDelete(before);
+        }
+        {
+            {
+                uint256 beforeWorkable = vm.snapshotState();
+                (isWorkable, args) = job.workable(network);
+                vm.revertToStateAndDelete(beforeWorkable);
+            }
+            assertTrue(isWorkable, "StarGuardJob/not-workable");
+            vm.expectEmit();
+            emit Work(network, starGuardAddr, address(payload));
+            job.work(network, args);
+            // After work, plotted spell should be cleared and not executable
+            assertFalse(starGuard.prob(), "StarGuard/prob-true-after-job");
+            (address plotted,,) = starGuard.spellData();
+            assertEq(plotted, address(0), "StarGuard/spellData-not-cleared-by-job");
+            // Not immediately workable again
+            {
+                uint256 beforeWorkable = vm.snapshotState();
+                (bool again, ) = job.workable(network);
+                vm.revertToStateAndDelete(beforeWorkable);
+                assertFalse(again, "StarGuardJob/still-workable-after-work");
+            }
         }
 
         vm.revertToStateAndDelete(beforeCast);
