@@ -1307,7 +1307,7 @@ contract DssSpellTest is DssSpellTestBase {
         address starGuard;
     }
 
-    function testStarGuards() public {
+    function testStarGuards() public { // add the `skipped` modifier to skip
         StarguardValues[1] memory starGuardValues = [
             StarguardValues(addr.addr('CCEA1_SUBPROXY'), addr.addr("CCEA1_STARGUARD"))
         ];
@@ -1333,7 +1333,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testStarGuardSpellExecution() public {
+    function testStarGuardSpellExecution() public { // add the `skipped` modifier to skip
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
@@ -1370,7 +1370,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testStarGuardDrop() public {
+    function testStarGuardDrop() public { // add the `skipped` modifier to skip
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
@@ -1413,7 +1413,7 @@ contract DssSpellTest is DssSpellTestBase {
     event Executed();
     event Work(bytes32 indexed network, address indexed starGuard, address starSpell);
 
-    function testCronStarGuardJobWorkAndWorkable() public {
+    function testCronStarGuardJobWorkAndWorkable() public { // add the `skipped` modifier to skip
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
