@@ -1292,15 +1292,25 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
+    struct StarguardValues {
+        address starGuard;
+        address subProxy;
+    }
+
     function testStarGuardInitialization() public { // add the `skipped` modifier to skip
-        StarguardValues[] memory starGuardsInitializedInSpell = new StarguardValues[](1);
+        StarguardValues[1] memory initializedStarGuards = [
+            StarguardValues({
+                starGuard: addr.addr("CCEA1_STARGUARD"), // Insert StarGuard address
+                subProxy: addr.addr("CCEA1_SUBPROXY")    // Insert SubProxy address
+            })
+        ];
 
-        starGuardsInitializedInSpell[0] = StarguardValues({
-            starGuard: addr.addr("CCEA1_STARGUARD"), // Insert StarGuard address
-            subProxy: addr.addr("CCEA1_SUBPROXY")    // Insert SubProxy address
-        });
+        for (uint256 i = 0; i < initializedStarGuards.length; i++) {
+            address starGuard = initializedStarGuards[i].starGuard;
+            address subProxy = initializedStarGuards[i].subProxy;
 
-        _testStarGuardInitialization(starGuardsInitializedInSpell);
+            _testStarGuardInitialization(starGuard, subProxy);
+        }
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
