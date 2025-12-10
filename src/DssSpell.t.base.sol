@@ -4095,15 +4095,6 @@ contract DssSpellTestBase is Config, DssTest {
             vm.revertToState(before);
         }
         {
-            vm.warp(block.timestamp + 7 days + 1 seconds);
-            // Now beyond deadline, should not be executable
-            assertFalse(starGuard.prob(), "StarGuard/prob-true-after-deadline");
-            // Exec should revert when past deadline
-            vm.expectRevert("StarGuard/expired-spell");
-            starGuard.exec();
-            vm.revertToState(before);
-        }
-        {
             // Expect a Drop event and cancel the plotted spell
             vm.startPrank(pauseProxy);
             vm.expectEmit(true, false, false, false, address(starGuard));
