@@ -560,6 +560,16 @@ interface SubProxyLike {
     function wards(address usr) external view returns (uint256 allowed);
 }
 
+interface SequencerLike {
+    function hasJob(address job) external view returns (bool);
+    function getMaster() external view returns (bytes32);
+}
+
+interface CronJobLike {
+    function work(bytes32 network, bytes memory args) external;
+    function workable(bytes32 network) external returns (bool, bytes memory);
+}
+
 contract DssSpellTestBase is Config, DssTest {
     using stdStorage for StdStorage;
 
@@ -4004,5 +4014,189 @@ contract DssSpellTestBase is Config, DssTest {
             }
         }
         revert("TestError/PrimeAgentSpell/spell-not-executable-before-deadline");
+    }
+
+    struct StarguardValues {
+        address subProxy;
+        address starGuard;
+    }
+
+    function _testStarGuards(StarguardValues[] memory starGuardValues) internal view {
+        for(uint256 i; i < starGuardValues.length; ++i) {
+            assertEq(SubProxyLike(starGuardValues[i].subProxy).wards(starGuardValues[i].starGuard), 1, "SubProxy/wards-not-set");
+            assertEq(StarGuardLike(starGuardValues[i].starGuard).subProxy(), starGuardValues[i].subProxy, "StarGuard/subProxy-not-set");
+            assertEq(StarGuardLike(starGuardValues[i].starGuard).wards(pauseProxy), 1, "StarGuard/wards-not-set");
+            assertEq(StarGuardLike(starGuardValues[i].starGuard).maxDelay(), 7 days, "StarGuard/maxDelay-not-set");
+
+            (address spellAddr,,) = StarGuardLike(starGuardValues[i].starGuard).spellData();
+            assertEq(spellAddr, address(0), "StarGuard/unexpected-plotted-spell");
+
+            assertTrue(StarGuardJobLike(addr.addr("CRON_STARGUARD_JOB")).has(starGuardValues[i].starGuard), "StarGuardJob/stars-not-set");
+        }
+    }
+
+    function _testStarGuardSpellExecutionPossible(StarguardValues[] memory starGuardValues) internal {
+        // Deploy a simple payload that is always executable
+        MockStarSpell payload = new MockStarSpell();
+
+        uint256 before = vm.snapshotState();
+        for(uint256 i; i < starGuardValues.length; ++i) {
+            StarGuardLike starGuard = StarGuardLike(starGuardValues[i].starGuard);
+            // Plot the payload as the Pause Proxy (admin)
+            vm.startPrank(pauseProxy);
+            starGuard.plot(address(payload), address(payload).codehash);
+            vm.stopPrank();
+
+            // Should be executable now
+            assertTrue(starGuard.prob(), "StarGuard/prob-not-true");
+
+            // Expect the starGuard to emit its Exec event upon exec()
+            vm.expectEmit();
+            emit Executed();
+            vm.expectEmit(true, false, false, false, address(starGuard));
+            emit Exec(address(payload));
+            address executed = starGuard.exec();
+            assertEq(executed, address(payload), "StarGuard/exec-wrong-target");
+
+            // Still owner of subProxy, and no longer plotted
+            assertEq(SubProxyLike(starGuardValues[i].subProxy).wards(address(starGuard)), 1, "StarGuard/subProxy-wards-changed");
+            assertFalse(starGuard.prob(), "StarGuard/spell-not-cleared");
+        }
+
+        vm.revertToStateAndDelete(before);
+    }
+
+    function _testStarGuardDrop(StarguardValues[] memory starGuardValues) internal {
+        // Deploy a simple payload and plot it
+        MockStarSpell payload = new MockStarSpell();
+
+        uint256 before = vm.snapshotState();
+        for(uint256 i; i < starGuardValues.length; ++i) {
+            StarGuardLike starGuard = StarGuardLike(starGuardValues[i].starGuard);
+            vm.startPrank(pauseProxy);
+            starGuard.plot(address(payload), address(payload).codehash);
+            vm.stopPrank();
+
+            assertTrue(starGuard.prob(), "StarGuard/prob-not-true-after-plot");
+
+            // Expect a Drop event and cancel the plotted spell
+            vm.startPrank(pauseProxy);
+            vm.expectEmit(true, false, false, false, address(starGuard));
+            emit Drop(address(payload));
+            starGuard.drop();
+            vm.stopPrank();
+
+            // After drop, it should not be executable and spellData cleared
+            assertFalse(starGuard.prob(), "StarGuard/prob-true-after-drop");
+            (address plotted,,) = starGuard.spellData();
+            assertEq(plotted, address(0), "StarGuard/spellData-not-cleared");
+
+            // Exec should revert when nothing is plotted
+            vm.expectRevert("StarGuard/unplotted-spell");
+            starGuard.exec();
+        }
+
+        vm.revertToStateAndDelete(before);
+    }
+
+    event Drop(address indexed addr);
+    event Executed();
+    event Work(bytes32 indexed network, address indexed starGuard, address starSpell);
+
+    function _testCronStarGuardJobWorkAndWorkable(StarguardValues[] memory starGuardValues) internal {
+        SequencerLike  seq = SequencerLike(addr.addr("CRON_SEQUENCER"));
+        CronJobLike    job = CronJobLike(addr.addr("CRON_STARGUARD_JOB"));
+
+        // Ensure job is registered
+        assertTrue(seq.hasJob(address(job)), "StarGuardJob/not-in-sequencer");
+
+        // Work off workables from spell to ensure clean state
+        while (true) {
+            bytes32 network = seq.getMaster();
+
+            bool isWorkable;
+            bytes memory args;
+            {
+                uint256 before = vm.snapshotState();
+                (isWorkable, args) = job.workable(network);
+                vm.revertToStateAndDelete(before);
+            }
+
+            if (!isWorkable) {
+                break;
+            }
+
+            assertTrue(isWorkable, "StarGuardJob/spell-not-workable");
+            job.work(network, args);
+        }
+
+        // Plot an executable payload so the job becomes workable
+        MockStarSpell payload = new MockStarSpell();
+
+        for(uint256 i; i < starGuardValues.length; ++i) {
+            StarGuardLike starGuard = StarGuardLike(starGuardValues[i].starGuard);
+
+            vm.startPrank(pauseProxy);
+            starGuard.plot(address(payload), address(payload).codehash);
+            vm.stopPrank();
+
+            assertTrue(starGuard.prob(), "StarGuard/prob-not-true-after-plot");
+
+            bytes32 network = seq.getMaster();
+
+            // workable() may mutate; snapshot and revert around the check
+            bool isWorkable;
+            bytes memory args;
+            {
+                uint256 before = vm.snapshotState();
+                (isWorkable, args) = job.workable(network);
+                vm.revertToStateAndDelete(before);
+            }
+            assertTrue(isWorkable, "StarGuardJob/not-workable");
+
+            vm.expectEmit();
+            emit Work(network, starGuardValues[i].starGuard, address(payload));
+            job.work(network, args);
+
+            // After work, plotted spell should be cleared and not executable
+            assertFalse(starGuard.prob(), "StarGuard/prob-true-after-job");
+            (address plotted,,) = starGuard.spellData();
+            assertEq(plotted, address(0), "StarGuard/spellData-not-cleared-by-job");
+
+            // Not immediately workable again
+            {
+                uint256 before = vm.snapshotState();
+                (bool again, ) = job.workable(network);
+                vm.revertToStateAndDelete(before);
+                assertFalse(again, "StarGuardJob/still-workable-after-work");
+            }
+        }
+    }
+
+    function _testStarGuardInitialization(StarguardValues[] memory starGuardValues) internal {
+        for(uint256 i; i < starGuardValues.length; ++i) {
+            assertFalse(StarGuardJobLike(addr.addr("CRON_STARGUARD_JOB")).has(starGuardValues[i].starGuard), "StarGuardJob/stars-not-set");
+        }
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        _testStarGuards(starGuardValues);
+        _testStarGuardSpellExecutionPossible(starGuardValues);
+        _testStarGuardDrop(starGuardValues);
+        _testCronStarGuardJobWorkAndWorkable(starGuardValues);
+    }
+}
+
+contract MockStarSpell {
+    event Executed();
+
+    function execute() external {
+        emit Executed();
+    }
+
+    function isExecutable() external pure returns (bool) {
+        return true;
     }
 }
