@@ -3929,7 +3929,7 @@ contract DssSpellTestBase is Config, DssTest {
     event Plot(address indexed addr, bytes32 tag, uint256 deadline);
     event Exec(address indexed addr);
 
-    function _testStarguardExecution(
+    function _testStarGuardExecution(
         bytes32 starGuardKey,
         address primeAgentSpell,
         bytes32 primeAgentSpellHash,

@@ -1281,7 +1281,7 @@ contract DssSpellTest is DssSpellTestBase {
         uint256 before = vm.snapshotState();
 
         for (uint256 i = 0; i < primeAgentSpells.length; i++) {
-            _testStarguardExecution({
+            _testStarGuardExecution({
                 starGuardKey: primeAgentSpells[i].starGuardKey,
                 primeAgentSpell: primeAgentSpells[i].addr,
                 primeAgentSpellHash: primeAgentSpells[i].codehash,
