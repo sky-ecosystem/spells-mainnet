@@ -105,7 +105,7 @@ print(f"Fetched transaction block: {tx_block}")
 
 # Get deployed contract timestamp
 tx_timestamp = subprocess.run(
-    ["cast", "block", "--field", "timestamp", tx_block],
+    ["cast", "block", "--field", "timestamp", "--json", tx_block],
     stdout=subprocess.PIPE,
     text=True,
     check=True,
