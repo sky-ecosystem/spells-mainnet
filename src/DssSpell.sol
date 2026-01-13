@@ -99,12 +99,12 @@ contract DssSpellAction is DssAction {
     address internal constant SKY_STAKING   = 0x05c73AE49fF0ec654496bF4008d73274a919cB5C;
 
     // ---------- Spark Proxy Spell ----------
-    address internal constant SPARK_SPELL      = 0x2cB9Fa737603cB650d4919937a36EA732ACfe963;
-    bytes32 internal constant SPARK_SPELL_HASH = 0x5fdec666ca088e84b1e330ce686b9b4bb84d01022c8de54529dc90cacfd56e37;
+    address internal constant SPARK_SPELL      = 0xCE352d9429A5e10b29D3d610C7217f9333e04aB4;
+    bytes32 internal constant SPARK_SPELL_HASH = 0x10d1055c82acd9d6804cfb64a80decf3880a257b8af6adad603334325d2586ed;
 
     // ---------- Grove Proxy Spell ----------
-    address internal constant GROVE_SPELL       = 0x6772d7eaaB1c2e275f46B99D8cce8d470fA790Ab;
-    bytes32 internal constant GROVE_SPELL_HASH  = 0x62e0ddd487406519e23c4c6e26414e898c2442dd90365ee1a4a7cb188114e614;
+    address internal constant GROVE_SPELL       = 0x90230A17dcA6c0b126521BB55B98f8C6Cf2bA748;
+    bytes32 internal constant GROVE_SPELL_HASH  = 0x9317fd876201f5a1b08658b47a47c8980b8c8aa7538e059408668b502acfa5fb;
 
     // ---------- Keel Proxy Spell ----------
     address internal constant KEEL_SPELL       = 0x10AF705fB80bc115FCa83a6B976576Feb1E1aaca;
@@ -113,23 +113,23 @@ contract DssSpellAction is DssAction {
     function actions() public override {
         // ---------- Reduce USDS>SKY Emissions ----------
         // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2026-01-12/27606
-        // Poll: https://vote.sky.money/polling/QmYmaVVc#poll-detail
-
-        // Yank MCD_VEST_SKY_TREASURY stream ID 9
-        VestAbstract(MCD_VEST_SKY_TREASURY).yank(9);
+        // Poll: https://vote.sky.money/polling/QmYmaVVc
 
         // Call VestedRewardsDistribution.distribute() on REWARDS_DIST_USDS_SKY
         VestedRewardsDistributionLike(REWARDS_DIST_USDS_SKY).distribute();
 
+        // Yank MCD_VEST_SKY_TREASURY stream ID 9
+        VestAbstract(MCD_VEST_SKY_TREASURY).yank(9);
+
         // ---------- Reduce LSSKY>SPK Emissions ----------
         // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2026-01-12/27606
-        // Poll: https://vote.sky.money/polling/QmYmaVVc#poll-detail
-
-        // Yank MCD_VEST_SPK_TREASURY stream ID 2
-        VestAbstract(MCD_VEST_SPK_TREASURY).yank(2);
+        // Poll: https://vote.sky.money/polling/QmYmaVVc
 
         // Call VestedRewardsDistribution.distribute() on REWARDS_DIST_LSSKY_SPK
         VestedRewardsDistributionLike(REWARDS_DIST_LSSKY_SPK).distribute();
+
+        // Yank MCD_VEST_SPK_TREASURY stream ID 2
+        VestAbstract(MCD_VEST_SPK_TREASURY).yank(2);
 
         // ---------- Offboard GUNI Vaults ----------
         // Forum: https://forum.sky.money/t/guni-offboarding/27420
@@ -217,7 +217,7 @@ contract DssSpellAction is DssAction {
 
         // ---------- Adjust DC-IAM Parameters for Grove ----------
         // Forum: https://forum.sky.money/t/jan-15-2026-parameter-changes-grove-allocator-vault/27595
-        // Atlas: https://vote.sky.money/polling/QmYmaVVc#poll-detail
+        // Atlas: https://vote.sky.money/polling/QmYmaVVc
 
         // Note: use DssExecLib.setIlkAutoLineParameters() to update multiple ALLOCATOR-BLOOM-A DC-IAM parameters at the same time:
         DssExecLib.setIlkAutoLineParameters({
