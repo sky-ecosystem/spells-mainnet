@@ -733,7 +733,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public skipped { // add the `skipped` modifier to skip
+    function testPayments() public { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -743,25 +743,21 @@ contract DssSpellTest is DssSpellTestBase {
         //    the destination address,
         //    the amount to be paid
         // Initialize the array with the number of payees
-        Payee[10] memory payees = [
-            Payee(address(usds), addr.addr("CCEA1_SUBPROXY"), 20_000_000 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG"), 5_000_000 ether), // Note: ether is only a keyword helper
+        Payee[6] memory payees = [
             Payee(address(usds), wallets.addr("AEGIS_D"), 4_000 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("BLUE"), 54_167 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("BLUE"), 4_000 ether), // Note: ether is only a keyword helper
             Payee(address(usds), wallets.addr("BONAPUBLICA"), 4_000 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("CLOAKY_2"), 20_417 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("TANGO"), 3_788 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("SKY_STAKING"), 3_027 ether), // Note: ether is only a keyword helper
-            Payee(address(sky), wallets.addr("BLUE"), 330_000 ether), // Note: ether is only a keyword helper
-            Payee(address(sky), wallets.addr("CLOAKY_2"), 288_000 ether) // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CLOAKY_2"), 4_000 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("TANGO"), 3_723 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("SKY_STAKING"), 1_032 ether) // Note: ether is only a keyword helper
         ];
 
         // Fill the total values from exec sheet
         PaymentAmounts memory expectedTotalPayments = PaymentAmounts({
             dai:                               0 ether, // Note: ether is only a keyword helper
             mkr:                               0 ether, // Note: ether is only a keyword helper
-            usds:                     25_089_399 ether, // Note: ether is only a keyword helper
-            sky:                         618_000 ether  // Note: ether is only a keyword helper
+            usds:                         20_755 ether, // Note: ether is only a keyword helper
+            sky:                               0 ether  // Note: ether is only a keyword helper
         });
 
         // Fill the total values based on the source for the transfers above
@@ -1222,18 +1218,24 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
-        PrimeAgentSpell[2] memory primeAgentSpells = [
+    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
+        PrimeAgentSpell[3] memory primeAgentSpells = [
             PrimeAgentSpell({
                 starGuardKey: "SPARK_STARGUARD",                                              // Insert Prime Agent StarGuards Chainlog key
-                addr: 0x2cB9Fa737603cB650d4919937a36EA732ACfe963,                             // Insert Prime Agent spell address
-                codehash: 0x5fdec666ca088e84b1e330ce686b9b4bb84d01022c8de54529dc90cacfd56e37, // Insert Prime Agent spell codehash
+                addr: 0xCE352d9429A5e10b29D3d610C7217f9333e04aB4,                             // Insert Prime Agent spell address
+                codehash: 0x10d1055c82acd9d6804cfb64a80decf3880a257b8af6adad603334325d2586ed, // Insert Prime Agent spell codehash
                 directExecutionEnabled: false                                                 // Set to true if the Prime Agent spell is executed directly from core spell
             }),
             PrimeAgentSpell({
                 starGuardKey: "GROVE_STARGUARD",
-                addr: 0x6772d7eaaB1c2e275f46B99D8cce8d470fA790Ab,
-                codehash: 0x62e0ddd487406519e23c4c6e26414e898c2442dd90365ee1a4a7cb188114e614,
+                addr: 0x90230A17dcA6c0b126521BB55B98f8C6Cf2bA748,
+                codehash: 0x9317fd876201f5a1b08658b47a47c8980b8c8aa7538e059408668b502acfa5fb,
+                directExecutionEnabled: false
+            }),
+            PrimeAgentSpell({
+                starGuardKey: "KEEL_STARGUARD",
+                addr: 0x10AF705fB80bc115FCa83a6B976576Feb1E1aaca,
+                codehash: 0xa231c2a3fa83669201d02335e50f6aa379a6319c5972cc046b588c08d91fd44d,
                 directExecutionEnabled: false
             })
         ];
@@ -1248,7 +1250,7 @@ contract DssSpellTest is DssSpellTestBase {
                 directExecutionEnabled: primeAgentSpells[i].directExecutionEnabled
             });
 
-            vm.revertToStateAndDelete(before);
+            vm.revertToState(before);
         }
     }
 
