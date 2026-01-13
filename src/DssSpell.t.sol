@@ -36,14 +36,6 @@ interface SpellActionLike {
     function dao_resolutions() external view returns (string memory);
 }
 
-interface VestedRewardsDistributionLike {
-    function vestId() external view returns (uint256);
-}
-
-interface LockstakeCappedOsmWrapperLike {
-    function cap() external view returns (uint256);
-}
-
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -282,7 +274,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
         string[2] memory addedKeys = [
             "CCEA1_SUBPROXY",
             "CCEA1_STARGUARD"
@@ -644,7 +636,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public { // add the `skipped` modifier to skip
+    function testVestSky() public skipped { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
         uint256 APR_08_2026_16_37_23 = 1775666243;
 
@@ -773,7 +765,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public { // add the `skipped` modifier to skip
+    function testPayments() public skipped { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -1161,7 +1153,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(Art, 0, "GUSD-A Art is not 0");
     }
 
-    function testDaoResolutions() public view { // replace `view` with the `skipped` modifier to skip
+    function testDaoResolutions() public skipped { // replace `view` with the `skipped` modifier to skip
         // For each resolution, add IPFS hash as item to the resolutions array
         // Initialize the array with the number of resolutions
         string[1] memory resolutions = [
@@ -1262,7 +1254,7 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
+    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
         PrimeAgentSpell[2] memory primeAgentSpells = [
             PrimeAgentSpell({
                 starGuardKey: "SPARK_STARGUARD",                                              // Insert Prime Agent StarGuards Chainlog key
@@ -1297,7 +1289,7 @@ contract DssSpellTest is DssSpellTestBase {
         address subProxy;
     }
 
-    function testStarGuardInitialization() public { // add the `skipped` modifier to skip
+    function testStarGuardInitialization() public skipped { // add the `skipped` modifier to skip
         StarguardValues[1] memory initializedStarGuards = [
             StarguardValues({
                 starGuard: addr.addr("CCEA1_STARGUARD"), // Insert StarGuard address
@@ -1314,77 +1306,4 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
-
-    function testRewardsDistUsdsSkyUpdatedVestIdAndDistribute() public {
-        address REWARDS_DIST_USDS_SKY = addr.addr("REWARDS_DIST_USDS_SKY");
-        address REWARDS_USDS_SKY = addr.addr("REWARDS_USDS_SKY");
-
-        uint256 vestId = VestedRewardsDistributionLike(REWARDS_DIST_USDS_SKY).vestId();
-        assertEq(vestId, 7, "TestError/rewards-dist-usds-sky-invalid-vest-id-before");
-
-        uint256 unpaidAmount = vestSky.unpaid(7);
-        assertTrue(unpaidAmount > 0, "TestError/rewards-dist-usds-sky-unpaid-zero-early");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        vestId = VestedRewardsDistributionLike(REWARDS_DIST_USDS_SKY).vestId();
-        assertEq(vestId, 9, "TestError/rewards-dist-usds-sky-invalid-vest-id-after");
-
-        unpaidAmount = vestSky.unpaid(7);
-        assertEq(unpaidAmount, 0, "TestError/rewards-dist-usds-sky-unpaid-not-cleared");
-
-        assertEq(StakingRewardsLike(REWARDS_USDS_SKY).lastUpdateTime(), block.timestamp, "TestError/rewards-usds-sky-invalid-last-update-time");
-    }
-
-    function testMkrSkyDelayedUpgradePenaltyIncrease() public {
-        uint256 currentFee = mkrSky.fee();
-        assertEq(currentFee, 1 * WAD / 100, "TestError/mkr-sky-invalid-fee-before");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        currentFee = mkrSky.fee();
-        assertEq(currentFee, 2 * WAD / 100, "TestError/mkr-sky-invalid-fee-after");
-
-        uint256 prevTake = mkrSky.take();
-
-        address mkrHolder = makeAddr("mkrHolder");
-        deal(address(mkr), mkrHolder, 1_000 * WAD);
-        address skyHolder = makeAddr("skyHolder");
-
-        uint256 prevMkrBalance = mkr.balanceOf(mkrHolder);
-        uint256 prevSkyBalance = sky.balanceOf(skyHolder);
-
-        vm.startPrank(mkrHolder);
-        mkr.approve(address(mkrSky), type(uint256).max);
-        mkrSky.mkrToSky(skyHolder, prevMkrBalance);
-        vm.stopPrank();
-
-        uint256 take = mkrSky.take();
-        uint256 feeCut = (prevMkrBalance * afterSpell.sky_mkr_rate * currentFee) / WAD;
-        uint256 expectedTakeAfter = prevTake + feeCut;
-        assertEq(take, expectedTakeAfter, "TestError/mkr-sky-take-not-increased");
-
-        uint256 expectedSkyBalance = prevSkyBalance + ((prevMkrBalance * afterSpell.sky_mkr_rate) - feeCut);
-        assertEq(mkr.balanceOf(mkrHolder), 0,                  "TestError/MKR/bad-mkr-to-sky-conversion");
-        assertEq(sky.balanceOf(skyHolder), expectedSkyBalance, "TestError/SKY/bad-mkr-to-sky-conversion");
-    }
-
-    function testLockstakeCappedOsmCapDecrease() public {
-        address LOCKSTAKE_ORACLE = addr.addr("LOCKSTAKE_ORACLE");
-
-        uint256 cap = LockstakeCappedOsmWrapperLike(LOCKSTAKE_ORACLE).cap();
-        assertEq(cap, 0.04 ether, "TestError/lockstake-osm-cap-invalid-before");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        cap = LockstakeCappedOsmWrapperLike(LOCKSTAKE_ORACLE).cap();
-        assertEq(cap, 0.025 ether, "TestError/lockstake-osm-cap-invalid-after");
-    }
-
 }
