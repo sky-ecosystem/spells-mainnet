@@ -636,32 +636,20 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public skipped { // add the `skipped` modifier to skip
+    function testVestSky() public { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
-        uint256 APR_08_2026_16_37_23 = 1775666243;
+        uint256 JUN_15_2026_14_00_23 = 1781532023;
 
         uint256 spellCastTime = _getSpellCastTime();
 
         // Build expected new stream
-        NewVestStream[] memory newStreams = new NewVestStream[](1);
-        newStreams[0] = NewVestStream({
-            id:  9,
-            usr: addr.addr("REWARDS_DIST_USDS_SKY"),
-            bgn: spellCastTime,
-            clf: spellCastTime,
-            fin: spellCastTime + 182 days,
-            tau: 182 days,
-            mgr: address(0),
-            res: 1,
-            tot: 60_297_057 * WAD,
-            rxd: 0 // Amount already claimed
-        });
+        NewVestStream[] memory newStreams = new NewVestStream[](0);
 
         // For each yanked stream, provide Stream object and initialize the array with the current number of yanked streams
         YankedVestStream[] memory yankedStreams = new YankedVestStream[](1);
         yankedStreams[0] = YankedVestStream({
-            id:  7,
-            fin: APR_08_2026_16_37_23,
+            id:  9,
+            fin: JUN_15_2026_14_00_23,
             end: spellCastTime
         });
 
@@ -703,42 +691,22 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSpk() public skipped { // add the `skipped` modifier to skip
+    function testVestSpk() public { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
+        uint256 JUN_23_2027_14_00_23 = 1813759223;
         uint256 spellCastTime = _getSpellCastTime();
-        uint256 CAST_TIME_MINUS_7_DAYS = spellCastTime - 7 days;
-        uint256 BGN_PLUS_730_DAYS = CAST_TIME_MINUS_7_DAYS + 730 days;
 
         // For each new stream, provide Stream object and initialize the array with the current number of new streams
-        NewVestStream[] memory newStreams = new NewVestStream[](2);
-
-        newStreams[0] = NewVestStream({
-            id:  1,
-            usr: addr.addr("REWARDS_DIST_USDS_SPK"),
-            bgn: CAST_TIME_MINUS_7_DAYS,
-            clf: CAST_TIME_MINUS_7_DAYS,
-            fin: BGN_PLUS_730_DAYS,
-            tau: 730 days,
-            mgr: address(0),
-            res: 1,
-            tot: 2_275_000_000 * WAD,
-            rxd: 7 days * 2_275_000_000 * WAD / 730 days  // Amount already claimed
-        });
-        newStreams[1] = NewVestStream({
-            id:  2,
-            usr: addr.addr("REWARDS_DIST_LSSKY_SPK"),
-            bgn: CAST_TIME_MINUS_7_DAYS,
-            clf: CAST_TIME_MINUS_7_DAYS,
-            fin: BGN_PLUS_730_DAYS,
-            tau: 730 days,
-            mgr: address(0),
-            res: 1,
-            tot: 975_000_000 * WAD,
-            rxd: 7 days * 975_000_000 * WAD / 730 days  // Amount already claimed
-        });
+        NewVestStream[] memory newStreams = new NewVestStream[](0);
 
         // For each yanked stream, provide Stream object and initialize the array with the current number of yanked streams
-        YankedVestStream[] memory yankedStreams = new YankedVestStream[](0);
+        YankedVestStream[] memory yankedStreams = new YankedVestStream[](1);
+
+        yankedStreams[0] = YankedVestStream({
+            id: 2,
+            fin: JUN_23_2027_14_00_23,
+            end: spellCastTime
+        });
 
         _checkVest(
             VestInst({vest: vestSpk, gem: spk, name: "spk", isTransferrable: true}),

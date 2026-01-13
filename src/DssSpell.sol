@@ -67,8 +67,10 @@ contract DssSpellAction is DssAction {
 
     // ---------- Contracts ----------
     address internal immutable DAI                              = DssExecLib.dai();
-    address internal immutable DAI_USDS                         = DssExecLib.getChangelogAddress("DAI_USDS");
     address internal immutable MCD_SPOT                         = DssExecLib.spotter();
+    address internal immutable SKY                              = DssExecLib.getChangelogAddress("SKY");
+    address internal immutable SPK                              = DssExecLib.getChangelogAddress("SPK");
+    address internal immutable DAI_USDS                         = DssExecLib.getChangelogAddress("DAI_USDS");
     address internal immutable MCD_VEST_SKY_TREASURY            = DssExecLib.getChangelogAddress("MCD_VEST_SKY_TREASURY");
     address internal immutable REWARDS_DIST_USDS_SKY            = DssExecLib.getChangelogAddress("REWARDS_DIST_USDS_SKY");
     address internal immutable MCD_VEST_SPK_TREASURY            = DssExecLib.getChangelogAddress("MCD_VEST_SPK_TREASURY");
@@ -118,6 +120,19 @@ contract DssSpellAction is DssAction {
         // Call VestedRewardsDistribution.distribute() on REWARDS_DIST_USDS_SKY
         VestedRewardsDistributionLike(REWARDS_DIST_USDS_SKY).distribute();
 
+        {
+            // Note: Get the previous allowance
+            uint256 pallowance = GemAbstract(SKY).allowance(address(this), MCD_VEST_SKY_TREASURY);
+            // Note: Get the remaining allowance for the yanked stream
+            uint256 ytot = VestAbstract(MCD_VEST_SKY_TREASURY).tot(9);
+            uint256 yrxd = VestAbstract(MCD_VEST_SKY_TREASURY).rxd(9);
+            uint256 yallowance = ytot - yrxd;
+            // Note: Calculate the new allowance
+            uint256 allowance = pallowance - yallowance;
+            // Note: Set the allowance
+            GemAbstract(SKY).approve(MCD_VEST_SKY_TREASURY, allowance);
+        }
+
         // Yank MCD_VEST_SKY_TREASURY stream ID 9
         VestAbstract(MCD_VEST_SKY_TREASURY).yank(9);
 
@@ -127,6 +142,19 @@ contract DssSpellAction is DssAction {
 
         // Call VestedRewardsDistribution.distribute() on REWARDS_DIST_LSSKY_SPK
         VestedRewardsDistributionLike(REWARDS_DIST_LSSKY_SPK).distribute();
+
+        {
+            // Note: Get the previous allowance
+            uint256 pallowance = GemAbstract(SPK).allowance(address(this), MCD_VEST_SPK_TREASURY);
+            // Note: Get the remaining allowance for the yanked stream
+            uint256 ytot = VestAbstract(MCD_VEST_SPK_TREASURY).tot(2);
+            uint256 yrxd = VestAbstract(MCD_VEST_SPK_TREASURY).rxd(2);
+            uint256 yallowance = ytot - yrxd;
+            // Note: Calculate the new allowance
+            uint256 allowance = pallowance - yallowance;
+            // Note: Set the allowance
+            GemAbstract(SPK).approve(MCD_VEST_SPK_TREASURY, allowance);
+        }
 
         // Yank MCD_VEST_SPK_TREASURY stream ID 2
         VestAbstract(MCD_VEST_SPK_TREASURY).yank(2);
