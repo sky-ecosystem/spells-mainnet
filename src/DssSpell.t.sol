@@ -341,18 +341,27 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testIlkClipper() public skipped {  // add the `skipped` modifier to skip
+    function testIlkClipper() public {  // add the `skipped` modifier to skip
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
        _checkIlkClipper(
-            "UNIV2DAIUSDC-A",
-            GemJoinAbstract(addr.addr("MCD_JOIN_UNIV2DAIUSDC_A")),
-            ClipAbstract(addr.addr("MCD_CLIP_UNIV2DAIUSDC_A")),
-            addr.addr("MCD_CLIP_CALC_UNIV2DAIUSDC_A"),
-            OsmAbstract(addr.addr("PIP_UNIV2DAIUSDC")),
-            1 * WAD
+            "GUNIV3DAIUSDC1-A",
+            GemJoinAbstract(addr.addr("MCD_JOIN_GUNIV3DAIUSDC1_A")),
+            ClipAbstract(addr.addr("MCD_CLIP_GUNIV3DAIUSDC1_A")),
+            addr.addr("MCD_CLIP_CALC_GUNIV3DAIUSDC1_A"),
+            OsmAbstract(addr.addr("PIP_GUNIV3DAIUSDC1")),
+            1_000 * WAD
+        );
+
+        _checkIlkClipper(
+            "GUNIV3DAIUSDC2-A",
+            GemJoinAbstract(addr.addr("MCD_JOIN_GUNIV3DAIUSDC2_A")),
+            ClipAbstract(addr.addr("MCD_CLIP_GUNIV3DAIUSDC2_A")),
+            addr.addr("MCD_CLIP_CALC_GUNIV3DAIUSDC2_A"),
+            OsmAbstract(addr.addr("PIP_GUNIV3DAIUSDC2")),
+            1_000 * WAD
         );
     }
 
