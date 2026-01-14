@@ -215,7 +215,7 @@ contract DssSpellAction is DssAction {
         DssExecLib.setAuctionPermittedDrop("GUNIV3DAIUSDC2-A", 95_00);
 
         // Auction Price Function (step): reduce by 60 seconds, from 120 seconds to 60 seconds
-        DssExecLib.setValue(MCD_CLIP_CALC_GUNIV3DAIUSDC2_A, "step", 60);
+        DssExecLib.setStairstepExponentialDecrease(MCD_CLIP_CALC_GUNIV3DAIUSDC2_A, 60 seconds, 99_90);
 
         // Max Auction Duration (tail): reduce by 9,900 seconds, from 13,200 seconds to 3,300 seconds
         DssExecLib.setAuctionTimeBeforeReset("GUNIV3DAIUSDC2-A", 3_300);
