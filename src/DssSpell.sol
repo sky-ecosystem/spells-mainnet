@@ -292,13 +292,16 @@ contract DssSpellAction is DssAction {
 
         // ---------- Whitelist Grove Proxy Spell in Starguard ----------
         // Forum: https://forum.sky.money/t/january-15th-2026-proposed-changes-to-grove-for-upcoming-spell/27570
+        // Atlas: https://sky-atlas.io/#A.6.1.1.2.2.6.1.2.1.1.1.1.2.3
+        // Poll: https://vote.sky.money/polling/QmcJnbbu
+        // Poll: https://vote.sky.money/polling/QmWNWJLS
 
         // Whitelist the Grove Proxy Spell deployed to 0x90230A17dcA6c0b126521BB55B98f8C6Cf2bA748 with codehash 0x9317fd876201f5a1b08658b47a47c8980b8c8aa7538e059408668b502acfa5fb; direct execution: no in Grove Starguard 
         StarGuardLike(GROVE_STARGUARD).plot(GROVE_SPELL, GROVE_SPELL_HASH);
 
         // ---------- Whitelist Keel Proxy Spell in Starguard ----------
         // Forum: https://forum.sky.money/t/january-15-2026-prime-technical-scope-parameter-change-for-upcoming-spell/27567
-        // Poll: https://vote.sky.money/polling/QmdomJ7o
+        // Poll: https://vote.sky.money/polling/QmcJnbbu
 
         // Whitelist the Keel Proxy Spell deployed to 0x10AF705fB80bc115FCa83a6B976576Feb1E1aaca with codehash 0xa231c2a3fa83669201d02335e50f6aa379a6319c5972cc046b588c08d91fd44d; direct execution: no in Keel Starguard 
         StarGuardLike(KEEL_STARGUARD).plot(KEEL_SPELL, KEEL_SPELL_HASH);
