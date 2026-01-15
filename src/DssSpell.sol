@@ -169,9 +169,6 @@ contract DssSpellAction is DssAction {
         // Note: We are using low level methods because DssExecLib only allows setting `mat < 1000%`: https://github.com/makerdao/dss-exec-lib/blob/69b658f35d8618272cd139dfc18c5713caf6b96b/src/DssExecLib.sol#L717
         DssExecLib.setValue(MCD_SPOT, "GUNIV3DAIUSDC1-A", "mat", 10 * RAY);
 
-        // Note: Propagate the change to the vat
-        DssExecLib.updateCollateralPrice("GUNIV3DAIUSDC1-A");
-
         // Liquidation Penalty (chop): reduce by 13 percentage points, from 13% to 0%
         DssExecLib.setIlkLiquidationPenalty("GUNIV3DAIUSDC1-A", 0);
 
@@ -196,14 +193,14 @@ contract DssSpellAction is DssAction {
         // Update the value of stopped to 0 on MCD_CLIP_GUNIV3DAIUSDC1_A
         DssExecLib.setValue(MCD_CLIP_GUNIV3DAIUSDC1_A, "stopped", 0);
 
+        // Note: Propagate the change to the vat
+        DssExecLib.updateCollateralPrice("GUNIV3DAIUSDC1-A");
+
         // Update GUNIV3DAIUSDC2-A Parameters as follows:
 
         // Liquidation Ratio (mat): increase by 898 percentage points, from 102% to 1000%
         // Note: We are using low level methods because DssExecLib only allows setting `mat < 1000%`: https://github.com/makerdao/dss-exec-lib/blob/69b658f35d8618272cd139dfc18c5713caf6b96b/src/DssExecLib.sol#L717
         DssExecLib.setValue(MCD_SPOT, "GUNIV3DAIUSDC2-A", "mat", 10 * RAY);
-
-        // Note: Propagate the change to the vat
-        DssExecLib.updateCollateralPrice("GUNIV3DAIUSDC2-A");
 
         // Liquidation Penalty (chop): reduce by 13 percentage points, from 13% to 0%
         DssExecLib.setIlkLiquidationPenalty("GUNIV3DAIUSDC2-A", 0);
@@ -228,6 +225,9 @@ contract DssSpellAction is DssAction {
 
         // Update the value of stopped to 0 on MCD_CLIP_GUNIV3DAIUSDC2_A
         DssExecLib.setValue(MCD_CLIP_GUNIV3DAIUSDC2_A, "stopped", 0);
+
+        // Note: Propagate the change to the vat
+        DssExecLib.updateCollateralPrice("GUNIV3DAIUSDC2-A");
 
         // ---------- Whitelist Keel SubProxy to send cross-chain messages to Solana ----------
         // Forum: https://forum.sky.money/t/executive-inclusion-whitelisting-the-keel-subproxy-to-send-cross-chain-messages-to-solana/27447
