@@ -9,7 +9,7 @@ import sys
 import subprocess
 from typing import Tuple, List
 
-from . import get_chain_id, get_library_address, get_action_address
+from . import get_chain_id, get_action_address
 
 # Constants
 SOURCE_FILE_PATH = 'src/DssSpell.sol'
@@ -24,11 +24,11 @@ def get_env_var(var_name: str, error_message: str) -> str:
         sys.exit(1)
 
 
-def parse_command_line_args() -> Tuple[str, str, str]:
+def parse_command_line_args() -> Tuple[str, str]:
     """Parse command line arguments."""
-    if len(sys.argv) not in [3, 4]:
+    if len(sys.argv) != 3:
         print("""usage:
-./verify.py <contractname> <address> [constructorArgs]
+./verify.py <contractname> <address>
 """, file=sys.stderr)
         sys.exit(1)
 
@@ -38,19 +38,13 @@ def parse_command_line_args() -> Tuple[str, str, str]:
     if len(contract_address) != 42:
         sys.exit('Malformed address')
 
-    constructor_args = ''
-    if len(sys.argv) == 4:
-        constructor_args = sys.argv[3]
-
-    return contract_name, contract_address, constructor_args
+    return contract_name, contract_address
 
 
 def build_forge_cmd(
     verifier: str,
     address: str,
     contract_name: str,
-    constructor_args: str,
-    library_address: str,
     retries: int,
     delay: int,
     etherscan_api_key: str = "",
@@ -70,12 +64,6 @@ def build_forge_cmd(
         str(delay),
     ]
 
-    if constructor_args:
-        cmd.extend(["--constructor-args", constructor_args])
-
-    if library_address:
-        cmd.extend(["--libraries", f"src/DssExecLib.sol:DssExecLib:{library_address}"])
-
     if verifier == "etherscan" and etherscan_api_key:
         cmd.extend(["--etherscan-api-key", etherscan_api_key])
 
@@ -86,8 +74,6 @@ def verify_once_on(
     verifier: str,
     address: str,
     contract_name: str,
-    constructor_args: str,
-    library_address: str,
     retries: int,
     delay: int,
     etherscan_api_key: str = "",
@@ -96,8 +82,6 @@ def verify_once_on(
         verifier=verifier,
         address=address,
         contract_name=contract_name,
-        constructor_args=constructor_args,
-        library_address=library_address,
         retries=retries,
         delay=delay,
         etherscan_api_key=etherscan_api_key,
@@ -128,8 +112,6 @@ def verify_once_on(
 def verify_contract_with_verifiers(
     contract_name: str,
     contract_address: str,
-    constructor_args: str,
-    library_address: str
 ) -> bool:
     """Verify contract by issuing forge commands per explorer."""
     # Configure retries/delay via env or defaults
@@ -147,8 +129,6 @@ def verify_contract_with_verifiers(
             verifier="sourcify",
             address=contract_address,
             contract_name=contract_name,
-            constructor_args=constructor_args,
-            library_address=library_address,
             retries=retries,
             delay=delay,
         ):
@@ -162,8 +142,6 @@ def verify_contract_with_verifiers(
             verifier="etherscan",
             address=contract_address,
             contract_name=contract_name,
-            constructor_args=constructor_args,
-            library_address=library_address,
             retries=retries,
             delay=delay,
             etherscan_api_key=etherscan_api_key,
@@ -187,17 +165,12 @@ def main():
         )
 
         # Parse command line arguments
-        spell_name, spell_address, constructor_args = parse_command_line_args()
-
-        # Get library address
-        library_address = get_library_address()
+        spell_name, spell_address = parse_command_line_args()
 
         # Verify spell contract
         spell_success = verify_contract_with_verifiers(
             contract_name=spell_name,
             contract_address=spell_address,
-            constructor_args=constructor_args,
-            library_address=library_address
         )
 
         if not spell_success:
@@ -213,8 +186,6 @@ def main():
         action_success = verify_contract_with_verifiers(
             contract_name="DssSpellAction",
             contract_address=action_address,
-            constructor_args=constructor_args,
-            library_address=library_address
         )
 
         if not action_success:
@@ -222,7 +193,7 @@ def main():
             sys.exit(1)
 
         print('\n🎉 All verifications complete!')
-        
+
     except Exception as e:
         print(f'\nError: {str(e)}', file=sys.stderr)
         sys.exit(1)

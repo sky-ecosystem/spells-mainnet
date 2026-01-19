@@ -25,34 +25,6 @@ def get_chain_id() -> str:
     print(f"CHAIN_ID: {chain_id}")
     return chain_id
 
-
-def get_library_address() -> str:
-    """Find the DssExecLib address from foundry.toml."""
-    library_address = ""
-
-    # Try to read from foundry.toml libraries
-    if os.path.exists("foundry.toml"):
-        try:
-            with open("foundry.toml", "r") as f:
-                config = f.read()
-
-            result = re.search(r":DssExecLib:(0x[0-9a-fA-F]{40})", config)
-            if result:
-                library_address = result.group(1)
-                print(f"Using library {LIBRARY_NAME} at address {library_address}")
-                return library_address
-            else:
-                print("No DssExecLib configured in foundry.toml", file=sys.stderr)
-        except Exception as e:
-            print(f"Error reading foundry.toml: {str(e)}", file=sys.stderr)
-    else:
-        print("No foundry.toml found", file=sys.stderr)
-
-    # If we get here, no library address was found
-    print("WARNING: Assuming this contract uses no libraries", file=sys.stderr)
-    return ""
-
-
 def get_action_address(spell_address: str) -> Optional[str]:
     """Get the action contract address from the spell contract."""
     try:
