@@ -36,32 +36,6 @@ interface SpellActionLike {
     function dao_resolutions() external view returns (string memory);
 }
 
-interface VestedRewardsDistributionLike {
-    function vestId() external view returns (uint256);
-}
-
-interface GovernanceOAppSenderLike {
-    struct MessagingFee {
-        uint256 nativeFee;
-        uint256 lzTokenFee;
-    }
-    struct TxParams {
-        uint32 dstEid;
-        bytes32 dstTarget;
-        bytes dstCallData;
-        bytes extraOptions;
-    }
-    struct MessagingReceipt {
-        bytes32 guid;
-    }
-    function canCallTarget(address _srcSender, uint32 _dstEid, bytes32 _dstTarget) external view returns (bool);
-    function sendTx(
-        TxParams calldata _params,
-        MessagingFee calldata _fee,
-        address _refundAddress
-    ) external payable returns (MessagingReceipt memory msgReceipt);
-}
-
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -341,7 +315,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testIlkClipper() public {  // add the `skipped` modifier to skip
+    function testIlkClipper() public skipped {  // add the `skipped` modifier to skip
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
@@ -671,7 +645,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public { // add the `skipped` modifier to skip
+    function testVestSky() public skipped { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
         uint256 JUN_15_2026_14_00_23 = 1781532023;
 
@@ -726,7 +700,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSpk() public { // add the `skipped` modifier to skip
+    function testVestSpk() public skipped { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
         uint256 JUN_23_2027_14_00_23 = 1813759223;
         uint256 spellCastTime = _getSpellCastTime();
@@ -768,7 +742,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public { // add the `skipped` modifier to skip
+    function testPayments() public skipped { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -1253,7 +1227,7 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
+    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
         PrimeAgentSpell[3] memory primeAgentSpells = [
             PrimeAgentSpell({
                 starGuardKey: "SPARK_STARGUARD",                                              // Insert Prime Agent StarGuards Chainlog key
@@ -1311,137 +1285,4 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
-
-    function testRewardsDistUsdsSkyUpdatedVestIdAndDistribute() public {
-        address REWARDS_DIST_USDS_SKY = addr.addr("REWARDS_DIST_USDS_SKY");
-        address REWARDS_USDS_SKY = addr.addr("REWARDS_USDS_SKY");
-
-        uint256 vestId = VestedRewardsDistributionLike(REWARDS_DIST_USDS_SKY).vestId();
-        assertEq(vestId, 9, "TestError/rewards-dist-usds-sky-invalid-vest-id-before");
-
-        uint256 unpaidAmount = vestSky.unpaid(9);
-        assertTrue(unpaidAmount > 0, "TestError/rewards-dist-usds-sky-unpaid-zero-early");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        unpaidAmount = vestSky.unpaid(9);
-        assertEq(unpaidAmount, 0, "TestError/rewards-dist-usds-sky-unpaid-not-cleared");
-
-        assertEq(StakingRewardsLike(REWARDS_USDS_SKY).lastUpdateTime(), block.timestamp, "TestError/rewards-usds-sky-invalid-last-update-time");
-    }
-
-    function testRewardsDistLsskySpkUpdatedVestIdAndDistribute() public {
-        address REWARDS_DIST_LSSKY_SPK = addr.addr("REWARDS_DIST_LSSKY_SPK");
-        address REWARDS_LSSKY_SPK = addr.addr("REWARDS_LSSKY_SPK");
-
-        uint256 vestId = VestedRewardsDistributionLike(REWARDS_DIST_LSSKY_SPK).vestId();
-        assertEq(vestId, 2, "TestError/rewards-dist-lssky-spk-invalid-vest-id-before");
-
-        uint256 unpaidAmount = vestSpk.unpaid(2);
-        assertTrue(unpaidAmount > 0, "TestError/rewards-dist-lssky-spk-unpaid-zero-early");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        unpaidAmount = vestSpk.unpaid(2);
-        assertEq(unpaidAmount, 0, "TestError/rewards-dist-lssky-spk-unpaid-not-cleared");
-
-        assertEq(StakingRewardsLike(REWARDS_LSSKY_SPK).lastUpdateTime(), block.timestamp, "TestError/rewards-lssky-spk-invalid-last-update-time");
-    }
-
-    function testGUniV3DaiUsdc1Offboarding() public {
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        LPOsmAbstract pip = LPOsmAbstract(chainLog.getAddress("PIP_GUNIV3DAIUSDC1"));
-
-        _checkUNILPIntegration(
-            "GUNIV3DAIUSDC1-A",
-            GemJoinAbstract(chainLog.getAddress("MCD_JOIN_GUNIV3DAIUSDC1_A")),
-            ClipAbstract(chainLog.getAddress("MCD_CLIP_GUNIV3DAIUSDC1_A")),
-            pip,
-            pip.orb0(),
-            pip.orb1(),
-            false,
-            false,
-            true
-        );
-    }
-
-    function testGUniV3DaiUsdc2Offboarding() public {
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        LPOsmAbstract pip = LPOsmAbstract(chainLog.getAddress("PIP_GUNIV3DAIUSDC2"));
-
-        _checkUNILPIntegration(
-            "GUNIV3DAIUSDC2-A",
-            GemJoinAbstract(chainLog.getAddress("MCD_JOIN_GUNIV3DAIUSDC2_A")),
-            ClipAbstract(chainLog.getAddress("MCD_CLIP_GUNIV3DAIUSDC2_A")),
-            pip,
-            pip.orb0(),
-            pip.orb1(),
-            false,
-            false,
-            true
-        );
-    }
-
-    function testGovernanceCanCallTargetsAndHappyPath() public {
-        uint32  SOL_EID = 30168;
-        bytes32 SVM_CONTROLLER = 0x8aadd66fe8f142fb55a08e900228f5488fcc7d73938bbce28e313e1b87da3624;
-        bytes32 BPF_LOADER     = 0x02a8f6914e88a1b0e210153ef763ae2b00c2b93d16c124d2c0537a1004800000;
-
-        address govSender    = addr.addr("LZ_GOV_SENDER");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        assertTrue(GovernanceOAppSenderLike(govSender).canCallTarget(addr.addr("KEEL_SUBPROXY"), SOL_EID, SVM_CONTROLLER), "GovernanceOAppSender/canCallTarget-not-set");
-        assertTrue(GovernanceOAppSenderLike(govSender).canCallTarget(addr.addr("KEEL_SUBPROXY"), SOL_EID, BPF_LOADER), "GovernanceOAppSender/canCallTarget-not-set");
-
-        // Happy path: call the Governance OApp sender directly from KEEL_SUBPROXY
-        GovernanceOAppSenderLike govOappSender  = GovernanceOAppSenderLike(govSender);
-
-        vm.startPrank(addr.addr("KEEL_SUBPROXY"));
-        vm.deal(address(addr.addr("KEEL_SUBPROXY")), 10 ether);
-        uint256 nativeFee = 1 ether;
-
-        // Send to SVM_CONTROLLER (bytes("abc") is arbitrary payload)
-        govOappSender.sendTx{value: nativeFee}(
-            GovernanceOAppSenderLike.TxParams({
-                dstEid      : SOL_EID,
-                dstTarget   : SVM_CONTROLLER,
-                dstCallData : bytes("abc"),
-                extraOptions: hex"00030100210100000000000000000000000000030d40000000000000000000000000001f1df0"
-            }),
-            GovernanceOAppSenderLike.MessagingFee({
-                nativeFee  : nativeFee,
-                lzTokenFee : 0
-            }),
-            address(0x333)
-        );
-
-        // Send to BPF_LOADER (bytes("def") is arbitrary payload)
-        govOappSender.sendTx{value: nativeFee}(
-            GovernanceOAppSenderLike.TxParams({
-                dstEid      : SOL_EID,
-                dstTarget   : BPF_LOADER,
-                dstCallData : bytes("def"),
-                extraOptions: hex"00030100210100000000000000000000000000030d40000000000000000000000000001f1df0"
-            }),
-            GovernanceOAppSenderLike.MessagingFee({
-                nativeFee  : nativeFee,
-                lzTokenFee : 0
-            }),
-            address(0x333)
-        );
-        vm.stopPrank();
-    }
 }
