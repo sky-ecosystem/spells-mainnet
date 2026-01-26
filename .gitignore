@@ -2,3 +2,4 @@
 /cache
 *.log
 .DS_Store
+/broadcast
