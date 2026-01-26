@@ -295,6 +295,7 @@ contract DssSpellAction is DssAction {
 
         // ---------- Grove Proxy Spell ----------
         // Forum: https://forum.sky.money/t/january-29-2026-proposed-changes-to-grove-for-upcoming-spell/27608
+        // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2026-01-19/27627
         // Atlas: https://sky-atlas.io/#A.6.1.1.2.2.1.4.2.1.2.4
 
         // Whitelist Grove spell with address 0x67aB5b15E3907E3631a303c50060c2207465a9AD and codehash 0x7e4eb1e46f50b347fc7c8d20face6070c8fda4876049e32f3877a89cede1d533 in GROVE_STARGUARD, direct execution: No
