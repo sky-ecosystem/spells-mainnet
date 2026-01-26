@@ -229,5 +229,8 @@ contract Wallets {
 
         // Gnosis
         addr["GNOSIS"]                        = 0x849D52316331967b6fF1198e5E32A0eB168D039d;
+
+        // Demand Subsidies Multisigs
+        addr["USDS_DEMAND_SUBSIDIES_MULTISIG"] = 0x3F32bC09d41eE699844F8296e806417D6bf61Bba;
     }
 }

@@ -179,8 +179,8 @@ contract Config {
         afterSpell.vest_sky_cap           = 110 * (1_000_000_000 * WAD / 180 days) / 100;   // In WAD SKY per second
         afterSpell.vest_sky_mint_cap      = 176_000_000 * WAD / 182 days;                   // In WAD SKY per second
         afterSpell.vest_spk_cap           = 2_502_500_000 * WAD / 730 days;                 // In WAD SPK per second
-        afterSpell.ilk_count              = 31;                                             // Num expected in system
-        afterSpell.chainlog_version       = "1.20.10";                                      // String expected in system
+        afterSpell.ilk_count              = 32;                                             // Num expected in system
+        afterSpell.chainlog_version       = "1.20.11";                                      // String expected in system
 
         afterSpell.SP_tau       = 57_600 seconds;                             // In seconds
         afterSpell.SP_bud       = 0xe1c6f81D0c3CD570A77813b81AA064c5fff80309; // Address of SPBEAM Bud
@@ -1113,6 +1113,35 @@ contract Config {
             um:           UpdateMethod.AUTOLINE,
             aL_line:      2_500_000_000,
             aL_gap:       50_000_000,
+            aL_ttl:       86_400,
+            line:         0,
+            dust:         0,
+            pct:          0,
+            mat:          100_00,
+            liqType:      "",
+            liqOn:        false,
+            chop:         0,
+            dog_hole:     0,
+            clip_buf:     0,
+            clip_tail:    0,
+            clip_cusp:    0,
+            clip_chip:    0,
+            clip_tip:     0,
+            clipper_mom:  0,
+            cm_tolerance: 0,
+            calc_tau:     0,
+            calc_step:    0,
+            calc_cut:     0,
+            SP_enabled:   true,
+            SP_min:       0,
+            SP_max:       3_000,
+            SP_step:      400,
+            offboarding:  false
+        });
+        afterSpell.collaterals["ALLOCATOR-PATTERN-A"] = CollateralValues({
+            um:           UpdateMethod.AUTOLINE,
+            aL_line:      10_000_000,
+            aL_gap:       10_000_000,
             aL_ttl:       86_400,
             line:         0,
             dust:         0,
