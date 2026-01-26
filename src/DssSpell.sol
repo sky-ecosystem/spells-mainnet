@@ -182,7 +182,7 @@ contract DssSpellAction is DssAction {
             // cfg.duty: 0
             duty:           ZERO_PCT_RATE,
             // cfg.gap: 10 million USDS
-            gap:            10_000_000  * RAD,
+            gap:            10_000_000 * RAD,
             // cfg.maxLine: 10 million USDS
             maxLine:        10_000_000 * RAD,
             // cfg.ttl: 86,400 seconds
