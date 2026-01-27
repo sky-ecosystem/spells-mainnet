@@ -25,7 +25,7 @@ import { ChainlogAbstract } from "dss-interfaces/dss/ChainlogAbstract.sol";
 import { DssInstance, MCD } from "dss-test/MCD.sol";
 import { AllocatorSharedInstance, AllocatorIlkInstance } from "./dependencies/dss-allocator/AllocatorInstances.sol";
 import { AllocatorInit, AllocatorIlkConfig } from "./dependencies/dss-allocator/AllocatorInit.sol";
-import { StarGuardInit, StarGuardConfig } from "src/dependencies/star-guard/StarGuardInit.sol";
+import { StarGuardInit, StarGuardConfig } from "./dependencies/star-guard/StarGuardInit.sol";
 
 interface DaiUsdsLike {
     function daiToUsds(address usr, uint256 wad) external;
