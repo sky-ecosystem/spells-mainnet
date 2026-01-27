@@ -1324,7 +1324,7 @@ contract DssSpellTest is DssSpellTestBase {
         (uint256 line, , , , ) = autoLine.ilks(ilks[i]);
         assertEq(line, 0, "testNewLineMomIlks/autoLine-line-not-reset-to-zero");
         (,,,uint256 ilkVatLine,) = vat.ilks(ilks[i]);
-        assertTrue(ilkVatLine == 0, "testNewLineMomIlks/vat-line-not-reset-to-zero");
+        assertEq(ilkVatLine, 0, "testNewLineMomIlks/vat-line-not-reset-to-zero");
         }
     }
 
