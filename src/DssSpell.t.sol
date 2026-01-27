@@ -422,6 +422,45 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(usds.balanceOf(p.buffer), 0);
     }
 
+    function testNewLineMomIlks() public { // add the `skipped` modifier to skip
+        bytes32[1] memory ilks = [
+            bytes32("ALLOCATOR-PATTERN-A")
+        ];
+
+        for (uint256 i = 0; i < ilks.length; i++) {
+            assertEq(
+                LineMomLike(address(lineMom)).ilks(ilks[i]),
+                0,
+                _concat("testNewLineMomIlks/before-ilk-already-in-lineMom-", ilks[i])
+            );
+        }
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        for (uint256 i = 0; i < ilks.length; i++) {
+            assertEq(
+                LineMomLike(address(lineMom)).ilks(ilks[i]),
+                1,
+                _concat("testNewLineMomIlks/after-ilk-not-added-to-lineMom-", ilks[i])
+            );
+
+            (uint256 lineBefore, , , , ) = autoLine.ilks(ilks[i]);
+            assertGt(lineBefore, 0, "testNewLineMomIlks/autoLine-not-initialized");
+            (,,, uint256 vatLineBefore, ) = vat.ilks(ilks[i]);
+            assertGt(vatLineBefore, 0, "testNewLineMomIlks/vat-line-not-initialized");
+
+            // verify governance can trigger an emergency wipe for new OnBoarded ilks
+            vm.prank(chief.hat());
+            LineMomLike(address(lineMom)).wipe(ilks[i]);
+            (uint256 lineAfter, , , , ) = autoLine.ilks(ilks[i]);
+            assertEq(lineAfter, 0, "testNewLineMomIlks/autoLine-line-not-reset-to-zero");
+            (,,,uint256 ilkVatLineAfter,) = vat.ilks(ilks[i]);
+            assertEq(ilkVatLineAfter, 0, "testNewLineMomIlks/vat-line-not-reset-to-zero");
+        }
+    }
+
     function testLerpSurplusBuffer() public skipped { // add the `skipped` modifier to skip
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
@@ -1294,45 +1333,6 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
-    function testNewLineMomIlks() public {
-        bytes32[1] memory ilks = [
-            bytes32("ALLOCATOR-PATTERN-A")
-        ];
-
-        for (uint256 i = 0; i < ilks.length; i++) {
-            assertEq(
-                LineMomLike(address(lineMom)).ilks(ilks[i]),
-                0,
-                _concat("testNewLineMomIlks/before-ilk-already-in-lineMom-", ilks[i])
-            );
-        }
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        for (uint256 i = 0; i < ilks.length; i++) {
-            assertEq(
-                LineMomLike(address(lineMom)).ilks(ilks[i]),
-                1,
-                _concat("testNewLineMomIlks/after-ilk-not-added-to-lineMom-", ilks[i])
-            );
-
-            (uint256 lineBefore, , , , ) = autoLine.ilks(ilks[i]);
-            assertGt(lineBefore, 0, "testNewLineMomIlks/autoLine-not-initialized");
-            (,,, uint256 vatLineBefore, ) = vat.ilks(ilks[i]);
-            assertGt(vatLineBefore, 0, "testNewLineMomIlks/vat-line-not-initialized");
-
-            // verify governance can trigger an emergency wipe for new OnBoarded ilks
-            vm.prank(chief.hat());
-            LineMomLike(address(lineMom)).wipe(ilks[i]);
-            (uint256 lineAfter, , , , ) = autoLine.ilks(ilks[i]);
-            assertEq(lineAfter, 0, "testNewLineMomIlks/autoLine-line-not-reset-to-zero");
-            (,,,uint256 ilkVatLineAfter,) = vat.ilks(ilks[i]);
-            assertEq(ilkVatLineAfter, 0, "testNewLineMomIlks/vat-line-not-reset-to-zero");
-        }
-    }
-
     function testRemovedChainlogKey() public {
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
