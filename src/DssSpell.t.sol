@@ -1318,13 +1318,18 @@ contract DssSpellTest is DssSpellTestBase {
                 _concat("testNewLineMomIlks/after-ilk-not-added-to-lineMom-", ilks[i])
             );
 
-        // verify governance can trigger an emergency wipe for new OnBoarded ilks
-        vm.prank(pauseProxy);
-        LineMomLike(address(lineMom)).wipe(ilks[i]);
-        (uint256 line, , , , ) = autoLine.ilks(ilks[i]);
-        assertEq(line, 0, "testNewLineMomIlks/autoLine-line-not-reset-to-zero");
-        (,,,uint256 ilkVatLine,) = vat.ilks(ilks[i]);
-        assertEq(ilkVatLine, 0, "testNewLineMomIlks/vat-line-not-reset-to-zero");
+            (uint256 lineBefore, , , , ) = autoLine.ilks(ilks[i]);
+            assertGt(lineBefore, 0, "testNewLineMomIlks/autoLine-not-initialized");
+            (,,, uint256 vatLineBefore, ) = vat.ilks(ilks[i]);
+            assertGt(vatLineBefore, 0, "testNewLineMomIlks/vat-line-not-initialized");
+
+            // verify governance can trigger an emergency wipe for new OnBoarded ilks
+            vm.prank(chief.hat());
+            LineMomLike(address(lineMom)).wipe(ilks[i]);
+            (uint256 lineAfter, , , , ) = autoLine.ilks(ilks[i]);
+            assertEq(lineAfter, 0, "testNewLineMomIlks/autoLine-line-not-reset-to-zero");
+            (,,,uint256 ilkVatLineAfter,) = vat.ilks(ilks[i]);
+            assertEq(ilkVatLineAfter, 0, "testNewLineMomIlks/vat-line-not-reset-to-zero");
         }
     }
 
