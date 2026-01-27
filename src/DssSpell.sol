@@ -103,12 +103,12 @@ contract DssSpellAction is DssAction {
     address internal immutable SPARK_STARGUARD         = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
     address internal immutable GROVE_STARGUARD         = DssExecLib.getChangelogAddress("GROVE_STARGUARD");
 
-    address internal constant ALLOCATOR_PATTERN_A_VAULT    = 0xbd34fc6AAa1d3F52B314CB9D78023dd23eAc3B0E;
-    address internal constant ALLOCATOR_PATTERN_A_BUFFER   = 0x823459b55D79F0421f24a4828237F7ecb8D7F1ef;
-    address internal constant ALLOCATOR_PATTERN_A_SUBPROXY = 0xbC8959Ae2d4E9B385Fe620BEF48C2FD7f4A84736;
-    address internal constant PATTERN_STARGUARD            = 0x2fb18b28fB39Ec3b26C3B5AF5222e2ca3B8B2269;
-    address internal constant SKYBASE_SUBPROXY             = 0x08978E3700859E476201c1D7438B3427e3C81140;
-    address internal constant SKYBASE_STARGUARD            = 0xA170086AeF9b3b81dD73897A0dF56B55e4C2a1F7;
+    address internal constant ALLOCATOR_PATTERN_A_VAULT  = 0xbd34fc6AAa1d3F52B314CB9D78023dd23eAc3B0E;
+    address internal constant ALLOCATOR_PATTERN_A_BUFFER = 0x823459b55D79F0421f24a4828237F7ecb8D7F1ef;
+    address internal constant PATTERN_SUBPROXY           = 0xbC8959Ae2d4E9B385Fe620BEF48C2FD7f4A84736;
+    address internal constant PATTERN_STARGUARD          = 0x2fb18b28fB39Ec3b26C3B5AF5222e2ca3B8B2269;
+    address internal constant SKYBASE_SUBPROXY           = 0x08978E3700859E476201c1D7438B3427e3C81140;
+    address internal constant SKYBASE_STARGUARD          = 0xA170086AeF9b3b81dD73897A0dF56B55e4C2a1F7;
 
     // ---------- Wallets ----------
     address internal constant CORE_COUNCIL_BUDGET_MULTISIG   = 0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364;
@@ -188,7 +188,7 @@ contract DssSpellAction is DssAction {
             // cfg.ttl: 86,400 seconds
             ttl:            86_400,
             // cfg.AllocatorProxy: 0xbC8959Ae2d4E9B385Fe620BEF48C2FD7f4A84736
-            allocatorProxy: ALLOCATOR_PATTERN_A_SUBPROXY,
+            allocatorProxy: PATTERN_SUBPROXY,
             // cfg.ilkRegistry: ILK_REGISTRY from chainlog
             ilkRegistry:    ILK_REGISTRY
         });
@@ -223,7 +223,7 @@ contract DssSpellAction is DssAction {
             // Note: Create StarGuardConfig with the following parameters:
             StarGuardConfig({
                 // cfg.subProxy: 0xbC8959Ae2d4E9B385Fe620BEF48C2FD7f4A84736
-                subProxy: ALLOCATOR_PATTERN_A_SUBPROXY,
+                subProxy: PATTERN_SUBPROXY,
                 // cfg.subProxyKey: PATTERN_SUBPROXY
                 subProxyKey: "PATTERN_SUBPROXY",
                 // cfg.starGuard: 0x2fb18b28fB39Ec3b26C3B5AF5222e2ca3B8B2269
