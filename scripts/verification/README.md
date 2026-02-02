@@ -14,7 +14,7 @@ export ETHERSCAN_API_KEY="..."
 export VERIFY_RETRIES=5
 export VERIFY_DELAY=5
 
-python -m scripts.verification.verify DssSpell 0xYourSpellAddress [constructorArgs]
+python -m scripts.verification.verify DssSpell 0xYourSpellAddress
 ```
 
 This verifies:
