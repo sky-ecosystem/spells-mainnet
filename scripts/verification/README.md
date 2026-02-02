@@ -28,6 +28,7 @@ This verifies:
 ## Notes
 - Libraries: if `DssExecLib` is configured in `foundry.toml`, it is linked automatically via `--libraries`.
 - Retries & delay: handled by `forge verify-contract` flags (`--retries`, `--delay`) per Foundry docs ([forge verify-contract](https://getfoundry.sh/forge/reference/verify-contract#forge-verify-contract)).
+- **Forge bug workaround**: When `ETHERSCAN_API_KEY` is set, Forge ignores `--verifier sourcify` and uses Etherscan ([foundry provider.rs](https://github.com/foundry-rs/foundry/blob/master/crates/verify/src/provider.rs#L170-L222)). This script unsets `ETHERSCAN_API_KEY` in the subprocess env when calling Sourcify so both Sourcify and Etherscan are used as intended. To verify the bug: run `ETHERSCAN_API_KEY=xxx forge verify-contract <addr> src/DssSpell.sol:DssSpell --verifier sourcify --flatten` and check Forge’s output (it will target Etherscan, not Sourcify).
 
 ## Examples
 ```bash
