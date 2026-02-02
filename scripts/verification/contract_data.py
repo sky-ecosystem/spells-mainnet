@@ -5,7 +5,6 @@ This module handles contract metadata extraction, source code flattening,
 and other contract-related data operations.
 """
 import os
-import re
 import subprocess
 import sys
 from typing import Optional
