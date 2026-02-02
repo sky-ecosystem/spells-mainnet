@@ -9,11 +9,6 @@ import subprocess
 import sys
 from typing import Optional
 
-# Constants
-SOURCE_FILE_PATH = "src/DssSpell.sol"
-LIBRARY_NAME = "DssExecLib"
-
-
 def get_chain_id() -> str:
     """Get the current chain ID."""
     print("Obtaining chain ID... ")
