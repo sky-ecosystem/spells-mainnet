@@ -5,7 +5,7 @@ test                 :; ./scripts/test-dssspell-forge.sh no-match="$(no-match)" 
 estimate             :; forge build --quiet; BYTECODE=$$(jq -r '.bytecode.object' out/DssSpell.sol/DssSpell.json); GAS=$$(cast estimate --create $$BYTECODE); echo "Estimated gas: $$GAS"
 deploy               :; ./scripts/deploy.py
 deploy-info          :; ./scripts/get-deploy-info.sh tx=$(tx)
-verify               :; ./scripts/verify.py DssSpell $(addr)
+verify               :; ./scripts/verification/verify.py DssSpell $(addr)
 flatten              :; forge flatten src/DssSpell.sol --output out/flat.sol
 diff-deployed-spell  :; ./scripts/diff-deployed-dssspell.sh $(spell)
 check-deployed-spell :; ./scripts/check-deployed-dssspell.sh
