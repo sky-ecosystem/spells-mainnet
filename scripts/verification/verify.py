@@ -112,15 +112,12 @@ def verify_once_on(
 def verify_contract_with_verifiers(
     contract_name: str,
     contract_address: str,
+    chain_id: str,
+    etherscan_api_key: str,
+    retries: int,
+    delay: int,
 ) -> bool:
     """Verify contract by issuing forge commands per explorer."""
-    # Configure retries/delay via env or defaults
-    retries = int(os.environ.get("VERIFY_RETRIES", "5"))
-    delay = int(os.environ.get("VERIFY_DELAY", "5"))
-
-    chain_id = get_chain_id()
-    etherscan_api_key = os.environ.get("ETHERSCAN_API_KEY", "")
-
     successes = 0
 
     # Sourcify (works without API key); blockscout pulls from it
@@ -167,10 +164,20 @@ def main():
         # Parse command line arguments
         spell_name, spell_address = parse_command_line_args()
 
+        # Parse configuration from environment
+        chain_id = get_chain_id()
+        etherscan_api_key = os.environ.get("ETHERSCAN_API_KEY", "")
+        retries = int(os.environ.get("VERIFY_RETRIES", "5"))
+        delay = int(os.environ.get("VERIFY_DELAY", "5"))
+
         # Verify spell contract
         spell_success = verify_contract_with_verifiers(
             contract_name=spell_name,
             contract_address=spell_address,
+            chain_id=chain_id,
+            etherscan_api_key=etherscan_api_key,
+            retries=retries,
+            delay=delay,
         )
 
         if not spell_success:
@@ -186,6 +193,10 @@ def main():
         action_success = verify_contract_with_verifiers(
             contract_name="DssSpellAction",
             contract_address=action_address,
+            chain_id=chain_id,
+            etherscan_api_key=etherscan_api_key,
+            retries=retries,
+            delay=delay,
         )
 
         if not action_success:
