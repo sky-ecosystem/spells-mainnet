@@ -86,3 +86,14 @@ export ETH_GAS_PRICE=$(cast --to-wei 420 "gwei")
 4. Execute `make cast-on-tenderly spell=0x...`, with the address of the spell that hasn't been casted yet
     - The execution should finish with `successfully casted`
 5. Open the `public explorer url` printed into the console (it should require no credentials)
+
+### Important Note on Secrets
+
+We strongly discourage using `.env` files to store non-revocable secrets (e.g., private keys). Local `.env` files are an easy target for malware and accidental exposure.
+
+Whenever possible, prefer:
+
+* encrypted accounts/keystores supported by our tooling;
+* hardware wallets supported by our tooling.
+
+Configure your setup via environment variables that reference those secure sources (rather than embedding raw secrets in a `.env` file).
