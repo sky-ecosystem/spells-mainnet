@@ -279,7 +279,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
         string[6] memory addedKeys = [
             "ALLOCATOR_PATTERN_A_VAULT",
             "ALLOCATOR_PATTERN_A_BUFFER",
@@ -370,7 +370,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testAllocatorIntegration() public { // add the `skipped` modifier to skip
+    function testAllocatorIntegration() public skipped { // add the `skipped` modifier to skip
         AllocatorIntegrationParams memory p = AllocatorIntegrationParams({
             ilk:            "ALLOCATOR-PATTERN-A",
             pip:            addr.addr("PIP_ALLOCATOR"),
@@ -422,7 +422,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(usds.balanceOf(p.buffer), 0);
     }
 
-    function testNewLineMomIlks() public { // add the `skipped` modifier to skip
+    function testNewLineMomIlks() public skipped { // add the `skipped` modifier to skip
         bytes32[1] memory ilks = [
             bytes32("ALLOCATOR-PATTERN-A")
         ];
@@ -790,7 +790,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public { // add the `skipped` modifier to skip
+    function testPayments() public skipped { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -1174,7 +1174,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(Art, 0, "GUSD-A Art is not 0");
     }
 
-    function testDaoResolutions() public view { // replace `view` with the `skipped` modifier to skip
+    function testDaoResolutions() public skipped { // replace `view` with the `skipped` modifier to skip
         // For each resolution, add IPFS hash as item to the resolutions array
         // Initialize the array with the number of resolutions
         string[1] memory resolutions = [
@@ -1217,7 +1217,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 
-    function testMonthlySettlementCycleInflows() public { // add the `skipped` modifier to skip
+    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
         address ALLOCATOR_SPARK_A_VAULT = addr.addr("ALLOCATOR_SPARK_A_VAULT");
         address ALLOCATOR_BLOOM_A_VAULT = addr.addr("ALLOCATOR_BLOOM_A_VAULT");
         address ALLOCATOR_OBEX_A_VAULT = addr.addr("ALLOCATOR_OBEX_A_VAULT");
@@ -1277,7 +1277,7 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
+    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
         PrimeAgentSpell[2] memory primeAgentSpells = [
             PrimeAgentSpell({
                 starGuardKey: "SPARK_STARGUARD",                                              // Insert Prime Agent StarGuards Chainlog key
@@ -1312,7 +1312,7 @@ contract DssSpellTest is DssSpellTestBase {
         address subProxy;
     }
 
-    function testStarGuardInitialization() public { // add the `skipped` modifier to skip
+    function testStarGuardInitialization() public skipped { // add the `skipped` modifier to skip
         StarguardValues[2] memory initializedStarGuards = [
             StarguardValues({
                 starGuard: addr.addr("PATTERN_STARGUARD"), // Insert StarGuard address
@@ -1333,14 +1333,4 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
-    function testRemovedChainlogKey() public {
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        // PIP_ALLOCATOR_PATTERN_A was added and removed during the spell execution
-        // it cannot be tested using `testRemovedChainlogKeys()` since the key is not present before the spell execution
-        vm.expectRevert("dss-chain-log/invalid-key");
-        chainLog.getAddress("PIP_ALLOCATOR_PATTERN_A");
-    }
 }
