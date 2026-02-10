@@ -32,7 +32,7 @@ contract DssSpellAction is DssAction {
 
     // Set office hours according to the summary
     function officeHours() public pure override returns (bool) {
-        return true;
+        return false;
     }
 
     // ---------- Rates ----------
