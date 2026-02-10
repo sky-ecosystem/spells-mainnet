@@ -478,7 +478,7 @@ contract Config {
             aL_ttl:       0,
             line:         15 * MILLION,
             dust:         0,
-            pct:          900,
+            pct:          0,
             mat:          10000,
             liqType:      "",
             liqOn:        false,
@@ -1052,10 +1052,10 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["ALLOCATOR-NOVA-A"] = CollateralValues({
-            um:           UpdateMethod.AUTOLINE,
-            aL_line:      60 * MILLION,
-            aL_gap:       1 * MILLION,
-            aL_ttl:       20 hours,
+            um:           UpdateMethod.MANUAL,
+            aL_line:      0,
+            aL_gap:       0,
+            aL_ttl:       0,
             line:         0,
             dust:         0,
             pct:          0,
