@@ -49,7 +49,7 @@ contract DssSpellAction is DssAction {
     uint256 internal constant ZERO_PCT_RATE = 1000000000000000000000000000;
 
     // ---------- Math ----------
-    uint256 constant internal RAD = 10 ** 45;
+    uint256 internal constant RAD = 10 ** 45;
 
     // ---------- Contracts ----------
     address internal immutable MCD_VAT                 = DssExecLib.vat();
