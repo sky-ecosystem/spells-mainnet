@@ -42,7 +42,37 @@ contract DssSpellAction is DssAction {
     //
     // uint256 internal constant X_PCT_RATE = ;
 
-    function actions() public override {}
+    function actions() public override {
+        // ---------- Adjust ALLOCATOR-NOVA-A Ilk Parameters ----------
+        // Forum: https://forum.sky.money/t/allocator-nova-a-parameter-changes/27692
+        // Atlas: https://sky-atlas.io/#A.3.7.1.2.2
+
+        // Remove ALLOCATOR-NOVA-A ilk from AutoLine
+
+        // Set ALLOCATOR-NOVA-A ilk Debt Ceiling to 0
+
+        // Reduce Global Debt Ceiling to account for this change
+
+        // ---------- Adjust RWA001-A Stability Fee ----------
+        // Forum: https://forum.sky.money/t/technical-scope-of-rwa001-a-offboarding/27706
+        // Forum: https://forum.sky.money/t/technical-scope-of-rwa001-a-offboarding/27706/2
+
+        // Set the RWA001-A Stability Fee to 0%
+
+        // ---------- Spark Proxy Spell ----------
+        // Forum: https://forum.sky.money/t/february-12-2026-proposed-changes-to-spark-for-upcoming-spell/27674
+        // Atlas: https://sky-atlas.io/#A.6.1.1.1.2.6.1.2.1.2.3
+        // Poll: https://snapshot.org/#/s:sparkfi.eth/proposal/0x444abfce22102793c25d85d659ff69747fdc56091e41dd6e7c67a9ac5d1b1b15
+        // Poll: https://snapshot.org/#/s:sparkfi.eth/proposal/0x3ffd7702f9f23b9dabbb6297e6690f9f648e9968fc88fbfc4fe3aee41d764569
+
+        // Whitelist Spark spell with address 0x42dB2A32C5F99034C90DaC07BF790f738b127e93 and codehash 0x1921fcf54407302328fe5dfa4b48ab0802a5607edcfdace144e62e27f26ffff5 in SPARK_STARGUARD, direct execution: No
+
+        // ---------- Grove Proxy Spell ----------
+        // Forum: https://forum.sky.money/t/february-12-2026-proposed-changes-to-grove-for-upcoming-spell/27662
+        // Poll: https://vote.sky.money/polling/QmPUQMm9
+
+        // Whitelist Grove spell with address 0xe045AA2065FDba35a0e0B5283e7f36a8ca96886a and codehash 0x5fd619a8b7922b59d639fc5b47f736e8590cf174ac070f2943bef4266304ffeb in GROVE_STARGUARD, direct execution: No
+    }
 }
 
 contract DssSpell is DssExec {
