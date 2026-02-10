@@ -1331,4 +1331,6 @@ contract DssSpellTest is DssSpellTestBase {
             _testStarGuardInitialization(starGuard, subProxy);
         }
     }
+
+    // SPELL-SPECIFIC TESTS GO BELOW
 }
