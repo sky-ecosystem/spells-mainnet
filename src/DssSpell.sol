@@ -52,9 +52,9 @@ contract DssSpellAction is DssAction {
     uint256 internal constant RAD = 10 ** 45;
 
     // ---------- Contracts ----------
-    address internal immutable MCD_VAT                 = DssExecLib.vat();
-    address internal immutable SPARK_STARGUARD         = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
-    address internal immutable GROVE_STARGUARD         = DssExecLib.getChangelogAddress("GROVE_STARGUARD");
+    address internal immutable MCD_VAT          = DssExecLib.vat();
+    address internal immutable SPARK_STARGUARD  = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
+    address internal immutable GROVE_STARGUARD  = DssExecLib.getChangelogAddress("GROVE_STARGUARD");
 
     // ---------- Spark Proxy Spell ----------
     address internal constant SPARK_SPELL      = 0x42dB2A32C5F99034C90DaC07BF790f738b127e93;
