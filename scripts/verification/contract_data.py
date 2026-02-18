@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """
-Contract data utilities for Sky Protocol spells verification.
-This module handles contract metadata extraction, source code flattening,
-and other contract-related data operations.
+Helpers to query on-chain data needed during spell verification (chain ID, action address).
 """
 import os
 import subprocess
