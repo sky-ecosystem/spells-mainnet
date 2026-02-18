@@ -9,17 +9,20 @@ import sys
 import subprocess
 from typing import Tuple, List
 
-from . import get_chain_id, get_action_address
+try:
+    # Package mode: python -m scripts.verification.verify
+    from .contract_data import get_chain_id, get_action_address
+except ImportError:
+    # Script mode: ./scripts/verification/verify.py
+    from contract_data import get_chain_id, get_action_address
 
 # Constants
 SOURCE_FILE_PATH = 'src/DssSpell.sol'
 
 
-def get_env_var(var_name: str, error_message: str) -> str:
-    """Get environment variable with error handling."""
-    try:
-        return os.environ[var_name]
-    except KeyError:
+def require_env_var(var_name: str, error_message: str) -> None:
+    """Exit with a helpful message when a required env var is missing."""
+    if not os.environ.get(var_name):
         print(f"  {error_message}", file=sys.stderr)
         sys.exit(1)
 
@@ -127,10 +130,12 @@ def verify_contract_with_verifiers(
     delay: int,
 ) -> bool:
     """Verify contract by issuing forge commands per explorer."""
+    attempted = 0
     successes = 0
 
     # Sourcify (works without API key); blockscout pulls from it
     if chain_id == "1":
+        attempted += 1
         if verify_once_on(
             verifier="sourcify",
             address=contract_address,
@@ -144,6 +149,7 @@ def verify_contract_with_verifiers(
 
     # Etherscan (requires API key)
     if chain_id == "1" and etherscan_api_key:
+        attempted += 1
         if verify_once_on(
             verifier="etherscan",
             address=contract_address,
@@ -156,14 +162,26 @@ def verify_contract_with_verifiers(
     elif chain_id == "1":
         print("ETHERSCAN_API_KEY not set; skipping Etherscan.")
 
-    return successes > 0
+    if successes == 0:
+        return False
+
+    if attempted > successes:
+        print(
+            (
+                f"Warning: verification partially succeeded for {contract_name} "
+                f"({successes}/{attempted} explorers)."
+            ),
+            file=sys.stderr,
+        )
+
+    return True
 
 
 def main():
     """Main entry point for the enhanced verification script."""
     try:
-        # Get environment variables
-        get_env_var(
+        # Required env vars
+        require_env_var(
             'ETH_RPC_URL',
             "You need a valid ETH_RPC_URL.\n"
             "Get a public one at https://chainlist.org/ or provide your own\n"
@@ -175,6 +193,7 @@ def main():
 
         # Parse configuration from environment
         chain_id = get_chain_id()
+        # Optional on mainnet; verification still succeeds via Sourcify without it.
         etherscan_api_key = os.environ.get("ETHERSCAN_API_KEY", "")
         retries = int(os.environ.get("VERIFY_RETRIES", "5"))
         delay = int(os.environ.get("VERIFY_DELAY", "5"))
@@ -221,5 +240,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
