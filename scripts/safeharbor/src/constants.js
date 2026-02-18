@@ -1,6 +1,6 @@
 // ADDRESSES
-export const FACTORY_ADDRESS = "0x9d211CaC1ce390F676d1cB1D2Eb681410EC47E47"; // V1.1 from https://github.com/security-alliance/safe-harbor?tab=readme-ov-file#registry-addresses
-export const AGREEMENT_ADDRESS = "__PLACEHOLDER__";
+export const FACTORY_ADDRESS = "0xcf317fE605397bC3fae6DAD06331aE5154F277fF";  // Source: https://github.com/security-alliance/safe-harbor/blob/78ba9237377a9622439cbab41a5336673cea1b92/README.md?plain=1#L26
+export const AGREEMENT_ADDRESS = "0x9E5Cf4a9C806fE1F4392788b21342a442E14Cc20";
 export const MULTICALL_ADDRESS = "0x5e227AD1969Ea493B43F840cfF78d08a6fc17796"; // MULTICALL entry on Chainlog
 
 // CSV URLs
