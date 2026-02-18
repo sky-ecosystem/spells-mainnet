@@ -3,15 +3,15 @@
 Safeharbor registry is a contract that allows protocols to identify addresses that are entitled to have funds recovered by a white hat during an attack.
 
 - Read more about the SafeHarbor [here](https://github.com/security-alliance/safe-harbor)
-- The full contracts for the registry can be found [here](https://github.com/security-alliance/safe-harbor/tree/main/registry-contracts/src/v2)
+- The full contracts for the registry can be found [here](https://github.com/security-alliance/safe-harbor/tree/c0140d4e7b073bb7560232a615e8a7019bc8fd27/registry-contracts/src)
 
 # Initial Deployment
 
 Before adoption, a single-time deploy and configuration needs to happen so Sky protocol can safely include changes to the scope within spells. The deployment will happen with the following steps:
 
-1. **EOA AgreementV2 deployment**
+1. **EOA AgreementV3 deployment**
 
-   - Anyone can deploy an instance of the `AgreementV2` contract through its factory
+   - Anyone can deploy an instance of the `AgreementV3` contract through its factory
    - Since the initial configuration is too big to safely fit within a spell execution, the first step will be done through an EOA
 
 2. **Initial chain configuration**
@@ -21,7 +21,7 @@ Before adoption, a single-time deploy and configuration needs to happen so Sky p
 
 3. **Ownership transfer to DSPause**
 
-   - After the initial setup is done, the EOA will fully transfer the ownership of the `AgreementV2` contract to the PauseProxy
+   - After the initial setup is done, the EOA will fully transfer the ownership of the `AgreementV3` contract to the PauseProxy
    - This enables the PauseProxy to modify the scope in the future
 
 4. **Adoption**
@@ -35,7 +35,7 @@ There are a few steps to independently validate that a given agreement can be ad
 1. It has to be deployed via a transaction to known public factory.
 2. The owner of the agreement has to be PauseProxy.
 3. Agreement details (protocol name, agreement URI, contact details and bounty terms) has to match what's described in the Atlas.
-4. The output of `make safeharbor-generate` command, on spells-mainnet repo, has to be "no updates".
+4. The output of `make safeharbor-generate` command, on spells-mainnet repo, has to generate "no warnings".
 
 If all of these steps are done, the agreement can be adopted by Sky protocol.
 
