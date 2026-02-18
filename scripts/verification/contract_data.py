@@ -8,11 +8,18 @@ import sys
 from typing import Optional
 
 def get_chain_id() -> str:
-    """Get the current chain ID."""
+    """Get the current chain ID via ``cast chain-id``."""
     print("Obtaining chain ID... ")
-    result = subprocess.run(
-        ["cast", "chain-id"], capture_output=True, text=True, check=True
-    )
+    try:
+        result = subprocess.run(
+            ["cast", "chain-id"], capture_output=True, text=True, check=True
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+        print(
+            f"Failed to get chain ID — is ETH_RPC_URL valid and cast installed?\n  {e}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
     chain_id = result.stdout.strip()
     print(f"CHAIN_ID: {chain_id}")
     return chain_id
