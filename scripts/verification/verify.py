@@ -9,12 +9,7 @@ import sys
 import subprocess
 from typing import Tuple, List
 
-try:
-    # Package mode: python -m scripts.verification.verify
-    from .contract_data import get_chain_id, get_action_address
-except ImportError:
-    # Script mode: ./scripts/verification/verify.py
-    from contract_data import get_chain_id, get_action_address
+from scripts.verification.contract_data import get_chain_id, get_action_address
 
 # Constants
 SOURCE_FILE_PATH = 'src/DssSpell.sol'
