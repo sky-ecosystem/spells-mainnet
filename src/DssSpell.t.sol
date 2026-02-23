@@ -279,14 +279,16 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
-        string[6] memory addedKeys = [
-            "ALLOCATOR_PATTERN_A_VAULT",
-            "ALLOCATOR_PATTERN_A_BUFFER",
-            "PATTERN_SUBPROXY",
-            "PATTERN_STARGUARD",
-            "SKYBASE_SUBPROXY",
-            "SKYBASE_STARGUARD"
+    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+        string[8] memory addedKeys = [
+            "ALLOCATOR_PRYSM_A_VAULT",
+            "ALLOCATOR_PRYSM_A_BUFFER",
+            "PRYSM_SUBPROXY",
+            "PRYSM_STARGUARD",
+            "ALLOCATOR_INTERVAL_A_VAULT",
+            "ALLOCATOR_INTERVAL_A_BUFFER",
+            "INTERVAL_SUBPROXY",
+            "INTERVAL_STARGUARD"
         ];
 
         for(uint256 i = 0; i < addedKeys.length; i++) {
@@ -370,61 +372,78 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testAllocatorIntegration() public skipped { // add the `skipped` modifier to skip
-        AllocatorIntegrationParams memory p = AllocatorIntegrationParams({
-            ilk:            "ALLOCATOR-PATTERN-A",
-            pip:            addr.addr("PIP_ALLOCATOR"),
-            registry:       addr.addr("ALLOCATOR_REGISTRY"),
-            roles:          addr.addr("ALLOCATOR_ROLES"),
-            buffer:         addr.addr("ALLOCATOR_PATTERN_A_BUFFER"),
-            vault:          addr.addr("ALLOCATOR_PATTERN_A_VAULT"),
-            allocatorProxy: addr.addr("PATTERN_SUBPROXY"),
-            owner:          addr.addr("MCD_PAUSE_PROXY")
-        });
+    function testAllocatorIntegration() public { // add the `skipped` modifier to skip
+        AllocatorIntegrationParams[2] memory params = [
+            AllocatorIntegrationParams({
+                ilk:            "ALLOCATOR-PRYSM-A",
+                pip:            addr.addr("PIP_ALLOCATOR"),
+                registry:       addr.addr("ALLOCATOR_REGISTRY"),
+                roles:          addr.addr("ALLOCATOR_ROLES"),
+                buffer:         addr.addr("ALLOCATOR_PRYSM_A_BUFFER"),
+                vault:          addr.addr("ALLOCATOR_PRYSM_A_VAULT"),
+                allocatorProxy: addr.addr("PRYSM_SUBPROXY"),
+                owner:          addr.addr("MCD_PAUSE_PROXY")
+            }),
+            AllocatorIntegrationParams({
+                ilk:            "ALLOCATOR-INTERVAL-A",
+                pip:            addr.addr("PIP_ALLOCATOR"),
+                registry:       addr.addr("ALLOCATOR_REGISTRY"),
+                roles:          addr.addr("ALLOCATOR_ROLES"),
+                buffer:         addr.addr("ALLOCATOR_INTERVAL_A_BUFFER"),
+                vault:          addr.addr("ALLOCATOR_INTERVAL_A_VAULT"),
+                allocatorProxy: addr.addr("INTERVAL_SUBPROXY"),
+                owner:          addr.addr("MCD_PAUSE_PROXY")
+            })
+        ];
 
         // Sanity checks
-        require(AllocatorVaultLike(p.vault).ilk()      == p.ilk,                 "AllocatorInit/vault-ilk-mismatch");
-        require(AllocatorVaultLike(p.vault).roles()    == p.roles,               "AllocatorInit/vault-roles-mismatch");
-        require(AllocatorVaultLike(p.vault).buffer()   == p.buffer,              "AllocatorInit/vault-buffer-mismatch");
-        require(AllocatorVaultLike(p.vault).vat()      == address(vat),          "AllocatorInit/vault-vat-mismatch");
-        require(AllocatorVaultLike(p.vault).usdsJoin() == address(usdsJoin),     "AllocatorInit/vault-usds-join-mismatch");
-        require(AllocatorVaultLike(p.vault).wards(p.owner) == 1, "TestError/vault-owner-not-authed");
-        require(WardsAbstract(p.buffer).wards(p.owner) == 1, "TestError/buffer-owner-not-authed");
+        for(uint256 i = 0; i < params.length; i++) {
+            require(AllocatorVaultLike(params[i].vault).ilk()      == params[i].ilk,         "AllocatorInit/vault-ilk-mismatch");
+            require(AllocatorVaultLike(params[i].vault).roles()    == params[i].roles,       "AllocatorInit/vault-roles-mismatch");
+            require(AllocatorVaultLike(params[i].vault).buffer()   == params[i].buffer,      "AllocatorInit/vault-buffer-mismatch");
+            require(AllocatorVaultLike(params[i].vault).vat()      == address(vat),          "AllocatorInit/vault-vat-mismatch");
+            require(AllocatorVaultLike(params[i].vault).usdsJoin() == address(usdsJoin),     "AllocatorInit/vault-usds-join-mismatch");
+            require(AllocatorVaultLike(params[i].vault).wards(params[i].owner) == 1, "TestError/vault-owner-not-authed");
+            require(WardsAbstract(params[i].buffer).wards(params[i].owner) == 1, "TestError/buffer-owner-not-authed");
 
-        if (p.owner != p.allocatorProxy) {
-            require(AllocatorVaultLike(p.vault).wards(p.allocatorProxy) == 0, "TestError/vault-allocator-proxy-authed-early");
-            require(WardsAbstract(p.buffer).wards(p.allocatorProxy) == 0, "TestError/buffer-allocator-proxy-authed-early");
+            if (params[i].owner != params[i].allocatorProxy) {
+                require(AllocatorVaultLike(params[i].vault).wards(params[i].allocatorProxy) == 0, "TestError/vault-allocator-proxy-authed-early");
+                require(WardsAbstract(params[i].buffer).wards(params[i].allocatorProxy) == 0, "TestError/buffer-allocator-proxy-authed-early");
+            }
         }
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        _checkAllocatorIntegration(p);
+        for(uint256 i = 0; i < params.length; i++) {
+            _checkAllocatorIntegration(params[i]);
 
-        // Note: skipped for this onboarding as no operators are added
-        // Role and allowance checks - Specific to ALLOCATOR-BLOOM-A only
-        // address allocatorOperator = wallets.addr("BLOOM_OPERATOR");
-        // assertEq(usds.allowance(p.buffer, allocatorOperator), type(uint256).max);
-        // assertTrue(AllocatorRolesLike(p.roles).hasActionRole("ALLOCATOR-BLOOM-A", p.vault, AllocatorVaultLike.draw.selector, 0));
-        // assertTrue(AllocatorRolesLike(p.roles).hasActionRole("ALLOCATOR-BLOOM-A", p.vault, AllocatorVaultLike.wipe.selector, 0));
+            // Note: skipped for this onboarding as no operators are added
+            // Role and allowance checks - Specific to ALLOCATOR-BLOOM-A only
+            // address allocatorOperator = wallets.addr("BLOOM_OPERATOR");
+            // assertEq(usds.allowance(params[i].buffer, allocatorOperator), type(uint256).max);
+            // assertTrue(AllocatorRolesLike(params[i].roles).hasActionRole("ALLOCATOR-BLOOM-A", params[i].vault, AllocatorVaultLike.draw.selector, 0));
+            // assertTrue(AllocatorRolesLike(params[i].roles).hasActionRole("ALLOCATOR-BLOOM-A", params[i].vault, AllocatorVaultLike.wipe.selector, 0));
 
-        // The allocator proxy should be able to call draw() wipe()
-        vm.prank(p.allocatorProxy);
-        AllocatorVaultLike(p.vault).draw(1_000 * WAD);
-        assertEq(usds.balanceOf(p.buffer), 1_000 * WAD);
+            // The allocator proxy should be able to call draw() wipe()
+            vm.prank(params[i].allocatorProxy);
+            AllocatorVaultLike(params[i].vault).draw(1_000 * WAD);
+            assertEq(usds.balanceOf(params[i].buffer), 1_000 * WAD);
 
-        vm.warp(block.timestamp + 1);
-        jug.drip(p.ilk);
+            vm.warp(block.timestamp + 1);
+            jug.drip(params[i].ilk);
 
-        vm.prank(p.allocatorProxy);
-        AllocatorVaultLike(p.vault).wipe(1_000 * WAD);
-        assertEq(usds.balanceOf(p.buffer), 0);
+            vm.prank(params[i].allocatorProxy);
+            AllocatorVaultLike(params[i].vault).wipe(1_000 * WAD);
+            assertEq(usds.balanceOf(params[i].buffer), 0);
+        }
     }
 
-    function testNewLineMomIlks() public skipped { // add the `skipped` modifier to skip
-        bytes32[1] memory ilks = [
-            bytes32("ALLOCATOR-PATTERN-A")
+    function testNewLineMomIlks() public { // add the `skipped` modifier to skip
+        bytes32[2] memory ilks = [
+            bytes32("ALLOCATOR-PRYSM-A"),
+            bytes32("ALLOCATOR-INTERVAL-A")
         ];
 
         for (uint256 i = 0; i < ilks.length; i++) {
@@ -693,20 +712,32 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public skipped { // add the `skipped` modifier to skip
+    function testVestSky() public { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
-        uint256 JUN_15_2026_14_00_23 = 1781532023;
+        uint256 APRIL_25_2026_14_38_11 = 1777127891;
 
         uint256 spellCastTime = _getSpellCastTime();
 
         // Build expected new stream
-        NewVestStream[] memory newStreams = new NewVestStream[](0);
+        NewVestStream[] memory newStreams = new NewVestStream[](1);
+        newStreams[0] = NewVestStream({
+            id:  10,
+            usr: addr.addr("REWARDS_DIST_LSSKY_SKY"),
+            bgn: spellCastTime,
+            clf: spellCastTime,
+            fin: spellCastTime + 180 days,
+            tau: 180 days,
+            mgr: address(0),
+            res: 1,
+            tot: 838_182_330 * WAD,
+            rxd: 0 // Amount already claimed
+        });
 
         // For each yanked stream, provide Stream object and initialize the array with the current number of yanked streams
         YankedVestStream[] memory yankedStreams = new YankedVestStream[](1);
         yankedStreams[0] = YankedVestStream({
-            id:  9,
-            fin: JUN_15_2026_14_00_23,
+            id:  8,
+            fin: APRIL_25_2026_14_38_11,
             end: spellCastTime
         });
 
@@ -790,7 +821,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public skipped { // add the `skipped` modifier to skip
+    function testPayments() public { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -800,20 +831,19 @@ contract DssSpellTest is DssSpellTestBase {
         //    the destination address,
         //    the amount to be paid
         // Initialize the array with the number of payees
-        Payee[6] memory payees = [
-            Payee(address(usds), addr.addr("SPARK_SUBPROXY"), 7_071_339 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("OBEX_SUBPROXY"), 442_327 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG"), 6_632_421 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("CORE_COUNCIL_DELEGATE_MULTISIG"), 331_620 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("SKYBASE_SUBPROXY"), 10_000_000 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("USDS_DEMAND_SUBSIDIES_MULTISIG"), 5_000_000 ether) // Note: ether is only a keyword helper
+        Payee[5] memory payees = [
+            Payee(address(usds), addr.addr("SPARK_SUBPROXY"), 1_387_824 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("GROVE_SUBPROXY"), 6_090 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("OBEX_SUBPROXY"), 71_342 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG"), 4_808_248 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CORE_COUNCIL_DELEGATE_MULTISIG"), 240_412 ether) // Note: ether is only a keyword helper
         ];
 
         // Fill the total values from exec sheet
         PaymentAmounts memory expectedTotalPayments = PaymentAmounts({
             dai:                               0 ether, // Note: ether is only a keyword helper
             mkr:                               0 ether, // Note: ether is only a keyword helper
-            usds:                     29_477_707 ether, // Note: ether is only a keyword helper
+            usds:                     6_513_916 ether, // Note: ether is only a keyword helper
             sky:                               0 ether  // Note: ether is only a keyword helper
         });
 
@@ -1217,18 +1247,18 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 
-    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
+    function testMonthlySettlementCycleInflows() public { // add the `skipped` modifier to skip
         address ALLOCATOR_SPARK_A_VAULT = addr.addr("ALLOCATOR_SPARK_A_VAULT");
         address ALLOCATOR_BLOOM_A_VAULT = addr.addr("ALLOCATOR_BLOOM_A_VAULT");
         address ALLOCATOR_OBEX_A_VAULT = addr.addr("ALLOCATOR_OBEX_A_VAULT");
 
         AllocatorPayment[3] memory payments = [
-            AllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 25_547_255 * WAD),
-            AllocatorPayment(ALLOCATOR_OBEX_A_VAULT, 1_768_819 * WAD),
-            AllocatorPayment(ALLOCATOR_BLOOM_A_VAULT, 14_311_822 * WAD)
+            AllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 8_079_210 * WAD),
+            AllocatorPayment(ALLOCATOR_OBEX_A_VAULT, 2_095_775 * WAD),
+            AllocatorPayment(ALLOCATOR_BLOOM_A_VAULT, 6_205_320 * WAD)
         ];
 
-        uint256 expectedTotalAmount = 41_627_896 * WAD;
+        uint256 expectedTotalAmount = 16_380_305 * WAD;
 
         MscIlkValues[] memory expectedValues = new MscIlkValues[](payments.length);
         uint256 totalDtab = 0;
@@ -1277,18 +1307,18 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
+    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
         PrimeAgentSpell[2] memory primeAgentSpells = [
             PrimeAgentSpell({
                 starGuardKey: "SPARK_STARGUARD",                                              // Insert Prime Agent StarGuards Chainlog key
-                addr: 0x42dB2A32C5F99034C90DaC07BF790f738b127e93,                             // Insert Prime Agent spell address
-                codehash: 0x1921fcf54407302328fe5dfa4b48ab0802a5607edcfdace144e62e27f26ffff5, // Insert Prime Agent spell codehash
+                addr: 0xf655F6E7843685BfD8cfA4523d43F2b9922BBd77,                             // Insert Prime Agent spell address
+                codehash: 0x56ca6d051fe05ba6a2b3f054aad61ce93e69542faf2ad02b9881bc1c03c8d2bf, // Insert Prime Agent spell codehash
                 directExecutionEnabled: false                                                 // Set to true if the Prime Agent spell is executed directly from core spell
             }),
             PrimeAgentSpell({
                 starGuardKey: "GROVE_STARGUARD",
-                addr: 0xe045AA2065FDba35a0e0B5283e7f36a8ca96886a,
-                codehash: 0x5fd619a8b7922b59d639fc5b47f736e8590cf174ac070f2943bef4266304ffeb,
+                addr: 0xa2BDc0375Fc1C1343f7F6bf6c34c0263df1F0DB8,
+                codehash: 0x2b804a603fbbe25d00f8c19af41fc549b18131f51a30e3e73d1eea55fe994689,
                 directExecutionEnabled: false
             })
         ];
@@ -1312,15 +1342,15 @@ contract DssSpellTest is DssSpellTestBase {
         address subProxy;
     }
 
-    function testStarGuardInitialization() public skipped { // add the `skipped` modifier to skip
+    function testStarGuardInitialization() public { // add the `skipped` modifier to skip
         StarguardValues[2] memory initializedStarGuards = [
             StarguardValues({
-                starGuard: addr.addr("PATTERN_STARGUARD"), // Insert StarGuard address
-                subProxy: addr.addr("PATTERN_SUBPROXY")    // Insert SubProxy address
+                starGuard: addr.addr("PRYSM_STARGUARD"), // Insert StarGuard address
+                subProxy: addr.addr("PRYSM_SUBPROXY")    // Insert SubProxy address
             }),
             StarguardValues({
-                starGuard: addr.addr("SKYBASE_STARGUARD"), // Insert StarGuard address
-                subProxy: addr.addr("SKYBASE_SUBPROXY")    // Insert SubProxy address
+                starGuard: addr.addr("INTERVAL_STARGUARD"),
+                subProxy: addr.addr("INTERVAL_SUBPROXY")
             })
         ];
 
@@ -1333,4 +1363,19 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
+    function testRemovedChainlogKey() public {
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // PIP_ALLOCATOR_PRYSM_A was added and removed during the spell execution
+        // it cannot be tested using `testRemovedChainlogKeys()` since the key is not present before the spell execution
+        vm.expectRevert("dss-chain-log/invalid-key");
+        chainLog.getAddress("PIP_ALLOCATOR_PRYSM_A");
+
+        // PIP_ALLOCATOR_INTERVAL_A was added and removed during the spell execution
+        // it cannot be tested using `testRemovedChainlogKeys()` since the key is not present before the spell execution
+        vm.expectRevert("dss-chain-log/invalid-key");
+        chainLog.getAddress("PIP_ALLOCATOR_INTERVAL_A");
+    }
 }
