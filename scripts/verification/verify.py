@@ -90,9 +90,9 @@ def verify_once_on(
 
     print(f"\nVerifying {contract_name} at {address} on {verifier}...")
     # Workaround for Forge bug: when ETHERSCAN_API_KEY is set, Forge ignores
-    # --verifier sourcify and uses Etherscan (see foundry-rs/foundry
-    # crates/verify/src/provider.rs client() step 4). Unset it for Sourcify
-    # so Forge actually verifies on Sourcify.
+    # --verifier sourcify and uses Etherscan (see
+    # https://github.com/foundry-rs/foundry/blob/970f6f67dcc76caf52989bb1994b77a216084e91/crates/verify/src/provider.rs#L213 step 4)
+    # Unset it for Sourcify so Forge actually verifies on Sourcify.
     env = os.environ.copy()
     if verifier == "sourcify" and "ETHERSCAN_API_KEY" in env:
         del env["ETHERSCAN_API_KEY"]
