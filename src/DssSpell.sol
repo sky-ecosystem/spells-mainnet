@@ -335,7 +335,10 @@ contract DssSpellAction is DssAction {
         // Forum: https://forum.sky.money/t/lssky-to-sky-rewards-sky-rewards-for-sky-stakers-normalization-configuration/27721/3
 
         // Call VestedRewardsDistribution.distribute() on REWARDS_DIST_LSSKY_SKY
-        VestedRewardsDistributionLike(REWARDS_DIST_LSSKY_SKY).distribute();
+        // Note: `distribute()` only needs to be called if it wasn't already, otherwise it reverts
+        if (VestAbstract(REWARDS_DIST_LSSKY_SKY).unpaid(8) > 0) {
+            VestedRewardsDistributionLike(REWARDS_DIST_LSSKY_SKY).distribute();
+        }
 
         // MCD_VEST_SKY_TREASURY Vest Stream  | from: 'block.timestamp' | tau: 180 days | tot: 838,182,330 SKY | usr: REWARDS_DIST_LSSKY_SKY
         uint256 streamId = VestAbstract(MCD_VEST_SKY_TREASURY).create(
