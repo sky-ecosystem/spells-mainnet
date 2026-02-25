@@ -336,7 +336,7 @@ contract DssSpellAction is DssAction {
 
         // Call VestedRewardsDistribution.distribute() on REWARDS_DIST_LSSKY_SKY
         // Note: `distribute()` only needs to be called if it wasn't already, otherwise it reverts
-        if (VestAbstract(REWARDS_DIST_LSSKY_SKY).unpaid(8) > 0) {
+        if (VestAbstract(MCD_VEST_SKY_TREASURY).unpaid(8) > 0) {
             VestedRewardsDistributionLike(REWARDS_DIST_LSSKY_SKY).distribute();
         }
 
