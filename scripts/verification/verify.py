@@ -102,21 +102,46 @@ def verify_once_on(
             cmd,
             capture_output=True,
             text=True,
-            check=True,
+            check=False,
             env=env,
         )
-        # forge prints useful info; surface stdout
-        if result.stdout:
-            print(result.stdout.strip())
+    except FileNotFoundError:
+        print("✗ forge not found in PATH", file=sys.stderr)
+        return False
+
+    stdout = result.stdout or ""
+    stderr = result.stderr or ""
+    combined = f"{stdout}\n{stderr}".strip()
+    combined_lower = combined.lower()
+
+    # Surface forge output for easier debugging.
+    if stdout:
+        print(stdout.strip())
+    if stderr:
+        print(stderr.strip(), file=sys.stderr)
+
+    if "already verified" in combined_lower:
+        print(f"✓ {verifier}: already verified")
+        return True
+
+    # Guard against false-positives where forge returns 0 but output indicates failure.
+    failure_markers = (
+        "failed to verify",
+        "verification failed",
+        "contract verification failed",
+        "unable to verify",
+        "not verified",
+    )
+    if any(marker in combined_lower for marker in failure_markers):
+        print(f"✗ {verifier} verification failed", file=sys.stderr)
+        return False
+
+    if result.returncode == 0:
         print(f"✓ {verifier} verification OK")
         return True
-    except subprocess.CalledProcessError as e:
-        combined = (e.stdout or "") + "\n" + (e.stderr or "")
-        if "already verified" in combined.lower():
-            print(f"✓ {verifier}: already verified")
-            return True
-        print(f"✗ {verifier} verification failed\n{combined}", file=sys.stderr)
-        return False
+
+    print(f"✗ {verifier} verification failed", file=sys.stderr)
+    return False
 
 
 def verify_contract_with_verifiers(
