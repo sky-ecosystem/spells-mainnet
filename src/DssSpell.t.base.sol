@@ -570,6 +570,11 @@ interface CronJobLike {
     function workable(bytes32 network) external returns (bool, bytes memory);
 }
 
+interface VestedRewardsDistributionLike {
+    function vestId() external view returns (uint256);
+    function distribute() external returns (uint256 amount);
+}
+
 contract DssSpellTestBase is Config, DssTest {
     using stdStorage for StdStorage;
 
@@ -2942,6 +2947,28 @@ contract DssSpellTestBase is Config, DssTest {
         }
 
         assertFalse(_vi.vest.valid(_ys.id), "TestError/Vest/stream-not-yanked-after-cast");
+    }
+
+    function _checkVestedRewardsDistributionRevertEdgeCase(
+        address vestedRewardsDistribution
+    ) internal {
+        uint256 before = vm.snapshotState();
+
+        _vote(address(spell));
+        DssSpell(spell).schedule();
+        vm.warp(DssSpell(spell).nextCastTime());
+
+        // The attack can be executed permissionlessly
+        vm.startPrank(address(0xB0B));
+        // If distribute() is called in the same block as the spell (using front-running)
+        VestedRewardsDistributionLike(vestedRewardsDistribution).distribute();
+
+        // Ensure spell casting is not reverting with "VestedRewardsDistribution/no-pending-amount"
+        // even after `distribute()` is called before the spell in the same block
+        DssSpell(spell).cast();
+        vm.stopPrank();
+
+        vm.revertToStateAndDelete(before);
     }
 
     function _checkTransferrableVestAllowanceAndBalance(

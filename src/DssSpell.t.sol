@@ -41,11 +41,6 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
-interface VestedRewardsDistributionLike {
-    function vestId() external view returns (uint256);
-    function distribute() external returns (uint256 amount);
-}
-
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -808,6 +803,30 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
+    function testVestedRewardsDist() public {
+        address rewardsDist = addr.addr("REWARDS_DIST_LSSKY_SKY");
+        address stakingRewards = addr.addr("REWARDS_LSSKY_SKY");
+        VestAbstract vest = VestAbstract(addr.addr("MCD_VEST_SKY_TREASURY"));
+
+        uint256 vestId = VestedRewardsDistributionLike(rewardsDist).vestId();
+        assertEq(vestId, 8, "TestError/rewards-dist-lssky-sky-invalid-vest-id-before");
+
+        uint256 unpaidAmount = vest.unpaid(8);
+        assertTrue(unpaidAmount > 0, "TestError/rewards-dist-lssky-sky-unpaid-zero-early");
+
+        _checkVestedRewardsDistributionRevertEdgeCase(rewardsDist);
+
+        // Ensure spell casting is not reverting with "VestedRewardsDistribution/no-pending-amount"
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        unpaidAmount = vest.unpaid(8);
+        assertEq(unpaidAmount, 0, "TestError/rewards-dist-lssky-sky-unpaid-not-cleared");
+
+        assertEq(StakingRewardsLike(stakingRewards).lastUpdateTime(), block.timestamp, "TestError/rewards-lssky-sky-invalid-last-update-time");
+    }
+
     struct Payee {
         address token;
         address addr;
@@ -1382,46 +1401,5 @@ contract DssSpellTest is DssSpellTestBase {
         // it cannot be tested using `testRemovedChainlogKeys()` since the key is not present before the spell execution
         vm.expectRevert("dss-chain-log/invalid-key");
         chainLog.getAddress("PIP_ALLOCATOR_INTERVAL_A");
-    }
-
-    function testRewardsDistLsskySkyUpdatedVestIdAndDistribute() public {
-        address REWARDS_DIST_LSSKY_SKY = addr.addr("REWARDS_DIST_LSSKY_SKY");
-        address REWARDS_LSSKY_SKY = addr.addr("REWARDS_LSSKY_SKY");
-        VestAbstract vest = VestAbstract(addr.addr("MCD_VEST_SKY_TREASURY"));
-
-        uint256 vestId = VestedRewardsDistributionLike(REWARDS_DIST_LSSKY_SKY).vestId();
-        assertEq(vestId, 8, "TestError/rewards-dist-lssky-sky-invalid-vest-id-before");
-
-        uint256 unpaidAmount = vest.unpaid(8);
-        assertTrue(unpaidAmount > 0, "TestError/rewards-dist-lssky-sky-unpaid-zero-early");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        unpaidAmount = vest.unpaid(8);
-        assertEq(unpaidAmount, 0, "TestError/rewards-dist-lssky-sky-unpaid-not-cleared");
-
-        assertEq(StakingRewardsLike(REWARDS_LSSKY_SKY).lastUpdateTime(), block.timestamp, "TestError/rewards-lssky-sky-invalid-last-update-time");
-    }
-
-    function testSpellRevertEdgeCase() public {
-        _vote(address(spell));
-        DssSpell(spell).schedule();
-        vm.warp(DssSpell(spell).nextCastTime());
-
-        // The attack can be executed permissionlessly
-        vm.startPrank(address(0xB0B));
-
-        // If distribute() is called in the same block as the spell (using front-running)
-        VestedRewardsDistributionLike(addr.addr("REWARDS_DIST_LSSKY_SKY")).distribute();
-
-        // Ensure spell casting is not reverting with "VestedRewardsDistribution/no-pending-amount"
-        DssSpell(spell).cast();
-
-        // The same could've been done again in any other subsequent block (since there is no cooldown)
-        // vm.warp(DssSpell(spell).nextCastTime() + 1);
-        // VestedRewardsDistributionLike(addr.addr("REWARDS_DIST_LSSKY_SKY")).distribute();
-        // DssSpell(spell).cast();
     }
 }
