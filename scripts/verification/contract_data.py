@@ -7,6 +7,7 @@ import subprocess
 import sys
 from typing import Optional
 
+
 def get_chain_id() -> str:
     """Get the current chain ID via ``cast chain-id``."""
     print("Obtaining chain ID... ")
@@ -23,6 +24,7 @@ def get_chain_id() -> str:
     chain_id = result.stdout.strip()
     print(f"CHAIN_ID: {chain_id}")
     return chain_id
+
 
 def get_action_address(spell_address: str) -> Optional[str]:
     """Get the action contract address from the spell contract."""

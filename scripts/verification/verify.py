@@ -12,7 +12,7 @@ from typing import Tuple, List
 from scripts.verification.contract_data import get_chain_id, get_action_address
 
 # Constants
-SOURCE_FILE_PATH = 'src/DssSpell.sol'
+SOURCE_FILE_PATH = "src/DssSpell.sol"
 
 
 def require_env_var(var_name: str, error_message: str) -> None:
@@ -25,16 +25,19 @@ def require_env_var(var_name: str, error_message: str) -> None:
 def parse_command_line_args() -> Tuple[str, str]:
     """Parse command line arguments."""
     if len(sys.argv) != 3:
-        print("""usage:
+        print(
+            """usage:
 ./verify.py <contractname> <address>
-""", file=sys.stderr)
+""",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     contract_name = sys.argv[1]
     contract_address = sys.argv[2]
 
     if len(contract_address) != 42:
-        sys.exit('Malformed address')
+        sys.exit("Malformed address")
 
     return contract_name, contract_address
 
@@ -177,10 +180,10 @@ def main():
     try:
         # Required env vars
         require_env_var(
-            'ETH_RPC_URL',
+            "ETH_RPC_URL",
             "You need a valid ETH_RPC_URL.\n"
             "Get a public one at https://chainlist.org/ or provide your own\n"
-            "Then export it with `export ETH_RPC_URL=https://....'"
+            "Then export it with `export ETH_RPC_URL=https://....'",
         )
 
         # Parse command line arguments
@@ -210,7 +213,7 @@ def main():
         # Get and verify action contract
         action_address = get_action_address(spell_address)
         if not action_address:
-            print('Could not determine action contract address', file=sys.stderr)
+            print("Could not determine action contract address", file=sys.stderr)
             sys.exit(1)
 
         action_success = verify_contract_with_verifiers(
@@ -226,10 +229,10 @@ def main():
             print("Failed to verify action contract", file=sys.stderr)
             sys.exit(1)
 
-        print('\n🎉 All verifications complete!')
+        print("\n🎉 All verifications complete!")
 
     except Exception as e:
-        print(f'\nError: {str(e)}', file=sys.stderr)
+        print(f"\nError: {str(e)}", file=sys.stderr)
         sys.exit(1)
 
 
