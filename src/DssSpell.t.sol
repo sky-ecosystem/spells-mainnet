@@ -807,22 +807,26 @@ contract DssSpellTest is DssSpellTestBase {
         address rewardsDist = addr.addr("REWARDS_DIST_LSSKY_SKY");
         address stakingRewards = addr.addr("REWARDS_LSSKY_SKY");
         VestAbstract vest = VestAbstract(addr.addr("MCD_VEST_SKY_TREASURY"));
+        uint256 expectedVestId = 8;
 
         uint256 vestId = VestedRewardsDistributionLike(rewardsDist).vestId();
-        assertEq(vestId, 8, "TestError/rewards-dist-lssky-sky-invalid-vest-id-before");
+        assertEq(vestId, expectedVestId, "TestError/rewards-dist-lssky-sky-invalid-vest-id-before");
 
-        uint256 unpaidAmount = vest.unpaid(8);
+        uint256 unpaidAmount = vest.unpaid(expectedVestId);
         assertTrue(unpaidAmount > 0, "TestError/rewards-dist-lssky-sky-unpaid-zero-early");
 
         _checkVestedRewardsDistributionRevertEdgeCase(rewardsDist);
 
-        // Ensure spell casting is not reverting with "VestedRewardsDistribution/no-pending-amount"
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        unpaidAmount = vest.unpaid(8);
+        unpaidAmount = vest.unpaid(expectedVestId);
         assertEq(unpaidAmount, 0, "TestError/rewards-dist-lssky-sky-unpaid-not-cleared");
+
+        // Check newly set vestId if updated
+        vestId = VestedRewardsDistributionLike(rewardsDist).vestId();
+        assertEq(vestId, 10, "TestError/rewards-dist-lssky-sky-invalid-vest-id-after");
 
         assertEq(StakingRewardsLike(stakingRewards).lastUpdateTime(), block.timestamp, "TestError/rewards-lssky-sky-invalid-last-update-time");
     }
