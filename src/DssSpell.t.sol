@@ -43,6 +43,7 @@ interface LineMomLike {
 
 interface VestedRewardsDistributionLike {
     function vestId() external view returns (uint256);
+    function distribute() external returns (uint256 amount);
 }
 
 contract DssSpellTest is DssSpellTestBase {
@@ -1402,5 +1403,25 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(unpaidAmount, 0, "TestError/rewards-dist-lssky-sky-unpaid-not-cleared");
 
         assertEq(StakingRewardsLike(REWARDS_LSSKY_SKY).lastUpdateTime(), block.timestamp, "TestError/rewards-lssky-sky-invalid-last-update-time");
+    }
+
+    function testSpellRevertEdgeCase() public {
+        _vote(address(spell));
+        DssSpell(spell).schedule();
+        vm.warp(DssSpell(spell).nextCastTime());
+
+        // The attack can be executed permissionlessly
+        vm.startPrank(address(0xB0B));
+
+        // If distribute() is called in the same block as the spell (using front-running)
+        VestedRewardsDistributionLike(addr.addr("REWARDS_DIST_LSSKY_SKY")).distribute();
+
+        // Ensure spell casting is not reverting with "VestedRewardsDistribution/no-pending-amount"
+        DssSpell(spell).cast();
+
+        // The same could've been done again in any other subsequent block (since there is no cooldown)
+        // vm.warp(DssSpell(spell).nextCastTime() + 1);
+        // VestedRewardsDistributionLike(addr.addr("REWARDS_DIST_LSSKY_SKY")).distribute();
+        // DssSpell(spell).cast();
     }
 }
