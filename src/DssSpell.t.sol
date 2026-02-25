@@ -41,6 +41,10 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
+interface VestedRewardsDistributionLike {
+    function vestId() external view returns (uint256);
+}
+
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -1377,5 +1381,26 @@ contract DssSpellTest is DssSpellTestBase {
         // it cannot be tested using `testRemovedChainlogKeys()` since the key is not present before the spell execution
         vm.expectRevert("dss-chain-log/invalid-key");
         chainLog.getAddress("PIP_ALLOCATOR_INTERVAL_A");
+    }
+
+    function testRewardsDistLsskySkyUpdatedVestIdAndDistribute() public {
+        address REWARDS_DIST_LSSKY_SKY = addr.addr("REWARDS_DIST_LSSKY_SKY");
+        address REWARDS_LSSKY_SKY = addr.addr("REWARDS_LSSKY_SKY");
+        VestAbstract vest = VestAbstract(addr.addr("MCD_VEST_SKY_TREASURY"));
+
+        uint256 vestId = VestedRewardsDistributionLike(REWARDS_DIST_LSSKY_SKY).vestId();
+        assertEq(vestId, 8, "TestError/rewards-dist-lssky-sky-invalid-vest-id-before");
+
+        uint256 unpaidAmount = vest.unpaid(8);
+        assertTrue(unpaidAmount > 0, "TestError/rewards-dist-lssky-sky-unpaid-zero-early");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        unpaidAmount = vest.unpaid(8);
+        assertEq(unpaidAmount, 0, "TestError/rewards-dist-lssky-sky-unpaid-not-cleared");
+
+        assertEq(StakingRewardsLike(REWARDS_LSSKY_SKY).lastUpdateTime(), block.timestamp, "TestError/rewards-lssky-sky-invalid-last-update-time");
     }
 }
