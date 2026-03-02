@@ -124,6 +124,10 @@ def verify_once_on(
         print(f"✓ {verifier}: already verified")
         return True
 
+    if result.returncode != 0:
+        print(f"✗ {verifier} verification failed", file=sys.stderr)
+        return False
+
     # Guard against false-positives where forge returns 0 but output indicates failure.
     failure_markers = (
         "failed to verify",
@@ -132,10 +136,6 @@ def verify_once_on(
         "not verified",
     )
     if any(marker in combined_lower for marker in failure_markers):
-        print(f"✗ {verifier} verification failed", file=sys.stderr)
-        return False
-
-    if result.returncode != 0:
         print(f"✗ {verifier} verification failed", file=sys.stderr)
         return False
 
