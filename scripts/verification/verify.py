@@ -128,7 +128,6 @@ def verify_once_on(
     failure_markers = (
         "failed to verify",
         "verification failed",
-        "contract verification failed",
         "unable to verify",
         "not verified",
     )
@@ -136,12 +135,12 @@ def verify_once_on(
         print(f"✗ {verifier} verification failed", file=sys.stderr)
         return False
 
-    if result.returncode == 0:
-        print(f"✓ {verifier} verification OK")
-        return True
+    if result.returncode != 0:
+        print(f"✗ {verifier} verification failed", file=sys.stderr)
+        return False
 
-    print(f"✗ {verifier} verification failed", file=sys.stderr)
-    return False
+    print(f"✓ {verifier} verification OK")
+    return True
 
 
 def verify_contract_with_verifiers(
