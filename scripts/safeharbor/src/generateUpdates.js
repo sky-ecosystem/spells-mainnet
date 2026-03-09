@@ -1,7 +1,7 @@
 import { Interface } from "ethers";
-import { AGREEMENTV2_ABI } from "./abis.js";
+import { AGREEMENT_V3_ABI as AGREEMENT_ABI } from "./abis.js";
 
-const agreementInterface = new Interface(AGREEMENTV2_ABI);
+const agreementInterface = new Interface(AGREEMENT_ABI);
 
 // Account difference calculation
 function calculateAccountDifferences(currentAccounts, desiredAccounts) {
