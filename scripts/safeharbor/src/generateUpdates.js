@@ -3,7 +3,45 @@ import { AGREEMENT_V3_ABI as AGREEMENT_ABI } from "./abis.js";
 
 const agreementInterface = new Interface(AGREEMENT_ABI);
 
-// Account difference calculation
+/**
+ * @typedef {Object} SafeHarborAccount
+ * @property {string} accountAddress
+ * @property {number} childContractScope
+ */
+
+/**
+ * @typedef {Object} SafeHarborChainState
+ * @property {SafeHarborAccount[]} accounts
+ * @property {string} assetRecoveryAddress
+ */
+
+/**
+ * @typedef {Object} ChainDetails
+ * @property {Record<string, string>} caip2ChainId
+ * @property {Record<string, string>} assetRecoveryAddress
+ */
+
+/**
+ * @typedef {Object} AgreementUpdate
+ * @property {string} function
+ * @property {Array<any>} args
+ * @property {string} calldata
+ */
+
+/**
+ * Compares the current and desired accounts for a single chain and derives the
+ * minimal add/remove operations required to synchronize them.
+ *
+ * Accounts are keyed by the pair `{accountAddress, childContractScope}` so that
+ * the same address can be tracked under different scopes.
+ *
+ * @param {SafeHarborAccount[]} currentAccounts
+ * @param {SafeHarborAccount[]} desiredAccounts
+ * @returns {{
+ *   toAdd: SafeHarborAccount[],
+ *   toRemove: string[],
+ * }}
+ */
 function calculateAccountDifferences(currentAccounts, desiredAccounts) {
     // Create maps for easier lookup with composite keys
     const currentMap = new Map(
@@ -46,6 +84,16 @@ function calculateAccountDifferences(currentAccounts, desiredAccounts) {
     return { toAdd, toRemove };
 }
 
+/**
+ * Generates `addAccounts` and `removeAccounts` updates for chains that already
+ * exist on-chain and are not scheduled for removal.
+ *
+ * @param {Record<string, SafeHarborChainState>} onChainState
+ * @param {Record<string, SafeHarborAccount[]>} csvState
+ * @param {ChainDetails} chainDetails
+ * @param {string[]} [chainsToRemove=[]]
+ * @returns {AgreementUpdate[]}
+ */
 function generateAccountUpdates(
     onChainState,
     csvState,
@@ -102,6 +150,18 @@ function generateAccountUpdates(
     return updates;
 }
 
+/**
+ * Warns when the asset recovery address configured on-chain differs from the
+ * value provided in the chain details sheet for the same chain.
+ *
+ * This is intentionally non-blocking because account updates can still be
+ * generated even when the recovery address is inconsistent.
+ *
+ * @param {Record<string, SafeHarborChainState>} onChainState
+ * @param {Record<string, SafeHarborAccount[]>} csvState
+ * @param {ChainDetails} chainDetails
+ * @returns {void}
+ */
 function validateRecoveryAddress(onChainState, csvState, chainDetails) {
     const onChainChains = new Set(Object.keys(onChainState));
     const csvChains = new Set(Object.keys(csvState));
@@ -128,6 +188,21 @@ function validateRecoveryAddress(onChainState, csvState, chainDetails) {
     }
 }
 
+/**
+ * Generates `addChains` and `removeChains` updates by comparing the set of
+ * chains already registered on-chain with the chains present in the CSV input.
+ *
+ * Chains that are present in the CSV but missing from `chainDetails` are
+ * ignored and reported as warnings.
+ *
+ * @param {Record<string, SafeHarborChainState>} onChainState
+ * @param {Record<string, SafeHarborAccount[]>} csvState
+ * @param {ChainDetails} chainDetails
+ * @returns {{
+ *   updates: AgreementUpdate[],
+ *   chainsToRemove: string[],
+ * }}
+ */
 function generateChainUpdates(onChainState, csvState, chainDetails) {
     const updates = [];
 
@@ -212,6 +287,18 @@ function generateChainUpdates(onChainState, csvState, chainDetails) {
     return { updates, chainsToRemove };
 }
 
+/**
+ * Produces the ordered agreement updates required to reconcile the on-chain
+ * SafeHarbor agreement state with the CSV-derived desired state.
+ *
+ * Chain-level changes are generated first so that account-level updates are not
+ * produced for chains that will be removed entirely in the same batch.
+ *
+ * @param {Record<string, SafeHarborChainState>} onChainState
+ * @param {Record<string, SafeHarborAccount[]>} csvState
+ * @param {ChainDetails} chainDetails
+ * @returns {AgreementUpdate[]}
+ */
 export function generateUpdates(onChainState, csvState, chainDetails) {
     validateRecoveryAddress(onChainState, csvState, chainDetails);
 
