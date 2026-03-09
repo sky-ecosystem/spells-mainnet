@@ -9,7 +9,7 @@ import sys
 import subprocess
 from typing import Tuple, List
 
-from scripts.verification.contract_data import get_chain_id, get_action_address
+from contract_data import get_chain_id, get_action_address
 
 # Constants
 SOURCE_FILE_PATH = "src/DssSpell.sol"
