@@ -279,7 +279,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
         string[8] memory addedKeys = [
             "ALLOCATOR_PRYSM_A_VAULT",
             "ALLOCATOR_PRYSM_A_BUFFER",
@@ -440,7 +440,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testNewLineMomIlks() public { // add the `skipped` modifier to skip
+    function testNewLineMomIlks() public skipped { // add the `skipped` modifier to skip
         bytes32[2] memory ilks = [
             bytes32("ALLOCATOR-PRYSM-A"),
             bytes32("ALLOCATOR-INTERVAL-A")
@@ -712,7 +712,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public { // add the `skipped` modifier to skip
+    function testVestSky() public skipped { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
         uint256 APRIL_25_2026_14_38_11 = 1777127891;
 
@@ -803,7 +803,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestedRewardsDist() public {
+    function testVestedRewardsDist() public skipped {
         address rewardsDist = addr.addr("REWARDS_DIST_LSSKY_SKY");
         address stakingRewards = addr.addr("REWARDS_LSSKY_SKY");
         VestAbstract vest = VestAbstract(addr.addr("MCD_VEST_SKY_TREASURY"));
@@ -849,7 +849,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public { // add the `skipped` modifier to skip
+    function testPayments() public skipped { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -869,10 +869,10 @@ contract DssSpellTest is DssSpellTestBase {
 
         // Fill the total values from exec sheet
         PaymentAmounts memory expectedTotalPayments = PaymentAmounts({
-            dai:                               0 ether, // Note: ether is only a keyword helper
-            mkr:                               0 ether, // Note: ether is only a keyword helper
-            usds:                     6_513_916 ether, // Note: ether is only a keyword helper
-            sky:                               0 ether  // Note: ether is only a keyword helper
+            dai:          0 ether, // Note: ether is only a keyword helper
+            mkr:          0 ether, // Note: ether is only a keyword helper
+            usds: 6_513_916 ether, // Note: ether is only a keyword helper
+            sky:          0 ether  // Note: ether is only a keyword helper
         });
 
         // Fill the total values based on the source for the transfers above
@@ -1335,7 +1335,7 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
+    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
         PrimeAgentSpell[2] memory primeAgentSpells = [
             PrimeAgentSpell({
                 starGuardKey: "SPARK_STARGUARD",                                              // Insert Prime Agent StarGuards Chainlog key
@@ -1370,7 +1370,7 @@ contract DssSpellTest is DssSpellTestBase {
         address subProxy;
     }
 
-    function testStarGuardInitialization() public { // add the `skipped` modifier to skip
+    function testStarGuardInitialization() public skipped { // add the `skipped` modifier to skip
         StarguardValues[2] memory initializedStarGuards = [
             StarguardValues({
                 starGuard: addr.addr("PRYSM_STARGUARD"), // Insert StarGuard address
@@ -1391,19 +1391,4 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
-    function testRemovedChainlogKey() public {
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        // PIP_ALLOCATOR_PRYSM_A was added and removed during the spell execution
-        // it cannot be tested using `testRemovedChainlogKeys()` since the key is not present before the spell execution
-        vm.expectRevert("dss-chain-log/invalid-key");
-        chainLog.getAddress("PIP_ALLOCATOR_PRYSM_A");
-
-        // PIP_ALLOCATOR_INTERVAL_A was added and removed during the spell execution
-        // it cannot be tested using `testRemovedChainlogKeys()` since the key is not present before the spell execution
-        vm.expectRevert("dss-chain-log/invalid-key");
-        chainLog.getAddress("PIP_ALLOCATOR_INTERVAL_A");
-    }
 }
