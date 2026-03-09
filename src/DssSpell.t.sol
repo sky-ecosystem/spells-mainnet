@@ -17,7 +17,6 @@
 pragma solidity 0.8.16;
 
 import "./DssSpell.t.base.sol";
-import {ScriptTools} from "dss-test/DssTest.sol";
 
 interface L2Spell {
     function dstDomain() external returns (bytes32);
@@ -372,7 +371,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testAllocatorIntegration() public { // add the `skipped` modifier to skip
+    function testAllocatorIntegration() public skipped { // add the `skipped` modifier to skip
         AllocatorIntegrationParams[2] memory params = [
             AllocatorIntegrationParams({
                 ilk:            "ALLOCATOR-PRYSM-A",
@@ -1043,13 +1042,46 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function _setupRootDomain() internal {
-        vm.makePersistent(address(spell), address(spell.action()), address(addr));
+    function testBaseGovRelay() public {
+        _setupL2Domains();
+        _testOpL2GovernanceRelay(
+            "base",
+            baseDomain,
+            addr.addr("BASE_GOV_RELAY"),
+            base.addr("L2_GOV_RELAY"),
+            base.addr("L2_MESSENGER")
+        );
+    }
 
-        string memory root = string.concat(vm.projectRoot(), "/lib/dss-test");
-        config = ScriptTools.readInput(root, "integration");
+    function testOptimismGovRelay() public {
+        _setupL2Domains();
+        _testOpL2GovernanceRelay(
+            "optimism",
+            optimismDomain,
+            addr.addr("OPTIMISM_GOV_RELAY"),
+            optimism.addr("L2_OPTIMISM_GOV_RELAY"),
+            optimism.addr("L2_OPTIMISM_MESSENGER")
+        );
+    }
 
-        rootDomain = new RootDomain(config, getRelativeChain("mainnet"));
+    function testUnichainGovRelay() public {
+        _setupL2Domains();
+        _testOpL2GovernanceRelay(
+            "unichain",
+            unichainDomain,
+            addr.addr("UNICHAIN_GOV_RELAY"),
+            unichain.addr("L2_UNICHAIN_GOV_RELAY"),
+            unichain.addr("L2_UNICHAIN_MESSENGER")
+        );
+    }
+
+    function testArbitrumGovRelay() public {
+        _setupL2Domains();
+        _testArbitrumL2GovernanceRelay(
+            "arbitrum",
+            addr.addr("ARBITRUM_GOV_RELAY"),
+            arbitrum.addr("L2_GOV_RELAY")
+        );
     }
 
     function testL2OptimismSpell() public skipped { // TODO: check if this test can be removed for good.
@@ -1275,7 +1307,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 
-    function testMonthlySettlementCycleInflows() public { // add the `skipped` modifier to skip
+    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
         address ALLOCATOR_SPARK_A_VAULT = addr.addr("ALLOCATOR_SPARK_A_VAULT");
         address ALLOCATOR_BLOOM_A_VAULT = addr.addr("ALLOCATOR_BLOOM_A_VAULT");
         address ALLOCATOR_OBEX_A_VAULT = addr.addr("ALLOCATOR_OBEX_A_VAULT");

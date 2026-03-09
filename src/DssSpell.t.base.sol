@@ -17,6 +17,7 @@
 pragma solidity 0.8.16;
 
 import "dss-interfaces/Interfaces.sol";
+import {ScriptTools} from "dss-test/DssTest.sol";
 import {DssTest, GodMode} from "dss-test/DssTest.sol";
 import {stdStorage, StdStorage} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
@@ -575,6 +576,33 @@ interface VestedRewardsDistributionLike {
     function distribute() external returns (uint256 amount);
 }
 
+interface OpL1GovernanceRelayLike {
+    function relay(address target, bytes calldata targetData, uint32 minGasLimit) external;
+    function l2GovernanceRelay() external view returns (address);
+}
+
+interface OpL2GovernanceRelayLike {
+    function l1GovernanceRelay() external view returns (address);
+    function relay(address target, bytes calldata targetData) external;
+}
+
+interface ArbL1GovernanceRelayLike {
+    function relay(
+        address target,
+        bytes calldata targetData,
+        uint256 l1CallValue,
+        uint256 maxGas,
+        uint256 gasPriceBid,
+        uint256 maxSubmissionCost
+    ) external payable;
+    function l2GovernanceRelay() external view returns (address);
+}
+
+interface ArbL2GovernanceRelayLike {
+    function l1GovernanceRelay() external view returns (address);
+    function relay(address target, bytes calldata targetData) external;
+}
+
 contract DssSpellTestBase is Config, DssTest {
     using stdStorage for StdStorage;
 
@@ -652,6 +680,7 @@ contract DssSpellTestBase is Config, DssTest {
     event Debug(uint256 index, uint256 val);
     event Debug(uint256 index, address addr);
     event Debug(uint256 index, bytes32 what);
+    event Executed(bytes32 indexed chain, address indexed self, address indexed caller);
 
     function _rmul(uint256 x, uint256 y) internal pure returns (uint256 z) {
         z = (x * y + RAY / 2) / RAY;
@@ -879,6 +908,10 @@ contract DssSpellTestBase is Config, DssTest {
             // even if mainnet has already scheduled/cast the spell
             vm.makePersistent(address(rates));
             vm.makePersistent(address(addr));
+            vm.makePersistent(address(base));
+            vm.makePersistent(address(unichain));
+            vm.makePersistent(address(optimism));
+            vm.makePersistent(address(arbitrum));
             vm.makePersistent(address(deployers));
             vm.makePersistent(address(wallets));
             vm.rollFork(spellValues.deployed_spell_block);
@@ -2447,6 +2480,128 @@ contract DssSpellTestBase is Config, DssTest {
         vm.prank(address(p.allocatorProxy));
         AllocatorVaultLike(p.vault).wipe(1_000 * WAD);
         assertEq(usds.balanceOf(p.buffer), 0);
+    }
+
+    function _setupRootDomain() internal {
+        string memory root = string.concat(vm.projectRoot(), "/lib/dss-test");
+        config = ScriptTools.readInput(root, "integration");
+
+        rootDomain = new RootDomain(config, getRelativeChain("mainnet"));
+    }
+
+    // FIXME: the latest version in forge-std already supports Unichain,
+    //        however we have an outdated version as nested dependency in `dss-test`.
+    //        Once this is fixed, we can remove this function.
+    function _registerCustomChains() internal {
+        setChain(
+            "unichain",
+            ChainData({
+                name: "Unichain",
+                chainId: 130,
+                rpcUrl: "https://mainnet.unichain.org"
+            })
+        );
+    }
+
+    function _setupL2Domains() internal {
+        _setupRootDomain();
+        _registerCustomChains();
+
+        optimismDomain = new OptimismDomain(config, getRelativeChain("optimism"), rootDomain);
+        baseDomain = new OptimismDomain(config, getRelativeChain("base"), rootDomain);
+        unichainDomain = new OptimismDomain(config, getRelativeChain("unichain"), rootDomain);
+        arbitrumDomain = new ArbitrumDomain(config, getRelativeChain("arbitrum_one"), rootDomain);
+    }
+
+    function _testOpL2GovernanceRelay(
+        string memory chainName,
+        OptimismDomain domain,
+        address l1GovRelay,
+        address l2GovRelay,
+        address l2Messenger
+    ) internal {
+        domain.selectFork();
+
+        address l2Spell = address(new MockL2Spell(l2GovRelay));
+        vm.makePersistent(l2Spell);
+
+        // Sanity check
+        assertEq(
+            OpL2GovernanceRelayLike(l2GovRelay).l1GovernanceRelay(),
+            l1GovRelay,
+            string.concat(chainName, "/wrong-l1-counterparty")
+        );
+
+        bytes memory data = abi.encodeWithSelector(MockL2Spell.execute.selector, _stringToBytes32(chainName));
+
+        rootDomain.selectFork();
+
+        assertEq(
+            OpL1GovernanceRelayLike(l1GovRelay).l2GovernanceRelay(),
+            l2GovRelay,
+            string.concat(chainName, "/wrong-l2-counterparty")
+        );
+
+        vm.prank(pauseProxy);
+        OpL1GovernanceRelayLike(l1GovRelay).relay(l2Spell, data, 1_000_000);
+
+        vm.expectEmit(true, true, true, false, l2GovRelay);
+        emit Executed(_stringToBytes32(chainName), l2GovRelay, l2Messenger);
+        domain.relayFromHost(true);
+    }
+
+    function _applyArbitrumL1ToL2Alias(address l1Address) internal pure returns (address) {
+        unchecked {
+            return address(uint160(l1Address) + uint160(0x1111000000000000000000000000000000001111));
+        }
+    }
+
+    function _testArbitrumL2GovernanceRelay(
+        string memory chainName,
+        address l1GovRelay,
+        address l2GovRelay
+    ) internal {
+        arbitrumDomain.selectFork();
+
+        address l2Spell = address(new MockL2Spell(l2GovRelay));
+        vm.makePersistent(l2Spell);
+
+        // Sanity check
+        assertEq(
+            ArbL2GovernanceRelayLike(l2GovRelay).l1GovernanceRelay(),
+            l1GovRelay,
+            string.concat(chainName, "/wrong-l1-counterparty")
+        );
+
+        rootDomain.selectFork();
+
+        assertEq(
+            ArbL1GovernanceRelayLike(l1GovRelay).l2GovernanceRelay(),
+            l2GovRelay,
+            string.concat(chainName, "/wrong-l2-counterparty")
+        );
+
+        uint256 maxSubmissionCost = 0.1 ether;
+        uint256 maxGas = 1_000_000;
+        uint256 gasPriceBid = 1 gwei;
+        uint256 value = maxSubmissionCost + maxGas * gasPriceBid;
+        vm.deal(pauseProxy, value);
+
+        bytes memory data = abi.encodeWithSelector(MockL2Spell.execute.selector, _stringToBytes32(chainName));
+
+        vm.prank(pauseProxy);
+        ArbL1GovernanceRelayLike(l1GovRelay).relay{value: value}(
+            l2Spell,
+            data,
+            0,
+            maxGas,
+            gasPriceBid,
+            maxSubmissionCost
+        );
+
+        vm.expectEmit(true, true, true, false, l2GovRelay);
+        emit Executed(_stringToBytes32(chainName), l2GovRelay, _applyArbitrumL1ToL2Alias(l1GovRelay));
+        arbitrumDomain.relayFromHost(true);
     }
 
     struct OpTokenBridgeParams {
@@ -4173,5 +4328,19 @@ contract MockStarSpell {
 
     function isExecutable() external pure returns (bool) {
         return true;
+    }
+}
+
+contract MockL2Spell {
+    address public immutable owner;
+
+    event Executed(bytes32 indexed chain, address indexed self, address indexed caller);
+
+    constructor(address owner_) {
+        owner = owner_;
+    }
+
+    function execute(bytes32 chain_) external {
+        emit Executed(chain_, address(this), msg.sender);
     }
 }
