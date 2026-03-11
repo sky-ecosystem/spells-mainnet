@@ -46,6 +46,11 @@ interface SafeHarborRegistryLike {
     function getAgreement(address _adopter) external view returns (address);
 }
 
+interface SafeHarborAgreementLike {
+    function getChainValidator() external view returns (address);
+    function owner() external view returns (address);
+}
+
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -1416,18 +1421,27 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
+    // https://frameworks.securityalliance.org/safe-harbor/on-chain-adoption-guide/#v3-contract-addresses
     address constant SAFE_HARBOR_REGISTRY = 0x326733493E143b8904716E7A64A9f4fb6A185a2c;
+    address constant SAFE_HARBOR_CHAIN_VALIDATOR = 0xd01C76ccE414d9B0a294abAFD94feD2e0B88675D;
 
     function testAdoptSafeHarbor() public {
+        SafeHarborAgreementLike agreement = SafeHarborAgreementLike(addr.addr("SAFE_HARBOR_AGREEMENT"));
+        SafeHarborRegistryLike registry = SafeHarborRegistryLike(SAFE_HARBOR_REGISTRY);
+
+        // Sanity checks
+        assertEq(agreement.getChainValidator(), SAFE_HARBOR_CHAIN_VALIDATOR, "TestError/safe-harbor-chain-validator-mismatch");
+        assertEq(agreement.owner(), addr.addr("MCD_PAUSE_PROXY"), "TestError/safe-harbor-owner-mismatch");
+
+
         // Before spell the adoption should have not happened yet
         vm.expectRevert(SafeHarborRegistryLike.SafeHarborRegistry__NoAgreement.selector);
-        SafeHarborRegistryLike(SAFE_HARBOR_REGISTRY).getAgreement(address(pauseProxy));
+        registry.getAgreement(address(pauseProxy));
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        address agreement = SafeHarborRegistryLike(SAFE_HARBOR_REGISTRY).getAgreement(address(pauseProxy));
-        assertEq(agreement, addr.addr("SAFE_HARBOR_AGREEMENT"), "TestError/safe-harbor-not-adopted");
+        assertEq(registry.getAgreement(address(pauseProxy)), address(agreement), "TestError/safe-harbor-not-adopted");
     }
 }
