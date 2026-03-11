@@ -1,41 +1,5 @@
 import { parse } from "csv-parse/sync";
 
-/**
- * @typedef {Object} CsvContractScopeRecord
- * @property {string} Status
- * @property {string} Chain
- * @property {string} Address
- * @property {string} [isFactory]
- * @property {string} [IsFactory]
- */
-
-/**
- * @typedef {Object} SafeHarborAccount
- * @property {string} accountAddress
- * @property {number} childContractScope
- */
-
-/**
- * @typedef {Object} CsvChainDetailsRecord
- * @property {string} [Name]
- * @property {string} [Chain Id]
- * @property {string} [Asset Recovery Address]
- */
-
-/**
- * @typedef {Object} ChainDetails
- * @property {Record<string, string>} caip2ChainId
- * @property {Record<string, string>} assetRecoveryAddress
- * @property {Record<string, string>} name
- */
-
-/**
- * Downloads CSV data from the provided URL, validates the response type, and
- * parses it into an array of records using header names as object keys.
- *
- * @param {string} url
- * @returns {Promise<Record<string, string>[]>}
- */
 async function downloadAndParse(url) {
     console.warn(`Fetching CSV from ${url}`);
     try {
@@ -71,16 +35,6 @@ async function downloadAndParse(url) {
     }
 }
 
-/**
- * Normalizes the contracts-in-scope sheet into a chain-keyed mapping of
- * accounts, filtering out non-active rows.
- *
- * Factory rows are mapped to `childContractScope = 2`; all other active rows
- * are treated as regular contracts with `childContractScope = 0`.
- *
- * @param {CsvContractScopeRecord[]} records
- * @returns {Record<string, SafeHarborAccount[]>}
- */
 function normalizeContractsInScope(records) {
     return records
         .filter((record) => record.Status === "ACTIVE")
@@ -102,27 +56,11 @@ function normalizeContractsInScope(records) {
         }, {});
 }
 
-/**
- * Fetches and normalizes the contracts-in-scope CSV.
- *
- * @param {string} url
- * @returns {Promise<Record<string, SafeHarborAccount[]>>}
- */
 export async function getNormalizedContractsInScopeFromCSV(url) {
     const records = await downloadAndParse(url);
     return normalizeContractsInScope(records);
 }
 
-/**
- * Fetches and normalizes the chain details CSV into lookup tables keyed by
- * chain name and CAIP-2 chain id.
- *
- * Rows missing any required field are ignored. Duplicate chain names or chain
- * ids are accepted but warned about, with later rows overwriting earlier ones.
- *
- * @param {string} url
- * @returns {Promise<ChainDetails>}
- */
 export async function getChainDetailsFromCSV(url) {
     const records = await downloadAndParse(url);
 
