@@ -1416,7 +1416,7 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
-    address constant SAFE_HARBOR_REGISTRY  = 0x326733493E143b8904716E7A64A9f4fb6A185a2c;
+    address constant SAFE_HARBOR_REGISTRY = 0x326733493E143b8904716E7A64A9f4fb6A185a2c;
 
     function testAdoptSafeHarbor() public {
         // Before spell the adoption should have not happened yet
