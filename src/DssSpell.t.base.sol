@@ -2504,7 +2504,7 @@ contract DssSpellTestBase is Config, DssTest {
             ChainData({
                 name: "Unichain",
                 chainId: 130,
-                rpcUrl: "https://mainnet.unichain.org"
+                rpcUrl: "https://unichain.gateway.tenderly.co"
             })
         );
     }
