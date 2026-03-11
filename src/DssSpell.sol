@@ -19,6 +19,14 @@ pragma solidity 0.8.16;
 import "dss-exec-lib/DssExec.sol";
 import "dss-exec-lib/DssAction.sol";
 
+interface StakingRewardsLike {
+    function setRewardsDuration(uint256 _rewardsDuration) external;
+}
+
+interface SafeHarborRegistryLike {
+    function adoptSafeHarbor(address _agreementAddress) external;
+}
+
 interface StarGuardLike {
     function plot(address addr_, bytes32 tag_) external;
 }
@@ -47,14 +55,71 @@ contract DssSpellAction is DssAction {
     // uint256 internal constant X_PCT_RATE = ;
 
     // ---------- Math ----------
+    uint256 internal constant WAD = 10**18;
+    uint256 internal constant RAD = 10**45;
 
     // ---------- Contracts ----------
+    address internal constant SAFE_HARBOR_REGISTRY  = 0x326733493E143b8904716E7A64A9f4fb6A185a2c;
+    address internal constant SAFE_HARBOR_AGREEMENT = 0xf17bB418B4EC251f300Aa3517Cb37349f17697A1;
 
-    // ---------- Grove Proxy Spell ----------
-    address internal constant GROVE_SPELL      = address(0); // TODO
-    bytes32 internal constant GROVE_SPELL_HASH = bytes32(0); // TODO
+    address internal immutable MCD_KICK           = DssExecLib.getChangelogAddress("MCD_KICK");
+    address internal immutable MCD_SPLIT          = DssExecLib.getChangelogAddress("MCD_SPLIT");
+    address internal immutable REWARDS_LSSKY_USDS = DssExecLib.getChangelogAddress("REWARDS_LSSKY_USDS");
+    address internal immutable MKR_SKY            = DssExecLib.getChangelogAddress("MKR_SKY");
+    address internal immutable SPARK_STARGUARD    = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
+
+    // ---------- Spark Proxy Spell ----------
+    address internal constant SPARK_SPELL      = 0x9fFadcf3aFb43c1Af4Ec1D9B6B0405f1FBCf94D6;
+    bytes32 internal constant SPARK_SPELL_HASH = 0xe38e933caa0aff99a63bd81b28a9cbd4d8af359c603545af5c3af9e457241733;
 
     function actions() public override {
+        // ---------- Adjust Smart Burn Engine Parameters ----------
+        // Forum: https://forum.sky.money/t/atlas-edit-weekly-cycle-proposal-week-of-2026-03-09/27750
+        // Poll: https://vote.sky.money/polling/QmRjnvHa
+
+        // Decrease `kicker.kbump` by 4,000 USDS from 10,000 USDS to 6,000 USDS
+        DssExecLib.setValue(MCD_KICK, "kbump", 6_000 * RAD);
+
+        // Increase `splitter.hop:` by 10,907 seconds from 2,880 seconds to 13,787 seconds
+        DssExecLib.setValue(MCD_SPLIT, "hop", 13_787);
+        // Increase rewardsDuration in REWARDS_LSSKY_USDS by 10,907 seconds from 2,880 seconds to 13,787 seconds
+        StakingRewardsLike(REWARDS_LSSKY_USDS).setRewardsDuration(13_787);
+
+        // ---------- Increase delayed upgrade penalty to 3% ----------
+        // Forum: https://forum.sky.money/t/delayed-migration-penalty-update-march-12th-spell/27752
+        // Atlas: https://sky-atlas.io/#A.4.1.2.1.1.1.1
+
+        // Increase delayed upgrade penalty by 1 percentage point, from 2% to 3% fee on MKR_SKY
+        DssExecLib.setValue(MKR_SKY, "fee", 3_00 * WAD / 100_00);
+
+        // ---------- SafeHarbor Adoption ----------
+        // Forum: https://forum.sky.money/t/technical-scope-safe-harbor-adoption/27753
+        // Atlas: https://sky-atlas.io/#A.2.11.1.2
+
+        // Call adoptSafeHarbor on the SEAL Safe Harbor Registry with the following parameters:
+        // Registry Contract: 0x326733493E143b8904716E7A64A9f4fb6A185a2c (SEAL Safe Harbor Registry)
+        // Caller: 0xBE8E3e3618f7474F8cB1d074A26afFef007E98FB (Sky Pause Proxy)
+        // Function: adoptSafeHarbor(address _agreement)
+        // Input Argument: 0xf17bB418B4EC251f300Aa3517Cb37349f17697A1 (Deployed Sky Agreement)
+        SafeHarborRegistryLike(SAFE_HARBOR_REGISTRY).adoptSafeHarbor(SAFE_HARBOR_AGREEMENT);
+
+        // Add Agreement Contract to the Chainlog as SAFE_HARBOR_AGREEMENT
+        DssExecLib.setChangelogAddress("SAFE_HARBOR_AGREEMENT", SAFE_HARBOR_AGREEMENT);
+
+        // Note: bump Chainlog version
+        DssExecLib.setChangelogVersion("1.20.13");
+
+        // ---------- Spark Proxy Spell ----------
+
+        // Forum: https://forum.sky.money/t/march-12-2026-proposed-changes-to-spark-for-upcoming-spell/27741
+        // Atlas: https://sky-atlas.io/#A.6.1.1.1.2.6.1.2.1.2.3
+        // Poll: https://snapshot.org/#/s:sparkfi.eth/proposal/0x9aebbe69e8555d03dc97b55475dac08225e157b3fd475d7a29848b8631627367
+        // Poll: https://snapshot.org/#/s:sparkfi.eth/proposal/0xdc686a9bc77b44cb323c23dce2cc091ebd34d7876d6e1f4413786f17e0739726
+        // Poll: https://snapshot.org/#/s:sparkfi.eth/proposal/0xeb2f5f08ec6ab8a2ff5302453ac7383f7519a09cf7e1e56cbb7fc8244f15cfa2
+        // Poll: https://snapshot.org/#/s:sparkfi.eth/proposal/0xf8c2f98cb39912a22457522c445c453b5f796f24c1886d1687dc96648ffa4c16
+
+        // Whitelist Spark spell with address 0x9fFadcf3aFb43c1Af4Ec1D9B6B0405f1FBCf94D6 and codehash 0xe38e933caa0aff99a63bd81b28a9cbd4d8af359c603545af5c3af9e457241733 in SPARK_STARGUARD, direct execution: No
+        StarGuardLike(SPARK_STARGUARD).plot(SPARK_SPELL, SPARK_SPELL_HASH);
     }
 }
 

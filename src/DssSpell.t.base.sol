@@ -1088,6 +1088,12 @@ contract DssSpellTestBase is Config, DssTest {
             );
         }
 
+        {
+        // Kicker parameters
+        assertEq(kick.kbump(), values.kick_kbump * RAD, "TestError/kicker-kbump");
+        assertEq(kick.khump(), values.kick_khump * int256(RAD), "TestError/kicker-khump");
+        }
+
         // Hole value in RAD
         {
             uint256 normalizedHole = values.dog_Hole * RAD;
@@ -4026,6 +4032,12 @@ contract DssSpellTestBase is Config, DssTest {
             }
         }
 
+        // MKR -> SKY Fee
+        {
+            uint256 fee = afterSpell.mkr_sky_fee * WAD / 100_00;
+            assertEq(mkrSky.fee(), fee, "TestError/MkrSky/bad-mkr-sky-fee");
+        }
+
         // Converter: MKR -> SKY
         {
             address mkrHolder = address(0x42);
@@ -4044,8 +4056,8 @@ contract DssSpellTestBase is Config, DssTest {
                 mkrSky.mkrToSky(skyHolder, pmkrBalance);
                 vm.stopPrank();
 
-                uint256 mkrSkyFee = mkrSky.fee();
-                uint256 expectedSkyBalance = pskyBalance + ((pmkrBalance * afterSpell.sky_mkr_rate) - (pmkrBalance * afterSpell.sky_mkr_rate * mkrSkyFee / WAD));
+                uint256 fee = afterSpell.mkr_sky_fee * WAD / 100_00;
+                uint256 expectedSkyBalance = pskyBalance + ((pmkrBalance * afterSpell.sky_mkr_rate) - (pmkrBalance * afterSpell.sky_mkr_rate * fee / WAD));
 
                 assertEq(mkr.balanceOf(mkrHolder), 0,                  "TestError/MKR/bad-mkr-to-sky-conversion");
                 assertEq(sky.balanceOf(skyHolder), expectedSkyBalance, "TestError/Sky/bad-mkr-to-sky-conversion");

@@ -40,6 +40,12 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
+interface SafeHarborRegistryLike {
+    error SafeHarborRegistry__NoAgreement();
+
+    function getAgreement(address _adopter) external view returns (address);
+}
+
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -278,16 +284,9 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
-        string[8] memory addedKeys = [
-            "ALLOCATOR_PRYSM_A_VAULT",
-            "ALLOCATOR_PRYSM_A_BUFFER",
-            "PRYSM_SUBPROXY",
-            "PRYSM_STARGUARD",
-            "ALLOCATOR_INTERVAL_A_VAULT",
-            "ALLOCATOR_INTERVAL_A_BUFFER",
-            "INTERVAL_SUBPROXY",
-            "INTERVAL_STARGUARD"
+    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+        string[1] memory addedKeys = [
+            "SAFE_HARBOR_AGREEMENT"
         ];
 
         for(uint256 i = 0; i < addedKeys.length; i++) {
@@ -1367,21 +1366,14 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
-        PrimeAgentSpell[2] memory primeAgentSpells = [
+    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
+        PrimeAgentSpell[1] memory primeAgentSpells = [
             PrimeAgentSpell({
                 starGuardKey: "SPARK_STARGUARD",                                              // Insert Prime Agent StarGuards Chainlog key
-                addr: 0xf655F6E7843685BfD8cfA4523d43F2b9922BBd77,                             // Insert Prime Agent spell address
-                codehash: 0x56ca6d051fe05ba6a2b3f054aad61ce93e69542faf2ad02b9881bc1c03c8d2bf, // Insert Prime Agent spell codehash
+                addr: 0x9fFadcf3aFb43c1Af4Ec1D9B6B0405f1FBCf94D6,                             // Insert Prime Agent spell address
+                codehash: 0xe38e933caa0aff99a63bd81b28a9cbd4d8af359c603545af5c3af9e457241733, // Insert Prime Agent spell codehash
                 directExecutionEnabled: false                                                 // Set to true if the Prime Agent spell is executed directly from core spell
-            }),
-            PrimeAgentSpell({
-                starGuardKey: "GROVE_STARGUARD",
-                addr: 0xa2BDc0375Fc1C1343f7F6bf6c34c0263df1F0DB8,
-                codehash: 0x2b804a603fbbe25d00f8c19af41fc549b18131f51a30e3e73d1eea55fe994689,
-                directExecutionEnabled: false
-            })
-        ];
+            })];
 
         uint256 before = vm.snapshotState();
 
@@ -1423,4 +1415,19 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
+
+    address constant SAFE_HARBOR_REGISTRY  = 0x326733493E143b8904716E7A64A9f4fb6A185a2c;
+
+    function testAdoptSafeHarbor() public {
+        // Before spell the adoption should have not happened yet
+        vm.expectRevert(SafeHarborRegistryLike.SafeHarborRegistry__NoAgreement.selector);
+        SafeHarborRegistryLike(SAFE_HARBOR_REGISTRY).getAgreement(address(pauseProxy));
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        address agreement = SafeHarborRegistryLike(SAFE_HARBOR_REGISTRY).getAgreement(address(pauseProxy));
+        assertEq(agreement, addr.addr("SAFE_HARBOR_AGREEMENT"), "TestError/safe-harbor-not-adopted");
+    }
 }
