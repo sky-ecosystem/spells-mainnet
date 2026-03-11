@@ -59,14 +59,15 @@ contract DssSpellAction is DssAction {
     uint256 internal constant RAD = 10**45;
 
     // ---------- Contracts ----------
-    address internal constant SAFE_HARBOR_REGISTRY  = 0x326733493E143b8904716E7A64A9f4fb6A185a2c;
-    address internal constant SAFE_HARBOR_AGREEMENT = 0xf17bB418B4EC251f300Aa3517Cb37349f17697A1;
-
     address internal immutable MCD_KICK           = DssExecLib.getChangelogAddress("MCD_KICK");
     address internal immutable MCD_SPLIT          = DssExecLib.getChangelogAddress("MCD_SPLIT");
     address internal immutable REWARDS_LSSKY_USDS = DssExecLib.getChangelogAddress("REWARDS_LSSKY_USDS");
     address internal immutable MKR_SKY            = DssExecLib.getChangelogAddress("MKR_SKY");
     address internal immutable SPARK_STARGUARD    = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
+
+    address internal constant SAFE_HARBOR_REGISTRY  = 0x326733493E143b8904716E7A64A9f4fb6A185a2c;
+    address internal constant SAFE_HARBOR_AGREEMENT = 0xf17bB418B4EC251f300Aa3517Cb37349f17697A1;
+
 
     // ---------- Spark Proxy Spell ----------
     address internal constant SPARK_SPELL      = 0x9fFadcf3aFb43c1Af4Ec1D9B6B0405f1FBCf94D6;
@@ -80,8 +81,9 @@ contract DssSpellAction is DssAction {
         // Decrease `kicker.kbump` by 4,000 USDS from 10,000 USDS to 6,000 USDS
         DssExecLib.setValue(MCD_KICK, "kbump", 6_000 * RAD);
 
-        // Increase `splitter.hop:` by 10,907 seconds from 2,880 seconds to 13,787 seconds
+        // Increase `splitter.hop` by 10,907 seconds from 2,880 seconds to 13,787 seconds
         DssExecLib.setValue(MCD_SPLIT, "hop", 13_787);
+
         // Increase rewardsDuration in REWARDS_LSSKY_USDS by 10,907 seconds from 2,880 seconds to 13,787 seconds
         StakingRewardsLike(REWARDS_LSSKY_USDS).setRewardsDuration(13_787);
 
@@ -92,7 +94,7 @@ contract DssSpellAction is DssAction {
         // Increase delayed upgrade penalty by 1 percentage point, from 2% to 3% fee on MKR_SKY
         DssExecLib.setValue(MKR_SKY, "fee", 3_00 * WAD / 100_00);
 
-        // ---------- SafeHarbor Adoption ----------
+        // ---------- Adopt Safe Harbor Agreement  ----------
         // Forum: https://forum.sky.money/t/technical-scope-safe-harbor-adoption/27753
         // Atlas: https://sky-atlas.io/#A.2.11.1.2
 
@@ -110,7 +112,6 @@ contract DssSpellAction is DssAction {
         DssExecLib.setChangelogVersion("1.20.13");
 
         // ---------- Spark Proxy Spell ----------
-
         // Forum: https://forum.sky.money/t/march-12-2026-proposed-changes-to-spark-for-upcoming-spell/27741
         // Atlas: https://sky-atlas.io/#A.6.1.1.1.2.6.1.2.1.2.3
         // Poll: https://snapshot.org/#/s:sparkfi.eth/proposal/0x9aebbe69e8555d03dc97b55475dac08225e157b3fd475d7a29848b8631627367
