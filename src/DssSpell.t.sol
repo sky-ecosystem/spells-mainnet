@@ -1433,7 +1433,6 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(agreement.getChainValidator(), SAFE_HARBOR_CHAIN_VALIDATOR, "TestError/safe-harbor-chain-validator-mismatch");
         assertEq(agreement.owner(), addr.addr("MCD_PAUSE_PROXY"), "TestError/safe-harbor-owner-mismatch");
 
-
         // Before spell the adoption should have not happened yet
         vm.expectRevert(SafeHarborRegistryLike.SafeHarborRegistry__NoAgreement.selector);
         registry.getAgreement(address(pauseProxy));
