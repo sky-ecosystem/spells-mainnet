@@ -1041,7 +1041,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testBaseGovRelay() public {
+    function testBaseGovRelay() public { // add the `skipped` modifier to skip
         _setupL2Domains();
         _testOpL2GovernanceRelay(
             "base",
@@ -1052,7 +1052,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testOptimismGovRelay() public {
+    function testOptimismGovRelay() public { // add the `skipped` modifier to skip
         _setupL2Domains();
         _testOpL2GovernanceRelay(
             "optimism",
@@ -1063,7 +1063,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testUnichainGovRelay() public {
+    function testUnichainGovRelay() public { // add the `skipped` modifier to skip
         _setupL2Domains();
         _testOpL2GovernanceRelay(
             "unichain",
@@ -1074,7 +1074,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testArbitrumGovRelay() public {
+    function testArbitrumGovRelay() public { // add the `skipped` modifier to skip
         _setupL2Domains();
         _testArbitrumL2GovernanceRelay(
             "arbitrum",
