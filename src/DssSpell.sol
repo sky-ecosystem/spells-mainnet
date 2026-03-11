@@ -94,7 +94,7 @@ contract DssSpellAction is DssAction {
         // Increase delayed upgrade penalty by 1 percentage point, from 2% to 3% fee on MKR_SKY
         DssExecLib.setValue(MKR_SKY, "fee", 3_00 * WAD / 100_00);
 
-        // ---------- Adopt Safe Harbor Agreement  ----------
+        // ---------- Adopt Safe Harbor Agreement ----------
         // Forum: https://forum.sky.money/t/technical-scope-safe-harbor-adoption/27753
         // Atlas: https://sky-atlas.io/#A.2.11.1.2
 
