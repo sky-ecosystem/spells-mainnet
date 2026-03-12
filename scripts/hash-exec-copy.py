@@ -19,6 +19,7 @@ import subprocess
 
 # Constants
 INPUT_DATE_FORMAT = "%Y-%m-%d"
+INPUT_DATE_FORMAT_DISPLAY = "YYYY-MM-DD"
 REPO_URL = "/sky-ecosystem/executive-votes"
 GITHUB_API_BASE = "https://api.github.com/repos"
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com"
@@ -154,7 +155,7 @@ def parse_arguments():
         description="Fetch an executive vote document and calculate its keccak hash")
     parser.add_argument(
         "date",
-        help=f"Date to find executive copy for (format: {INPUT_DATE_FORMAT})"
+        help=f"Date to find executive copy for (format: {INPUT_DATE_FORMAT_DISPLAY})"
     )
 
     args = parser.parse_args()
@@ -164,7 +165,7 @@ def parse_arguments():
         return datetime.strptime(date_string, INPUT_DATE_FORMAT)
     except ValueError:
         raise SystemExit(
-            f"Invalid date format. Please use {INPUT_DATE_FORMAT}.")
+            f"Invalid date format. Please use {INPUT_DATE_FORMAT_DISPLAY}.")
 
 
 def main():
