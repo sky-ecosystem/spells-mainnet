@@ -198,8 +198,13 @@ interface FlapOracleLike {
     function read() external view returns (bytes32);
 }
 
-// TODO: add full interfaces to dss-interfaces and remove from here
-interface UsdsJoinLike is DaiJoinAbstract {}
+interface UsdsJoinLike {
+    function dai() external view returns (address);
+    function exit(address usr, uint256 wad) external;
+    function join(address usr, uint256 wad) external;
+    function usds() external view returns (address);
+    function vat() external view returns (address);
+}
 
 interface SUsdsLike {
     function allowance(address, address) external view returns (uint256);
