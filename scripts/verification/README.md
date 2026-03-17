@@ -14,7 +14,7 @@ export ETHERSCAN_API_KEY="..."
 export VERIFY_RETRIES=5
 export VERIFY_DELAY=5
 
-python -m scripts.verification.verify DssSpell 0xYourSpellAddress
+./scripts/verification/verify.py DssSpell 0xYourSpellAddress
 ```
 
 This verifies:
@@ -33,8 +33,8 @@ This verifies:
 ## Examples
 ```bash
 # Mainnet spell, with Etherscan
-ETHERSCAN_API_KEY=... python -m scripts.verification.verify DssSpell 0xabc...def
+ETHERSCAN_API_KEY=... ./scripts/verification/verify.py DssSpell 0xabc...def
 
 # Custom retries/delay
-VERIFY_RETRIES=10 VERIFY_DELAY=8 python -m scripts.verification.verify DssSpell 0xabc...def
+VERIFY_RETRIES=10 VERIFY_DELAY=8 ./scripts/verification/verify.py DssSpell 0xabc...def
 ```
