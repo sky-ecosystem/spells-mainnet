@@ -12,14 +12,14 @@ import {
 
 /**
  * Main function to generate update payload for SafeHarbor agreement
- * 
+ *
  * This function orchestrates the entire payload generation process:
  * 1. Fetches chain details from CSV
  * 2. Downloads and parses contracts in scope CSV
  * 3. Fetches on-chain state for each contract
  * 4. Generates updates based on differences
  * 5. Generates Solidity code for the updates
- * 
+ *
  * @async
  * @function generatePayload
  * @param {Object} agreementContract - The ethers.js agreement contract instance
@@ -28,7 +28,7 @@ import {
  *   - updates: Array of update objects with function calls and calldata
  *   - solidityCode: Generated Solidity code for the updates
  * @throws {Error} If any step in the process fails
- * 
+ *
  * @example
  * const agreementContract = createAgreementInstance(rpcUrl);
  * const result = await generatePayload(agreementContract);

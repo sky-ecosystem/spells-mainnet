@@ -17,6 +17,7 @@
 pragma solidity 0.8.16;
 
 import "./DssSpell.t.base.sol";
+import {ScriptTools} from "dss-test/DssTest.sol";
 
 interface L2Spell {
     function dstDomain() external returns (bytes32);
@@ -38,17 +39,6 @@ interface SpellActionLike {
 interface LineMomLike {
     function ilks(bytes32 ilk) external view returns (uint256);
     function wipe(bytes32 ilk) external returns (uint256);
-}
-
-interface SafeHarborRegistryLike {
-    error SafeHarborRegistry__NoAgreement();
-
-    function getAgreement(address _adopter) external view returns (address);
-}
-
-interface SafeHarborAgreementLike {
-    function getChainValidator() external view returns (address);
-    function owner() external view returns (address);
 }
 
 contract DssSpellTest is DssSpellTestBase {
@@ -290,8 +280,15 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
-        string[1] memory addedKeys = [
-            "SAFE_HARBOR_AGREEMENT"
+        string[8] memory addedKeys = [
+            "ALLOCATOR_PRYSM_A_VAULT",
+            "ALLOCATOR_PRYSM_A_BUFFER",
+            "PRYSM_SUBPROXY",
+            "PRYSM_STARGUARD",
+            "ALLOCATOR_INTERVAL_A_VAULT",
+            "ALLOCATOR_INTERVAL_A_BUFFER",
+            "INTERVAL_SUBPROXY",
+            "INTERVAL_STARGUARD"
         ];
 
         for(uint256 i = 0; i < addedKeys.length; i++) {
@@ -375,7 +372,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testAllocatorIntegration() public skipped { // add the `skipped` modifier to skip
+    function testAllocatorIntegration() public { // add the `skipped` modifier to skip
         AllocatorIntegrationParams[2] memory params = [
             AllocatorIntegrationParams({
                 ilk:            "ALLOCATOR-PRYSM-A",
@@ -443,7 +440,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testNewLineMomIlks() public skipped { // add the `skipped` modifier to skip
+    function testNewLineMomIlks() public { // add the `skipped` modifier to skip
         bytes32[2] memory ilks = [
             bytes32("ALLOCATOR-PRYSM-A"),
             bytes32("ALLOCATOR-INTERVAL-A")
@@ -715,7 +712,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public skipped { // add the `skipped` modifier to skip
+    function testVestSky() public { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
         uint256 APRIL_25_2026_14_38_11 = 1777127891;
 
@@ -806,7 +803,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestedRewardsDist() public skipped {
+    function testVestedRewardsDist() public {
         address rewardsDist = addr.addr("REWARDS_DIST_LSSKY_SKY");
         address stakingRewards = addr.addr("REWARDS_LSSKY_SKY");
         VestAbstract vest = VestAbstract(addr.addr("MCD_VEST_SKY_TREASURY"));
@@ -852,7 +849,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public skipped { // add the `skipped` modifier to skip
+    function testPayments() public { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -872,10 +869,10 @@ contract DssSpellTest is DssSpellTestBase {
 
         // Fill the total values from exec sheet
         PaymentAmounts memory expectedTotalPayments = PaymentAmounts({
-            dai:          0 ether, // Note: ether is only a keyword helper
-            mkr:          0 ether, // Note: ether is only a keyword helper
-            usds: 6_513_916 ether, // Note: ether is only a keyword helper
-            sky:          0 ether  // Note: ether is only a keyword helper
+            dai:                               0 ether, // Note: ether is only a keyword helper
+            mkr:                               0 ether, // Note: ether is only a keyword helper
+            usds:                     6_513_916 ether, // Note: ether is only a keyword helper
+            sky:                               0 ether  // Note: ether is only a keyword helper
         });
 
         // Fill the total values based on the source for the transfers above
@@ -1046,46 +1043,13 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testBaseGovRelay() public { // add the `skipped` modifier to skip
-        _setupL2Domains();
-        _testOpL2GovernanceRelay(
-            "base",
-            baseDomain,
-            addr.addr("BASE_GOV_RELAY"),
-            base.addr("L2_GOV_RELAY"),
-            base.addr("L2_MESSENGER")
-        );
-    }
+    function _setupRootDomain() internal {
+        vm.makePersistent(address(spell), address(spell.action()), address(addr));
 
-    function testOptimismGovRelay() public { // add the `skipped` modifier to skip
-        _setupL2Domains();
-        _testOpL2GovernanceRelay(
-            "optimism",
-            optimismDomain,
-            addr.addr("OPTIMISM_GOV_RELAY"),
-            optimism.addr("L2_OPTIMISM_GOV_RELAY"),
-            optimism.addr("L2_OPTIMISM_MESSENGER")
-        );
-    }
+        string memory root = string.concat(vm.projectRoot(), "/lib/dss-test");
+        config = ScriptTools.readInput(root, "integration");
 
-    function testUnichainGovRelay() public { // add the `skipped` modifier to skip
-        _setupL2Domains();
-        _testOpL2GovernanceRelay(
-            "unichain",
-            unichainDomain,
-            addr.addr("UNICHAIN_GOV_RELAY"),
-            unichain.addr("L2_UNICHAIN_GOV_RELAY"),
-            unichain.addr("L2_UNICHAIN_MESSENGER")
-        );
-    }
-
-    function testArbitrumGovRelay() public { // add the `skipped` modifier to skip
-        _setupL2Domains();
-        _testArbitrumL2GovernanceRelay(
-            "arbitrum",
-            addr.addr("ARBITRUM_GOV_RELAY"),
-            arbitrum.addr("L2_GOV_RELAY")
-        );
+        rootDomain = new RootDomain(config, getRelativeChain("mainnet"));
     }
 
     function testL2OptimismSpell() public skipped { // TODO: check if this test can be removed for good.
@@ -1311,7 +1275,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 
-    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
+    function testMonthlySettlementCycleInflows() public { // add the `skipped` modifier to skip
         address ALLOCATOR_SPARK_A_VAULT = addr.addr("ALLOCATOR_SPARK_A_VAULT");
         address ALLOCATOR_BLOOM_A_VAULT = addr.addr("ALLOCATOR_BLOOM_A_VAULT");
         address ALLOCATOR_OBEX_A_VAULT = addr.addr("ALLOCATOR_OBEX_A_VAULT");
@@ -1372,13 +1336,20 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
-        PrimeAgentSpell[1] memory primeAgentSpells = [
+        PrimeAgentSpell[2] memory primeAgentSpells = [
             PrimeAgentSpell({
                 starGuardKey: "SPARK_STARGUARD",                                              // Insert Prime Agent StarGuards Chainlog key
-                addr: 0x9fFadcf3aFb43c1Af4Ec1D9B6B0405f1FBCf94D6,                             // Insert Prime Agent spell address
-                codehash: 0xe38e933caa0aff99a63bd81b28a9cbd4d8af359c603545af5c3af9e457241733, // Insert Prime Agent spell codehash
+                addr: 0xf655F6E7843685BfD8cfA4523d43F2b9922BBd77,                             // Insert Prime Agent spell address
+                codehash: 0x56ca6d051fe05ba6a2b3f054aad61ce93e69542faf2ad02b9881bc1c03c8d2bf, // Insert Prime Agent spell codehash
                 directExecutionEnabled: false                                                 // Set to true if the Prime Agent spell is executed directly from core spell
-            })];
+            }),
+            PrimeAgentSpell({
+                starGuardKey: "GROVE_STARGUARD",
+                addr: 0xa2BDc0375Fc1C1343f7F6bf6c34c0263df1F0DB8,
+                codehash: 0x2b804a603fbbe25d00f8c19af41fc549b18131f51a30e3e73d1eea55fe994689,
+                directExecutionEnabled: false
+            })
+        ];
 
         uint256 before = vm.snapshotState();
 
@@ -1399,7 +1370,7 @@ contract DssSpellTest is DssSpellTestBase {
         address subProxy;
     }
 
-    function testStarGuardInitialization() public skipped { // add the `skipped` modifier to skip
+    function testStarGuardInitialization() public { // add the `skipped` modifier to skip
         StarguardValues[2] memory initializedStarGuards = [
             StarguardValues({
                 starGuard: addr.addr("PRYSM_STARGUARD"), // Insert StarGuard address
@@ -1420,27 +1391,19 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
-
-    // https://frameworks.securityalliance.org/safe-harbor/on-chain-adoption-guide/#v3-contract-addresses
-    address constant SAFE_HARBOR_REGISTRY = 0x326733493E143b8904716E7A64A9f4fb6A185a2c;
-    address constant SAFE_HARBOR_CHAIN_VALIDATOR = 0xd01C76ccE414d9B0a294abAFD94feD2e0B88675D;
-
-    function testAdoptSafeHarbor() public {
-        SafeHarborAgreementLike agreement = SafeHarborAgreementLike(addr.addr("SAFE_HARBOR_AGREEMENT"));
-        SafeHarborRegistryLike registry = SafeHarborRegistryLike(SAFE_HARBOR_REGISTRY);
-
-        // Sanity checks
-        assertEq(agreement.getChainValidator(), SAFE_HARBOR_CHAIN_VALIDATOR, "TestError/safe-harbor-chain-validator-mismatch");
-        assertEq(agreement.owner(), addr.addr("MCD_PAUSE_PROXY"), "TestError/safe-harbor-owner-mismatch");
-
-        // Before spell the adoption should have not happened yet
-        vm.expectRevert(SafeHarborRegistryLike.SafeHarborRegistry__NoAgreement.selector);
-        registry.getAgreement(address(pauseProxy));
-
+    function testRemovedChainlogKey() public {
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        assertEq(registry.getAgreement(address(pauseProxy)), address(agreement), "TestError/safe-harbor-not-adopted");
+        // PIP_ALLOCATOR_PRYSM_A was added and removed during the spell execution
+        // it cannot be tested using `testRemovedChainlogKeys()` since the key is not present before the spell execution
+        vm.expectRevert("dss-chain-log/invalid-key");
+        chainLog.getAddress("PIP_ALLOCATOR_PRYSM_A");
+
+        // PIP_ALLOCATOR_INTERVAL_A was added and removed during the spell execution
+        // it cannot be tested using `testRemovedChainlogKeys()` since the key is not present before the spell execution
+        vm.expectRevert("dss-chain-log/invalid-key");
+        chainLog.getAddress("PIP_ALLOCATOR_INTERVAL_A");
     }
 }
