@@ -164,7 +164,6 @@ interface SplitterMomLike {
     function stop() external;
 }
 
-// TODO: add full interfaces to dss-interfaces and remove from here
 interface FlapUniV2Like {
     function gem() external view returns (address);
     function pair() external view returns (address);
@@ -172,7 +171,6 @@ interface FlapUniV2Like {
     function want() external view returns (uint256);
 }
 
-// TODO: add full interfaces to dss-interfaces and remove from here
 interface SplitLike {
     function burn() external view returns (uint256);
     function farm() external view returns (address);
