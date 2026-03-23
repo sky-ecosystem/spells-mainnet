@@ -93,9 +93,7 @@ def verify_once_on(
     # --verifier sourcify and uses Etherscan (see
     # https://github.com/foundry-rs/foundry/blob/970f6f67dcc76caf52989bb1994b77a216084e91/crates/verify/src/provider.rs#L213 step 4)
     # Unset it for Sourcify so Forge actually verifies on Sourcify.
-    env = os.environ.copy()
-    if verifier == "sourcify" and "ETHERSCAN_API_KEY" in env:
-        del env["ETHERSCAN_API_KEY"]
+    env = os.environ | {"ETHERSCAN_API_KEY": ""} if verifier == "sourcify" else os.environ
 
     try:
         result = subprocess.run(
