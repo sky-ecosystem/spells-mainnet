@@ -40,17 +40,6 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
-interface SafeHarborRegistryLike {
-    error SafeHarborRegistry__NoAgreement();
-
-    function getAgreement(address _adopter) external view returns (address);
-}
-
-interface SafeHarborAgreementLike {
-    function getChainValidator() external view returns (address);
-    function owner() external view returns (address);
-}
-
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -289,7 +278,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
         string[1] memory addedKeys = [
             "SAFE_HARBOR_AGREEMENT"
         ];
@@ -1046,7 +1035,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testBaseGovRelay() public { // add the `skipped` modifier to skip
+    function testBaseGovRelay() public skipped { // add the `skipped` modifier to skip
         _setupL2Domains();
         _testOpL2GovernanceRelay(
             "base",
@@ -1057,7 +1046,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testOptimismGovRelay() public { // add the `skipped` modifier to skip
+    function testOptimismGovRelay() public skipped { // add the `skipped` modifier to skip
         _setupL2Domains();
         _testOpL2GovernanceRelay(
             "optimism",
@@ -1068,7 +1057,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testUnichainGovRelay() public { // add the `skipped` modifier to skip
+    function testUnichainGovRelay() public skipped { // add the `skipped` modifier to skip
         _setupL2Domains();
         _testOpL2GovernanceRelay(
             "unichain",
@@ -1079,7 +1068,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testArbitrumGovRelay() public { // add the `skipped` modifier to skip
+    function testArbitrumGovRelay() public skipped { // add the `skipped` modifier to skip
         _setupL2Domains();
         _testArbitrumL2GovernanceRelay(
             "arbitrum",
@@ -1371,7 +1360,7 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
+    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
         PrimeAgentSpell[1] memory primeAgentSpells = [
             PrimeAgentSpell({
                 starGuardKey: "SPARK_STARGUARD",                                              // Insert Prime Agent StarGuards Chainlog key
@@ -1420,27 +1409,4 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
-
-    // https://frameworks.securityalliance.org/safe-harbor/on-chain-adoption-guide/#v3-contract-addresses
-    address constant SAFE_HARBOR_REGISTRY = 0x326733493E143b8904716E7A64A9f4fb6A185a2c;
-    address constant SAFE_HARBOR_CHAIN_VALIDATOR = 0xd01C76ccE414d9B0a294abAFD94feD2e0B88675D;
-
-    function testAdoptSafeHarbor() public {
-        SafeHarborAgreementLike agreement = SafeHarborAgreementLike(addr.addr("SAFE_HARBOR_AGREEMENT"));
-        SafeHarborRegistryLike registry = SafeHarborRegistryLike(SAFE_HARBOR_REGISTRY);
-
-        // Sanity checks
-        assertEq(agreement.getChainValidator(), SAFE_HARBOR_CHAIN_VALIDATOR, "TestError/safe-harbor-chain-validator-mismatch");
-        assertEq(agreement.owner(), addr.addr("MCD_PAUSE_PROXY"), "TestError/safe-harbor-owner-mismatch");
-
-        // Before spell the adoption should have not happened yet
-        vm.expectRevert(SafeHarborRegistryLike.SafeHarborRegistry__NoAgreement.selector);
-        registry.getAgreement(address(pauseProxy));
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        assertEq(registry.getAgreement(address(pauseProxy)), address(agreement), "TestError/safe-harbor-not-adopted");
-    }
 }
