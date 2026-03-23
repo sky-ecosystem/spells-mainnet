@@ -1453,54 +1453,110 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    // SPELL-SPECIFIC TESTS GO BELOW
+    struct ChainUpdates {
+        string caip2ChainId;
+        SafeHarborAgreementLike.Account[] addedAccounts;
+    }
 
     function _compareStrings(string memory a, string memory b) internal pure returns (bool) {
         return keccak256(abi.encodePacked(a)) == keccak256(abi.encodePacked(b));
     }
 
-    function testUpdateSafeHarborAccounts() public {
+    function _findChain(SafeHarborAgreementLike.AgreementDetails memory details, string memory caip2ChainId) internal pure returns (SafeHarborAgreementLike.Chain memory) {
+        for (uint256 i = 0; i < details.chains.length; i++) {
+            if (_compareStrings(details.chains[i].caip2ChainId, caip2ChainId)) {
+                return details.chains[i];
+            }
+        }
+        revert("_findChain/chain-not-found");
+    }
+
+    function _accountExistsInChain(SafeHarborAgreementLike.Chain memory chain, string memory accountAddress) internal pure returns (bool) {
+        for (uint256 i = 0; i < chain.accounts.length; i++) {
+            if (_compareStrings(chain.accounts[i].accountAddress, accountAddress)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function _findAccountInChain(SafeHarborAgreementLike.Chain memory chain, string memory accountAddress) internal pure returns (SafeHarborAgreementLike.Account memory) {
+        for (uint256 i = 0; i < chain.accounts.length; i++) {
+            if (_compareStrings(chain.accounts[i].accountAddress, accountAddress)) {
+                return chain.accounts[i];
+            }
+        }
+        revert("_findAccountInChain/account-not-found");
+    }
+
+    function testUpdateSafeHarborAddedAccounts() public { // add the `skipped` modifier to skip
         SafeHarborAgreementLike agreement = SafeHarborAgreementLike(addr.addr("SAFE_HARBOR_AGREEMENT"));
 
-        // Expected accounts to be added to eip155:1 chain
-        string[4] memory expectedAccounts = [
-            "0x9FE628BFc33f0352Bb1f93168881a9Ef93C8d2CF",
-            "0x9803DA8a51Fa02EEbEc3B1b969a9B80f9115cD80",
-            "0xF33B14329e7115dD0B40DBb2985E1A0Df10E3fAa",
-            "0xF7469b6db1FDD3354969605e168585b8eeB5F08D"
-        ];
+        ChainUpdates[1] memory chainUpdates;
+
+        // Build array of accounts to be added to Safe Harbor Agreement
+        SafeHarborAgreementLike.Account[] memory addedAccounts = new SafeHarborAgreementLike.Account[](4);
+        addedAccounts[0] = SafeHarborAgreementLike.Account({
+            accountAddress: "0x9FE628BFc33f0352Bb1f93168881a9Ef93C8d2CF",
+            ChildContractScope: 0
+        });
+        addedAccounts[1] = SafeHarborAgreementLike.Account({
+            accountAddress: "0x9803DA8a51Fa02EEbEc3B1b969a9B80f9115cD80",
+            ChildContractScope: 0
+        });
+        addedAccounts[2] = SafeHarborAgreementLike.Account({
+            accountAddress: "0xF33B14329e7115dD0B40DBb2985E1A0Df10E3fAa",
+            ChildContractScope: 0
+        });
+        addedAccounts[3] = SafeHarborAgreementLike.Account({
+            accountAddress: "0xF7469b6db1FDD3354969605e168585b8eeB5F08D",
+            ChildContractScope: 0
+        });
+
+        // Configure chain updates for eip155:1 with added accounts
+        chainUpdates[0] = ChainUpdates({
+            caip2ChainId: "eip155:1",
+            addedAccounts: addedAccounts
+        });
+
+        // Check that added accounts are not present before spell execution
+        for (uint256 i = 0; i < chainUpdates.length; i++) {
+            SafeHarborAgreementLike.AgreementDetails memory details = agreement.getDetails();
+            SafeHarborAgreementLike.Chain memory chain = _findChain(details, chainUpdates[i].caip2ChainId);
+
+            for (uint256 j = 0; j < chainUpdates[i].addedAccounts.length; j++) {
+                assertFalse(
+                    _accountExistsInChain(chain, chainUpdates[i].addedAccounts[j].accountAddress),
+                    string.concat("testUpdateSafeHarborAddedAccounts/account-already-present-before-spell-execution: ", chainUpdates[i].addedAccounts[j].accountAddress)
+                );
+            }
+        }
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        // Get agreement details
-        SafeHarborAgreementLike.AgreementDetails memory details = agreement.getDetails();
+        // Check that added accounts are present after spell execution
+        for (uint256 i = 0; i < chainUpdates.length; i++) {
+            SafeHarborAgreementLike.AgreementDetails memory details = agreement.getDetails();
+            SafeHarborAgreementLike.Chain memory chain = _findChain(details, chainUpdates[i].caip2ChainId);
 
-        // Find the eip155:1 chain
-        SafeHarborAgreementLike.Chain memory eip155Chain;
-        bool chainFound = false;
+            for (uint256 j = 0; j < chainUpdates[i].addedAccounts.length; j++) {
+                assertTrue(
+                    _accountExistsInChain(chain, chainUpdates[i].addedAccounts[j].accountAddress),
+                    string.concat("testUpdateSafeHarborAddedAccounts/safe-harbor-account-not-found-after-spell-execution: ", chainUpdates[i].addedAccounts[j].accountAddress)
+                );
 
-        for (uint256 i = 0; i < details.chains.length; i++) {
-            if (_compareStrings(details.chains[i].caip2ChainId, "eip155:1")) {
-                eip155Chain = details.chains[i];
-                chainFound = true;
-                break;
+                // Verify the account has the correct ChildContractScope
+                SafeHarborAgreementLike.Account memory account = _findAccountInChain(chain, chainUpdates[i].addedAccounts[j].accountAddress);
+                assertEq(
+                    account.ChildContractScope,
+                    chainUpdates[i].addedAccounts[j].ChildContractScope,
+                    string.concat("testUpdateSafeHarborAddedAccounts/incorrect-scope-for-account: ", chainUpdates[i].addedAccounts[j].accountAddress)
+                );
             }
-        }
-
-        assertTrue(chainFound, "TestError/eip155:1-chain-not-found");
-
-        // Verify all expected accounts are present
-        for (uint256 i = 0; i < expectedAccounts.length; i++) {
-            bool accountFound = false;
-            for (uint256 j = 0; j < eip155Chain.accounts.length; j++) {
-                if (_compareStrings(eip155Chain.accounts[j].accountAddress, expectedAccounts[i])) {
-                    accountFound = true;
-                    break;
-                }
-            }
-            assertTrue(accountFound, string.concat("TestError/safe-harbor-account-not-found: ", expectedAccounts[i]));
         }
     }
+
+    // SPELL-SPECIFIC TESTS GO BELOW
 }

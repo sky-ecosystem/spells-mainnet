@@ -210,6 +210,7 @@ contract DssSpellAction is DssAction {
         // ---------- Safe Harbor Update ----------
         // Atlas: https://sky-atlas.io/#fcd868db-4a91-4ee0-baf5-1ebd40fc651e
 
+        // note: code below is generated via safeharbor script, thus the formatting may be different than the usal spell instructions format
         // ---------- Bug Bounty Updates ----------
         bytes[] memory calldatas = new bytes[](1);
 
@@ -280,7 +281,7 @@ contract DssSpellAction is DssAction {
     /// @param calldatas Array of ABI-encoded function calls to execute on the Safe Harbor agreement contract
     function _updateSafeHarbor(bytes[] memory calldatas) internal {
         for (uint256 i = 0; i < calldatas.length; i++) {
-            (bool success, ) = SAFE_HARBOR_AGREEMENT.call(calldatas[i]);
+            (bool success,) = SAFE_HARBOR_AGREEMENT.call(calldatas[i]);
             require(success, "updateSafeHarbor/safe-harbor-update-failed");
         }
     }
