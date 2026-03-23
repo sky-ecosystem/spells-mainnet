@@ -5,7 +5,7 @@ export function generateSolidityCode(updates) {
     }
 
     let solidityCode = `
-        // ---------- Bug Bounty Updates ----------
+        // ---------- SafeHarbor Updates ----------
         bytes[] memory calldatas = new bytes[](${updates.length});`;
 
     updates.forEach((update, index) => {
