@@ -40,6 +40,43 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
+interface SafeHarborAgreementLike {
+    struct Account {
+        string accountAddress;
+        uint8 ChildContractScope;
+    }
+
+    struct AgreementDetails {
+        string protocolName;
+        Contact[] contactDetails;
+        Chain[] chains;
+        BountyTerms bountyTerms;
+        string agreementURI;
+    }
+
+    struct BountyTerms {
+        uint256 bountyPercentage;
+        uint256 bountyCapUSD;
+        bool retainable;
+        uint8 identity;
+        string diligenceRequirements;
+        uint256 aggregateBountyCapUSD;
+    }
+
+    struct Chain {
+        string assetRecoveryAddress;
+        Account[] accounts;
+        string caip2ChainId;
+    }
+
+    struct Contact {
+        string name;
+        string contact;
+    }
+
+    function getDetails() external view returns (AgreementDetails memory _details);
+}
+
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -278,9 +315,12 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
-        string[1] memory addedKeys = [
-            "SAFE_HARBOR_AGREEMENT"
+    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+        string[4] memory addedKeys = [
+            "OZONE_SUBPROXY",
+            "OZONE_STARGUARD",
+            "AMATSU_SUBPROXY",
+            "AMATSU_STARGUARD"
         ];
 
         for(uint256 i = 0; i < addedKeys.length; i++) {
@@ -841,7 +881,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public skipped { // add the `skipped` modifier to skip
+    function testPayments() public { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -851,20 +891,25 @@ contract DssSpellTest is DssSpellTestBase {
         //    the destination address,
         //    the amount to be paid
         // Initialize the array with the number of payees
-        Payee[5] memory payees = [
-            Payee(address(usds), addr.addr("SPARK_SUBPROXY"), 1_387_824 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("GROVE_SUBPROXY"), 6_090 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("OBEX_SUBPROXY"), 71_342 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG"), 4_808_248 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("CORE_COUNCIL_DELEGATE_MULTISIG"), 240_412 ether) // Note: ether is only a keyword helper
+        Payee[10] memory payees = [
+            Payee(address(usds), addr.addr("AMATSU_SUBPROXY"), 25_000_000 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("OZONE_SUBPROXY"), 25_000_000 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("KEEL_SUBPROXY"), 10_000_000 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("PRYSM_SUBPROXY"), 10_000_000 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("SPARK_SUBPROXY"), 1_265_132 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("GROVE_SUBPROXY"), 5_630 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("OBEX_SUBPROXY"), 65_719 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("SKYBASE_SUBPROXY"), 203_134 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG"), 2_545_907 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CORE_COUNCIL_DELEGATE_MULTISIG"), 127_295 ether) // Note: ether is only a keyword helper
         ];
 
         // Fill the total values from exec sheet
         PaymentAmounts memory expectedTotalPayments = PaymentAmounts({
-            dai:          0 ether, // Note: ether is only a keyword helper
-            mkr:          0 ether, // Note: ether is only a keyword helper
-            usds: 6_513_916 ether, // Note: ether is only a keyword helper
-            sky:          0 ether  // Note: ether is only a keyword helper
+            dai:           0 ether, // Note: ether is only a keyword helper
+            mkr:           0 ether, // Note: ether is only a keyword helper
+            usds: 74_212_817 ether, // Note: ether is only a keyword helper
+            sky:           0 ether  // Note: ether is only a keyword helper
         });
 
         // Fill the total values based on the source for the transfers above
@@ -1300,18 +1345,18 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 
-    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
+    function testMonthlySettlementCycleInflows() public { // add the `skipped` modifier to skip
         address ALLOCATOR_SPARK_A_VAULT = addr.addr("ALLOCATOR_SPARK_A_VAULT");
         address ALLOCATOR_BLOOM_A_VAULT = addr.addr("ALLOCATOR_BLOOM_A_VAULT");
         address ALLOCATOR_OBEX_A_VAULT = addr.addr("ALLOCATOR_OBEX_A_VAULT");
 
         AllocatorPayment[3] memory payments = [
-            AllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 8_079_210 * WAD),
-            AllocatorPayment(ALLOCATOR_OBEX_A_VAULT, 2_095_775 * WAD),
-            AllocatorPayment(ALLOCATOR_BLOOM_A_VAULT, 6_205_320 * WAD)
+            AllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 7_746_811 * WAD),
+            AllocatorPayment(ALLOCATOR_OBEX_A_VAULT, 1_948_422 * WAD),
+            AllocatorPayment(ALLOCATOR_BLOOM_A_VAULT, 6_346_829 * WAD)
         ];
 
-        uint256 expectedTotalAmount = 16_380_305 * WAD;
+        uint256 expectedTotalAmount = 16_042_062 * WAD;
 
         MscIlkValues[] memory expectedValues = new MscIlkValues[](payments.length);
         uint256 totalDtab = 0;
@@ -1388,15 +1433,15 @@ contract DssSpellTest is DssSpellTestBase {
         address subProxy;
     }
 
-    function testStarGuardInitialization() public skipped { // add the `skipped` modifier to skip
+    function testStarGuardInitialization() public { // add the `skipped` modifier to skip
         StarguardValues[2] memory initializedStarGuards = [
             StarguardValues({
-                starGuard: addr.addr("PRYSM_STARGUARD"), // Insert StarGuard address
-                subProxy: addr.addr("PRYSM_SUBPROXY")    // Insert SubProxy address
+                starGuard: addr.addr("OZONE_STARGUARD"), // Insert StarGuard address
+                subProxy: addr.addr("OZONE_SUBPROXY")    // Insert SubProxy address
             }),
             StarguardValues({
-                starGuard: addr.addr("INTERVAL_STARGUARD"),
-                subProxy: addr.addr("INTERVAL_SUBPROXY")
+                starGuard: addr.addr("AMATSU_STARGUARD"),
+                subProxy: addr.addr("AMATSU_SUBPROXY")
             })
         ];
 
@@ -1409,4 +1454,53 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
+
+    function _compareStrings(string memory a, string memory b) internal pure returns (bool) {
+        return keccak256(abi.encodePacked(a)) == keccak256(abi.encodePacked(b));
+    }
+
+    function testUpdateSafeHarborAccounts() public {
+        SafeHarborAgreementLike agreement = SafeHarborAgreementLike(addr.addr("SAFE_HARBOR_AGREEMENT"));
+
+        // Expected accounts to be added to eip155:1 chain
+        string[4] memory expectedAccounts = [
+            "0x9FE628BFc33f0352Bb1f93168881a9Ef93C8d2CF",
+            "0x9803DA8a51Fa02EEbEc3B1b969a9B80f9115cD80",
+            "0xF33B14329e7115dD0B40DBb2985E1A0Df10E3fAa",
+            "0xF7469b6db1FDD3354969605e168585b8eeB5F08D"
+        ];
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // Get agreement details
+        SafeHarborAgreementLike.AgreementDetails memory details = agreement.getDetails();
+
+        // Find the eip155:1 chain
+        SafeHarborAgreementLike.Chain memory eip155Chain;
+        bool chainFound = false;
+
+        for (uint256 i = 0; i < details.chains.length; i++) {
+            if (_compareStrings(details.chains[i].caip2ChainId, "eip155:1")) {
+                eip155Chain = details.chains[i];
+                chainFound = true;
+                break;
+            }
+        }
+
+        assertTrue(chainFound, "TestError/eip155:1-chain-not-found");
+
+        // Verify all expected accounts are present
+        for (uint256 i = 0; i < expectedAccounts.length; i++) {
+            bool accountFound = false;
+            for (uint256 j = 0; j < eip155Chain.accounts.length; j++) {
+                if (_compareStrings(eip155Chain.accounts[j].accountAddress, expectedAccounts[i])) {
+                    accountFound = true;
+                    break;
+                }
+            }
+            assertTrue(accountFound, string.concat("TestError/safe-harbor-account-not-found: ", expectedAccounts[i]));
+        }
+    }
 }

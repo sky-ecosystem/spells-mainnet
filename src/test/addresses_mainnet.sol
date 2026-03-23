@@ -615,5 +615,9 @@ contract Addresses {
         addr["INTERVAL_SUBPROXY"]                = 0x56a9bA5FE133EF4Ab1131E8ac7c4312a52284f5B;
         addr["INTERVAL_STARGUARD"]               = 0xB36e88c02E4619Ef34C0Db76C5BCb6655747FB28;
         addr["SAFE_HARBOR_AGREEMENT"]            = 0xf17bB418B4EC251f300Aa3517Cb37349f17697A1;
+        addr["OZONE_SUBPROXY"]                   = 0x9FE628BFc33f0352Bb1f93168881a9Ef93C8d2CF;
+        addr["OZONE_STARGUARD"]                  = 0x9803DA8a51Fa02EEbEc3B1b969a9B80f9115cD80;
+        addr["AMATSU_SUBPROXY"]                  = 0xF33B14329e7115dD0B40DBb2985E1A0Df10E3fAa;
+        addr["AMATSU_STARGUARD"]                 = 0xF7469b6db1FDD3354969605e168585b8eeB5F08D;
     }
 }
