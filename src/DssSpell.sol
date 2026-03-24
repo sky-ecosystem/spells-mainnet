@@ -106,7 +106,7 @@ contract DssSpellAction is DssAction {
 
     function actions() public override {
         // ---------- Ozone Onboarding ----------
-        // Forum: https://forum.skyeco.com/t/atlas-edit-weekly-cycle-proposal-week-of-2026-03-16/27767
+        // Forum: http://forum.skyeco.com/t/technical-scope-of-the-new-ozone-executor-agent/27779
         // Poll: https://vote.sky.money/polling/QmZRHXrp
 
         // Init new StarGuard module by calling StarGuardInit.init with:
@@ -157,7 +157,7 @@ contract DssSpellAction is DssAction {
         // Add AMATSU_STARGUARD module to the StarGuardJob
         StarGuardJobLike(CRON_STARGUARD_JOB).add(AMATSU_STARGUARD);
 
-        // Note: bump Chainlog version
+        // Note: bump Chainlog version to 1.20.14 to reflect the additions of the new subproxies and starguards addresses
         DssExecLib.setChangelogVersion("1.20.14");
 
         // ---------- Genesis Funding Transfers ----------
@@ -210,7 +210,7 @@ contract DssSpellAction is DssAction {
         // ---------- Safe Harbor Update ----------
         // Atlas: https://sky-atlas.io/#fcd868db-4a91-4ee0-baf5-1ebd40fc651e
 
-        // note: code below is generated via safeharbor script, thus the formatting may be different than the usal spell instructions format
+        // Note: code below is generated via safeharbor script, thus the formatting may be different than the usual spell instructions format
         // ---------- Bug Bounty Updates ----------
         bytes[] memory calldatas = new bytes[](1);
 
@@ -223,6 +223,7 @@ contract DssSpellAction is DssAction {
         // Forum: https://forum.skyeco.com/t/march-26-2026-proposed-changes-to-spark-for-upcoming-spell/27770
         // Atlas: https://sky-atlas.io/#A.6.1.1.1.2.6.1.2.1.2.3
         // Atlas: https://sky-atlas.io/#A.6.1.1.1.3.4
+        // Poll: https://vote.sky.money/polling/QmX7MC2S
         // Poll: https://snapshot.org/#/s:sparkfi.eth/proposal/0x2ca62cbabf82254f8df685e73a4a7751cf6cf26a8ce8ccfd706c9063f27061c7
         // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0x71d2b7802b54a579655ca9c1aca12e6256d2ea3dd8951fdfa39cd7da4524c75e
 
