@@ -210,7 +210,7 @@ contract DssSpellAction is DssAction {
         // ---------- Safe Harbor Update ----------
         // Atlas: https://sky-atlas.io/#fcd868db-4a91-4ee0-baf5-1ebd40fc651e
 
-        // Note: code below is generated via safeharbor script, thus the formatting may be different than the usual spell instructions format
+        // Note: code below is generated via Safe Harbor script, thus the formatting may be different than the usual spell instructions format
         // ---------- Bug Bounty Updates ----------
         bytes[] memory calldatas = new bytes[](1);
 

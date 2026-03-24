@@ -40,43 +40,6 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
-interface SafeHarborAgreementLike {
-    struct Account {
-        string accountAddress;
-        uint8 ChildContractScope;
-    }
-
-    struct AgreementDetails {
-        string protocolName;
-        Contact[] contactDetails;
-        Chain[] chains;
-        BountyTerms bountyTerms;
-        string agreementURI;
-    }
-
-    struct BountyTerms {
-        uint256 bountyPercentage;
-        uint256 bountyCapUSD;
-        bool retainable;
-        uint8 identity;
-        string diligenceRequirements;
-        uint256 aggregateBountyCapUSD;
-    }
-
-    struct Chain {
-        string assetRecoveryAddress;
-        Account[] accounts;
-        string caip2ChainId;
-    }
-
-    struct Contact {
-        string name;
-        string contact;
-    }
-
-    function getDetails() external view returns (AgreementDetails memory _details);
-}
-
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -1456,37 +1419,6 @@ contract DssSpellTest is DssSpellTestBase {
     struct ChainUpdates {
         string caip2ChainId;
         SafeHarborAgreementLike.Account[] addedAccounts;
-    }
-
-    function _compareStrings(string memory a, string memory b) internal pure returns (bool) {
-        return keccak256(abi.encodePacked(a)) == keccak256(abi.encodePacked(b));
-    }
-
-    function _findChain(SafeHarborAgreementLike.AgreementDetails memory details, string memory caip2ChainId) internal pure returns (SafeHarborAgreementLike.Chain memory) {
-        for (uint256 i = 0; i < details.chains.length; i++) {
-            if (_compareStrings(details.chains[i].caip2ChainId, caip2ChainId)) {
-                return details.chains[i];
-            }
-        }
-        revert("_findChain/chain-not-found");
-    }
-
-    function _accountExistsInChain(SafeHarborAgreementLike.Chain memory chain, string memory accountAddress) internal pure returns (bool) {
-        for (uint256 i = 0; i < chain.accounts.length; i++) {
-            if (_compareStrings(chain.accounts[i].accountAddress, accountAddress)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    function _findAccountInChain(SafeHarborAgreementLike.Chain memory chain, string memory accountAddress) internal pure returns (SafeHarborAgreementLike.Account memory) {
-        for (uint256 i = 0; i < chain.accounts.length; i++) {
-            if (_compareStrings(chain.accounts[i].accountAddress, accountAddress)) {
-                return chain.accounts[i];
-            }
-        }
-        revert("_findAccountInChain/account-not-found");
     }
 
     function testUpdateSafeHarborAddedAccounts() public { // add the `skipped` modifier to skip
