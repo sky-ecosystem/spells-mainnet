@@ -106,7 +106,7 @@ contract DssSpellAction is DssAction {
 
     function actions() public override {
         // ---------- Ozone Onboarding ----------
-        // Forum: http://forum.skyeco.com/t/technical-scope-of-the-new-ozone-executor-agent/27779
+        // Forum: https://forum.skyeco.com/t/technical-scope-of-the-new-ozone-executor-agent/27779
         // Poll: https://vote.sky.money/polling/QmZRHXrp
 
         // Init new StarGuard module by calling StarGuardInit.init with:
