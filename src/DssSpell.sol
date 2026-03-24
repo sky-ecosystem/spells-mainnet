@@ -21,7 +21,7 @@ import "dss-exec-lib/DssAction.sol";
 import { JugAbstract } from "dss-interfaces/dss/JugAbstract.sol";
 import { VatAbstract } from "dss-interfaces/dss/VatAbstract.sol";
 import { GemAbstract } from "dss-interfaces/ERC/GemAbstract.sol";
-import { StarGuardInit, StarGuardConfig } from "./dependencies/star-guard/StarGuardInit.sol";
+import { StarGuardInit, StarGuardConfig } from "src/dependencies/star-guard/StarGuardInit.sol";
 
 interface StarGuardJobLike {
     function add(address starGuard) external;
