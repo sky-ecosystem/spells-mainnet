@@ -157,7 +157,7 @@ contract DssSpellAction is DssAction {
         // Add AMATSU_STARGUARD module to the StarGuardJob
         StarGuardJobLike(CRON_STARGUARD_JOB).add(AMATSU_STARGUARD);
 
-        // Note: bump Chainlog version to 1.20.14 to reflect the additions of the new subproxies and starguards addresses
+        // Note: bump Chainlog patch version to reflect the additions of the new SubProxy and StarGuard addresses
         DssExecLib.setChangelogVersion("1.20.14");
 
         // ---------- Genesis Funding Transfers ----------
