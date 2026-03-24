@@ -1466,7 +1466,7 @@ contract DssSpellTest is DssSpellTestBase {
             for (uint256 j = 0; j < chainUpdates[i].addedAccounts.length; j++) {
                 assertFalse(
                     _accountExistsInChain(chain, chainUpdates[i].addedAccounts[j].accountAddress),
-                    string.concat("testUpdateSafeHarborAddedAccounts/account-already-present-before-spell-execution: ", chainUpdates[i].addedAccounts[j].accountAddress)
+                    string.concat("testUpdateSafeHarborAddedAccounts/account-already-present-before-spell-execution-", chainUpdates[i].addedAccounts[j].accountAddress)
                 );
             }
         }
@@ -1483,7 +1483,7 @@ contract DssSpellTest is DssSpellTestBase {
             for (uint256 j = 0; j < chainUpdates[i].addedAccounts.length; j++) {
                 assertTrue(
                     _accountExistsInChain(chain, chainUpdates[i].addedAccounts[j].accountAddress),
-                    string.concat("testUpdateSafeHarborAddedAccounts/safe-harbor-account-not-found-after-spell-execution: ", chainUpdates[i].addedAccounts[j].accountAddress)
+                    string.concat("testUpdateSafeHarborAddedAccounts/safe-harbor-account-not-found-after-spell-execution-", chainUpdates[i].addedAccounts[j].accountAddress)
                 );
 
                 // Verify the account has the correct ChildContractScope
@@ -1491,7 +1491,7 @@ contract DssSpellTest is DssSpellTestBase {
                 assertEq(
                     account.ChildContractScope,
                     chainUpdates[i].addedAccounts[j].ChildContractScope,
-                    string.concat("testUpdateSafeHarborAddedAccounts/incorrect-scope-for-account: ", chainUpdates[i].addedAccounts[j].accountAddress)
+                    string.concat("testUpdateSafeHarborAddedAccounts/incorrect-scope-for-account-", chainUpdates[i].addedAccounts[j].accountAddress)
                 );
             }
         }
