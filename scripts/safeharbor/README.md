@@ -3,7 +3,7 @@
 Safeharbor registry is a contract that allows protocols to identify addresses that are entitled to have funds recovered by a white hat during an attack.
 
 - Read more about the SafeHarbor [here](https://github.com/security-alliance/safe-harbor)
-- The full contracts for the registry can be found [here](https://github.com/security-alliance/safe-harbor/tree/main/registry-contracts/src/v2)
+- The full contracts for the registry can be found [here](https://github.com/PatrickAlphaC/safe-harbor/tree/0b0abb8b627eff87e2f7b52bf8ec484cd6ce0e32/registry-contracts/src)
 
 # Initial Deployment
 
@@ -77,7 +77,7 @@ This will output a solidity snippet that contains the encoded calldatas calling 
 npm run inspect
 ```
 
-Returns a JSON object containing the individual updates and the solidity snippet. 
+Returns a JSON object containing the individual updates and the solidity snippet.
 
 In order to obtain machine-readable JSON output of the script, use the following command:
 
