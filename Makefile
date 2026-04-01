@@ -20,5 +20,5 @@ exec-hash            :; ./scripts/hash-exec-copy.py date="$(date)"
 opt-cost             :; ./scripts/get-opt-relay-cost.sh $(spell)
 arb-cost             :; ./scripts/get-arb-relay-cost.sh $(spell)
 rates                :; ./scripts/rates.sh $(pct)
-safeharbor-generate  :; cd scripts/safeharbor && npm --silent ci && npm run --silent generate; cd -
-safeharbor-inspect   :; cd scripts/safeharbor && npm --silent ci && npm run --silent inspect; cd -
+safeharbor-generate  :; cd scripts/safeharbor && npm --silent ci && npm run --silent generate
+safeharbor-inspect   :; cd scripts/safeharbor && npm --silent ci && npm run --silent inspect
