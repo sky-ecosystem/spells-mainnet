@@ -1662,15 +1662,16 @@ contract DssSpellTest is DssSpellTestBase {
             assertEq(cfg.optionalDVNs.length, 0, "TestError/usds-oft-recv-wrong-optional-dvns-length");
         }
 
+        // Note: TYPE_3 (0x0003) + ExecutorWorker (0x01) + option_length (0x0011 = 17)
+        //       + OPTION_TYPE_LZRECEIVE (0x01) + uint128(130_000)
+        bytes memory expectedOptions = hex"0003010011010000000000000000000000000001fbd0";
+
         // Verify enforced options for SEND (msgType 1)
         bytes memory sendOptions = oft.enforcedOptions(AVAX_EID, 1);
-        assertTrue(sendOptions.length > 0, "TestError/usds-oft-send-enforced-options-not-set");
+        assertEq(keccak256(sendOptions), keccak256(expectedOptions), "TestError/usds-oft-send-enforced-options-mismatch");
 
         // Verify enforced options for SEND_AND_CALL (msgType 2)
         bytes memory sendAndCallOptions = oft.enforcedOptions(AVAX_EID, 2);
-        assertTrue(sendAndCallOptions.length > 0, "TestError/usds-oft-send-and-call-enforced-options-not-set");
-
-        // Note: Both enforced options should be identical (same gas/value)
-        assertEq(keccak256(sendOptions), keccak256(sendAndCallOptions), "TestError/usds-oft-enforced-options-mismatch");
+        assertEq(keccak256(sendAndCallOptions), keccak256(expectedOptions), "TestError/usds-oft-send-and-call-enforced-options-mismatch");
     }
 }
