@@ -54,6 +54,16 @@ struct ExecutorConfig {
     address executor;
 }
 
+struct RateLimitConfig {
+    uint32 eid;
+    uint48 window;
+    uint256 limit;
+}
+
+interface SkyOFTAdapterRateLimitLike {
+    function setRateLimits(RateLimitConfig[] calldata _rateLimitConfigsInbound, RateLimitConfig[] calldata _rateLimitConfigsOutbound) external;
+}
+
 interface OAppLike {
     function owner() external view returns (address);
     function peers(uint32 eid) external view returns (bytes32 peer);
@@ -64,8 +74,51 @@ interface GovernanceOAppSenderLike is OAppLike {
     function canCallTarget(address _srcSender, uint32 _dstEid, bytes32 _dstTarget) external view returns (bool);
 }
 
+interface L1GovernanceRelayLike {
+    struct MessagingFee {
+        uint256 nativeFee;
+        uint256 lzTokenFee;
+    }
+    function l1Oapp() external view returns (address);
+    function relayEVM(
+        uint32                dstEid,
+        address               l2GovernanceRelay,
+        address               target,
+        bytes calldata        targetData,
+        bytes calldata        extraOptions,
+        MessagingFee calldata fee,
+        address               refundAddress
+    ) external payable;
+}
+
 interface SkyOFTAdapterLike is OAppLike {
+    struct MessagingFee {
+        uint256 nativeFee;
+        uint256 lzTokenFee;
+    }
+    struct MessagingReceipt {
+        bytes32 guid;
+        uint64 nonce;
+        MessagingFee fee;
+    }
+    struct OFTReceipt {
+        uint256 amountSentLD;
+        uint256 amountReceivedLD;
+    }
+    struct SendParam {
+        uint32 dstEid;
+        bytes32 to;
+        uint256 amountLD;
+        uint256 minAmountLD;
+        bytes extraOptions;
+        bytes composeMsg;
+        bytes oftCmd;
+    }
     function enforcedOptions(uint32 eid, uint16 msgType) external view returns (bytes memory);
+    function quoteSend(SendParam memory _sendParam, bool _payInLzToken) external view returns (MessagingFee memory msgFee);
+    function send(SendParam memory _sendParam, MessagingFee memory _fee, address _refundAddress)
+        external payable returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt);
+    function token() external view returns (address);
 }
 
 interface EndpointV2Like {
@@ -1673,5 +1726,100 @@ contract DssSpellTest is DssSpellTestBase {
         // Verify enforced options for SEND_AND_CALL (msgType 2)
         bytes memory sendAndCallOptions = oft.enforcedOptions(AVAX_EID, 2);
         assertEq(keccak256(sendAndCallOptions), keccak256(expectedOptions), "TestError/usds-oft-send-and-call-enforced-options-mismatch");
+    }
+
+    function testGovernanceRelayAvalancheHappyPath() public {
+        uint32  AVAX_EID          = 30106;
+        address AVAX_L2_GOV_RELAY = 0xe928885BCe799Ed933651715608155F01abA23cA;
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        L1GovernanceRelayLike l1GovernanceRelay = L1GovernanceRelayLike(addr.addr("LZ_GOV_RELAY"));
+
+        vm.startPrank(pauseProxy);
+        vm.deal(pauseProxy, 10 ether);
+
+        uint256 nativeFee = 1 ether;
+        address refundAddress = address(0xdead);
+
+        // Happy path: relay a governance message to Avalanche L2GovernanceRelay
+        l1GovernanceRelay.relayEVM{value: nativeFee}(
+            AVAX_EID,
+            AVAX_L2_GOV_RELAY,
+            // Note: arbitrary target and calldata for happy path test
+            address(0x1234),
+            bytes("test-governance-message"),
+            hex"00030100210100000000000000000000000000030d40000000000000000000000000001f1df0",
+            L1GovernanceRelayLike.MessagingFee({
+                nativeFee:  nativeFee,
+                lzTokenFee: 0
+            }),
+            refundAddress
+        );
+
+        vm.stopPrank();
+    }
+
+    function testUsdsOftAvalancheHappyPath() public {
+        uint32 AVAX_EID = 30106;
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        SkyOFTAdapterLike oft = SkyOFTAdapterLike(addr.addr("USDS_OFT"));
+
+        // Note: Rate limits for Avalanche are not configured in this spell.
+        //       Set them here to enable the happy path test.
+        vm.startPrank(pauseProxy);
+        RateLimitConfig[] memory inbound = new RateLimitConfig[](1);
+        inbound[0] = RateLimitConfig({ eid: AVAX_EID, window: uint48(1 days), limit: 5_000_000 * WAD });
+        RateLimitConfig[] memory outbound = new RateLimitConfig[](1);
+        outbound[0] = RateLimitConfig({ eid: AVAX_EID, window: uint48(1 days), limit: 5_000_000 * WAD });
+        SkyOFTAdapterRateLimitLike(address(oft)).setRateLimits(inbound, outbound);
+        vm.stopPrank();
+
+        // Setup: give the test address some USDS and ETH for gas
+        uint256 sendAmount = 5 * WAD;
+        GodMode.setBalance(address(usds), address(this), sendAmount);
+        GemAbstract(address(usds)).approve(address(oft), sendAmount);
+        vm.deal(address(this), 10 ether);
+
+        // Build the send parameters
+        SkyOFTAdapterLike.SendParam memory sendParams = SkyOFTAdapterLike.SendParam({
+            dstEid:       AVAX_EID,
+            to:           bytes32(uint256(uint160(address(this)))),
+            amountLD:     sendAmount,
+            minAmountLD:  sendAmount,
+            extraOptions: bytes(""),
+            composeMsg:   bytes(""),
+            oftCmd:       bytes("")
+        });
+
+        // Quote the send fee
+        SkyOFTAdapterLike.MessagingFee memory msgFee = oft.quoteSend(sendParams, false);
+        assertTrue(msgFee.nativeFee > 0, "TestError/usds-oft-quote-fee-zero");
+
+        uint256 balanceBefore = usds.balanceOf(address(this));
+        uint256 adapterBalanceBefore = usds.balanceOf(address(oft));
+
+        // Send USDS to Avalanche
+        oft.send{value: msgFee.nativeFee}(sendParams, msgFee, payable(address(this)));
+
+        // Verify: sender balance decreased
+        assertEq(
+            usds.balanceOf(address(this)),
+            balanceBefore - sendAmount,
+            "TestError/usds-oft-sender-balance-not-decreased"
+        );
+
+        // Verify: adapter locked the tokens
+        assertEq(
+            usds.balanceOf(address(oft)),
+            adapterBalanceBefore + sendAmount,
+            "TestError/usds-oft-adapter-balance-not-increased"
+        );
     }
 }
