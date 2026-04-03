@@ -19,9 +19,23 @@ pragma solidity 0.8.16;
 import "dss-exec-lib/DssExec.sol";
 import "dss-exec-lib/DssAction.sol";
 
+struct UlnConfig {
+    uint64 confirmations;
+    uint8 requiredDVNCount;
+    uint8 optionalDVNCount;
+    uint8 optionalDVNThreshold;
+    address[] requiredDVNs;
+    address[] optionalDVNs;
+}
+
+struct ExecutorConfig {
+    uint32 maxMessageSize;
+    address executor;
+}
+
 interface GovernanceOAppSenderLike {
-    function setPeer(uint32 _eid, bytes32 _peer) external;
     function setCanCallTarget(address _srcSender, uint32 _dstEid, bytes32 _dstTarget, bool _canCall) external;
+    function setPeer(uint32 _eid, bytes32 _peer) external;
 }
 
 interface EndpointV2Like {
@@ -30,9 +44,9 @@ interface EndpointV2Like {
         uint32 configType;
         bytes config;
     }
-    function setSendLibrary(address _oapp, uint32 _eid, address _newLib) external;
+    function setConfig(address _oapp, address _lib, SetConfigParam[] memory _params) external;
     function setReceiveLibrary(address _oapp, uint32 _eid, address _newLib, uint256 _gracePeriod) external;
-    function setConfig(address _oapp, address _lib, SetConfigParam[] calldata _params) external;
+    function setSendLibrary(address _oapp, uint32 _eid, address _newLib) external;
 }
 
 interface SkyOFTAdapterLike {
@@ -42,7 +56,7 @@ interface SkyOFTAdapterLike {
         bytes options;
     }
     function setPeer(uint32 _eid, bytes32 _peer) external;
-    function setEnforcedOptions(EnforcedOptionParam[] calldata _enforcedOptions) external;
+    function setEnforcedOptions(EnforcedOptionParam[] memory _enforcedOptions) external;
 }
 
 contract DssSpellAction is DssAction {
@@ -83,8 +97,8 @@ contract DssSpellAction is DssAction {
     bytes32 internal constant AVAX_L2_GOV_RELAY     = bytes32(uint256(uint160(0xe928885BCe799Ed933651715608155F01abA23cA)));
     bytes32 internal constant AVAX_USDS_OFT         = bytes32(uint256(uint160(0x4fec40719fD9a8AE3F8E20531669DEC5962D2619)));
 
-    // Note: Generated with OptionsBuilder.addExecutorLzReceiveOption
-    bytes internal constant ENFORCED_OPTIONS_DATA   = bytes("0003010011010000000000000000000000000001fbd0");
+    // Note: Generated with OptionsBuilder.addExecutorLzReceiveOption(gas: 130_000, value: 0)
+    bytes internal constant ENFORCED_OPTIONS_DATA   = hex"0003010011010000000000000000000000000001fbd0";
 
     function actions() public override {
         // ---------- Wire LZ_GOV_SENDER on Ethereum Mainnet with Avalanche Mainnet ----------
@@ -138,12 +152,12 @@ contract DssSpellAction is DssAction {
             // uint32 configType being 1
             configType: 1,
             // bytes config being encoded ExecutorConfig with:
-            config: abi.encode(
+            config: abi.encode(ExecutorConfig({
                 // maxMessageSize being 10_000
-                uint32(10_000),
+                maxMessageSize: 10_000,
                 // executor being 0x173272739Bd7Aa6e4e214714048a9fE699453059
-                ETH_LZ_EXECUTOR
-            )
+                executor: ETH_LZ_EXECUTOR
+            }))
         });
 
         // Second item: ULN parameters
@@ -153,20 +167,20 @@ contract DssSpellAction is DssAction {
             // uint32 configType being 2
             configType: 2,
             // bytes config being encoded UlnConfig with:
-            config: abi.encode(
+            config: abi.encode(UlnConfig({
                 // uint64 confirmations being 15
-                uint64(15),
+                confirmations: 15,
                 // uint8 requiredDVNCount being 255 (meaning NONE)
-                uint8(255),
+                requiredDVNCount: 255,
                 // uint8 optionalDVNCount being 7
-                uint8(7),
+                optionalDVNCount: 7,
                 // uint8 optionalDVNThreshold being 4
-                uint8(4),
+                optionalDVNThreshold: 4,
                 // address[] requiredDVNs being an array with 0 addresses
-                govRequiredDVNs,
+                requiredDVNs: govRequiredDVNs,
                 // address[] optionalDVNs being an array with 7 addresses: [0x589dEDbD617e0CBcB916A9223F4d1300c294236b (LayerZero Labs), 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5 (Nethermind), 0xa4fE5A5B9A846458a70Cd0748228aED3bF65c2cd (Canary),0x373a6E5c0C4E89E24819f00AA37ea370917AAfF4 (Deutsche Telekom), 0x06559EE34D85a88317Bf0bfE307444116c631b67 (P2P), 0x380275805876Ff19055EA900CDb2B46a94ecF20D (Horizen), 0x58249a2Ec05c1978bF21DF1f5eC1847e42455CF4 (Luganodes)]
-                govOptionalDVNs
-            )
+                optionalDVNs: govOptionalDVNs
+            }))
         });
 
         // Configure Oapp SendLibrary for Avalanche by calling EndpointV2.setConfig with:
@@ -257,12 +271,12 @@ contract DssSpellAction is DssAction {
             // uint32 configType being 1
             configType: 1,
             // bytes config being encoded ExecutorConfig with:
-            config: abi.encode(
+            config: abi.encode(ExecutorConfig({
                 // maxMessageSize being 10_000
-                uint32(10_000),
+                maxMessageSize: 10_000,
                 // executor being 0x173272739Bd7Aa6e4e214714048a9fE699453059
-                ETH_LZ_EXECUTOR
-            )
+                executor: ETH_LZ_EXECUTOR
+            }))
         });
 
         // Second item: ULN parameters
@@ -272,18 +286,18 @@ contract DssSpellAction is DssAction {
             // uint32 configType being 2
             configType: 2,
             // bytes config being encoded UlnConfig with:
-            config: abi.encode(
+            config: abi.encode(UlnConfig({
                 // uint64 confirmations being 15
-                uint64(15),
+                confirmations: 15,
                 // uint8 requiredDVNCount being 2
-                uint8(2),
+                requiredDVNCount: 2,
                 // uint8 optionalDVNCount being 0
-                uint8(0),
+                optionalDVNCount: 0,
                 // uint8 optionalDVNThreshold being 0
-                uint8(0),
-                oftSendRequiredDVNs,
-                oftSendOptionalDVNs
-            )
+                optionalDVNThreshold: 0,
+                requiredDVNs: oftSendRequiredDVNs,
+                optionalDVNs: oftSendOptionalDVNs
+            }))
         });
 
         // Configure OFT SendLibrary for Avalanche by calling EndpointV2.setConfig with:
@@ -318,19 +332,19 @@ contract DssSpellAction is DssAction {
             eid: AVAX_EID,
             // uint32 configType being 2
             configType: 2,
-            // bytes config being encoded UlnConfig with:
-            config: abi.encode(
+            // bytes config being encoded UlnConfig with: (Confirmed by LayerZero)
+            config: abi.encode(UlnConfig({
                 // uint64 confirmations being 12 (default configuration from source)
-                uint64(12),
+                confirmations: 12,
                 // uint8 requiredDVNCount being 2
-                uint8(2),
+                requiredDVNCount: 2,
                 // uint8 optionalDVNCount being 0
-                uint8(0),
+                optionalDVNCount: 0,
                 // uint8 optionalDVNThreshold being 0
-                uint8(0),
-                oftRecvRequiredDVNs,
-                oftRecvOptionalDVNs
-            )
+                optionalDVNThreshold: 0,
+                requiredDVNs: oftRecvRequiredDVNs,
+                optionalDVNs: oftRecvOptionalDVNs
+            }))
         });
 
         // Configure OFT ReceiveLibrary for Avalanche by calling EndpointV2.setConfig with:
