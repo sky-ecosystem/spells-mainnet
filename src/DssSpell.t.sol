@@ -91,6 +91,12 @@ interface L1GovernanceRelayLike {
     ) external payable;
 }
 
+struct Origin {
+    uint32 srcEid;
+    bytes32 sender;
+    uint64 nonce;
+}
+
 interface SkyOFTAdapterLike is OAppLike {
     struct MessagingFee {
         uint256 nativeFee;
@@ -118,6 +124,10 @@ interface SkyOFTAdapterLike is OAppLike {
     function quoteSend(SendParam memory _sendParam, bool _payInLzToken) external view returns (MessagingFee memory msgFee);
     function send(SendParam memory _sendParam, MessagingFee memory _fee, address _refundAddress)
         external payable returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt);
+    function lzReceive(
+        Origin calldata _origin, bytes32 _guid, bytes calldata _message,
+        address _executor, bytes calldata _extraData
+    ) external payable;
     function token() external view returns (address);
 }
 
@@ -1762,7 +1772,7 @@ contract DssSpellTest is DssSpellTestBase {
         vm.stopPrank();
     }
 
-    function testUsdsOftAvalancheHappyPath() public {
+    function testUsdsOftAvalancheSend() public {
         uint32 AVAX_EID = 30106;
 
         _vote(address(spell));
@@ -1820,6 +1830,70 @@ contract DssSpellTest is DssSpellTestBase {
             usds.balanceOf(address(oft)),
             adapterBalanceBefore + sendAmount,
             "TestError/usds-oft-adapter-balance-not-increased"
+        );
+    }
+
+    function testUsdsOftAvalancheReceive() public {
+        uint32  AVAX_EID      = 30106;
+        bytes32 AVAX_USDS_OFT = bytes32(uint256(uint160(0x4fec40719fD9a8AE3F8E20531669DEC5962D2619)));
+        address ETH_LZ_ENDPOINT = 0x1a44076050125825900e736c501f859c50fE728c;
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        SkyOFTAdapterLike oft = SkyOFTAdapterLike(addr.addr("USDS_OFT"));
+
+        // Note: Rate limits for Avalanche are not configured in this spell.
+        //       Set them here to enable the happy path test.
+        vm.startPrank(pauseProxy);
+        RateLimitConfig[] memory inbound = new RateLimitConfig[](1);
+        inbound[0] = RateLimitConfig({ eid: AVAX_EID, window: uint48(1 days), limit: 5_000_000 * WAD });
+        RateLimitConfig[] memory outbound = new RateLimitConfig[](1);
+        outbound[0] = RateLimitConfig({ eid: AVAX_EID, window: uint48(1 days), limit: 5_000_000 * WAD });
+        SkyOFTAdapterRateLimitLike(address(oft)).setRateLimits(inbound, outbound);
+        vm.stopPrank();
+
+        // Note: OFT uses 6 shared decimals. 5 USDS = 5_000_000 in shared decimals.
+        uint64 amountSD = 5_000_000;
+        uint256 amountLD = 5 * WAD;
+        address recipient = makeAddr("recipient");
+
+        // Build the OFT message: abi.encodePacked(bytes32 to, uint64 amountSD)
+        bytes memory message = abi.encodePacked(
+            bytes32(uint256(uint160(recipient))),
+            amountSD
+        );
+
+        uint256 recipientBalanceBefore = usds.balanceOf(recipient);
+        uint256 adapterBalanceBefore   = usds.balanceOf(address(oft));
+
+        // Simulate the EndpointV2 delivering a message from Avalanche
+        vm.prank(ETH_LZ_ENDPOINT);
+        oft.lzReceive(
+            Origin({
+                srcEid: AVAX_EID,
+                sender: AVAX_USDS_OFT,
+                nonce:  1
+            }),
+            bytes32(uint256(1)), // arbitrary guid
+            message,
+            address(0),          // executor
+            bytes("")            // extraData
+        );
+
+        // Verify: recipient received USDS (unlocked from adapter)
+        assertEq(
+            usds.balanceOf(recipient),
+            recipientBalanceBefore + amountLD,
+            "TestError/usds-oft-recipient-balance-not-increased"
+        );
+
+        // Verify: adapter balance decreased (tokens unlocked)
+        assertEq(
+            usds.balanceOf(address(oft)),
+            adapterBalanceBefore - amountLD,
+            "TestError/usds-oft-adapter-balance-not-decreased"
         );
     }
 }
