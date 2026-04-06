@@ -33,6 +33,12 @@ struct ExecutorConfig {
     address executor;
 }
 
+struct RateLimitConfig {
+    uint32 eid;
+    uint48 window;
+    uint256 limit;
+}
+
 interface GovernanceOAppSenderLike {
     function setCanCallTarget(address _srcSender, uint32 _dstEid, bytes32 _dstTarget, bool _canCall) external;
     function setPeer(uint32 _eid, bytes32 _peer) external;
@@ -57,6 +63,12 @@ interface SkyOFTAdapterLike {
     }
     function setPeer(uint32 _eid, bytes32 _peer) external;
     function setEnforcedOptions(EnforcedOptionParam[] memory _enforcedOptions) external;
+    function setPauser(address _pauser, bool _canPause) external;
+    function setRateLimits(RateLimitConfig[] memory _rateLimitConfigsInbound, RateLimitConfig[] memory _rateLimitConfigsOutbound) external;
+}
+
+interface StarGuardLike {
+    function plot(address _spell, bytes32 _hash) external;
 }
 
 contract DssSpellAction is DssAction {
@@ -82,12 +94,16 @@ contract DssSpellAction is DssAction {
     //
     // uint256 internal constant X_PCT_RATE = ;
 
+    // ---------- Math ----------
+    uint256 internal constant WAD     = 10 ** 18;
+
     // ---------- Contracts ----------
+    address internal immutable CHAINLOG         = DssExecLib.LOG;
     address internal immutable LZ_GOV_SENDER    = DssExecLib.getChangelogAddress("LZ_GOV_SENDER");
     address internal immutable LZ_GOV_RELAY     = DssExecLib.getChangelogAddress("LZ_GOV_RELAY");
     address internal immutable USDS_OFT         = DssExecLib.getChangelogAddress("USDS_OFT");
-    address internal immutable SPARK_STARGUARD   = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
-    address internal immutable GROVE_STARGUARD   = DssExecLib.getChangelogAddress("GROVE_STARGUARD");
+    address internal immutable SPARK_STARGUARD  = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
+    address internal immutable GROVE_STARGUARD  = DssExecLib.getChangelogAddress("GROVE_STARGUARD");
 
     // ---------- LayerZero ----------
     uint32  internal constant AVAX_EID              = 30106;
@@ -98,6 +114,8 @@ contract DssSpellAction is DssAction {
     bytes32 internal constant AVAX_GOV_RECEIVER     = bytes32(uint256(uint160(0x6fdd46947ca6903c8c159d1dF2012Bc7fC5cEeec)));
     bytes32 internal constant AVAX_L2_GOV_RELAY     = bytes32(uint256(uint160(0xe928885BCe799Ed933651715608155F01abA23cA)));
     bytes32 internal constant AVAX_USDS_OFT         = bytes32(uint256(uint160(0x4fec40719fD9a8AE3F8E20531669DEC5962D2619)));
+    address internal constant SUSDS_OFT             = 0x85A3FE4DA2a6cB98A5bdF62458B0dB8471B9f0f1;
+    bytes32 internal constant AVAX_SUSDS_OFT        = bytes32(uint256(uint160(0x7297D4811f088FC26bC5475681405B99b41E1FF9)));
 
     // ---------- Spark ----------
     address internal constant SPARK_SPELL      = 0xFa5fc020311fCC1A467FEC5886640c7dD746deAa;
@@ -107,8 +125,13 @@ contract DssSpellAction is DssAction {
     address internal constant GROVE_SPELL      = 0x679eD4739c71300f7d78102AE5eE17EF8b8b2162;
     bytes32 internal constant GROVE_SPELL_HASH = 0x4fa1f743b3d6d2855390724459129186dd684e1c07d59f88925f0059ba1e6c84;
 
-    // Note: Generated with OptionsBuilder.addExecutorLzReceiveOption(gas: 130_000, value: 0)
-    bytes internal constant ENFORCED_OPTIONS_DATA   = hex"0003010011010000000000000000000000000001fbd0";
+    // Note: OptionsBuilder.addExecutorLzReceiveOption(gas: 130_000, value: 0) constants (0003010011010000000000000000000000000001fbd0)
+    uint16 internal constant LZ_OPTIONS_TYPE_3             = 3;
+    uint8  internal constant LZ_EXECUTOR_WORKER_ID         = 1;
+    uint8  internal constant LZ_OPTION_TYPE_LZRECEIVE      = 1;
+    uint128 internal constant LZ_GAS                       = 130_000;
+    // Note: option_length = 1 (option type) + 16 (uint128 gas) = 17
+    uint16  internal constant LZ_OPTION_LENGTH             = 17;
 
     function actions() public override {
         // ---------- Wire LZ_GOV_SENDER on Ethereum Mainnet with Avalanche Mainnet ----------
@@ -370,6 +393,10 @@ contract DssSpellAction is DssAction {
         );
 
         // EnforcedOptionParam[] _enforcedOptions being an array with 2 items:
+        // Note: equivalent to OptionsBuilder.addExecutorLzReceiveOption(gas: 130_000, value: 0)
+        bytes memory usdsOftEnforcedOptionsData = abi.encodePacked(
+            LZ_OPTIONS_TYPE_3, LZ_EXECUTOR_WORKER_ID, LZ_OPTION_LENGTH, LZ_OPTION_TYPE_LZRECEIVE, LZ_GAS
+        );
         SkyOFTAdapterLike.EnforcedOptionParam[] memory usdsOftEnforcedOptions =
             new SkyOFTAdapterLike.EnforcedOptionParam[](2);
         // SendOption (generated with OptionsBuilder.addExecutorLzReceiveOption
@@ -381,7 +408,7 @@ contract DssSpellAction is DssAction {
             // bytes options being encoded:
             // uint128 _gas being 130_000
             // uint128 _value being 0
-            options: ENFORCED_OPTIONS_DATA
+            options: usdsOftEnforcedOptionsData
         });
         // SendAndCallOption (generated with OptionsBuilder.addExecutorLzReceiveOption)
         usdsOftEnforcedOptions[1] = SkyOFTAdapterLike.EnforcedOptionParam({
@@ -392,7 +419,7 @@ contract DssSpellAction is DssAction {
             // bytes options being encoded:
             // uint128 _gas being 130_000
             // uint128 _value being 0
-            options: ENFORCED_OPTIONS_DATA
+            options: usdsOftEnforcedOptionsData
         });
 
         // Set OFT enforced options for Avalanche by calling USDS_OFT.setEnforcedOptions with:
@@ -442,7 +469,7 @@ contract DssSpellAction is DssAction {
         // Forum:
         // Poll:
 
-        DssExecLib.addChangelogAddress("SUSDS_OFT", 0x85A3FE4DA2a6cB98A5bdF62458B0dB8471B9f0f1);
+        DssExecLib.setChangelogAddress("SUSDS_OFT", SUSDS_OFT);
 
         // ---------- Wire SUSDS_OFT on Ethereum Mainnet with Avalanche Mainnet ----------
         // Forum:
@@ -543,7 +570,7 @@ contract DssSpellAction is DssAction {
                 // address[] optionalDVNs being an array with 0 addresses
                 // Note: dynamic array previously created
                 optionalDVNs: sUsdsOftSendOptionalDVNs
-            }));
+            }))
         });
 
         // Configure OFT SendLibrary for Avalanche by calling EndpointV2.setConfig with:
@@ -596,7 +623,7 @@ contract DssSpellAction is DssAction {
                 // address[] optionalDVNs being an array with 0 addresses
                 // Note: dynamic array previously created
                 optionalDVNs: sUsdsOftRecvOptionalDVNs
-            }));
+            }))
         });
 
         // Configure OFT ReceiveLibrary for Avalanche by calling EndpointV2.setConfig with:
@@ -611,6 +638,11 @@ contract DssSpellAction is DssAction {
             sUsdsOftRecvParams
         );
 
+        // Note: equivalent to OptionsBuilder.addExecutorLzReceiveOption(gas: 130_000, value: 0)
+        bytes memory sUsdsOftEnforcedOptionsData = abi.encodePacked(
+            LZ_OPTIONS_TYPE_3, LZ_EXECUTOR_WORKER_ID, LZ_OPTION_LENGTH, LZ_OPTION_TYPE_LZRECEIVE, LZ_GAS
+        );
+
         // Note: Create dynamic array for _enforcedOptions argument in SkyOFTAdapterLike(SUSDS_OFT).setEnforcedOptions():
         SkyOFTAdapterLike.EnforcedOptionParam[] memory sUsdsOftEnforcedOptions = new SkyOFTAdapterLike.EnforcedOptionParam[](2);
 
@@ -623,7 +655,8 @@ contract DssSpellAction is DssAction {
             // bytes options being encoded:
             // uint128 _gas being 130_000
             // uint128 _value being 0
-            options: ENFORCED_OPTIONS_DATA
+            // Note: encoded data generated above
+            options: sUsdsOftEnforcedOptionsData
         });
 
         // SendAndCallOption
@@ -635,7 +668,8 @@ contract DssSpellAction is DssAction {
             // bytes options being encoded:
             // uint128 _gas being 130_000
             // uint128 _value being 0
-            options: ENFORCED_OPTIONS_DATA
+            // Note: encoded data generated above
+            options: sUsdsOftEnforcedOptionsData
         });
 
         // Set OFT enforced options for Avalanche by calling SUSDS_OFT.setEnforcedOptions with:
