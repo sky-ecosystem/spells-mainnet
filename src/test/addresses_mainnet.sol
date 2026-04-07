@@ -619,5 +619,10 @@ contract Addresses {
         addr["OZONE_STARGUARD"]                  = 0x9803DA8a51Fa02EEbEc3B1b969a9B80f9115cD80;
         addr["AMATSU_SUBPROXY"]                  = 0xF33B14329e7115dD0B40DBb2985E1A0Df10E3fAa;
         addr["AMATSU_STARGUARD"]                 = 0xF7469b6db1FDD3354969605e168585b8eeB5F08D;
+        addr["LZ_ENDPOINT"]                      = 0x1a44076050125825900e736c501f859c50fE728c;
+        addr["LZ_SEND_302"]                      = 0xbB2Ea70C9E858123480642Cf96acbcCE1372dCe1;
+        addr["LZ_RECV_302"]                      = 0xc02Ab410f0734EFa3F14628780e6e695156024C2;
+        addr["LZ_EXECUTOR"]                      = 0x173272739Bd7Aa6e4e214714048a9fE699453059;
+        addr["SUSDS_OFT"]                        = 0x85A3FE4DA2a6cB98A5bdF62458B0dB8471B9f0f1;
     }
 }
