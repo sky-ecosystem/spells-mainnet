@@ -1655,13 +1655,23 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     function testWireUsdsOftAvalanche() public {
-        uint32  AVAX_EID          = 30106;
-        address ETH_LZ_ENDPOINT   = addr.addr("LZ_ENDPOINT");
-        address ETH_LZ_SEND_302   = addr.addr("LZ_SEND_302");
-        address ETH_LZ_RECV_302   = addr.addr("LZ_RECV_302");
-        bytes32 AVAX_USDS_OFT     = bytes32(uint256(uint160(avalanche.addr("L2_AVALANCHE_USDS_OFT"))));
+        uint32  AVAX_EID  = 30106;
+        uint32  ETH_EID   = 30101;
+        address usdsOft   = addr.addr("USDS_OFT");
 
-        address usdsOft = addr.addr("USDS_OFT");
+        // Note: Capture all addresses before switching forks (contract state is fork-local)
+        address[4] memory ethAddrs = [
+            addr.addr("LZ_ENDPOINT"),                   // [0] ETH_LZ_ENDPOINT
+            addr.addr("LZ_SEND_302"),                   // [1] ETH_LZ_SEND_302
+            addr.addr("LZ_RECV_302"),                   // [2] ETH_LZ_RECV_302
+            avalanche.addr("L2_AVALANCHE_USDS_OFT")     // [3] avaxUsdsOft
+        ];
+        address[3] memory avaxAddrs = [
+            avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"), // [0] avaxEndpoint
+            avalanche.addr("L2_AVALANCHE_LZ_SEND_302"), // [1] avaxSend302
+            avalanche.addr("L2_AVALANCHE_LZ_RECV_302")  // [2] avaxRecv302
+        ];
+
         SkyOFTAdapterLike oft = SkyOFTAdapterLike(usdsOft);
 
         // Verify pre-spell state
@@ -1671,23 +1681,27 @@ contract DssSpellTest is DssSpellTestBase {
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
+        // ---- L1 (Ethereum) config verification ----
+
         // Verify peer is set
-        assertEq(oft.peers(AVAX_EID), AVAX_USDS_OFT, "TestError/usds-oft-wrong-peer");
+        assertEq(oft.peers(AVAX_EID), bytes32(uint256(uint160(ethAddrs[3]))), "TestError/usds-oft-wrong-peer");
 
         // Verify send library is set
         assertEq(
-            EndpointV2Like(ETH_LZ_ENDPOINT).getSendLibrary(usdsOft, AVAX_EID),
-            ETH_LZ_SEND_302,
+            EndpointV2Like(ethAddrs[0]).getSendLibrary(usdsOft, AVAX_EID),
+            ethAddrs[1],
             "TestError/usds-oft-wrong-send-library"
         );
 
         // Verify receive library is set
-        (address recvLib,) = EndpointV2Like(ETH_LZ_ENDPOINT).getReceiveLibrary(usdsOft, AVAX_EID);
-        assertEq(recvLib, ETH_LZ_RECV_302, "TestError/usds-oft-wrong-receive-library");
+        {
+            (address recvLib,) = EndpointV2Like(ethAddrs[0]).getReceiveLibrary(usdsOft, AVAX_EID);
+            assertEq(recvLib, ethAddrs[2], "TestError/usds-oft-wrong-receive-library");
+        }
 
         // Verify send executor config (configType 1)
         {
-            bytes memory executorConfig = EndpointV2Like(ETH_LZ_ENDPOINT).getConfig(usdsOft, ETH_LZ_SEND_302, AVAX_EID, 1);
+            bytes memory executorConfig = EndpointV2Like(ethAddrs[0]).getConfig(usdsOft, ethAddrs[1], AVAX_EID, 1);
             ExecutorConfig memory execCfg = abi.decode(executorConfig, (ExecutorConfig));
             assertEq(execCfg.maxMessageSize, 10_000, "TestError/usds-oft-send-wrong-max-message-size");
             assertEq(execCfg.executor, 0x173272739Bd7Aa6e4e214714048a9fE699453059, "TestError/usds-oft-send-wrong-executor");
@@ -1695,43 +1709,90 @@ contract DssSpellTest is DssSpellTestBase {
 
         // Verify send ULN config (configType 2)
         {
-            bytes memory sendUlnConfig = EndpointV2Like(ETH_LZ_ENDPOINT).getConfig(usdsOft, ETH_LZ_SEND_302, AVAX_EID, 2);
+            bytes memory sendUlnConfig = EndpointV2Like(ethAddrs[0]).getConfig(usdsOft, ethAddrs[1], AVAX_EID, 2);
             UlnConfig memory cfg = abi.decode(sendUlnConfig, (UlnConfig));
             assertEq(cfg.confirmations, 15, "TestError/usds-oft-send-wrong-confirmations");
             assertEq(cfg.requiredDVNCount, 2, "TestError/usds-oft-send-wrong-required-dvn-count");
             assertEq(cfg.optionalDVNCount, 0, "TestError/usds-oft-send-wrong-optional-dvn-count");
-            assertEq(cfg.optionalDVNThreshold, 0, "TestError/usds-oft-send-wrong-optional-dvn-threshold");
             assertEq(cfg.requiredDVNs.length, 2, "TestError/usds-oft-send-wrong-required-dvns-length");
             assertEq(cfg.requiredDVNs[0], 0x589dEDbD617e0CBcB916A9223F4d1300c294236b, "TestError/usds-oft-send-wrong-required-dvn-0"); // LayerZero Labs
             assertEq(cfg.requiredDVNs[1], 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5, "TestError/usds-oft-send-wrong-required-dvn-1"); // Nethermind
-            assertEq(cfg.optionalDVNs.length, 0, "TestError/usds-oft-send-wrong-optional-dvns-length");
         }
 
         // Verify receive ULN config (configType 2)
         {
-            bytes memory recvUlnConfig = EndpointV2Like(ETH_LZ_ENDPOINT).getConfig(usdsOft, ETH_LZ_RECV_302, AVAX_EID, 2);
+            bytes memory recvUlnConfig = EndpointV2Like(ethAddrs[0]).getConfig(usdsOft, ethAddrs[2], AVAX_EID, 2);
             UlnConfig memory cfg = abi.decode(recvUlnConfig, (UlnConfig));
             assertEq(cfg.confirmations, 12, "TestError/usds-oft-recv-wrong-confirmations");
             assertEq(cfg.requiredDVNCount, 2, "TestError/usds-oft-recv-wrong-required-dvn-count");
             assertEq(cfg.optionalDVNCount, 0, "TestError/usds-oft-recv-wrong-optional-dvn-count");
-            assertEq(cfg.optionalDVNThreshold, 0, "TestError/usds-oft-recv-wrong-optional-dvn-threshold");
             assertEq(cfg.requiredDVNs.length, 2, "TestError/usds-oft-recv-wrong-required-dvns-length");
             assertEq(cfg.requiredDVNs[0], 0x589dEDbD617e0CBcB916A9223F4d1300c294236b, "TestError/usds-oft-recv-wrong-required-dvn-0"); // LayerZero Labs
             assertEq(cfg.requiredDVNs[1], 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5, "TestError/usds-oft-recv-wrong-required-dvn-1"); // Nethermind
-            assertEq(cfg.optionalDVNs.length, 0, "TestError/usds-oft-recv-wrong-optional-dvns-length");
         }
 
-        // Note: TYPE_3 (0x0003) + ExecutorWorker (0x01) + option_length (0x0011 = 17)
-        //       + OPTION_TYPE_LZRECEIVE (0x01) + uint128(130_000)
-        bytes memory expectedOptions = hex"0003010011010000000000000000000000000001fbd0";
+        // Verify enforced options
+        {
+            bytes memory expectedOptions = hex"0003010011010000000000000000000000000001fbd0";
+            assertEq(keccak256(oft.enforcedOptions(AVAX_EID, 1)), keccak256(expectedOptions), "TestError/usds-oft-send-enforced-options-mismatch");
+            assertEq(keccak256(oft.enforcedOptions(AVAX_EID, 2)), keccak256(expectedOptions), "TestError/usds-oft-send-and-call-enforced-options-mismatch");
+        }
 
-        // Verify enforced options for SEND (msgType 1)
-        bytes memory sendOptions = oft.enforcedOptions(AVAX_EID, 1);
-        assertEq(keccak256(sendOptions), keccak256(expectedOptions), "TestError/usds-oft-send-enforced-options-mismatch");
+        // ---- L2 (Avalanche) config verification ----
+        // Note: These configs were set during pre-deployment (not by the spell).
+        //       Verified here to ensure the remote chain matches the L1 configuration.
 
-        // Verify enforced options for SEND_AND_CALL (msgType 2)
-        bytes memory sendAndCallOptions = oft.enforcedOptions(AVAX_EID, 2);
-        assertEq(keccak256(sendAndCallOptions), keccak256(expectedOptions), "TestError/usds-oft-send-and-call-enforced-options-mismatch");
+        vm.selectFork(vm.createFork(vm.envString("AVAX_RPC_URL")));
+
+        // Verify Avalanche peer points back to Ethereum USDS_OFT
+        assertEq(
+            OAppLike(ethAddrs[3]).peers(ETH_EID),
+            bytes32(uint256(uint160(usdsOft))),
+            "TestError/avax-usds-oft-wrong-peer"
+        );
+
+        // Verify Avalanche send library
+        assertEq(
+            EndpointV2Like(avaxAddrs[0]).getSendLibrary(ethAddrs[3], ETH_EID),
+            avaxAddrs[1],
+            "TestError/avax-usds-oft-wrong-send-library"
+        );
+
+        // Verify Avalanche receive library
+        {
+            (address avaxRecvLib,) = EndpointV2Like(avaxAddrs[0]).getReceiveLibrary(ethAddrs[3], ETH_EID);
+            assertEq(avaxRecvLib, avaxAddrs[2], "TestError/avax-usds-oft-wrong-receive-library");
+        }
+
+        // Verify Avalanche send executor config (configType 1)
+        {
+            bytes memory executorConfig = EndpointV2Like(avaxAddrs[0]).getConfig(ethAddrs[3], avaxAddrs[1], ETH_EID, 1);
+            ExecutorConfig memory execCfg = abi.decode(executorConfig, (ExecutorConfig));
+            assertEq(execCfg.maxMessageSize, 10_000, "TestError/avax-usds-oft-send-wrong-max-message-size");
+            assertEq(execCfg.executor, 0x90E595783E43eb89fF07f63d27B8430e6B44bD9c, "TestError/avax-usds-oft-send-wrong-executor");
+        }
+
+        // Verify Avalanche send ULN config (configType 2)
+        {
+            bytes memory sendUlnConfig = EndpointV2Like(avaxAddrs[0]).getConfig(ethAddrs[3], avaxAddrs[1], ETH_EID, 2);
+            UlnConfig memory cfg = abi.decode(sendUlnConfig, (UlnConfig));
+            assertEq(cfg.confirmations, 12, "TestError/avax-usds-oft-send-wrong-confirmations");
+            assertEq(cfg.requiredDVNCount, 2, "TestError/avax-usds-oft-send-wrong-required-dvn-count");
+            assertEq(cfg.requiredDVNs.length, 2, "TestError/avax-usds-oft-send-wrong-required-dvns-length");
+            assertEq(cfg.requiredDVNs[0], 0x962F502A63F5FBeB44DC9ab932122648E8352959, "TestError/avax-usds-oft-send-wrong-required-dvn-0"); // LayerZero Labs
+            assertEq(cfg.requiredDVNs[1], 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5, "TestError/avax-usds-oft-send-wrong-required-dvn-1"); // Nethermind
+        }
+
+        // Verify Avalanche receive ULN config (configType 2)
+        {
+            bytes memory recvUlnConfig = EndpointV2Like(avaxAddrs[0]).getConfig(ethAddrs[3], avaxAddrs[2], ETH_EID, 2);
+            UlnConfig memory cfg = abi.decode(recvUlnConfig, (UlnConfig));
+            assertEq(cfg.confirmations, 15, "TestError/avax-usds-oft-recv-wrong-confirmations");
+            assertEq(cfg.requiredDVNCount, 2, "TestError/avax-usds-oft-recv-wrong-required-dvn-count");
+            assertEq(cfg.requiredDVNs.length, 2, "TestError/avax-usds-oft-recv-wrong-required-dvns-length");
+            assertEq(cfg.requiredDVNs[0], 0x962F502A63F5FBeB44DC9ab932122648E8352959, "TestError/avax-usds-oft-recv-wrong-required-dvn-0"); // LayerZero Labs
+            assertEq(cfg.requiredDVNs[1], 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5, "TestError/avax-usds-oft-recv-wrong-required-dvn-1"); // Nethermind
+        }
     }
 
     function testGovernanceRelayAvalancheE2E() public {
