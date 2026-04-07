@@ -17,6 +17,7 @@
 pragma solidity 0.8.16;
 
 import "./DssSpell.t.base.sol";
+import {LZBridgeTesting} from "./test/LZLayerZeroBridgeTesting.t.sol";
 
 interface L2Spell {
     function dstDomain() external returns (bytes32);
@@ -58,10 +59,6 @@ struct RateLimitConfig {
     uint32 eid;
     uint48 window;
     uint256 limit;
-}
-
-interface SkyOFTAdapterRateLimitLike {
-    function setRateLimits(RateLimitConfig[] calldata _rateLimitConfigsInbound, RateLimitConfig[] calldata _rateLimitConfigsOutbound) external;
 }
 
 interface OAppLike {
@@ -129,6 +126,8 @@ interface SkyOFTAdapterLike is OAppLike {
         address _executor, bytes calldata _extraData
     ) external payable;
     function token() external view returns (address);
+    function pausers(address pauser) external view returns (bool canPause);
+    function setRateLimits(RateLimitConfig[] calldata _rateLimitConfigsInbound, RateLimitConfig[] calldata _rateLimitConfigsOutbound) external;
 }
 
 interface EndpointV2Like {
@@ -375,12 +374,9 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
-        string[4] memory addedKeys = [
-            "OZONE_SUBPROXY",
-            "OZONE_STARGUARD",
-            "AMATSU_SUBPROXY",
-            "AMATSU_STARGUARD"
+    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+        string[1] memory addedKeys = [
+            "SUSDS_OFT"
         ];
 
         for(uint256 i = 0; i < addedKeys.length; i++) {
@@ -1738,9 +1734,8 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(keccak256(sendAndCallOptions), keccak256(expectedOptions), "TestError/usds-oft-send-and-call-enforced-options-mismatch");
     }
 
-    function testGovernanceRelayAvalancheHappyPath() public {
-        uint32  AVAX_EID          = 30106;
-        address AVAX_L2_GOV_RELAY = avalanche.addr("L2_AVALANCHE_GOV_RELAY");
+    function testGovernanceRelayAvalancheE2E() public {
+        uint32  AVAX_EID = 30106;
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
@@ -1748,17 +1743,24 @@ contract DssSpellTest is DssSpellTestBase {
 
         L1GovernanceRelayLike l1GovernanceRelay = L1GovernanceRelayLike(addr.addr("LZ_GOV_RELAY"));
 
+        // Note: Capture addresses before switching forks (contract state is fork-local)
+        address ethEndpoint      = addr.addr("LZ_ENDPOINT");
+        address ethGovSender     = addr.addr("LZ_GOV_SENDER");
+        address avaxEndpoint     = avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT");
+        address avaxRecvLib      = avalanche.addr("L2_AVALANCHE_LZ_RECV_302");
+        address avaxGovReceiver  = avalanche.addr("L2_AVALANCHE_GOV_RECEIVER");
+        address avaxL2GovRelay   = avalanche.addr("L2_AVALANCHE_GOV_RELAY");
+
         vm.startPrank(pauseProxy);
         vm.deal(pauseProxy, 10 ether);
 
         uint256 nativeFee = 1 ether;
-        address refundAddress = address(0xdead);
 
-        // Happy path: relay a governance message to Avalanche L2GovernanceRelay
+        // Record logs, then relay a governance message to Avalanche
+        vm.recordLogs();
         l1GovernanceRelay.relayEVM{value: nativeFee}(
             AVAX_EID,
-            AVAX_L2_GOV_RELAY,
-            // Note: arbitrary target and calldata for happy path test
+            avaxL2GovRelay,
             address(0x1234),
             bytes("test-governance-message"),
             hex"00030100210100000000000000000000000000030d40000000000000000000000000001f1df0",
@@ -1766,13 +1768,29 @@ contract DssSpellTest is DssSpellTestBase {
                 nativeFee:  nativeFee,
                 lzTokenFee: 0
             }),
-            refundAddress
+            address(0xdead)
         );
-
         vm.stopPrank();
+
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        // Switch to Avalanche fork and relay the message
+        string memory avaxRpcUrl = vm.envString("AVAX_RPC_URL");
+        uint256 avaxForkId = vm.createFork(avaxRpcUrl);
+        vm.selectFork(avaxForkId);
+
+        // Note: relayMessages will revert if the message cannot be delivered to the destination
+        LZBridgeTesting.relayMessages(
+            logs,
+            ethEndpoint,
+            avaxEndpoint,
+            avaxRecvLib,
+            ethGovSender,
+            avaxGovReceiver
+        );
     }
 
-    function testUsdsOftAvalancheSend() public {
+    function testUsdsOftAvalancheE2E() public {
         uint32 AVAX_EID = 30106;
 
         _vote(address(spell));
@@ -1781,23 +1799,169 @@ contract DssSpellTest is DssSpellTestBase {
 
         SkyOFTAdapterLike oft = SkyOFTAdapterLike(addr.addr("USDS_OFT"));
 
-        // Note: Rate limits for Avalanche are not configured in this spell.
-        //       Set them here to enable the happy path test.
-        vm.startPrank(pauseProxy);
-        RateLimitConfig[] memory inbound = new RateLimitConfig[](1);
-        inbound[0] = RateLimitConfig({ eid: AVAX_EID, window: uint48(1 days), limit: 5_000_000 * WAD });
-        RateLimitConfig[] memory outbound = new RateLimitConfig[](1);
-        outbound[0] = RateLimitConfig({ eid: AVAX_EID, window: uint48(1 days), limit: 5_000_000 * WAD });
-        SkyOFTAdapterRateLimitLike(address(oft)).setRateLimits(inbound, outbound);
-        vm.stopPrank();
-
         // Setup: give the test address some USDS and ETH for gas
         uint256 sendAmount = 5 * WAD;
         GodMode.setBalance(address(usds), address(this), sendAmount);
         GemAbstract(address(usds)).approve(address(oft), sendAmount);
         vm.deal(address(this), 10 ether);
 
-        // Build the send parameters
+        address recipient = makeAddr("avax-recipient");
+
+        SkyOFTAdapterLike.SendParam memory sendParams = SkyOFTAdapterLike.SendParam({
+            dstEid:       AVAX_EID,
+            to:           bytes32(uint256(uint160(recipient))),
+            amountLD:     sendAmount,
+            minAmountLD:  sendAmount,
+            extraOptions: bytes(""),
+            composeMsg:   bytes(""),
+            oftCmd:       bytes("")
+        });
+
+        SkyOFTAdapterLike.MessagingFee memory msgFee = oft.quoteSend(sendParams, false);
+
+        // Note: Capture addresses before switching forks (contract state is fork-local)
+        address ethEndpoint   = addr.addr("LZ_ENDPOINT");
+        address ethUsdsOft    = addr.addr("USDS_OFT");
+        address avaxEndpoint  = avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT");
+        address avaxRecvLib   = avalanche.addr("L2_AVALANCHE_LZ_RECV_302");
+        address avaxUsdsOft   = avalanche.addr("L2_AVALANCHE_USDS_OFT");
+        address avaxUsds      = avalanche.addr("L2_AVALANCHE_USDS");
+
+        // Record logs, then send on mainnet
+        vm.recordLogs();
+        oft.send{value: msgFee.nativeFee}(sendParams, msgFee, payable(address(this)));
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        // Switch to Avalanche fork
+        string memory avaxRpcUrl = vm.envString("AVAX_RPC_URL");
+        uint256 avaxForkId = vm.createFork(avaxRpcUrl);
+        vm.selectFork(avaxForkId);
+
+        uint256 recipientBalanceBefore = GemAbstract(avaxUsds).balanceOf(recipient);
+
+        // Relay the LZ message to the Avalanche endpoint
+        LZBridgeTesting.relayMessages(
+            logs,
+            ethEndpoint,
+            avaxEndpoint,
+            avaxRecvLib,
+            ethUsdsOft,
+            avaxUsdsOft
+        );
+
+        // Verify: recipient received USDS on Avalanche (minted by MintBurn adapter)
+        assertEq(
+            GemAbstract(avaxUsds).balanceOf(recipient),
+            recipientBalanceBefore + sendAmount,
+            "TestError/e2e-avax-recipient-usds-not-received"
+        );
+    }
+
+    function testWireSUsdsOftAvalanche() public {
+        uint32  AVAX_EID          = 30106;
+        address ETH_LZ_ENDPOINT   = addr.addr("LZ_ENDPOINT");
+        address ETH_LZ_SEND_302   = addr.addr("LZ_SEND_302");
+        address ETH_LZ_RECV_302   = addr.addr("LZ_RECV_302");
+        bytes32 AVAX_SUSDS_OFT    = bytes32(uint256(uint160(avalanche.addr("L2_AVALANCHE_SUSDS_OFT"))));
+
+        address susdsOft = addr.addr("SUSDS_OFT");
+
+        // Verify SUSDS_OFT is not in chainlog before spell
+        vm.expectRevert("dss-chain-log/invalid-key");
+        chainLog.getAddress(_stringToBytes32("SUSDS_OFT"));
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // Verify SUSDS_OFT added to chainlog
+        assertEq(
+            chainLog.getAddress(_stringToBytes32("SUSDS_OFT")),
+            susdsOft,
+            "TestError/susds-oft-not-in-chainlog"
+        );
+
+        SkyOFTAdapterLike oft = SkyOFTAdapterLike(susdsOft);
+
+        // Verify peer is set
+        assertEq(oft.peers(AVAX_EID), AVAX_SUSDS_OFT, "TestError/susds-oft-wrong-peer");
+
+        // Verify pauser is set
+        assertTrue(
+            SkyOFTAdapterLike(susdsOft).pausers(0x38d1114b4cE3e079CC0f627df6aC2776B5887776),
+            "TestError/susds-oft-pauser-not-set"
+        );
+
+        // Verify send library is set
+        assertEq(
+            EndpointV2Like(ETH_LZ_ENDPOINT).getSendLibrary(susdsOft, AVAX_EID),
+            ETH_LZ_SEND_302,
+            "TestError/susds-oft-wrong-send-library"
+        );
+
+        // Verify receive library is set
+        (address recvLib,) = EndpointV2Like(ETH_LZ_ENDPOINT).getReceiveLibrary(susdsOft, AVAX_EID);
+        assertEq(recvLib, ETH_LZ_RECV_302, "TestError/susds-oft-wrong-receive-library");
+
+        // Verify send executor config (configType 1)
+        {
+            bytes memory executorConfig = EndpointV2Like(ETH_LZ_ENDPOINT).getConfig(susdsOft, ETH_LZ_SEND_302, AVAX_EID, 1);
+            ExecutorConfig memory execCfg = abi.decode(executorConfig, (ExecutorConfig));
+            assertEq(execCfg.maxMessageSize, 10_000, "TestError/susds-oft-send-wrong-max-message-size");
+            assertEq(execCfg.executor, 0x173272739Bd7Aa6e4e214714048a9fE699453059, "TestError/susds-oft-send-wrong-executor");
+        }
+
+        // Verify send ULN config (configType 2)
+        {
+            bytes memory sendUlnConfig = EndpointV2Like(ETH_LZ_ENDPOINT).getConfig(susdsOft, ETH_LZ_SEND_302, AVAX_EID, 2);
+            UlnConfig memory cfg = abi.decode(sendUlnConfig, (UlnConfig));
+            assertEq(cfg.confirmations, 15, "TestError/susds-oft-send-wrong-confirmations");
+            assertEq(cfg.requiredDVNCount, 2, "TestError/susds-oft-send-wrong-required-dvn-count");
+            assertEq(cfg.optionalDVNCount, 0, "TestError/susds-oft-send-wrong-optional-dvn-count");
+            assertEq(cfg.requiredDVNs.length, 2, "TestError/susds-oft-send-wrong-required-dvns-length");
+            assertEq(cfg.requiredDVNs[0], 0x589dEDbD617e0CBcB916A9223F4d1300c294236b, "TestError/susds-oft-send-wrong-required-dvn-0"); // LayerZero Labs
+            assertEq(cfg.requiredDVNs[1], 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5, "TestError/susds-oft-send-wrong-required-dvn-1"); // Nethermind
+        }
+
+        // Verify receive ULN config (configType 2)
+        {
+            bytes memory recvUlnConfig = EndpointV2Like(ETH_LZ_ENDPOINT).getConfig(susdsOft, ETH_LZ_RECV_302, AVAX_EID, 2);
+            UlnConfig memory cfg = abi.decode(recvUlnConfig, (UlnConfig));
+            assertEq(cfg.confirmations, 12, "TestError/susds-oft-recv-wrong-confirmations");
+            assertEq(cfg.requiredDVNCount, 2, "TestError/susds-oft-recv-wrong-required-dvn-count");
+            assertEq(cfg.optionalDVNCount, 0, "TestError/susds-oft-recv-wrong-optional-dvn-count");
+            assertEq(cfg.requiredDVNs.length, 2, "TestError/susds-oft-recv-wrong-required-dvns-length");
+            assertEq(cfg.requiredDVNs[0], 0x589dEDbD617e0CBcB916A9223F4d1300c294236b, "TestError/susds-oft-recv-wrong-required-dvn-0"); // LayerZero Labs
+            assertEq(cfg.requiredDVNs[1], 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5, "TestError/susds-oft-recv-wrong-required-dvn-1"); // Nethermind
+        }
+
+        // Verify enforced options
+        bytes memory expectedOptions = hex"0003010011010000000000000000000000000001fbd0";
+
+        bytes memory sendOptions = oft.enforcedOptions(AVAX_EID, 1);
+        assertEq(keccak256(sendOptions), keccak256(expectedOptions), "TestError/susds-oft-send-enforced-options-mismatch");
+
+        bytes memory sendAndCallOptions = oft.enforcedOptions(AVAX_EID, 2);
+        assertEq(keccak256(sendAndCallOptions), keccak256(expectedOptions), "TestError/susds-oft-send-and-call-enforced-options-mismatch");
+    }
+
+    function testSUsdsOftAvalancheRateLimitBlocked() public {
+        uint32 AVAX_EID = 30106;
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        address susdsOft = addr.addr("SUSDS_OFT");
+        SkyOFTAdapterLike oft = SkyOFTAdapterLike(susdsOft);
+
+        // Setup: give the test address some sUSDS and ETH for gas
+        address susdsToken = oft.token();
+        uint256 sendAmount = 5 * WAD;
+        GodMode.setBalance(susdsToken, address(this), sendAmount);
+        GemAbstract(susdsToken).approve(susdsOft, sendAmount);
+        vm.deal(address(this), 10 ether);
+
         SkyOFTAdapterLike.SendParam memory sendParams = SkyOFTAdapterLike.SendParam({
             dstEid:       AVAX_EID,
             to:           bytes32(uint256(uint160(address(this)))),
@@ -1808,92 +1972,11 @@ contract DssSpellTest is DssSpellTestBase {
             oftCmd:       bytes("")
         });
 
-        // Quote the send fee
         SkyOFTAdapterLike.MessagingFee memory msgFee = oft.quoteSend(sendParams, false);
-        assertTrue(msgFee.nativeFee > 0, "TestError/usds-oft-quote-fee-zero");
 
-        uint256 balanceBefore = usds.balanceOf(address(this));
-        uint256 adapterBalanceBefore = usds.balanceOf(address(oft));
-
-        // Send USDS to Avalanche
+        // Note: sUSDS rate limits are not set in this spell (will be configured in a future spell).
+        //       Verify that sending is blocked with RateLimitExceeded.
+        vm.expectRevert(0xa74c1c5f); // RateLimitExceeded()
         oft.send{value: msgFee.nativeFee}(sendParams, msgFee, payable(address(this)));
-
-        // Verify: sender balance decreased
-        assertEq(
-            usds.balanceOf(address(this)),
-            balanceBefore - sendAmount,
-            "TestError/usds-oft-sender-balance-not-decreased"
-        );
-
-        // Verify: adapter locked the tokens
-        assertEq(
-            usds.balanceOf(address(oft)),
-            adapterBalanceBefore + sendAmount,
-            "TestError/usds-oft-adapter-balance-not-increased"
-        );
-    }
-
-    function testUsdsOftAvalancheReceive() public {
-        uint32  AVAX_EID        = 30106;
-        bytes32 AVAX_USDS_OFT   = bytes32(uint256(uint160(avalanche.addr("L2_AVALANCHE_USDS_OFT"))));
-        address ETH_LZ_ENDPOINT = addr.addr("LZ_ENDPOINT");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        SkyOFTAdapterLike oft = SkyOFTAdapterLike(addr.addr("USDS_OFT"));
-
-        // Note: Rate limits for Avalanche are not configured in this spell.
-        //       Set them here to enable the happy path test.
-        vm.startPrank(pauseProxy);
-        RateLimitConfig[] memory inbound = new RateLimitConfig[](1);
-        inbound[0] = RateLimitConfig({ eid: AVAX_EID, window: uint48(1 days), limit: 5_000_000 * WAD });
-        RateLimitConfig[] memory outbound = new RateLimitConfig[](1);
-        outbound[0] = RateLimitConfig({ eid: AVAX_EID, window: uint48(1 days), limit: 5_000_000 * WAD });
-        SkyOFTAdapterRateLimitLike(address(oft)).setRateLimits(inbound, outbound);
-        vm.stopPrank();
-
-        // Note: OFT uses 6 shared decimals. 5 USDS = 5_000_000 in shared decimals.
-        uint64 amountSD = 5_000_000;
-        uint256 amountLD = 5 * WAD;
-        address recipient = makeAddr("recipient");
-
-        // Build the OFT message: abi.encodePacked(bytes32 to, uint64 amountSD)
-        bytes memory message = abi.encodePacked(
-            bytes32(uint256(uint160(recipient))),
-            amountSD
-        );
-
-        uint256 recipientBalanceBefore = usds.balanceOf(recipient);
-        uint256 adapterBalanceBefore   = usds.balanceOf(address(oft));
-
-        // Simulate the EndpointV2 delivering a message from Avalanche
-        vm.prank(ETH_LZ_ENDPOINT);
-        oft.lzReceive(
-            Origin({
-                srcEid: AVAX_EID,
-                sender: AVAX_USDS_OFT,
-                nonce:  1
-            }),
-            bytes32(uint256(1)), // arbitrary guid
-            message,
-            address(0),          // executor
-            bytes("")            // extraData
-        );
-
-        // Verify: recipient received USDS (unlocked from adapter)
-        assertEq(
-            usds.balanceOf(recipient),
-            recipientBalanceBefore + amountLD,
-            "TestError/usds-oft-recipient-balance-not-increased"
-        );
-
-        // Verify: adapter balance decreased (tokens unlocked)
-        assertEq(
-            usds.balanceOf(address(oft)),
-            adapterBalanceBefore - amountLD,
-            "TestError/usds-oft-adapter-balance-not-decreased"
-        );
     }
 }
