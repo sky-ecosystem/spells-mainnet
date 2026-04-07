@@ -1598,8 +1598,8 @@ contract DssSpellTest is DssSpellTestBase {
 
     function testWireLzGovSenderAvalanche() public {
         uint32  AVAX_EID          = 30106;
-        address ETH_LZ_ENDPOINT   = addr.addr("ETH_LZ_ENDPOINT");
-        address ETH_LZ_SEND_302   = addr.addr("ETH_LZ_SEND_302");
+        address ETH_LZ_ENDPOINT   = addr.addr("LZ_ENDPOINT");
+        address ETH_LZ_SEND_302   = addr.addr("LZ_SEND_302");
         bytes32 AVAX_GOV_RECEIVER = bytes32(uint256(uint160(avalanche.addr("L2_AVALANCHE_GOV_RECEIVER"))));
         bytes32 AVAX_L2_GOV_RELAY = bytes32(uint256(uint160(avalanche.addr("L2_AVALANCHE_GOV_RELAY"))));
 
@@ -1660,9 +1660,9 @@ contract DssSpellTest is DssSpellTestBase {
 
     function testWireUsdsOftAvalanche() public {
         uint32  AVAX_EID          = 30106;
-        address ETH_LZ_ENDPOINT   = addr.addr("ETH_LZ_ENDPOINT");
-        address ETH_LZ_SEND_302   = addr.addr("ETH_LZ_SEND_302");
-        address ETH_LZ_RECV_302   = addr.addr("ETH_LZ_RECV_302");
+        address ETH_LZ_ENDPOINT   = addr.addr("LZ_ENDPOINT");
+        address ETH_LZ_SEND_302   = addr.addr("LZ_SEND_302");
+        address ETH_LZ_RECV_302   = addr.addr("LZ_RECV_302");
         bytes32 AVAX_USDS_OFT     = bytes32(uint256(uint160(avalanche.addr("L2_AVALANCHE_USDS_OFT"))));
 
         address usdsOft = addr.addr("USDS_OFT");
@@ -1836,7 +1836,7 @@ contract DssSpellTest is DssSpellTestBase {
     function testUsdsOftAvalancheReceive() public {
         uint32  AVAX_EID        = 30106;
         bytes32 AVAX_USDS_OFT   = bytes32(uint256(uint160(avalanche.addr("L2_AVALANCHE_USDS_OFT"))));
-        address ETH_LZ_ENDPOINT = addr.addr("ETH_LZ_ENDPOINT");
+        address ETH_LZ_ENDPOINT = addr.addr("LZ_ENDPOINT");
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
