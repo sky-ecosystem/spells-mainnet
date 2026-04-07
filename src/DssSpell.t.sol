@@ -17,7 +17,7 @@
 pragma solidity 0.8.16;
 
 import "./DssSpell.t.base.sol";
-import {LZBridgeTesting} from "./test/LZLayerZeroBridgeTesting.t.sol";
+import {LZBridgeTesting} from "./test/helpers/LZBridgeTesting.sol";
 
 interface L2Spell {
     function dstDomain() external returns (bytes32);
@@ -1627,7 +1627,7 @@ contract DssSpellTest is DssSpellTestBase {
             bytes memory executorConfig = EndpointV2Like(ETH_LZ_ENDPOINT).getConfig(govSender, ETH_LZ_SEND_302, AVAX_EID, 1);
             ExecutorConfig memory execCfg = abi.decode(executorConfig, (ExecutorConfig));
             assertEq(execCfg.maxMessageSize, 10_000, "TestError/gov-sender-wrong-max-message-size");
-            assertEq(execCfg.executor, 0x173272739Bd7Aa6e4e214714048a9fE699453059, "TestError/gov-sender-wrong-executor");
+            assertEq(execCfg.executor, addr.addr("LZ_EXECUTOR"), "TestError/gov-sender-wrong-executor");
         }
 
         // Verify ULN config (configType 2)
@@ -1660,16 +1660,16 @@ contract DssSpellTest is DssSpellTestBase {
         address usdsOft   = addr.addr("USDS_OFT");
 
         // Note: Capture all addresses before switching forks (contract state is fork-local)
-        address[4] memory ethAddrs = [
+        address[3] memory ethAddrs = [
             addr.addr("LZ_ENDPOINT"),                   // [0] ETH_LZ_ENDPOINT
             addr.addr("LZ_SEND_302"),                   // [1] ETH_LZ_SEND_302
-            addr.addr("LZ_RECV_302"),                   // [2] ETH_LZ_RECV_302
-            avalanche.addr("L2_AVALANCHE_USDS_OFT")     // [3] avaxUsdsOft
+            addr.addr("LZ_RECV_302")                    // [2] ETH_LZ_RECV_302
         ];
-        address[3] memory avaxAddrs = [
+        address[4] memory avaxAddrs = [
             avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"), // [0] avaxEndpoint
             avalanche.addr("L2_AVALANCHE_LZ_SEND_302"), // [1] avaxSend302
-            avalanche.addr("L2_AVALANCHE_LZ_RECV_302")  // [2] avaxRecv302
+            avalanche.addr("L2_AVALANCHE_LZ_RECV_302"), // [2] avaxRecv302
+            avalanche.addr("L2_AVALANCHE_USDS_OFT")     // [3] avaxUsdsOft
         ];
 
         SkyOFTAdapterLike oft = SkyOFTAdapterLike(usdsOft);
@@ -1684,7 +1684,7 @@ contract DssSpellTest is DssSpellTestBase {
         // ---- L1 (Ethereum) config verification ----
 
         // Verify peer is set
-        assertEq(oft.peers(AVAX_EID), bytes32(uint256(uint160(ethAddrs[3]))), "TestError/usds-oft-wrong-peer");
+        assertEq(oft.peers(AVAX_EID), bytes32(uint256(uint160(avaxAddrs[3]))), "TestError/usds-oft-wrong-peer");
 
         // Verify send library is set
         assertEq(
@@ -1746,27 +1746,27 @@ contract DssSpellTest is DssSpellTestBase {
 
         // Verify Avalanche peer points back to Ethereum USDS_OFT
         assertEq(
-            OAppLike(ethAddrs[3]).peers(ETH_EID),
+            OAppLike(avaxAddrs[3]).peers(ETH_EID),
             bytes32(uint256(uint160(usdsOft))),
             "TestError/avax-usds-oft-wrong-peer"
         );
 
         // Verify Avalanche send library
         assertEq(
-            EndpointV2Like(avaxAddrs[0]).getSendLibrary(ethAddrs[3], ETH_EID),
+            EndpointV2Like(avaxAddrs[0]).getSendLibrary(avaxAddrs[3], ETH_EID),
             avaxAddrs[1],
             "TestError/avax-usds-oft-wrong-send-library"
         );
 
         // Verify Avalanche receive library
         {
-            (address avaxRecvLib,) = EndpointV2Like(avaxAddrs[0]).getReceiveLibrary(ethAddrs[3], ETH_EID);
+            (address avaxRecvLib,) = EndpointV2Like(avaxAddrs[0]).getReceiveLibrary(avaxAddrs[3], ETH_EID);
             assertEq(avaxRecvLib, avaxAddrs[2], "TestError/avax-usds-oft-wrong-receive-library");
         }
 
         // Verify Avalanche send executor config (configType 1)
         {
-            bytes memory executorConfig = EndpointV2Like(avaxAddrs[0]).getConfig(ethAddrs[3], avaxAddrs[1], ETH_EID, 1);
+            bytes memory executorConfig = EndpointV2Like(avaxAddrs[0]).getConfig(avaxAddrs[3], avaxAddrs[1], ETH_EID, 1);
             ExecutorConfig memory execCfg = abi.decode(executorConfig, (ExecutorConfig));
             assertEq(execCfg.maxMessageSize, 10_000, "TestError/avax-usds-oft-send-wrong-max-message-size");
             assertEq(execCfg.executor, 0x90E595783E43eb89fF07f63d27B8430e6B44bD9c, "TestError/avax-usds-oft-send-wrong-executor");
@@ -1774,7 +1774,7 @@ contract DssSpellTest is DssSpellTestBase {
 
         // Verify Avalanche send ULN config (configType 2)
         {
-            bytes memory sendUlnConfig = EndpointV2Like(avaxAddrs[0]).getConfig(ethAddrs[3], avaxAddrs[1], ETH_EID, 2);
+            bytes memory sendUlnConfig = EndpointV2Like(avaxAddrs[0]).getConfig(avaxAddrs[3], avaxAddrs[1], ETH_EID, 2);
             UlnConfig memory cfg = abi.decode(sendUlnConfig, (UlnConfig));
             assertEq(cfg.confirmations, 12, "TestError/avax-usds-oft-send-wrong-confirmations");
             assertEq(cfg.requiredDVNCount, 2, "TestError/avax-usds-oft-send-wrong-required-dvn-count");
@@ -1785,7 +1785,7 @@ contract DssSpellTest is DssSpellTestBase {
 
         // Verify Avalanche receive ULN config (configType 2)
         {
-            bytes memory recvUlnConfig = EndpointV2Like(avaxAddrs[0]).getConfig(ethAddrs[3], avaxAddrs[2], ETH_EID, 2);
+            bytes memory recvUlnConfig = EndpointV2Like(avaxAddrs[0]).getConfig(avaxAddrs[3], avaxAddrs[2], ETH_EID, 2);
             UlnConfig memory cfg = abi.decode(recvUlnConfig, (UlnConfig));
             assertEq(cfg.confirmations, 15, "TestError/avax-usds-oft-recv-wrong-confirmations");
             assertEq(cfg.requiredDVNCount, 2, "TestError/avax-usds-oft-recv-wrong-required-dvn-count");
