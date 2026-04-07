@@ -1598,10 +1598,10 @@ contract DssSpellTest is DssSpellTestBase {
 
     function testWireLzGovSenderAvalanche() public {
         uint32  AVAX_EID          = 30106;
-        address ETH_LZ_ENDPOINT   = 0x1a44076050125825900e736c501f859c50fE728c;
-        address ETH_LZ_SEND_302   = 0xbB2Ea70C9E858123480642Cf96acbcCE1372dCe1;
-        bytes32 AVAX_GOV_RECEIVER = bytes32(uint256(uint160(0x6fdd46947ca6903c8c159d1dF2012Bc7fC5cEeec)));
-        bytes32 AVAX_L2_GOV_RELAY = bytes32(uint256(uint160(0xe928885BCe799Ed933651715608155F01abA23cA)));
+        address ETH_LZ_ENDPOINT   = addr.addr("ETH_LZ_ENDPOINT");
+        address ETH_LZ_SEND_302   = addr.addr("ETH_LZ_SEND_302");
+        bytes32 AVAX_GOV_RECEIVER = bytes32(uint256(uint160(avalanche.addr("L2_AVALANCHE_GOV_RECEIVER"))));
+        bytes32 AVAX_L2_GOV_RELAY = bytes32(uint256(uint160(avalanche.addr("L2_AVALANCHE_GOV_RELAY"))));
 
         address govSender = addr.addr("LZ_GOV_SENDER");
         address govRelay  = addr.addr("LZ_GOV_RELAY");
@@ -1660,10 +1660,10 @@ contract DssSpellTest is DssSpellTestBase {
 
     function testWireUsdsOftAvalanche() public {
         uint32  AVAX_EID          = 30106;
-        address ETH_LZ_ENDPOINT   = 0x1a44076050125825900e736c501f859c50fE728c;
-        address ETH_LZ_SEND_302   = 0xbB2Ea70C9E858123480642Cf96acbcCE1372dCe1;
-        address ETH_LZ_RECV_302   = 0xc02Ab410f0734EFa3F14628780e6e695156024C2;
-        bytes32 AVAX_USDS_OFT     = bytes32(uint256(uint160(0x4fec40719fD9a8AE3F8E20531669DEC5962D2619)));
+        address ETH_LZ_ENDPOINT   = addr.addr("ETH_LZ_ENDPOINT");
+        address ETH_LZ_SEND_302   = addr.addr("ETH_LZ_SEND_302");
+        address ETH_LZ_RECV_302   = addr.addr("ETH_LZ_RECV_302");
+        bytes32 AVAX_USDS_OFT     = bytes32(uint256(uint160(avalanche.addr("L2_AVALANCHE_USDS_OFT"))));
 
         address usdsOft = addr.addr("USDS_OFT");
         SkyOFTAdapterLike oft = SkyOFTAdapterLike(usdsOft);
@@ -1740,7 +1740,7 @@ contract DssSpellTest is DssSpellTestBase {
 
     function testGovernanceRelayAvalancheHappyPath() public {
         uint32  AVAX_EID          = 30106;
-        address AVAX_L2_GOV_RELAY = 0xe928885BCe799Ed933651715608155F01abA23cA;
+        address AVAX_L2_GOV_RELAY = avalanche.addr("L2_AVALANCHE_GOV_RELAY");
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
@@ -1834,9 +1834,9 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     function testUsdsOftAvalancheReceive() public {
-        uint32  AVAX_EID      = 30106;
-        bytes32 AVAX_USDS_OFT = bytes32(uint256(uint160(0x4fec40719fD9a8AE3F8E20531669DEC5962D2619)));
-        address ETH_LZ_ENDPOINT = 0x1a44076050125825900e736c501f859c50fE728c;
+        uint32  AVAX_EID        = 30106;
+        bytes32 AVAX_USDS_OFT   = bytes32(uint256(uint160(avalanche.addr("L2_AVALANCHE_USDS_OFT"))));
+        address ETH_LZ_ENDPOINT = addr.addr("ETH_LZ_ENDPOINT");
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));

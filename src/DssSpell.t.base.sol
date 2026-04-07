@@ -28,6 +28,7 @@ import "./test/addresses_base.sol";
 import "./test/addresses_unichain.sol";
 import "./test/addresses_optimism.sol";
 import "./test/addresses_arbitrum.sol";
+import "./test/addresses_avalanche.sol";
 import "./test/addresses_deployers.sol";
 import "./test/addresses_wallets.sol";
 import "./test/config.sol";
@@ -643,14 +644,15 @@ interface SafeHarborAgreementLike {
 contract DssSpellTestBase is Config, DssTest {
     using stdStorage for StdStorage;
 
-    Rates                 rates = new Rates();
-    Addresses              addr = new Addresses();
-    BaseAddresses          base = new BaseAddresses();
-    UnichainAddresses  unichain = new UnichainAddresses();
-    OptimismAddresses  optimism = new OptimismAddresses();
-    ArbitrumAddresses  arbitrum = new ArbitrumAddresses();
-    Deployers         deployers = new Deployers();
-    Wallets             wallets = new Wallets();
+    Rates                  rates = new Rates();
+    Addresses               addr = new Addresses();
+    BaseAddresses           base = new BaseAddresses();
+    UnichainAddresses   unichain = new UnichainAddresses();
+    OptimismAddresses   optimism = new OptimismAddresses();
+    ArbitrumAddresses   arbitrum = new ArbitrumAddresses();
+    AvalancheAddresses avalanche = new AvalancheAddresses();
+    Deployers          deployers = new Deployers();
+    Wallets              wallets = new Wallets();
 
     // ADDRESSES
     ChainlogAbstract            chainLog = ChainlogAbstract(   addr.addr("CHANGELOG"));
