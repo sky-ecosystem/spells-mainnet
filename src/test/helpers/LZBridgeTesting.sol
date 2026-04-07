@@ -82,37 +82,55 @@ struct Origin {
     uint64  nonce;
 }
 
+struct LZBridge {
+    uint256 forkId;
+    address endpoint;
+    address receiveLib;
+}
+
 /// @title  LZBridgeTesting
 /// @notice Self-contained helper for relaying LayerZero V2 messages between two forked chains in Foundry tests.
 /// @dev    Adapted from Spark's xchain-helpers (see link above). All LZ dependencies are inlined to avoid
 ///         adding external submodules.
 ///
 ///         Usage:
-///         1. On the source fork: perform actions that emit PacketSent events from the LZ endpoint.
-///         2. Call `vm.recordLogs()` before the actions and `vm.getRecordedLogs()` after.
-///         3. Switch to destination fork with `vm.selectFork(destForkId)`.
-///         4. Call `relayLZMessages(logs, srcEndpoint, dstEndpoint, dstReceiveLib, sender, receiver)`.
+///         1. Create an LZBridge for the destination chain.
+///         2. On the source fork: perform actions that emit PacketSent events from the LZ endpoint.
+///         3. Call `vm.recordLogs()` before the actions and `vm.getRecordedLogs()` after.
+///         4. Call `relayMessagesToDestination(bridge, logs, srcEndpoint, sender, receiver)`.
+///            This handles fork switching, message relay, and restores the source fork.
 library LZBridgeTesting {
 
     Vm private constant vm = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
 
     bytes32 private constant PACKET_SENT_TOPIC = keccak256("PacketSent(bytes,bytes,address)");
 
-    /// @notice Relay LZ messages captured in logs from source chain to the current (destination) fork.
+    /// @notice Relay LZ messages to a destination chain fork and switch back to the source fork.
+    /// @param bridge          Destination chain bridge config (forkId, endpoint, receiveLib)
     /// @param logs            Recorded Vm.Log entries (from vm.getRecordedLogs())
     /// @param srcEndpoint     LayerZero EndpointV2 address on the source chain
-    /// @param dstEndpoint     LayerZero EndpointV2 address on the destination chain
-    /// @param dstReceiveLib   ReceiveUln302 address on the destination chain (used to prank verify())
     /// @param sender          OApp sender address on the source chain
     /// @param receiver        OApp receiver address on the destination chain
-    function relayMessages(
+    function relayMessagesToDestination(
+        LZBridge memory bridge,
+        Vm.Log[] memory logs,
+        address srcEndpoint,
+        address sender,
+        address receiver
+    ) internal {
+        vm.selectFork(bridge.forkId);
+        _relayMessages(logs, srcEndpoint, bridge.endpoint, bridge.receiveLib, sender, receiver);
+    }
+
+    /// @notice Relay LZ messages captured in logs from source chain to the current (destination) fork.
+    function _relayMessages(
         Vm.Log[] memory logs,
         address srcEndpoint,
         address dstEndpoint,
         address dstReceiveLib,
         address sender,
         address receiver
-    ) internal {
+    ) private {
         PacketBytesHelper helper = new PacketBytesHelper();
 
         uint32 dstEid = ILZEndpoint(dstEndpoint).eid();

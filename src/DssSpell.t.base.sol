@@ -30,6 +30,7 @@ import "./test/addresses_optimism.sol";
 import "./test/addresses_arbitrum.sol";
 import "./test/addresses_avalanche.sol";
 import "./test/addresses_deployers.sol";
+import {LZBridge} from "./test/helpers/LZBridgeTesting.sol";
 import "./test/addresses_wallets.sol";
 import "./test/config.sol";
 
@@ -654,6 +655,9 @@ contract DssSpellTestBase is Config, DssTest {
     Deployers          deployers = new Deployers();
     Wallets              wallets = new Wallets();
 
+    // LayerZero bridge forks
+    LZBridge internal avaxBridge;
+
     // ADDRESSES
     ChainlogAbstract            chainLog = ChainlogAbstract(   addr.addr("CHANGELOG"));
     DSPauseAbstract                pause = DSPauseAbstract(    addr.addr("MCD_PAUSE"));
@@ -951,6 +955,7 @@ contract DssSpellTestBase is Config, DssTest {
             vm.makePersistent(address(unichain));
             vm.makePersistent(address(optimism));
             vm.makePersistent(address(arbitrum));
+            vm.makePersistent(address(avalanche));
             vm.makePersistent(address(deployers));
             vm.makePersistent(address(wallets));
             vm.rollFork(spellValues.deployed_spell_block);
@@ -969,6 +974,18 @@ contract DssSpellTestBase is Config, DssTest {
         // Example revert: https://dashboard.tenderly.co/explorer/vnet/eb97d953-4642-4778-938e-d70ee25e3f58/tx/0xe427414d07c28b64c076e809983cfdee3bfd680866ebc7c40349700f4a6160bd?trace=0.5.5.1.62.1.2.0.2.2.0.2.2
         _fixChronicleStaleness(0x24C392CDbF32Cf911B258981a66d5541d85269ce); // Chronicle_BTC_USD_3
         _fixChronicleStaleness(0x46ef0071b1E2fF6B42d36e5A177EA43Ae5917f4E); // Chronicle_ETH_USD_3
+
+        // Setup Avalanche LZ bridge fork (only if AVAX_RPC_URL is available)
+        string memory avaxRpcUrl = vm.envOr("AVAX_RPC_URL", string(""));
+        if (bytes(avaxRpcUrl).length > 0) {
+            uint256 mainnetForkId = vm.activeFork();
+            avaxBridge = LZBridge({
+                forkId:     vm.createFork(avaxRpcUrl),
+                endpoint:   avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"),
+                receiveLib: avalanche.addr("L2_AVALANCHE_LZ_RECV_302")
+            });
+            vm.selectFork(mainnetForkId);
+        }
     }
 
     function _fixChronicleStaleness(address oracle) private {

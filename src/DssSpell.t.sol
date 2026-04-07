@@ -1742,7 +1742,7 @@ contract DssSpellTest is DssSpellTestBase {
         // Note: These configs were set during pre-deployment (not by the spell).
         //       Verified here to ensure the remote chain matches the L1 configuration.
 
-        vm.selectFork(vm.createFork(vm.envString("AVAX_RPC_URL")));
+        vm.selectFork(avaxBridge.forkId);
 
         // Verify Avalanche peer points back to Ethereum USDS_OFT
         assertEq(
@@ -1807,8 +1807,6 @@ contract DssSpellTest is DssSpellTestBase {
         // Note: Capture addresses before switching forks (contract state is fork-local)
         address ethEndpoint      = addr.addr("LZ_ENDPOINT");
         address ethGovSender     = addr.addr("LZ_GOV_SENDER");
-        address avaxEndpoint     = avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT");
-        address avaxRecvLib      = avalanche.addr("L2_AVALANCHE_LZ_RECV_302");
         address avaxGovReceiver  = avalanche.addr("L2_AVALANCHE_GOV_RECEIVER");
         address avaxL2GovRelay   = avalanche.addr("L2_AVALANCHE_GOV_RELAY");
 
@@ -1835,19 +1833,9 @@ contract DssSpellTest is DssSpellTestBase {
 
         Vm.Log[] memory logs = vm.getRecordedLogs();
 
-        // Switch to Avalanche fork and relay the message
-        string memory avaxRpcUrl = vm.envString("AVAX_RPC_URL");
-        uint256 avaxForkId = vm.createFork(avaxRpcUrl);
-        vm.selectFork(avaxForkId);
-
-        // Note: relayMessages will revert if the message cannot be delivered to the destination
-        LZBridgeTesting.relayMessages(
-            logs,
-            ethEndpoint,
-            avaxEndpoint,
-            avaxRecvLib,
-            ethGovSender,
-            avaxGovReceiver
+        // Relay to Avalanche fork (reverts if delivery fails)
+        LZBridgeTesting.relayMessagesToDestination(
+            avaxBridge, logs, ethEndpoint, ethGovSender, avaxGovReceiver
         );
     }
 
@@ -1883,8 +1871,6 @@ contract DssSpellTest is DssSpellTestBase {
         // Note: Capture addresses before switching forks (contract state is fork-local)
         address ethEndpoint   = addr.addr("LZ_ENDPOINT");
         address ethUsdsOft    = addr.addr("USDS_OFT");
-        address avaxEndpoint  = avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT");
-        address avaxRecvLib   = avalanche.addr("L2_AVALANCHE_LZ_RECV_302");
         address avaxUsdsOft   = avalanche.addr("L2_AVALANCHE_USDS_OFT");
         address avaxUsds      = avalanche.addr("L2_AVALANCHE_USDS");
 
@@ -1893,27 +1879,15 @@ contract DssSpellTest is DssSpellTestBase {
         oft.send{value: msgFee.nativeFee}(sendParams, msgFee, payable(address(this)));
         Vm.Log[] memory logs = vm.getRecordedLogs();
 
-        // Switch to Avalanche fork
-        string memory avaxRpcUrl = vm.envString("AVAX_RPC_URL");
-        uint256 avaxForkId = vm.createFork(avaxRpcUrl);
-        vm.selectFork(avaxForkId);
-
-        uint256 recipientBalanceBefore = GemAbstract(avaxUsds).balanceOf(recipient);
-
-        // Relay the LZ message to the Avalanche endpoint
-        LZBridgeTesting.relayMessages(
-            logs,
-            ethEndpoint,
-            avaxEndpoint,
-            avaxRecvLib,
-            ethUsdsOft,
-            avaxUsdsOft
+        // Relay to Avalanche fork and verify
+        LZBridgeTesting.relayMessagesToDestination(
+            avaxBridge, logs, ethEndpoint, ethUsdsOft, avaxUsdsOft
         );
 
-        // Verify: recipient received USDS on Avalanche (minted by MintBurn adapter)
+        // Note: We are now on the Avalanche fork after relayMessagesToDestination
         assertEq(
             GemAbstract(avaxUsds).balanceOf(recipient),
-            recipientBalanceBefore + sendAmount,
+            sendAmount,
             "TestError/e2e-avax-recipient-usds-not-received"
         );
     }
