@@ -114,7 +114,7 @@ contract DssSpellAction is DssAction {
     bytes32 internal constant AVAX_GOV_RECEIVER     = bytes32(uint256(uint160(0x6fdd46947ca6903c8c159d1dF2012Bc7fC5cEeec)));
     bytes32 internal constant AVAX_L2_GOV_RELAY     = bytes32(uint256(uint160(0xe928885BCe799Ed933651715608155F01abA23cA)));
     bytes32 internal constant AVAX_USDS_OFT         = bytes32(uint256(uint160(0x4fec40719fD9a8AE3F8E20531669DEC5962D2619)));
-    address internal constant ETH_SUSDS_OFT             = 0x85A3FE4DA2a6cB98A5bdF62458B0dB8471B9f0f1;
+    address internal constant ETH_SUSDS_OFT         = 0x85A3FE4DA2a6cB98A5bdF62458B0dB8471B9f0f1;
     bytes32 internal constant AVAX_SUSDS_OFT        = bytes32(uint256(uint160(0x7297D4811f088FC26bC5475681405B99b41E1FF9)));
 
     // ---------- Spark ----------
@@ -158,7 +158,7 @@ contract DssSpellAction is DssAction {
             ETH_LZ_SEND_302
         );
 
-        // Note Create dynamic array for _params argument in EndpointV2Like(ETH_LZ_ENDPOINT).setConfig():
+        // Note: Create dynamic array for _params argument in EndpointV2Like(ETH_LZ_ENDPOINT).setConfig():
         EndpointV2Like.SetConfigParam[] memory setConfigParams = new EndpointV2Like.SetConfigParam[](2);
 
         // Note: Create dynamic array for requiredDVNs:
@@ -397,8 +397,11 @@ contract DssSpellAction is DssAction {
         bytes memory usdsOftEnforcedOptionsData = abi.encodePacked(
             LZ_OPTIONS_TYPE_3, LZ_EXECUTOR_WORKER_ID, LZ_OPTION_LENGTH, LZ_OPTION_TYPE_LZRECEIVE, LZ_GAS
         );
+
+        // Note: Create dynamic array for _enforcedOptions argument in SkyOFTAdapterLike(USDS_OFT).setEnforcedOptions():
         SkyOFTAdapterLike.EnforcedOptionParam[] memory usdsOftEnforcedOptions =
             new SkyOFTAdapterLike.EnforcedOptionParam[](2);
+
         // SendOption (generated with OptionsBuilder.addExecutorLzReceiveOption
         usdsOftEnforcedOptions[0] = SkyOFTAdapterLike.EnforcedOptionParam({
             // uint32 eid being 30106
@@ -410,6 +413,7 @@ contract DssSpellAction is DssAction {
             // uint128 _value being 0
             options: usdsOftEnforcedOptionsData
         });
+
         // SendAndCallOption (generated with OptionsBuilder.addExecutorLzReceiveOption)
         usdsOftEnforcedOptions[1] = SkyOFTAdapterLike.EnforcedOptionParam({
             // uint32 eid being 30106
@@ -436,6 +440,7 @@ contract DssSpellAction is DssAction {
         // Note: Create dynamic array for _rateLimitConfigsOutbound argument in SkyOFTAdapterLike(USDS_OFT).setRateLimits():
         RateLimitConfig[] memory usdsOftRateLimitConfigsOutbound = new RateLimitConfig[](1);
 
+        // Note: altered order because dynamic arrays cannot be declared in the argument of the function call:
         // RateLimitConfig[] _rateLimitConfigsInbound being an array with one item:
         usdsOftRateLimitConfigsInbound[0] = RateLimitConfig({
             // uint32 eid being 30106
@@ -456,7 +461,6 @@ contract DssSpellAction is DssAction {
             limit: 5_000_000 * WAD
         });
 
-        // Note: altered order because dynamic arrays cannot be declared in the argument of the function call:
         // USDS_OFT being the address from chainlog
         SkyOFTAdapterLike(USDS_OFT).setRateLimits(
             // Note: rateLimitConfigsInbound dynamic array previously created
