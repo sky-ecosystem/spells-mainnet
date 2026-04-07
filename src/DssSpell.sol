@@ -471,6 +471,9 @@ contract DssSpellAction is DssAction {
 
         DssExecLib.setChangelogAddress("SUSDS_OFT", ETH_SUSDS_OFT);
 
+        // Note: bump Chainlog version
+        DssExecLib.setChangelogVersion("1.20.14");
+
         // ---------- Wire SUSDS_OFT on Ethereum Mainnet with Avalanche Mainnet ----------
         // Forum:
         // Poll:
