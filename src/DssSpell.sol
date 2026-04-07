@@ -114,7 +114,7 @@ contract DssSpellAction is DssAction {
     bytes32 internal constant AVAX_GOV_RECEIVER     = bytes32(uint256(uint160(0x6fdd46947ca6903c8c159d1dF2012Bc7fC5cEeec)));
     bytes32 internal constant AVAX_L2_GOV_RELAY     = bytes32(uint256(uint160(0xe928885BCe799Ed933651715608155F01abA23cA)));
     bytes32 internal constant AVAX_USDS_OFT         = bytes32(uint256(uint160(0x4fec40719fD9a8AE3F8E20531669DEC5962D2619)));
-    address internal constant SUSDS_OFT             = 0x85A3FE4DA2a6cB98A5bdF62458B0dB8471B9f0f1;
+    address internal constant ETH_SUSDS_OFT             = 0x85A3FE4DA2a6cB98A5bdF62458B0dB8471B9f0f1;
     bytes32 internal constant AVAX_SUSDS_OFT        = bytes32(uint256(uint160(0x7297D4811f088FC26bC5475681405B99b41E1FF9)));
 
     // ---------- Spark ----------
@@ -469,14 +469,14 @@ contract DssSpellAction is DssAction {
         // Forum:
         // Poll:
 
-        DssExecLib.setChangelogAddress("SUSDS_OFT", SUSDS_OFT);
+        DssExecLib.setChangelogAddress("SUSDS_OFT", ETH_SUSDS_OFT);
 
         // ---------- Wire SUSDS_OFT on Ethereum Mainnet with Avalanche Mainnet ----------
         // Forum:
         // Poll:
 
         // Set pauser by calling SUSDS_OFT.setPauser with:
-        SkyOFTAdapterLike(SUSDS_OFT).setPauser(
+        SkyOFTAdapterLike(ETH_SUSDS_OFT).setPauser(
             // address _pauser being 0x38d1114b4cE3e079CC0f627df6aC2776B5887776
             0x38d1114b4cE3e079CC0f627df6aC2776B5887776,
             // bool _canPause being true
@@ -485,7 +485,7 @@ contract DssSpellAction is DssAction {
 
         // Set SkyOFTAdapterMintBurn(sUSDS) as a peer on Avalanche by calling SUSDS_OFT.setPeer with:
         // SUSDS_OFT being the address from chainlog
-        SkyOFTAdapterLike(SUSDS_OFT).setPeer(
+        SkyOFTAdapterLike(ETH_SUSDS_OFT).setPeer(
             // uint32 eid being 30106
             AVAX_EID,
             // bytes32 _peer being SkyOFTAdapterMintBurn(sUSDS)
@@ -675,7 +675,7 @@ contract DssSpellAction is DssAction {
         // Set OFT enforced options for Avalanche by calling SUSDS_OFT.setEnforcedOptions with:
         // SUSDS_OFT being the address from chainlog
         // Note: sUsdsOftEnforcedOptions dynamic array previously created
-        SkyOFTAdapterLike(SUSDS_OFT).setEnforcedOptions(sUsdsOftEnforcedOptions);
+        SkyOFTAdapterLike(ETH_SUSDS_OFT).setEnforcedOptions(sUsdsOftEnforcedOptions);
 
         // ---------- Staking Rewards Update ----------
         // Forum:
