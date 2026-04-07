@@ -130,7 +130,7 @@ contract DssSpellAction is DssAction {
     uint8  internal constant LZ_EXECUTOR_WORKER_ID         = 1;
     uint8  internal constant LZ_OPTION_TYPE_LZRECEIVE      = 1;
     uint128 internal constant LZ_GAS                       = 130_000;
-    // Note: option_length = 1 (option type) + 16 (uint128 gas) = 17
+    // Note: option_length = 1 (LZ_OPTION_TYPE_LZRECEIVE, uint8) + 16 (LZ_GAS, uint128) = 17
     uint16  internal constant LZ_OPTION_LENGTH             = 17;
 
     function actions() public override {
