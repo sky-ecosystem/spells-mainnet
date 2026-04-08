@@ -207,11 +207,14 @@ library LZLaneTesting {
     }
 
     function assertEnforcedOptions(LzLaneConfig memory lane) internal view {
+        uint16 SEND_MSG_TYPE = 1;
+        uint16 SEND_CALL_MSG_TYPE = 2;
+
         if (lane.enforcedOptions.length == 0) return;
         ILZOFTAdapter oft = ILZOFTAdapter(lane.localOApp);
         bytes32 expected = keccak256(lane.enforcedOptions);
-        require(keccak256(oft.enforcedOptions(lane.remoteChain.eid, 1)) == expected, "LZLaneTesting/enforced-options-send-mismatch");
-        require(keccak256(oft.enforcedOptions(lane.remoteChain.eid, 2)) == expected, "LZLaneTesting/enforced-options-send-and-call-mismatch");
+        require(keccak256(oft.enforcedOptions(lane.remoteChain.eid, SEND_MSG_TYPE)) == expected, "LZLaneTesting/enforced-options-send-mismatch");
+        require(keccak256(oft.enforcedOptions(lane.remoteChain.eid, SEND_CALL_MSG_TYPE)) == expected, "LZLaneTesting/enforced-options-send-and-call-mismatch");
     }
 
     // --- Encoding helpers ---
@@ -223,9 +226,10 @@ library LZLaneTesting {
     }
 
     function executorLzReceiveOption(uint128 _gas, uint128 _value) internal pure returns (bytes memory) {
-        uint16 TYPE_3      = 3;
-        uint8  WORKER_ID   = 1;
-        uint8  OPTION_TYPE = 1;
+        uint16 TYPE_3      = 3; // Source: https://github.com/LayerZero-Labs/LayerZero-v2/blob/9c741e7f9790639537b1710a203bcdfd73b0b9ac/packages/layerzero-v2/evm/oapp/contracts/oapp/libs/OptionsBuilder.sol#L22
+        uint8  WORKER_ID   = 1; // Source: https://github.com/LayerZero-Labs/LayerZero-v2/blob/9c741e7f9790639537b1710a203bcdfd73b0b9ac/packages/layerzero-v2/evm/messagelib/contracts/libs/ExecutorOptions.sol#L10
+        uint8  OPTION_TYPE = 1; // Source: https://github.com/LayerZero-Labs/LayerZero-v2/blob/9c741e7f9790639537b1710a203bcdfd73b0b9ac/packages/layerzero-v2/evm/messagelib/contracts/libs/ExecutorOptions.sol#L12
+
         if (_value == 0) {
             return abi.encodePacked(TYPE_3, WORKER_ID, uint16(17), OPTION_TYPE, _gas);
         } else {
