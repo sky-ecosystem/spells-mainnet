@@ -1524,6 +1524,11 @@ contract DssSpellTest is DssSpellTestBase {
                 _accountExistsInChain(avaxChain, expectedAccounts[i]),
                 string.concat("TestError/avalanche-account-not-found-", expectedAccounts[i])
             );
+            assertEq(
+                avaxChain.accounts[i].ChildContractScope,
+                0,
+                string.concat("TestError/avalanche-account-child-contract-scope-not-set-", expectedAccounts[i])
+            );
         }
     }
 
