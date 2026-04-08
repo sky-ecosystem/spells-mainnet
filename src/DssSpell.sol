@@ -18,6 +18,7 @@ pragma solidity 0.8.16;
 
 import "dss-exec-lib/DssExec.sol";
 import "dss-exec-lib/DssAction.sol";
+import { GemAbstract } from "dss-interfaces/ERC/GemAbstract.sol";
 // Note: code matches https://github.com/sky-ecosystem/endgame-toolkit/blob/4f238f9b23298190150d49482bad56c00f0af825/script/dependencies/treasury-funded-farms/TreasuryFundedFarmingInit.sol
 import {TreasuryFundedFarmingInit, FarmingUpdateVestParams} from "./dependencies/endgame-toolkit/treasury-funded-farms/TreasuryFundedFarmingInit.sol";
 
@@ -73,6 +74,10 @@ interface StarGuardLike {
     function plot(address _spell, bytes32 _hash) external;
 }
 
+interface DaiUsdsLike {
+    function daiToUsds(address usr, uint256 wad) external;
+}
+
 contract DssSpellAction is DssAction {
     // Provides a descriptive tag for bot consumption
     // This should be modified weekly to provide a summary of the actions
@@ -101,6 +106,8 @@ contract DssSpellAction is DssAction {
 
     // ---------- Contracts ----------
     address internal immutable CHAINLOG                 = DssExecLib.LOG;
+    address internal immutable DAI                      = DssExecLib.dai();
+    address internal immutable DAI_USDS                 = DssExecLib.getChangelogAddress("DAI_USDS");
     address internal immutable LZ_GOV_SENDER            = DssExecLib.getChangelogAddress("LZ_GOV_SENDER");
     address internal immutable LZ_GOV_RELAY             = DssExecLib.getChangelogAddress("LZ_GOV_RELAY");
     address internal immutable USDS_OFT                 = DssExecLib.getChangelogAddress("USDS_OFT");
@@ -108,6 +115,7 @@ contract DssSpellAction is DssAction {
     address internal immutable GROVE_STARGUARD          = DssExecLib.getChangelogAddress("GROVE_STARGUARD");
     address internal immutable REWARDS_DIST_LSSKY_SKY   = DssExecLib.getChangelogAddress("REWARDS_DIST_LSSKY_SKY");
     address internal immutable GROVE_SUBPROXY           = DssExecLib.getChangelogAddress("GROVE_SUBPROXY");
+    address internal immutable SAFE_HARBOR_AGREEMENT    = DssExecLib.getChangelogAddress("SAFE_HARBOR_AGREEMENT");
 
     // ---------- Addresses ----------
     address internal constant SUSDS_OFT_PAUSER = 0x38d1114b4cE3e079CC0f627df6aC2776B5887776;
@@ -772,6 +780,18 @@ contract DssSpellAction is DssAction {
         GemAbstract(DAI).approve(DAI_USDS, wad);
         // Note: Convert Dai to USDS for `usr`.
         DaiUsdsLike(DAI_USDS).daiToUsds(usr, wad);
+    }
+
+    /// @notice Wraps the operations required to update the Safe Harbor agreement.
+    /// @dev This function executes pre-encoded function calls on the Safe Harbor agreement contract.
+    ///      The calldatas array contains ABI-encoded function calls (selector + parameters) that
+    ///      will be executed sequentially on the Safe Harbor agreement contract.
+    /// @param calldatas Array of ABI-encoded function calls to execute on the Safe Harbor agreement contract
+    function _updateSafeHarbor(bytes[] memory calldatas) internal {
+        for (uint256 i = 0; i < calldatas.length; i++) {
+            (bool success,) = SAFE_HARBOR_AGREEMENT.call(calldatas[i]);
+            require(success, "updateSafeHarbor/safe-harbor-update-failed");
+        }
     }
 }
 
