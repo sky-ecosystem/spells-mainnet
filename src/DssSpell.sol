@@ -95,7 +95,7 @@ contract DssSpellAction is DssAction {
     // uint256 internal constant X_PCT_RATE = ;
 
     // ---------- Math ----------
-    uint256 internal constant WAD     = 10 ** 18;
+    uint256 internal constant WAD = 10 ** 18;
 
     // ---------- Contracts ----------
     address internal immutable CHAINLOG         = DssExecLib.LOG;
@@ -105,17 +105,30 @@ contract DssSpellAction is DssAction {
     address internal immutable SPARK_STARGUARD  = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
     address internal immutable GROVE_STARGUARD  = DssExecLib.getChangelogAddress("GROVE_STARGUARD");
 
+    // ---------- Addresses ----------
+    address internal constant SUSDS_OFT_PAUSER = 0x38d1114b4cE3e079CC0f627df6aC2776B5887776;
+
+    // ---------- DVNs ----------
+    address internal constant P2P               = 0x06559EE34D85a88317Bf0bfE307444116c631b67;
+    address internal constant DEUTSCHE_TELEKOM  = 0x373a6E5c0C4E89E24819f00AA37ea370917AAfF4;
+    address internal constant HORIZEN           = 0x380275805876Ff19055EA900CDb2B46a94ecF20D;
+    address internal constant LUGANODES         = 0x58249a2Ec05c1978bF21DF1f5eC1847e42455CF4;
+    address internal constant LAYERZERO_LABS    = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b;
+    address internal constant CANARY            = 0xa4fE5A5B9A846458a70Cd0748228aED3bF65c2cd;
+    address internal constant NETHERMIND        = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5;
+
     // ---------- LayerZero ----------
-    uint32  internal constant AVAX_EID              = 30106;
-    address internal constant ETH_LZ_ENDPOINT       = 0x1a44076050125825900e736c501f859c50fE728c;
-    address internal constant ETH_LZ_SEND_302       = 0xbB2Ea70C9E858123480642Cf96acbcCE1372dCe1;
-    address internal constant ETH_LZ_RECV_302       = 0xc02Ab410f0734EFa3F14628780e6e695156024C2;
-    address internal constant ETH_LZ_EXECUTOR       = 0x173272739Bd7Aa6e4e214714048a9fE699453059;
-    bytes32 internal constant AVAX_GOV_RECEIVER     = bytes32(uint256(uint160(0x6fdd46947ca6903c8c159d1dF2012Bc7fC5cEeec)));
-    bytes32 internal constant AVAX_L2_GOV_RELAY     = bytes32(uint256(uint160(0xe928885BCe799Ed933651715608155F01abA23cA)));
-    bytes32 internal constant AVAX_USDS_OFT         = bytes32(uint256(uint160(0x4fec40719fD9a8AE3F8E20531669DEC5962D2619)));
-    address internal constant ETH_SUSDS_OFT         = 0x85A3FE4DA2a6cB98A5bdF62458B0dB8471B9f0f1;
-    bytes32 internal constant AVAX_SUSDS_OFT        = bytes32(uint256(uint160(0x7297D4811f088FC26bC5475681405B99b41E1FF9)));
+    address internal constant ETH_LZ_ENDPOINT   = 0x1a44076050125825900e736c501f859c50fE728c;
+    address internal constant ETH_LZ_SEND_302   = 0xbB2Ea70C9E858123480642Cf96acbcCE1372dCe1;
+    address internal constant ETH_LZ_RECV_302   = 0xc02Ab410f0734EFa3F14628780e6e695156024C2;
+    address internal constant ETH_LZ_EXECUTOR   = 0x173272739Bd7Aa6e4e214714048a9fE699453059;
+    address internal constant ETH_SUSDS_OFT     = 0x85A3FE4DA2a6cB98A5bdF62458B0dB8471B9f0f1;
+
+    uint32  internal constant AVAX_EID          = 30106;
+    address internal constant AVAX_GOV_RECEIVER = 0x6fdd46947ca6903c8c159d1dF2012Bc7fC5cEeec;
+    address internal constant AVAX_L2_GOV_RELAY = 0xe928885BCe799Ed933651715608155F01abA23cA;
+    address internal constant AVAX_USDS_OFT     = 0x4fec40719fD9a8AE3F8E20531669DEC5962D2619;
+    address internal constant AVAX_SUSDS_OFT    = 0x7297D4811f088FC26bC5475681405B99b41E1FF9;
 
     // ---------- Spark ----------
     address internal constant SPARK_SPELL      = 0xFa5fc020311fCC1A467FEC5886640c7dD746deAa;
@@ -126,9 +139,9 @@ contract DssSpellAction is DssAction {
     bytes32 internal constant GROVE_SPELL_HASH = 0x4fa1f743b3d6d2855390724459129186dd684e1c07d59f88925f0059ba1e6c84;
 
     // Note: OptionsBuilder.addExecutorLzReceiveOption(gas: 130_000, value: 0) constants (0003010011010000000000000000000000000001fbd0)
-    uint16 internal constant LZ_OPTIONS_TYPE_3             = 3;
-    uint8  internal constant LZ_EXECUTOR_WORKER_ID         = 1;
-    uint8  internal constant LZ_OPTION_TYPE_LZRECEIVE      = 1;
+    uint16 internal constant LZ_OPTIONS_TYPE_3             = 3; // Note: https://github.com/LayerZero-Labs/LayerZero-v2/blob/9c741e7f9790639537b1710a203bcdfd73b0b9ac/packages/layerzero-v2/evm/messagelib/contracts/libs/ExecutorOptions.sol#L13
+    uint8  internal constant LZ_EXECUTOR_WORKER_ID         = 1; // Note: https://github.com/LayerZero-Labs/LayerZero-v2/blob/9c741e7f9790639537b1710a203bcdfd73b0b9ac/packages/layerzero-v2/evm/messagelib/contracts/libs/ExecutorOptions.sol#L10
+    uint8  internal constant LZ_OPTION_TYPE_LZRECEIVE      = 1; // Note: https://github.com/LayerZero-Labs/LayerZero-v2/blob/9c741e7f9790639537b1710a203bcdfd73b0b9ac/packages/layerzero-v2/evm/messagelib/contracts/libs/ExecutorOptions.sol#L12
     uint128 internal constant LZ_GAS                       = 130_000;
     // Note: option_length = 1 (LZ_OPTION_TYPE_LZRECEIVE, uint8) + 16 (LZ_GAS, uint128) = 17
     uint16  internal constant LZ_OPTION_LENGTH             = 17;
@@ -144,7 +157,7 @@ contract DssSpellAction is DssAction {
             // uint32 _eid being 30106
             AVAX_EID,
             // bytes32 _peer being 0x6fdd46947ca6903c8c159d1dF2012Bc7fC5cEeec padded with zeros
-            AVAX_GOV_RECEIVER
+            bytes32(uint256(uint160(AVAX_GOV_RECEIVER)))
         );
 
         // Set Oapp SendLibrary for Avalanche by calling EndpointV2.setSendLibrary with:
@@ -168,13 +181,13 @@ contract DssSpellAction is DssAction {
         address[] memory govOptionalDVNs = new address[](7);
 
         // Note: DVN addresses sorted in ascending order
-        govOptionalDVNs[0] = 0x06559EE34D85a88317Bf0bfE307444116c631b67; // P2P
-        govOptionalDVNs[1] = 0x373a6E5c0C4E89E24819f00AA37ea370917AAfF4; // Deutsche Telekom
-        govOptionalDVNs[2] = 0x380275805876Ff19055EA900CDb2B46a94ecF20D; // Horizen
-        govOptionalDVNs[3] = 0x58249a2Ec05c1978bF21DF1f5eC1847e42455CF4; // Luganodes
-        govOptionalDVNs[4] = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b; // LayerZero Labs
-        govOptionalDVNs[5] = 0xa4fE5A5B9A846458a70Cd0748228aED3bF65c2cd; // Canary
-        govOptionalDVNs[6] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
+        govOptionalDVNs[0] = P2P;
+        govOptionalDVNs[1] = DEUTSCHE_TELEKOM;
+        govOptionalDVNs[2] = HORIZEN;
+        govOptionalDVNs[3] = LUGANODES;
+        govOptionalDVNs[4] = LAYERZERO_LABS;
+        govOptionalDVNs[5] = CANARY;
+        govOptionalDVNs[6] = NETHERMIND;
 
         // Note: altered order because dynamic arrays cannot be declared in the argument of the function call:
         // SetConfigParam[] _params being an array with two items:
@@ -183,6 +196,7 @@ contract DssSpellAction is DssAction {
             // uint32 eid being 30106
             eid: AVAX_EID,
             // uint32 configType being 1
+            // Note: https://github.com/LayerZero-Labs/LayerZero-v2/blob/9c741e7f9790639537b1710a203bcdfd73b0b9ac/packages/layerzero-v2/evm/messagelib/contracts/uln/uln302/SendUln302.sol#L16
             configType: 1,
             // bytes config being encoded ExecutorConfig with:
             config: abi.encode(ExecutorConfig({
@@ -198,6 +212,7 @@ contract DssSpellAction is DssAction {
             // uint32 eid being 30106
             eid: AVAX_EID,
             // uint32 configType being 2
+            // Note: https://github.com/LayerZero-Labs/LayerZero-v2/blob/9c741e7f9790639537b1710a203bcdfd73b0b9ac/packages/layerzero-v2/evm/messagelib/contracts/uln/uln302/SendUln302.sol#L17
             configType: 2,
             // bytes config being encoded UlnConfig with:
             config: abi.encode(UlnConfig({
@@ -240,7 +255,7 @@ contract DssSpellAction is DssAction {
             // uint32 _dstEid being 30106
             AVAX_EID,
             // bytes32 _dstTarget being 0xe928885BCe799Ed933651715608155F01abA23cA padded with zeros
-            AVAX_L2_GOV_RELAY,
+            bytes32(uint256(uint160(AVAX_L2_GOV_RELAY))),
             // bool _canCall being true
             true
         );
@@ -255,7 +270,7 @@ contract DssSpellAction is DssAction {
             // uint32 eid being 30106
             AVAX_EID,
             // bytes32 _peer being 0x4fec40719fD9a8AE3F8E20531669DEC5962D2619 padded with zeros
-            AVAX_USDS_OFT
+            bytes32(uint256(uint160(AVAX_USDS_OFT)))
         );
 
         // Set OFT SendLibrary for Avalanche by calling EndpointV2.setSendLibrary with:
@@ -289,8 +304,8 @@ contract DssSpellAction is DssAction {
         address[] memory usdsOftSendRequiredDVNs = new address[](2);
 
         // Note: DVN addresses sorted in ascending order
-        usdsOftSendRequiredDVNs[0] = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b; // LayerZero Labs
-        usdsOftSendRequiredDVNs[1] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
+        usdsOftSendRequiredDVNs[0] = LAYERZERO_LABS;
+        usdsOftSendRequiredDVNs[1] = NETHERMIND;
 
         // Note: Create dynamic array for optionalDVNs:
         address[] memory usdsOftSendOptionalDVNs = new address[](0);
@@ -302,6 +317,7 @@ contract DssSpellAction is DssAction {
             // uint32 eid being 30106
             eid: AVAX_EID,
             // uint32 configType being 1
+            // Note: https://github.com/LayerZero-Labs/LayerZero-v2/blob/9c741e7f9790639537b1710a203bcdfd73b0b9ac/packages/layerzero-v2/evm/messagelib/contracts/uln/uln302/SendUln302.sol#L16
             configType: 1,
             // bytes config being encoded ExecutorConfig with:
             config: abi.encode(ExecutorConfig({
@@ -317,6 +333,7 @@ contract DssSpellAction is DssAction {
             // uint32 eid being 30106
             eid: AVAX_EID,
             // uint32 configType being 2
+            // Note: https://github.com/LayerZero-Labs/LayerZero-v2/blob/9c741e7f9790639537b1710a203bcdfd73b0b9ac/packages/layerzero-v2/evm/messagelib/contracts/uln/uln302/SendUln302.sol#L17
             configType: 2,
             // bytes config being encoded UlnConfig with:
             config: abi.encode(UlnConfig({
@@ -352,8 +369,8 @@ contract DssSpellAction is DssAction {
         address[] memory usdsOftRecvRequiredDVNs = new address[](2);
 
         // Note: DVN addresses sorted in ascending order
-        usdsOftRecvRequiredDVNs[0] = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b; // LayerZero Labs
-        usdsOftRecvRequiredDVNs[1] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
+        usdsOftRecvRequiredDVNs[0] = LAYERZERO_LABS;
+        usdsOftRecvRequiredDVNs[1] = NETHERMIND;
 
         // Note: Create dynamic array for optionalDVNs:
         address[] memory usdsOftRecvOptionalDVNs = new address[](0);
@@ -364,6 +381,7 @@ contract DssSpellAction is DssAction {
             // uint32 eid being 30106
             eid: AVAX_EID,
             // uint32 configType being 2
+            // Note: https://github.com/LayerZero-Labs/LayerZero-v2/blob/9c741e7f9790639537b1710a203bcdfd73b0b9ac/packages/layerzero-v2/evm/messagelib/contracts/uln/uln302/SendUln302.sol#L17
             configType: 2,
             // bytes config being encoded UlnConfig with: (Confirmed by LayerZero)
             config: abi.encode(UlnConfig({
@@ -394,7 +412,8 @@ contract DssSpellAction is DssAction {
 
         // EnforcedOptionParam[] _enforcedOptions being an array with 2 items:
         // Note: equivalent to OptionsBuilder.addExecutorLzReceiveOption(gas: 130_000, value: 0)
-        bytes memory usdsOftEnforcedOptionsData = abi.encodePacked(
+        // Note: https://github.com/LayerZero-Labs/LayerZero-v2/blob/9c741e7f9790639537b1710a203bcdfd73b0b9ac/packages/layerzero-v2/evm/oapp/contracts/oapp/libs/OptionsBuilder.sol#L53
+        bytes memory enforcedOptionsData = abi.encodePacked(
             LZ_OPTIONS_TYPE_3, LZ_EXECUTOR_WORKER_ID, LZ_OPTION_LENGTH, LZ_OPTION_TYPE_LZRECEIVE, LZ_GAS
         );
 
@@ -411,7 +430,8 @@ contract DssSpellAction is DssAction {
             // bytes options being encoded:
             // uint128 _gas being 130_000
             // uint128 _value being 0
-            options: usdsOftEnforcedOptionsData
+            // Note: encoded data generated above
+            options: enforcedOptionsData
         });
 
         // SendAndCallOption (generated with OptionsBuilder.addExecutorLzReceiveOption)
@@ -423,7 +443,8 @@ contract DssSpellAction is DssAction {
             // bytes options being encoded:
             // uint128 _gas being 130_000
             // uint128 _value being 0
-            options: usdsOftEnforcedOptionsData
+            // Note: encoded data generated above
+            options: enforcedOptionsData
         });
 
         // Set OFT enforced options for Avalanche by calling USDS_OFT.setEnforcedOptions with:
@@ -469,10 +490,7 @@ contract DssSpellAction is DssAction {
             usdsOftRateLimitConfigsOutbound
         );
 
-        // ---------- Add 0x85A3FE4DA2a6cB98A5bdF62458B0dB8471B9f0f1 to chainlog as SUSDS_OFT ----------
-        // Forum:
-        // Poll:
-
+        // Add 0x85A3FE4DA2a6cB98A5bdF62458B0dB8471B9f0f1 to chainlog as SUSDS_OFT
         DssExecLib.setChangelogAddress("SUSDS_OFT", ETH_SUSDS_OFT);
 
         // Note: bump Chainlog version
@@ -485,7 +503,7 @@ contract DssSpellAction is DssAction {
         // Set pauser by calling SUSDS_OFT.setPauser with:
         SkyOFTAdapterLike(ETH_SUSDS_OFT).setPauser(
             // address _pauser being 0x38d1114b4cE3e079CC0f627df6aC2776B5887776
-            0x38d1114b4cE3e079CC0f627df6aC2776B5887776,
+            SUSDS_OFT_PAUSER,
             // bool _canPause being true
             true
         );
@@ -496,7 +514,7 @@ contract DssSpellAction is DssAction {
             // uint32 eid being 30106
             AVAX_EID,
             // bytes32 _peer being SkyOFTAdapterMintBurn(sUSDS)
-            AVAX_SUSDS_OFT
+            bytes32(uint256(uint160(AVAX_SUSDS_OFT)))
         );
 
         // Set OFT SendLibrary for Avalanche by calling EndpointV2.setSendLibrary with:
@@ -530,8 +548,8 @@ contract DssSpellAction is DssAction {
         address[] memory sUsdsOftSendRequiredDVNs = new address[](2);
 
         // Note: DVN addresses sorted in ascending order
-        sUsdsOftSendRequiredDVNs[0] = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b; // LayerZero Labs
-        sUsdsOftSendRequiredDVNs[1] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
+        sUsdsOftSendRequiredDVNs[0] = LAYERZERO_LABS;
+        sUsdsOftSendRequiredDVNs[1] = NETHERMIND;
 
         // Note: Create dynamic array for optionalDVNs:
         address[] memory sUsdsOftSendOptionalDVNs = new address[](0);
@@ -543,6 +561,7 @@ contract DssSpellAction is DssAction {
             // uint32 eid being 30106
             eid: AVAX_EID,
             // uint32 configType being 1
+            // Note: https://github.com/LayerZero-Labs/LayerZero-v2/blob/9c741e7f9790639537b1710a203bcdfd73b0b9ac/packages/layerzero-v2/evm/messagelib/contracts/uln/uln302/SendUln302.sol#L16
             configType: 1,
             // bytes config being encoded ExecutorConfig with:
             config: abi.encode(ExecutorConfig({
@@ -558,6 +577,7 @@ contract DssSpellAction is DssAction {
             // uint32 eid being 30106
             eid: AVAX_EID,
             // uint32 configType being 2
+            // Note: https://github.com/LayerZero-Labs/LayerZero-v2/blob/9c741e7f9790639537b1710a203bcdfd73b0b9ac/packages/layerzero-v2/evm/messagelib/contracts/uln/uln302/SendUln302.sol#L17
             configType: 2,
             // bytes config being encoded UlnConfig with:
             config: abi.encode(UlnConfig({
@@ -599,8 +619,8 @@ contract DssSpellAction is DssAction {
         address[] memory sUsdsOftRecvRequiredDVNs = new address[](2);
 
         // Note: DVN addresses sorted in ascending order
-        sUsdsOftRecvRequiredDVNs[0] = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b; // LayerZero Labs
-        sUsdsOftRecvRequiredDVNs[1] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
+        sUsdsOftRecvRequiredDVNs[0] = LAYERZERO_LABS;
+        sUsdsOftRecvRequiredDVNs[1] = NETHERMIND;
 
         // Note: Create dynamic array for optionalDVNs:
         address[] memory sUsdsOftRecvOptionalDVNs = new address[](0);
@@ -611,6 +631,7 @@ contract DssSpellAction is DssAction {
             // uint32 eid being 30106
             eid: AVAX_EID,
             // uint32 configType being 2
+            // Note: https://github.com/LayerZero-Labs/LayerZero-v2/blob/9c741e7f9790639537b1710a203bcdfd73b0b9ac/packages/layerzero-v2/evm/messagelib/contracts/uln/uln302/SendUln302.sol#L17
             configType: 2,
             // bytes config being encoded UlnConfig with:
             config: abi.encode(UlnConfig({
@@ -645,11 +666,6 @@ contract DssSpellAction is DssAction {
             sUsdsOftRecvParams
         );
 
-        // Note: equivalent to OptionsBuilder.addExecutorLzReceiveOption(gas: 130_000, value: 0)
-        bytes memory sUsdsOftEnforcedOptionsData = abi.encodePacked(
-            LZ_OPTIONS_TYPE_3, LZ_EXECUTOR_WORKER_ID, LZ_OPTION_LENGTH, LZ_OPTION_TYPE_LZRECEIVE, LZ_GAS
-        );
-
         // Note: Create dynamic array for _enforcedOptions argument in SkyOFTAdapterLike(SUSDS_OFT).setEnforcedOptions():
         SkyOFTAdapterLike.EnforcedOptionParam[] memory sUsdsOftEnforcedOptions = new SkyOFTAdapterLike.EnforcedOptionParam[](2);
 
@@ -663,7 +679,7 @@ contract DssSpellAction is DssAction {
             // uint128 _gas being 130_000
             // uint128 _value being 0
             // Note: encoded data generated above
-            options: sUsdsOftEnforcedOptionsData
+            options: enforcedOptionsData
         });
 
         // SendAndCallOption
@@ -676,7 +692,7 @@ contract DssSpellAction is DssAction {
             // uint128 _gas being 130_000
             // uint128 _value being 0
             // Note: encoded data generated above
-            options: sUsdsOftEnforcedOptionsData
+            options: enforcedOptionsData
         });
 
         // Set OFT enforced options for Avalanche by calling SUSDS_OFT.setEnforcedOptions with:

@@ -17,7 +17,7 @@
 pragma solidity 0.8.16;
 
 import "./DssSpell.t.base.sol";
-import {LZBridgeTesting, OAppConfig, OFTAdapterConfig} from "./test/helpers/LZBridgeTesting.sol";
+import {LZBridgeTesting, OAppConfig, OFTAdapterConfig, ILZOFTAdapter} from "./test/helpers/LZBridgeTesting.sol";
 
 interface L2Spell {
     function dstDomain() external returns (bytes32);
@@ -1749,19 +1749,31 @@ contract DssSpellTest is DssSpellTestBase {
         address ethGovSender     = addr.addr("LZ_GOV_SENDER");
         address avaxGovReceiver  = avalanche.addr("L2_AVALANCHE_GOV_RECEIVER");
         address avaxL2GovRelay   = avalanche.addr("L2_AVALANCHE_GOV_RELAY");
+        address avaxUsdsOft      = avalanche.addr("L2_AVALANCHE_USDS_OFT");
+
+        // Build a realistic governance action: set rate limits on the Avalanche USDS OFT
+        RateLimitConfig[] memory inbound = new RateLimitConfig[](1);
+        inbound[0] = RateLimitConfig({ eid: 30101, window: uint48(1 days), limit: 10_000_000 * WAD });
+        RateLimitConfig[] memory outbound = new RateLimitConfig[](1);
+        outbound[0] = RateLimitConfig({ eid: 30101, window: uint48(1 days), limit: 10_000_000 * WAD });
+        bytes memory targetData = abi.encodeWithSelector(
+            SkyOFTAdapterLike.setRateLimits.selector, inbound, outbound
+        );
 
         vm.startPrank(pauseProxy);
         vm.deal(pauseProxy, 10 ether);
 
         uint256 nativeFee = 1 ether;
 
-        // Record logs, then relay a governance message to Avalanche
+        // Record logs, then relay the governance message to Avalanche
         vm.recordLogs();
         l1GovernanceRelay.relayEVM{value: nativeFee}(
             AVAX_EID,
             avaxL2GovRelay,
-            address(0x1234),
-            bytes("test-governance-message"),
+            // target: Avalanche USDS OFT adapter
+            avaxUsdsOft,
+            // targetData: setRateLimits call
+            targetData,
             hex"00030100210100000000000000000000000000030d40000000000000000000000000001f1df0",
             L1GovernanceRelayLike.MessagingFee({
                 nativeFee:  nativeFee,
@@ -1773,7 +1785,7 @@ contract DssSpellTest is DssSpellTestBase {
 
         Vm.Log[] memory logs = vm.getRecordedLogs();
 
-        // Relay to Avalanche fork (reverts if delivery fails)
+        // Relay to Avalanche fork
         LZBridgeTesting.relayMessagesToDestination(
             avaxBridge, logs, ethEndpoint, ethGovSender, avaxGovReceiver
         );
