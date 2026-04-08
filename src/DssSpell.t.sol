@@ -61,6 +61,16 @@ struct RateLimitConfig {
     uint256 limit;
 }
 
+/// @notice Minimal spell for testing governance relay on Avalanche.
+///         Deployed on the Avalanche fork and delegatecalled by L2GovernanceRelay.
+///         Inside the delegatecall, address(this) = relay = OFT owner, so regular
+///         calls to the OFT pass the onlyOwner check and write to the OFT's storage.
+contract AvaxSetRateLimitsSpell {
+    function execute(address oft, RateLimitConfig[] calldata inbound, RateLimitConfig[] calldata outbound) external {
+        SkyOFTAdapterLike(oft).setRateLimits(inbound, outbound);
+    }
+}
+
 interface OAppLike {
     function owner() external view returns (address);
     function peers(uint32 eid) external view returns (bytes32 peer);
@@ -937,7 +947,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public skipped { // add the `skipped` modifier to skip
+    function testPayments() public { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -947,24 +957,15 @@ contract DssSpellTest is DssSpellTestBase {
         //    the destination address,
         //    the amount to be paid
         // Initialize the array with the number of payees
-        Payee[10] memory payees = [
-            Payee(address(usds), addr.addr("AMATSU_SUBPROXY"), 25_000_000 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("OZONE_SUBPROXY"), 25_000_000 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("KEEL_SUBPROXY"), 10_000_000 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("PRYSM_SUBPROXY"), 10_000_000 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("SPARK_SUBPROXY"), 1_265_132 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("GROVE_SUBPROXY"), 5_630 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("OBEX_SUBPROXY"), 65_719 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("SKYBASE_SUBPROXY"), 203_134 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG"), 2_545_907 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("CORE_COUNCIL_DELEGATE_MULTISIG"), 127_295 ether) // Note: ether is only a keyword helper
+        Payee[1] memory payees = [
+            Payee(address(usds), addr.addr("GROVE_SUBPROXY"), 20_797_477 ether) // Note: ether is only a keyword helper
         ];
 
         // Fill the total values from exec sheet
         PaymentAmounts memory expectedTotalPayments = PaymentAmounts({
             dai:           0 ether, // Note: ether is only a keyword helper
             mkr:           0 ether, // Note: ether is only a keyword helper
-            usds: 74_212_817 ether, // Note: ether is only a keyword helper
+            usds: 20_797_477 ether, // Note: ether is only a keyword helper
             sky:           0 ether  // Note: ether is only a keyword helper
         });
 
@@ -1521,27 +1522,15 @@ contract DssSpellTest is DssSpellTestBase {
         SafeHarborAgreementLike.Account[] addedAccounts;
     }
 
-    function testUpdateSafeHarborAddedAccounts() public skipped { // add the `skipped` modifier to skip
+    function testUpdateSafeHarborAddedAccounts() public { // add the `skipped` modifier to skip
         SafeHarborAgreementLike agreement = SafeHarborAgreementLike(addr.addr("SAFE_HARBOR_AGREEMENT"));
 
         ChainUpdates[1] memory chainUpdates;
 
         // Build array of accounts to be added to Safe Harbor Agreement
-        SafeHarborAgreementLike.Account[] memory addedAccounts = new SafeHarborAgreementLike.Account[](4);
+        SafeHarborAgreementLike.Account[] memory addedAccounts = new SafeHarborAgreementLike.Account[](1);
         addedAccounts[0] = SafeHarborAgreementLike.Account({
-            accountAddress: "0x9FE628BFc33f0352Bb1f93168881a9Ef93C8d2CF",
-            ChildContractScope: 0
-        });
-        addedAccounts[1] = SafeHarborAgreementLike.Account({
-            accountAddress: "0x9803DA8a51Fa02EEbEc3B1b969a9B80f9115cD80",
-            ChildContractScope: 0
-        });
-        addedAccounts[2] = SafeHarborAgreementLike.Account({
-            accountAddress: "0xF33B14329e7115dD0B40DBb2985E1A0Df10E3fAa",
-            ChildContractScope: 0
-        });
-        addedAccounts[3] = SafeHarborAgreementLike.Account({
-            accountAddress: "0xF7469b6db1FDD3354969605e168585b8eeB5F08D",
+            accountAddress: "0x85A3FE4DA2a6cB98A5bdF62458B0dB8471B9f0f1",
             ChildContractScope: 0
         });
 
@@ -1591,6 +1580,47 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
+
+    function testSafeHarborAvalancheOnboarding() public {
+        SafeHarborAgreementLike agreement = SafeHarborAgreementLike(addr.addr("SAFE_HARBOR_AGREEMENT"));
+        string memory avaxChainId = "eip155:43114";
+
+        // Verify Avalanche chain does not exist before spell
+        SafeHarborAgreementLike.AgreementDetails memory detailsBefore = agreement.getDetails();
+        for (uint256 i = 0; i < detailsBefore.chains.length; i++) {
+            assertFalse(
+                _compareStrings(detailsBefore.chains[i].caip2ChainId, avaxChainId),
+                "TestError/avalanche-chain-already-exists-before-spell"
+            );
+        }
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // Verify Avalanche chain exists after spell with the correct accounts
+        SafeHarborAgreementLike.AgreementDetails memory detailsAfter = agreement.getDetails();
+        SafeHarborAgreementLike.Chain memory avaxChain = _findChain(detailsAfter, avaxChainId);
+
+        string[8] memory expectedAccounts = [
+            "0x6fdd46947ca6903c8c159d1dF2012Bc7fC5cEeec", // GovernanceOAppReceiver
+            "0xe928885BCe799Ed933651715608155F01abA23cA", // L2GovernanceRelay
+            "0xB5bc5dFe65a9ec30738DB3a0b592B8a18A191300", // USDS implementation
+            "0x86Ff09db814ac346a7C6FE2Cd648F27706D1D470", // USDS proxy
+            "0x4fec40719fD9a8AE3F8E20531669DEC5962D2619", // SkyOFTAdapterMintBurn(USDS)
+            "0xc8dB83458e8593Ed9a2D81DC29068B12D330729a", // sUSDS implementation
+            "0xb94D9613C7aAB11E548a327154Cc80eCa911B5c1", // sUSDS proxy
+            "0x7297D4811f088FC26bC5475681405B99b41E1FF9"  // SkyOFTAdapterMintBurn(sUSDS)
+        ];
+
+        assertEq(avaxChain.accounts.length, expectedAccounts.length, "TestError/avalanche-wrong-account-count");
+        for (uint256 i = 0; i < expectedAccounts.length; i++) {
+            assertTrue(
+                _accountExistsInChain(avaxChain, expectedAccounts[i]),
+                string.concat("TestError/avalanche-account-not-found-", expectedAccounts[i])
+            );
+        }
+    }
 
     // --- LZ config tests ---
 
@@ -1751,13 +1781,21 @@ contract DssSpellTest is DssSpellTestBase {
         address avaxL2GovRelay   = avalanche.addr("L2_AVALANCHE_GOV_RELAY");
         address avaxUsdsOft      = avalanche.addr("L2_AVALANCHE_USDS_OFT");
 
-        // Build a realistic governance action: set rate limits on the Avalanche USDS OFT
+        // Deploy a spell on Avalanche that the relay will delegatecall into.
+        // Inside delegatecall: address(this) = relay = OFT owner, so the spell's
+        // regular call to usdsOft.setRateLimits passes the onlyOwner check and
+        // writes state to the OFT's own storage.
+        vm.selectFork(avaxBridge.forkId);
+        address avaxSpell = address(new AvaxSetRateLimitsSpell());
+        vm.selectFork(0); // back to mainnet
+
+        // Build the governance payload
         RateLimitConfig[] memory inbound = new RateLimitConfig[](1);
         inbound[0] = RateLimitConfig({ eid: 30101, window: uint48(1 days), limit: 10_000_000 * WAD });
         RateLimitConfig[] memory outbound = new RateLimitConfig[](1);
         outbound[0] = RateLimitConfig({ eid: 30101, window: uint48(1 days), limit: 10_000_000 * WAD });
         bytes memory targetData = abi.encodeWithSelector(
-            SkyOFTAdapterLike.setRateLimits.selector, inbound, outbound
+            AvaxSetRateLimitsSpell.execute.selector, avaxUsdsOft, inbound, outbound
         );
 
         vm.startPrank(pauseProxy);
@@ -1770,9 +1808,8 @@ contract DssSpellTest is DssSpellTestBase {
         l1GovernanceRelay.relayEVM{value: nativeFee}(
             AVAX_EID,
             avaxL2GovRelay,
-            // target: Avalanche USDS OFT adapter
-            avaxUsdsOft,
-            // targetData: setRateLimits call
+            // target: spell on Avalanche (relay delegatecalls it, spell calls OFT)
+            avaxSpell,
             targetData,
             hex"00030100210100000000000000000000000000030d40000000000000000000000000001f1df0",
             L1GovernanceRelayLike.MessagingFee({
@@ -1789,6 +1826,14 @@ contract DssSpellTest is DssSpellTestBase {
         LZBridgeTesting.relayMessagesToDestination(
             avaxBridge, logs, ethEndpoint, ethGovSender, avaxGovReceiver
         );
+
+        // Verify: rate limits were updated on the Avalanche USDS OFT
+        (,uint48 outW,, uint256 outL) = ILZOFTAdapter(avaxUsdsOft).outboundRateLimits(30101);
+        (,uint48  inW,, uint256  inL) = ILZOFTAdapter(avaxUsdsOft).inboundRateLimits(30101);
+        assertEq(outW, uint48(1 days), "TestError/avax-gov-relay-outbound-window-not-set");
+        assertEq(outL, 10_000_000 * WAD, "TestError/avax-gov-relay-outbound-limit-not-set");
+        assertEq(inW, uint48(1 days), "TestError/avax-gov-relay-inbound-window-not-set");
+        assertEq(inL, 10_000_000 * WAD, "TestError/avax-gov-relay-inbound-limit-not-set");
     }
 
     function testUsdsOftAvalancheE2E() public {
