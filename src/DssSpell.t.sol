@@ -51,16 +51,6 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
-/// @notice Minimal spell for testing governance relay on Avalanche.
-///         Deployed on the Avalanche fork and delegatecalled by L2GovernanceRelay.
-///         Inside the delegatecall, address(this) = relay = OFT owner, so regular
-///         calls to the OFT pass the onlyOwner check and write to the OFT's storage.
-contract AvaxSetRateLimitsSpell {
-    function execute(address oft, RateLimitConfig[] calldata inbound, RateLimitConfig[] calldata outbound) external {
-        SkyOFTAdapterLike(oft).setRateLimits(inbound, outbound);
-    }
-}
-
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -1881,5 +1871,12 @@ contract DssSpellTest is DssSpellTestBase {
             requiredDVNs: ethDVNs, optionalDVNs: new address[](0)
         });
         lane.enforcedOptions = LZLaneTesting.executorLzReceiveOption(130_000);
+    }
+}
+
+/// @notice Minimal spell for testing governance relay on Avalanche.
+contract AvaxSetRateLimitsSpell {
+    function execute(address oft, RateLimitConfig[] calldata inbound, RateLimitConfig[] calldata outbound) external {
+        SkyOFTAdapterLike(oft).setRateLimits(inbound, outbound);
     }
 }
