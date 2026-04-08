@@ -1617,6 +1617,18 @@ contract DssSpellTest is DssSpellTestBase {
         LZLaneTesting.assertSendUln(lane);
         LZLaneTesting.assertReceiveUln(lane);
         LZLaneTesting.assertEnforcedOptions(lane);
+
+        // L2 (Avalanche) — verify deployer is denied on sUSDS token proxy
+        {
+            address avaxSUsds    = avalanche.addr("L2_AVALANCHE_SUSDS");
+            address avaxDeployer = avalanche.addr("L2_AVALANCHE_DEPLOYER");
+            vm.createSelectFork(vm.envString("AVAX_RPC_URL"));
+            assertEq(
+                WardsAbstract(avaxSUsds).wards(avaxDeployer),
+                0,
+                "TestError/susds/deployer-still-ward-on-avax-susds"
+            );
+        }
     }
 
     function testUsdsOftAvalancheRateLimits() public {
