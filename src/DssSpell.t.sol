@@ -1637,6 +1637,66 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(inL, 5_000_000 * WAD, "TestError/usds/inbound-limit-mismatch");
     }
 
+    struct OftPauseTestCase {
+        address oft;
+        address pauser;
+        address unpauser;
+        string  label;
+    }
+
+    function testOftPauseUnpause() public {
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // Capture all addresses before fork switch
+        OftPauseTestCase[] memory ethCases = new OftPauseTestCase[](1);
+        ethCases[0] = OftPauseTestCase({
+            oft:      addr.addr("SUSDS_OFT"),
+            pauser:   addr.addr("SUSDS_OFT_PAUSER"),
+            unpauser: pauseProxy,
+            label:    "eth-susds-oft"
+        });
+
+        OftPauseTestCase[] memory avaxCases = new OftPauseTestCase[](2);
+        avaxCases[0] = OftPauseTestCase({
+            oft:      avalanche.addr("L2_AVALANCHE_USDS_OFT"),
+            pauser:   avalanche.addr("L2_AVALANCHE_OFT_PAUSER"),
+            unpauser: avalanche.addr("L2_AVALANCHE_GOV_RELAY"),
+            label:    "avax-usds-oft"
+        });
+        avaxCases[1] = OftPauseTestCase({
+            oft:      avalanche.addr("L2_AVALANCHE_SUSDS_OFT"),
+            pauser:   avalanche.addr("L2_AVALANCHE_OFT_PAUSER"),
+            unpauser: avalanche.addr("L2_AVALANCHE_GOV_RELAY"),
+            label:    "avax-susds-oft"
+        });
+
+        // Ethereum OFTs
+        for (uint256 i = 0; i < ethCases.length; i++) {
+            _assertPauseUnpause(ethCases[i]);
+        }
+
+        // Avalanche OFTs
+        vm.createSelectFork(vm.envString("AVAX_RPC_URL"));
+        for (uint256 i = 0; i < avaxCases.length; i++) {
+            _assertPauseUnpause(avaxCases[i]);
+        }
+    }
+
+    function _assertPauseUnpause(OftPauseTestCase memory tc) internal {
+        SkyOFTAdapterLike oft = SkyOFTAdapterLike(tc.oft);
+        assertFalse(oft.paused(), string.concat("TestError/", tc.label, "/already-paused"));
+
+        vm.prank(tc.pauser);
+        oft.pause();
+        assertTrue(oft.paused(), string.concat("TestError/", tc.label, "/not-paused"));
+
+        vm.prank(tc.unpauser);
+        oft.unpause();
+        assertFalse(oft.paused(), string.concat("TestError/", tc.label, "/not-unpaused"));
+    }
+
     function testGovernanceRelayAvalancheE2E() public {
         LzLaneConfig memory lane = _avalancheGovLane();
         uint256 ethFork = vm.activeFork();

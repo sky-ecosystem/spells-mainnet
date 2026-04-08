@@ -99,7 +99,10 @@ interface SkyOFTAdapterLike is ILZOApp {
     }
     function enforcedOptions(uint32 eid, uint16 msgType) external view returns (bytes memory);
     function inboundRateLimits(uint32 dstEid) external view returns (uint128 lastUpdated, uint48 window, uint256 amountInFlight, uint256 limit);
+    function pause() external;
+    function paused() external view returns (bool);
     function pausers(address pauser) external view returns (bool canPause);
+    function unpause() external;
     function quoteSend(SendParam memory _sendParam, bool _payInLzToken) external view returns (MessagingFee memory msgFee);
     function send(SendParam memory _sendParam, MessagingFee memory _fee, address _refundAddress)
         external payable returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt);
