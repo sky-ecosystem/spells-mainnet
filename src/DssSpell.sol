@@ -161,7 +161,6 @@ contract DssSpellAction is DssAction {
     function actions() public override {
         // ---------- Wire LZ_GOV_SENDER on Ethereum Mainnet with Avalanche Mainnet ----------
         // Forum: https://forum.skyeco.com/t/skylink-bridge-to-avalanche/27825
-        // Poll:
 
         // Set GovernanceOAppReceiver as a peer on Avalanche by calling LZ_GOV_SENDER.setPeer with:
         // LZ_GOV_SENDER being the address from chainlog
@@ -255,9 +254,7 @@ contract DssSpellAction is DssAction {
             setConfigParams
         );
 
-        // ---------- Allow LZ_GOV_SENDER to send messages to Avalanche ----------
-        // Forum:
-        // Poll:
+        // Allow LZ_GOV_SENDER to send messages to Avalanche
 
         // Call LZ_GOV_SENDER.setCanCallTarget with:
         // LZ_GOV_SENDER being the address from chainlog
@@ -272,9 +269,7 @@ contract DssSpellAction is DssAction {
             true
         );
 
-        // ---------- Wire USDS_OFT on Ethereum Mainnet with Avalanche Mainnet ----------
-        // Forum:
-        // Poll:
+        // Wire USDS_OFT on Ethereum Mainnet with Avalanche Mainnet
 
         // Set SkyOFTAdapterMintBurn(USDS) as a peer on Avalanche by calling USDS_OFT.setPeer with:
         // USDS_OFT being the address from chainlog
@@ -464,9 +459,7 @@ contract DssSpellAction is DssAction {
         // Note: enforcedOptions dynamic array previously created
         SkyOFTAdapterLike(USDS_OFT).setEnforcedOptions(usdsOftEnforcedOptions);
 
-        // ---------- Set USDS rate limits for Avalanche ----------
-        // Forum:
-        // Poll:
+        // Set USDS rate limits for Avalanche
 
         // Note: Create dynamic array for _rateLimitConfigsInbound argument in SkyOFTAdapterLike(USDS_OFT).setRateLimits():
         RateLimitConfig[] memory usdsOftRateLimitConfigsInbound = new RateLimitConfig[](1);
@@ -508,9 +501,7 @@ contract DssSpellAction is DssAction {
         // Note: bump Chainlog version
         DssExecLib.setChangelogVersion("1.20.15");
 
-        // ---------- Wire SUSDS_OFT on Ethereum Mainnet with Avalanche Mainnet ----------
-        // Forum:
-        // Poll:
+        // Wire SUSDS_OFT on Ethereum Mainnet with Avalanche Mainnet
 
         // Set pauser by calling SUSDS_OFT.setPauser with:
         SkyOFTAdapterLike(ETH_SUSDS_OFT).setPauser(
@@ -713,8 +704,8 @@ contract DssSpellAction is DssAction {
         SkyOFTAdapterLike(ETH_SUSDS_OFT).setEnforcedOptions(sUsdsOftEnforcedOptions);
 
         // ---------- Staking Rewards Update ----------
-        // Forum:
-        // Poll:
+        // Forum: https://forum.skyeco.com/t/lssky-to-sky-rewards-sky-rewards-for-sky-stakers-normalization-configuration/27721/6
+        // Poll: https://vote.sky.money/polling/QmW61Lnd
 
         // Update LSSKY->SKY Farm vest by calling `TreasuryFundedFarmingInit.updateFarmVest()` with params:
         TreasuryFundedFarmingInit.updateFarmVest(FarmingUpdateVestParams({
@@ -729,15 +720,14 @@ contract DssSpellAction is DssAction {
         }));
 
         // ---------- Grove Genesis Capital Transfer ----------
-        // Forum:
-        // Poll:
+        // Atlas: https://sky-atlas.io/#062fdb39-464e-4a5b-a44f-3462d2d38be5
+        // Atlas: https://sky-atlas.io/#5a62cc3f-4337-4770-a4d1-8a9b3d158b3f
 
         // Transfer 20,797,477 USDS to the GROVE_SUBPROXY
         _transferUsds(GROVE_SUBPROXY, 20_797_477 * WAD);
 
         // ---------- Safe Harbor Update ----------
-        // Forum:
-        // Poll:
+        // Atlas: https://sky-atlas.io/#fcd868db-4a91-4ee0-baf5-1ebd40fc651e
 
         // Note: Code below is generated via Safe Harbor script, thus the formatting may be different than the usual spell instructions format
         // ---------- Bug Bounty Updates ----------
@@ -752,15 +742,17 @@ contract DssSpellAction is DssAction {
         _updateSafeHarbor(calldatas);
 
         // ---------- Spark Proxy Spell ----------
-        // Forum:
-        // Poll:
+        // Forum: https://forum.skyeco.com/t/april-9-2026-proposed-changes-to-spark-for-upcoming-spell/27804
+        // Atlas: https://sky-atlas.io/#A.6.1.1.1.2.6.1.2.1.2.3
+        // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0x6c889e7be8fba52d9cac4bd2e89c9bcb4ee1952afb40b555e87bf09062cb837f
+        // Poll: https://snapshot.org/#/s:sparkfi.eth/proposal/0x51bf5882e51b16c35ea596cf0ca69d52aeec912c1a72b84b6512d2d5f07a0167
 
         // Whitelist Spark spell with address 0xFa5fc020311fCC1A467FEC5886640c7dD746deAa and codehash 0x2572a97846f7a6f9f159a9a69c2707cfa4186c061de2a0ec59e7a0d46473c74c in SPARK_STARGUARD, direct execution: No
         StarGuardLike(SPARK_STARGUARD).plot(SPARK_SPELL, SPARK_SPELL_HASH);
 
         // ---------- Grove Proxy Spell ----------
-        // Forum:
-        // Poll:
+        // Forum: https://forum.skyeco.com/t/april-9th-2026-proposed-changes-to-grove-for-upcoming-spell/27801
+        // Poll: https://vote.sky.money/polling/QmafyxBw
 
         // Whitelist Grove spell with address 0x679eD4739c71300f7d78102AE5eE17EF8b8b2162 and codehash 0x4fa1f743b3d6d2855390724459129186dd684e1c07d59f88925f0059ba1e6c84 in GROVE_STARGUARD, direct execution: No
         StarGuardLike(GROVE_STARGUARD).plot(GROVE_SPELL, GROVE_SPELL_HASH);
