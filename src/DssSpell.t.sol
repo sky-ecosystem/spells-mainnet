@@ -1585,7 +1585,7 @@ contract DssSpellTest is DssSpellTestBase {
         LZLaneTesting.assertEnforcedOptions(lane);
 
         // L2 (Avalanche) config — predeployed; verify it matches
-        vm.selectFork(avaxForkId);
+        vm.createSelectFork(vm.envString("AVAX_RPC_URL"));
         LZLaneTesting.assertPeerSet(reverseLane);
         LZLaneTesting.assertSendLibrary(reverseLane);
         LZLaneTesting.assertReceiveLibrary(reverseLane);
@@ -1642,9 +1642,8 @@ contract DssSpellTest is DssSpellTestBase {
         address avaxUsdsOft    = avalanche.addr("L2_AVALANCHE_USDS_OFT");
 
         // Deploy a spell on Avalanche for the relay to delegatecall into
-        vm.selectFork(avaxForkId);
+        uint256 avaxFork = vm.createSelectFork(vm.envString("AVAX_RPC_URL"));
         address avaxSpell = address(new AvaxSetRateLimitsSpell());
-        uint256 avaxFork = vm.activeFork();
         vm.selectFork(ethFork);
 
         _vote(address(spell));
@@ -1693,12 +1692,11 @@ contract DssSpellTest is DssSpellTestBase {
         LzLaneConfig memory lane = _avalancheUsdsLane();
         LzLaneConfig memory reverseLane = _avalancheUsdsRemoteLane();
         uint256 ethFork = vm.activeFork();
-        uint256 avaxFork = avaxForkId;
         address avaxUsds = avalanche.addr("L2_AVALANCHE_USDS");
         address recipient = makeAddr("avalanche-recipient");
 
         // Capture Avalanche supply before
-        vm.selectFork(avaxFork);
+        uint256 avaxFork = vm.createSelectFork(vm.envString("AVAX_RPC_URL"));
         uint256 avaxSupplyBefore = GemAbstract(avaxUsds).totalSupply();
         vm.selectFork(ethFork);
 
