@@ -1557,6 +1557,13 @@ contract DssSpellTest is DssSpellTestBase {
         LZLaneTesting.assertSendUln(lane);
 
         assertTrue(govOapp.canCallTarget(govRelay, lane.remoteChain.eid, avaxL2GovRelay), "TestError/gov/can-call-target-not-set");
+
+        // L2 (Avalanche) — GovernanceOAppReceiver config (predeployed)
+        LzLaneConfig memory govRemoteLane = _avalancheGovRemoteLane();
+        vm.createSelectFork(vm.envString("AVAX_RPC_URL"));
+        LZLaneTesting.assertPeerSet(govRemoteLane);
+        LZLaneTesting.assertReceiveLibrary(govRemoteLane);
+        LZLaneTesting.assertReceiveUln(govRemoteLane);
     }
 
     function testWireUsdsOftAvalanche() public {
@@ -1613,17 +1620,21 @@ contract DssSpellTest is DssSpellTestBase {
         LZLaneTesting.assertReceiveUln(lane);
         LZLaneTesting.assertEnforcedOptions(lane);
 
-        // L2 (Avalanche) — verify deployer is denied on sUSDS token proxy
-        {
-            address avaxSUsds    = avalanche.addr("L2_AVALANCHE_SUSDS");
-            address avaxDeployer = avalanche.addr("L2_AVALANCHE_DEPLOYER");
-            vm.createSelectFork(vm.envString("AVAX_RPC_URL"));
-            assertEq(
-                WardsAbstract(avaxSUsds).wards(avaxDeployer),
-                0,
-                "TestError/susds/deployer-still-ward-on-avax-susds"
-            );
-        }
+        // L2 (Avalanche) — sUSDS OFT config (predeployed) + deployer ward check
+        LzLaneConfig memory reverseLane = _avalancheSUsdsRemoteLane();
+        address avaxSUsds    = avalanche.addr("L2_AVALANCHE_SUSDS");
+        address avaxDeployer = avalanche.addr("L2_AVALANCHE_DEPLOYER");
+
+        vm.createSelectFork(vm.envString("AVAX_RPC_URL"));
+        LZLaneTesting.assertPeerSet(reverseLane);
+        LZLaneTesting.assertSendLibrary(reverseLane);
+        LZLaneTesting.assertReceiveLibrary(reverseLane);
+        LZLaneTesting.assertSendExecutor(reverseLane);
+        LZLaneTesting.assertSendUln(reverseLane);
+        LZLaneTesting.assertReceiveUln(reverseLane);
+        LZLaneTesting.assertEnforcedOptions(reverseLane);
+
+        assertEq(WardsAbstract(avaxSUsds).wards(avaxDeployer), 0, "TestError/susds/deployer-still-ward-on-avax-susds");
     }
 
     function testUsdsOftAvalancheRateLimits() public {
@@ -1936,6 +1947,50 @@ contract DssSpellTest is DssSpellTestBase {
             requiredDVNs: ethDVNs, optionalDVNs: new address[](0)
         });
         lane.enforcedOptions = LZLaneTesting.executorLzReceiveOption(130_000);
+    }
+
+    function _avalancheSUsdsRemoteLane() internal view returns (LzLaneConfig memory) {
+        address[] memory avaxDVNs = new address[](2);
+        avaxDVNs[0] = 0x962F502A63F5FBeB44DC9ab932122648E8352959; // LayerZero Labs (Avalanche)
+        avaxDVNs[1] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
+
+        return LZLaneTesting.reverse(
+            _avalancheSUsdsLane(),
+            LzUlnConfig({ confirmations: 12, requiredDVNCount: 2, optionalDVNCount: 0, optionalDVNThreshold: 0, requiredDVNs: avaxDVNs, optionalDVNs: new address[](0) }),
+            LzUlnConfig({ confirmations: 15, requiredDVNCount: 2, optionalDVNCount: 0, optionalDVNThreshold: 0, requiredDVNs: avaxDVNs, optionalDVNs: new address[](0) }),
+            LZLaneTesting.executorLzReceiveOption(130_000)
+        );
+    }
+
+    function _avalancheGovRemoteLane() internal view returns (LzLaneConfig memory lane) {
+        // GovernanceOAppReceiver on Avalanche is receive-only: no send executor, no send ULN
+        // It has a receive ULN config with 7 optional DVNs (Avalanche addresses)
+        address[] memory avaxOptDVNs = new address[](7);
+        avaxOptDVNs[0] = 0x07C05EaB7716AcB6f83ebF6268F8EECDA8892Ba1; // Horizen
+        avaxOptDVNs[1] = 0x962F502A63F5FBeB44DC9ab932122648E8352959; // LayerZero Labs
+        avaxOptDVNs[2] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
+        avaxOptDVNs[3] = 0xbe57e9E7d9eB16B92C6383792aBe28D64a18c0F1; // Deutsche Telekom
+        avaxOptDVNs[4] = 0xcC49E6fca014c77E1Eb604351cc1E08C84511760; // Canary
+        avaxOptDVNs[5] = 0xE4193136B92bA91402313e95347c8e9FAD8d27d0; // Luganodes
+        avaxOptDVNs[6] = 0xE94aE34DfCC87A61836938641444080B98402c75; // P2P
+
+        lane.localChain = LzChainConfig({
+            eid: 30106, endpoint: avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"),
+            sendLib302: avalanche.addr("L2_AVALANCHE_LZ_SEND_302"), recvLib302: avalanche.addr("L2_AVALANCHE_LZ_RECV_302")
+        });
+        lane.remoteChain = LzChainConfig({
+            eid: 30101, endpoint: addr.addr("LZ_ENDPOINT"),
+            sendLib302: addr.addr("LZ_SEND_302"), recvLib302: address(0)
+        });
+        lane.localOApp  = avalanche.addr("L2_AVALANCHE_GOV_RECEIVER");
+        lane.remoteOApp = addr.addr("LZ_GOV_SENDER");
+        lane.remotePeer = LZLaneTesting.toBytes32(lane.remoteOApp);
+        // Note: GovernanceOAppReceiver has no send config (receive-only)
+        // Receive ULN config: 7 optional DVNs, threshold 4, no required DVNs
+        lane.recvUln = LzUlnConfig({
+            confirmations: 15, requiredDVNCount: 0, optionalDVNCount: 7, optionalDVNThreshold: 4,
+            requiredDVNs: new address[](0), optionalDVNs: avaxOptDVNs
+        });
     }
 }
 
