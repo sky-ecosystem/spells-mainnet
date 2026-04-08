@@ -255,6 +255,7 @@ contract DssSpellAction is DssAction {
         );
 
         // Allow LZ_GOV_SENDER to send messages to Avalanche
+        // Note: This is only a subheading, actual instructions follow below.
 
         // Call LZ_GOV_SENDER.setCanCallTarget with:
         // LZ_GOV_SENDER being the address from chainlog
@@ -270,6 +271,7 @@ contract DssSpellAction is DssAction {
         );
 
         // Wire USDS_OFT on Ethereum Mainnet with Avalanche Mainnet
+        // Note: This is only a subheading, actual instructions follow below.
 
         // Set SkyOFTAdapterMintBurn(USDS) as a peer on Avalanche by calling USDS_OFT.setPeer with:
         // USDS_OFT being the address from chainlog
@@ -352,7 +354,9 @@ contract DssSpellAction is DssAction {
                 optionalDVNCount: 0,
                 // uint8 optionalDVNThreshold being 0
                 optionalDVNThreshold: 0,
+                // address[] requiredDVNs being an array with 2 addresses: [0x589dEDbD617e0CBcB916A9223F4d1300c294236b (LayerZero Labs), 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5 (Nethermind)]
                 requiredDVNs: usdsOftSendRequiredDVNs,
+                // address[] optionalDVNs being an array with 0 addresses
                 optionalDVNs: usdsOftSendOptionalDVNs
             }))
         });
@@ -390,7 +394,7 @@ contract DssSpellAction is DssAction {
             // uint32 configType being 2
             // Note: https://github.com/LayerZero-Labs/LayerZero-v2/blob/9c741e7f9790639537b1710a203bcdfd73b0b9ac/packages/layerzero-v2/evm/messagelib/contracts/uln/uln302/SendUln302.sol#L17
             configType: 2,
-            // bytes config being encoded UlnConfig with: (Confirmed by LayerZero)
+            // bytes config being encoded UlnConfig with:
             config: abi.encode(UlnConfig({
                 // uint64 confirmations being 12 (default configuration from source)
                 confirmations: 12,
@@ -400,7 +404,9 @@ contract DssSpellAction is DssAction {
                 optionalDVNCount: 0,
                 // uint8 optionalDVNThreshold being 0
                 optionalDVNThreshold: 0,
+                // address[] requiredDVNs being an array with 2 addresses: [0x589dEDbD617e0CBcB916A9223F4d1300c294236b (LayerZero Labs), 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5 (Nethermind)]
                 requiredDVNs: usdsOftRecvRequiredDVNs,
+                // address[] optionalDVNs being an array with 0 addresses
                 optionalDVNs: usdsOftRecvOptionalDVNs
             }))
         });
@@ -460,6 +466,7 @@ contract DssSpellAction is DssAction {
         SkyOFTAdapterLike(USDS_OFT).setEnforcedOptions(usdsOftEnforcedOptions);
 
         // Set USDS rate limits for Avalanche
+        // Note: This is only a subheading, actual instructions follow below.
 
         // Note: Create dynamic array for _rateLimitConfigsInbound argument in SkyOFTAdapterLike(USDS_OFT).setRateLimits():
         RateLimitConfig[] memory usdsOftRateLimitConfigsInbound = new RateLimitConfig[](1);
@@ -502,6 +509,7 @@ contract DssSpellAction is DssAction {
         DssExecLib.setChangelogVersion("1.20.15");
 
         // Wire SUSDS_OFT on Ethereum Mainnet with Avalanche Mainnet
+        // Note: This is only a subheading, actual instructions follow below.
 
         // Set pauser by calling SUSDS_OFT.setPauser with:
         SkyOFTAdapterLike(ETH_SUSDS_OFT).setPauser(
@@ -524,7 +532,7 @@ contract DssSpellAction is DssAction {
         // EndpointV2 being 0x1a44076050125825900e736c501f859c50fE728c
         EndpointV2Like(ETH_LZ_ENDPOINT).setSendLibrary(
             // address _oapp being SUSDS_OFT from chainlog
-            DssExecLib.getChangelogAddress("SUSDS_OFT"),
+            ETH_SUSDS_OFT,
             // uint32 _eid being 30106
             AVAX_EID,
             // address _newLib being 0xbB2Ea70C9E858123480642Cf96acbcCE1372dCe1
@@ -535,7 +543,7 @@ contract DssSpellAction is DssAction {
         // EndpointV2 being 0x1a44076050125825900e736c501f859c50fE728c
         EndpointV2Like(ETH_LZ_ENDPOINT).setReceiveLibrary(
         // address _oapp being SUSDS_OFT from chainlog
-            DssExecLib.getChangelogAddress("SUSDS_OFT"),
+            ETH_SUSDS_OFT,
             // uint32 _eid being 30106
             AVAX_EID,
             // address _newLib being 0xc02Ab410f0734EFa3F14628780e6e695156024C2
