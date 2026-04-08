@@ -19,7 +19,7 @@ pragma solidity 0.8.16;
 import "dss-exec-lib/DssExec.sol";
 import "dss-exec-lib/DssAction.sol";
 import { GemAbstract } from "dss-interfaces/ERC/GemAbstract.sol";
-// Note: code matches https://github.com/sky-ecosystem/endgame-toolkit/blob/4f238f9b23298190150d49482bad56c00f0af825/script/dependencies/treasury-funded-farms/TreasuryFundedFarmingInit.sol
+// Note: Code matches audited code (https://reports.chainsecurity.com/Sky/ChainSecurity_Sky_EndgameToolkit_Audit.pdf)
 import {TreasuryFundedFarmingInit, FarmingUpdateVestParams} from "./dependencies/endgame-toolkit/treasury-funded-farms/TreasuryFundedFarmingInit.sol";
 
 struct UlnConfig {
