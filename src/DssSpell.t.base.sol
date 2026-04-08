@@ -30,7 +30,6 @@ import "./test/addresses_optimism.sol";
 import "./test/addresses_arbitrum.sol";
 import "./test/addresses_avalanche.sol";
 import "./test/addresses_deployers.sol";
-import {LZBridge} from "./test/helpers/LZBridgeTesting.sol";
 import "./test/addresses_wallets.sol";
 import "./test/config.sol";
 
@@ -656,7 +655,7 @@ contract DssSpellTestBase is Config, DssTest {
     Wallets              wallets = new Wallets();
 
     // LayerZero bridge forks
-    LZBridge internal avaxBridge;
+    uint256 internal avaxForkId;
 
     // ADDRESSES
     ChainlogAbstract            chainLog = ChainlogAbstract(   addr.addr("CHANGELOG"));
@@ -975,15 +974,11 @@ contract DssSpellTestBase is Config, DssTest {
         _fixChronicleStaleness(0x24C392CDbF32Cf911B258981a66d5541d85269ce); // Chronicle_BTC_USD_3
         _fixChronicleStaleness(0x46ef0071b1E2fF6B42d36e5A177EA43Ae5917f4E); // Chronicle_ETH_USD_3
 
-        // Setup Avalanche LZ bridge fork (only if AVAX_RPC_URL is available)
+        // Setup Avalanche fork (only if AVAX_RPC_URL is available)
         string memory avaxRpcUrl = vm.envOr("AVAX_RPC_URL", string(""));
         if (bytes(avaxRpcUrl).length > 0) {
             uint256 mainnetForkId = vm.activeFork();
-            avaxBridge = LZBridge({
-                forkId:     vm.createFork(avaxRpcUrl),
-                endpoint:   avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"),
-                receiveLib: avalanche.addr("L2_AVALANCHE_LZ_RECV_302")
-            });
+            avaxForkId = vm.createFork(avaxRpcUrl);
             vm.selectFork(mainnetForkId);
         }
     }

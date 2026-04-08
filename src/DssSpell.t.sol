@@ -1585,7 +1585,7 @@ contract DssSpellTest is DssSpellTestBase {
         LZLaneTesting.assertEnforcedOptions(lane);
 
         // L2 (Avalanche) config — predeployed; verify it matches
-        vm.selectFork(avaxBridge.forkId);
+        vm.selectFork(avaxForkId);
         LZLaneTesting.assertPeerSet(reverseLane);
         LZLaneTesting.assertSendLibrary(reverseLane);
         LZLaneTesting.assertReceiveLibrary(reverseLane);
@@ -1642,7 +1642,7 @@ contract DssSpellTest is DssSpellTestBase {
         address avaxUsdsOft    = avalanche.addr("L2_AVALANCHE_USDS_OFT");
 
         // Deploy a spell on Avalanche for the relay to delegatecall into
-        vm.selectFork(avaxBridge.forkId);
+        vm.selectFork(avaxForkId);
         address avaxSpell = address(new AvaxSetRateLimitsSpell());
         uint256 avaxFork = vm.activeFork();
         vm.selectFork(ethFork);
@@ -1693,7 +1693,7 @@ contract DssSpellTest is DssSpellTestBase {
         LzLaneConfig memory lane = _avalancheUsdsLane();
         LzLaneConfig memory reverseLane = _avalancheUsdsRemoteLane();
         uint256 ethFork = vm.activeFork();
-        uint256 avaxFork = avaxBridge.forkId;
+        uint256 avaxFork = avaxForkId;
         address avaxUsds = avalanche.addr("L2_AVALANCHE_USDS");
         address recipient = makeAddr("avalanche-recipient");
 

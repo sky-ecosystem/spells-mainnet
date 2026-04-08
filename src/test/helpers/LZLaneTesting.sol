@@ -21,7 +21,7 @@ pragma solidity 0.8.16;
 // Low-level packet relay is delegated to LZBridgeTesting.
 
 import {Vm} from "forge-std/Vm.sol";
-import {LZBridgeTesting, LZBridge} from "./LZBridgeTesting.sol";
+import {LZBridgeTesting} from "./LZBridgeTesting.sol";
 
 // --- Interfaces ---
 
@@ -264,12 +264,15 @@ library LZLaneTesting {
         uint256 destForkId
     ) internal {
         uint256 callerForkId = vm.activeFork();
-        LZBridge memory bridge = LZBridge({
-            forkId:     destForkId,
-            endpoint:   lane.remoteChain.endpoint,
-            receiveLib: lane.remoteChain.recvLib302
-        });
-        LZBridgeTesting.relayMessagesToDestination(bridge, logs, lane.localChain.endpoint, lane.localOApp, lane.remoteOApp);
+        LZBridgeTesting.relayMessages(
+            logs,
+            destForkId,
+            lane.localChain.endpoint,
+            lane.remoteChain.endpoint,
+            lane.remoteChain.recvLib302,
+            lane.localOApp,
+            lane.remoteOApp
+        );
         vm.selectFork(callerForkId);
     }
 

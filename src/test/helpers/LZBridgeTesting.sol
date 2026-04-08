@@ -82,14 +82,6 @@ interface ILZEndpoint {
     ) external payable;
 }
 
-// --- Bridge config ---
-
-struct LZBridge {
-    uint256 forkId;
-    address endpoint;
-    address receiveLib;
-}
-
 /// @title  LZBridgeTesting
 /// @notice Low-level helper for relaying LayerZero V2 messages between two forked chains.
 /// @dev    Switches to the destination fork and delivers messages. Does NOT restore the source fork.
@@ -101,15 +93,17 @@ library LZBridgeTesting {
     bytes32 private constant PACKET_SENT_TOPIC = keccak256("PacketSent(bytes,bytes,address)");
 
     /// @notice Switch to the destination fork and relay LZ messages from recorded logs.
-    function relayMessagesToDestination(
-        LZBridge memory bridge,
+    function relayMessages(
         Vm.Log[] memory logs,
+        uint256 destForkId,
         address srcEndpoint,
+        address dstEndpoint,
+        address dstReceiveLib,
         address sender,
         address receiver
     ) internal {
-        vm.selectFork(bridge.forkId);
-        _relayMessages(logs, srcEndpoint, bridge.endpoint, bridge.receiveLib, sender, receiver);
+        vm.selectFork(destForkId);
+        _relayMessages(logs, srcEndpoint, dstEndpoint, dstReceiveLib, sender, receiver);
     }
 
     function _relayMessages(
