@@ -151,7 +151,7 @@ contract DssSpellAction is DssAction {
     bytes32 internal constant GROVE_SPELL_HASH = 0x4fa1f743b3d6d2855390724459129186dd684e1c07d59f88925f0059ba1e6c84;
 
     // Note: OptionsBuilder.addExecutorLzReceiveOption(gas: 130_000, value: 0) constants (0003010011010000000000000000000000000001fbd0)
-    uint16 internal constant LZ_OPTIONS_TYPE_3             = 3; // Note: https://github.com/LayerZero-Labs/LayerZero-v2/blob/9c741e7f9790639537b1710a203bcdfd73b0b9ac/packages/layerzero-v2/evm/messagelib/contracts/libs/ExecutorOptions.sol#L13
+    uint16 internal constant LZ_OPTIONS_TYPE_3             = 3; // Note: https://github.com/LayerZero-Labs/LayerZero-v2/blob/9c741e7f9790639537b1710a203bcdfd73b0b9ac/packages/layerzero-v2/evm/oapp/contracts/oapp/libs/OptionsBuilder.sol#L22
     uint8  internal constant LZ_EXECUTOR_WORKER_ID         = 1; // Note: https://github.com/LayerZero-Labs/LayerZero-v2/blob/9c741e7f9790639537b1710a203bcdfd73b0b9ac/packages/layerzero-v2/evm/messagelib/contracts/libs/ExecutorOptions.sol#L10
     uint8  internal constant LZ_OPTION_TYPE_LZRECEIVE      = 1; // Note: https://github.com/LayerZero-Labs/LayerZero-v2/blob/9c741e7f9790639537b1710a203bcdfd73b0b9ac/packages/layerzero-v2/evm/messagelib/contracts/libs/ExecutorOptions.sol#L12
     uint128 internal constant LZ_GAS                       = 130_000;
@@ -236,8 +236,10 @@ contract DssSpellAction is DssAction {
                 // uint8 optionalDVNThreshold being 4
                 optionalDVNThreshold: 4,
                 // address[] requiredDVNs being an array with 0 addresses
+                // Note: dynamic array previously created
                 requiredDVNs: govRequiredDVNs,
                 // address[] optionalDVNs being an array with 7 addresses: [0x589dEDbD617e0CBcB916A9223F4d1300c294236b (LayerZero Labs), 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5 (Nethermind), 0xa4fE5A5B9A846458a70Cd0748228aED3bF65c2cd (Canary),0x373a6E5c0C4E89E24819f00AA37ea370917AAfF4 (Deutsche Telekom), 0x06559EE34D85a88317Bf0bfE307444116c631b67 (P2P), 0x380275805876Ff19055EA900CDb2B46a94ecF20D (Horizen), 0x58249a2Ec05c1978bF21DF1f5eC1847e42455CF4 (Luganodes)]
+                // Note: dynamic array previously created
                 optionalDVNs: govOptionalDVNs
             }))
         });
@@ -355,8 +357,10 @@ contract DssSpellAction is DssAction {
                 // uint8 optionalDVNThreshold being 0
                 optionalDVNThreshold: 0,
                 // address[] requiredDVNs being an array with 2 addresses: [0x589dEDbD617e0CBcB916A9223F4d1300c294236b (LayerZero Labs), 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5 (Nethermind)]
+                // Note: dynamic array previously created
                 requiredDVNs: usdsOftSendRequiredDVNs,
                 // address[] optionalDVNs being an array with 0 addresses
+                // Note: dynamic array previously created
                 optionalDVNs: usdsOftSendOptionalDVNs
             }))
         });
@@ -405,8 +409,10 @@ contract DssSpellAction is DssAction {
                 // uint8 optionalDVNThreshold being 0
                 optionalDVNThreshold: 0,
                 // address[] requiredDVNs being an array with 2 addresses: [0x589dEDbD617e0CBcB916A9223F4d1300c294236b (LayerZero Labs), 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5 (Nethermind)]
+                // Note: dynamic array previously created
                 requiredDVNs: usdsOftRecvRequiredDVNs,
                 // address[] optionalDVNs being an array with 0 addresses
+                // Note: dynamic array previously created
                 optionalDVNs: usdsOftRecvOptionalDVNs
             }))
         });
@@ -615,7 +621,7 @@ contract DssSpellAction is DssAction {
         // EndpointV2 being 0x1a44076050125825900e736c501f859c50fE728c
         EndpointV2Like(ETH_LZ_ENDPOINT).setConfig(
             // address _oapp being SUSDS_OFT from chainlog
-            DssExecLib.getChangelogAddress("SUSDS_OFT"),
+            ETH_SUSDS_OFT,
             // address _lib being 0xbB2Ea70C9E858123480642Cf96acbcCE1372dCe1
             ETH_LZ_SEND_302,
             // SetConfigParam[] _params being an array with two items:
@@ -669,7 +675,7 @@ contract DssSpellAction is DssAction {
         // EndpointV2 being 0x1a44076050125825900e736c501f859c50fE728c
         EndpointV2Like(ETH_LZ_ENDPOINT).setConfig(
             // address _oapp being SUSDS_OFT from chainlog
-            DssExecLib.getChangelogAddress("SUSDS_OFT"),
+            ETH_SUSDS_OFT,
             // address _lib being 0xc02Ab410f0734EFa3F14628780e6e695156024C2
             ETH_LZ_RECV_302,
             // SetConfigParam[] _params being an array with one item:
