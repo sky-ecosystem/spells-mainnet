@@ -17,7 +17,17 @@
 pragma solidity 0.8.16;
 
 import "./DssSpell.t.base.sol";
-import {LZBridgeTesting, OAppConfig, OFTAdapterConfig, ILZOFTAdapter} from "./test/helpers/LZBridgeTesting.sol";
+import {
+    GovernanceOAppSenderLike,
+    L1GovernanceRelayLike,
+    LZLaneTesting,
+    LzChainConfig,
+    LzExecutorConfig,
+    LzLaneConfig,
+    LzUlnConfig,
+    RateLimitConfig,
+    SkyOFTAdapterLike
+} from "./test/helpers/LZLaneTesting.sol";
 
 interface L2Spell {
     function dstDomain() external returns (bytes32);
@@ -41,26 +51,6 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
-struct UlnConfig {
-    uint64 confirmations;
-    uint8 requiredDVNCount;
-    uint8 optionalDVNCount;
-    uint8 optionalDVNThreshold;
-    address[] requiredDVNs;
-    address[] optionalDVNs;
-}
-
-struct ExecutorConfig {
-    uint32 maxMessageSize;
-    address executor;
-}
-
-struct RateLimitConfig {
-    uint32 eid;
-    uint48 window;
-    uint256 limit;
-}
-
 /// @notice Minimal spell for testing governance relay on Avalanche.
 ///         Deployed on the Avalanche fork and delegatecalled by L2GovernanceRelay.
 ///         Inside the delegatecall, address(this) = relay = OFT owner, so regular
@@ -69,81 +59,6 @@ contract AvaxSetRateLimitsSpell {
     function execute(address oft, RateLimitConfig[] calldata inbound, RateLimitConfig[] calldata outbound) external {
         SkyOFTAdapterLike(oft).setRateLimits(inbound, outbound);
     }
-}
-
-interface OAppLike {
-    function owner() external view returns (address);
-    function peers(uint32 eid) external view returns (bytes32 peer);
-    function endpoint() external view returns (address);
-}
-
-interface GovernanceOAppSenderLike is OAppLike {
-    function canCallTarget(address _srcSender, uint32 _dstEid, bytes32 _dstTarget) external view returns (bool);
-}
-
-interface L1GovernanceRelayLike {
-    struct MessagingFee {
-        uint256 nativeFee;
-        uint256 lzTokenFee;
-    }
-    function l1Oapp() external view returns (address);
-    function relayEVM(
-        uint32                dstEid,
-        address               l2GovernanceRelay,
-        address               target,
-        bytes calldata        targetData,
-        bytes calldata        extraOptions,
-        MessagingFee calldata fee,
-        address               refundAddress
-    ) external payable;
-}
-
-struct Origin {
-    uint32 srcEid;
-    bytes32 sender;
-    uint64 nonce;
-}
-
-interface SkyOFTAdapterLike is OAppLike {
-    struct MessagingFee {
-        uint256 nativeFee;
-        uint256 lzTokenFee;
-    }
-    struct MessagingReceipt {
-        bytes32 guid;
-        uint64 nonce;
-        MessagingFee fee;
-    }
-    struct OFTReceipt {
-        uint256 amountSentLD;
-        uint256 amountReceivedLD;
-    }
-    struct SendParam {
-        uint32 dstEid;
-        bytes32 to;
-        uint256 amountLD;
-        uint256 minAmountLD;
-        bytes extraOptions;
-        bytes composeMsg;
-        bytes oftCmd;
-    }
-    function enforcedOptions(uint32 eid, uint16 msgType) external view returns (bytes memory);
-    function quoteSend(SendParam memory _sendParam, bool _payInLzToken) external view returns (MessagingFee memory msgFee);
-    function send(SendParam memory _sendParam, MessagingFee memory _fee, address _refundAddress)
-        external payable returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt);
-    function lzReceive(
-        Origin calldata _origin, bytes32 _guid, bytes calldata _message,
-        address _executor, bytes calldata _extraData
-    ) external payable;
-    function token() external view returns (address);
-    function pausers(address pauser) external view returns (bool canPause);
-    function setRateLimits(RateLimitConfig[] calldata _rateLimitConfigsInbound, RateLimitConfig[] calldata _rateLimitConfigsOutbound) external;
-}
-
-interface EndpointV2Like {
-    function getSendLibrary(address _sender, uint32 _eid) external view returns (address lib);
-    function getReceiveLibrary(address _receiver, uint32 _eid) external view returns (address lib, bool isDefault);
-    function getConfig(address _oapp, address _lib, uint32 _eid, uint32 _configType) external view returns (bytes memory config);
 }
 
 contract DssSpellTest is DssSpellTestBase {
@@ -1624,275 +1539,65 @@ contract DssSpellTest is DssSpellTestBase {
 
     // --- LZ config tests ---
 
+    error RateLimitExceeded();
+
     function testWireLzGovSenderAvalanche() public {
-        uint32  AVAX_EID  = 30106;
-        address govSender = addr.addr("LZ_GOV_SENDER");
-        address govRelay  = addr.addr("LZ_GOV_RELAY");
-        bytes32 avaxL2GovRelay = bytes32(uint256(uint160(avalanche.addr("L2_AVALANCHE_GOV_RELAY"))));
+        LzLaneConfig memory lane = _avalancheGovLane();
+        address govRelay = addr.addr("LZ_GOV_RELAY");
+        bytes32 avaxL2GovRelay = LZLaneTesting.toBytes32(avalanche.addr("L2_AVALANCHE_GOV_RELAY"));
+
+        GovernanceOAppSenderLike govOapp = GovernanceOAppSenderLike(lane.localOApp);
 
         // Verify pre-spell state
-        GovernanceOAppSenderLike govOapp = GovernanceOAppSenderLike(govSender);
-        assertEq(govOapp.peers(AVAX_EID), bytes32(0), "TestError/gov-sender-peer-already-set");
-        assertFalse(govOapp.canCallTarget(govRelay, AVAX_EID, avaxL2GovRelay), "TestError/canCallTarget-already-set");
+        assertEq(govOapp.peers(lane.remoteChain.eid), bytes32(0), "TestError/gov/peer-already-set");
+        assertFalse(govOapp.canCallTarget(govRelay, lane.remoteChain.eid, avaxL2GovRelay), "TestError/gov/can-call-target-already-set");
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        // Verify OApp config (send-only: no receive library)
-        address[] memory optDVNs = new address[](7);
-        optDVNs[0] = 0x06559EE34D85a88317Bf0bfE307444116c631b67; // P2P
-        optDVNs[1] = 0x373a6E5c0C4E89E24819f00AA37ea370917AAfF4; // Deutsche Telekom
-        optDVNs[2] = 0x380275805876Ff19055EA900CDb2B46a94ecF20D; // Horizen
-        optDVNs[3] = 0x58249a2Ec05c1978bF21DF1f5eC1847e42455CF4; // Luganodes
-        optDVNs[4] = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b; // LayerZero Labs
-        optDVNs[5] = 0xa4fE5A5B9A846458a70Cd0748228aED3bF65c2cd; // Canary
-        optDVNs[6] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
+        LZLaneTesting.assertPeerSet(lane);
+        LZLaneTesting.assertSendLibrary(lane);
+        LZLaneTesting.assertSendExecutor(lane);
+        LZLaneTesting.assertSendUln(lane);
 
-        LZBridgeTesting.checkOAppConfig(OAppConfig({
-            oapp:                     govSender,
-            endpoint:                 addr.addr("LZ_ENDPOINT"),
-            owner:                    pauseProxy,
-            remoteEid:                AVAX_EID,
-            peer:                     bytes32(uint256(uint160(avalanche.addr("L2_AVALANCHE_GOV_RECEIVER")))),
-            sendLib:                  addr.addr("LZ_SEND_302"),
-            recvLib:                  address(0), // send-only
-            sendConfirmations:        15,
-            sendRequiredDVNCount:     0,  // NONE (255 stored, getter returns 0)
-            sendOptionalDVNCount:     7,
-            sendOptionalDVNThreshold: 4,
-            sendRequiredDVNs:         new address[](0),
-            sendOptionalDVNs:         optDVNs,
-            sendMaxMessageSize:       10_000,
-            sendExecutor:             addr.addr("LZ_EXECUTOR"),
-            recvConfirmations:        0,
-            recvRequiredDVNCount:     0,
-            recvOptionalDVNCount:     0,
-            recvOptionalDVNThreshold: 0,
-            recvRequiredDVNs:         new address[](0),
-            recvOptionalDVNs:         new address[](0)
-        }));
-
-        // Verify canCallTarget for LZ_GOV_RELAY -> Avalanche L2GovernanceRelay
-        assertTrue(govOapp.canCallTarget(govRelay, AVAX_EID, avaxL2GovRelay), "TestError/canCallTarget-not-set");
+        assertTrue(govOapp.canCallTarget(govRelay, lane.remoteChain.eid, avaxL2GovRelay), "TestError/gov/can-call-target-not-set");
     }
 
     function testWireUsdsOftAvalanche() public {
-        uint32  AVAX_EID    = 30106;
-        address usdsOft     = addr.addr("USDS_OFT");
-        address avaxUsdsOft = avalanche.addr("L2_AVALANCHE_USDS_OFT");
+        LzLaneConfig memory lane = _avalancheUsdsLane();
+        LzLaneConfig memory reverseLane = _avalancheUsdsRemoteLane();
 
         // Verify pre-spell state
-        assertEq(OAppLike(usdsOft).peers(AVAX_EID), bytes32(0), "TestError/usds-oft-peer-already-set");
+        assertEq(SkyOFTAdapterLike(lane.localOApp).peers(lane.remoteChain.eid), bytes32(0), "TestError/usds/peer-already-set");
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        // ---- L1 (Ethereum) config verification ----
-        address[] memory ethDVNs = new address[](2);
-        ethDVNs[0] = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b; // LayerZero Labs
-        ethDVNs[1] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
-        bytes memory enforcedOpts = LZBridgeTesting.buildEnforcedOptions(130_000, 0);
+        // L1 (Ethereum) config
+        LZLaneTesting.assertPeerSet(lane);
+        LZLaneTesting.assertSendLibrary(lane);
+        LZLaneTesting.assertReceiveLibrary(lane);
+        LZLaneTesting.assertSendExecutor(lane);
+        LZLaneTesting.assertSendUln(lane);
+        LZLaneTesting.assertReceiveUln(lane);
+        LZLaneTesting.assertEnforcedOptions(lane);
 
-        LZBridgeTesting.checkOAppConfig(OAppConfig({
-            oapp:                     usdsOft,
-            endpoint:                 addr.addr("LZ_ENDPOINT"),
-            owner:                    pauseProxy,
-            remoteEid:                AVAX_EID,
-            peer:                     bytes32(uint256(uint160(avaxUsdsOft))),
-            sendLib:                  addr.addr("LZ_SEND_302"),
-            recvLib:                  addr.addr("LZ_RECV_302"),
-            sendConfirmations:        15,
-            sendRequiredDVNCount:     2,
-            sendOptionalDVNCount:     0,
-            sendOptionalDVNThreshold: 0,
-            sendRequiredDVNs:         ethDVNs,
-            sendOptionalDVNs:         new address[](0),
-            sendMaxMessageSize:       10_000,
-            sendExecutor:             addr.addr("LZ_EXECUTOR"),
-            recvConfirmations:        12,
-            recvRequiredDVNCount:     2,
-            recvOptionalDVNCount:     0,
-            recvOptionalDVNThreshold: 0,
-            recvRequiredDVNs:         ethDVNs,
-            recvOptionalDVNs:         new address[](0)
-        }));
-        LZBridgeTesting.checkOFTAdapterConfig(usdsOft, AVAX_EID, OFTAdapterConfig({
-            token:                     address(usds),
-            paused:                    false,
-            pauser:                    address(0), // USDS OFT pauser was set in a previous spell, not checked here
-            outboundWindow:            uint48(1 days),
-            outboundLimit:             5_000_000 * WAD,
-            inboundWindow:             uint48(1 days),
-            inboundLimit:              5_000_000 * WAD,
-            enforcedOptionsSend:       enforcedOpts,
-            enforcedOptionsSendAndCall: enforcedOpts
-        }));
-
-        // ---- L2 (Avalanche) config verification ----
-        // Note: These configs were set during pre-deployment (not by the spell).
-        //       Capture addresses before switching forks.
-        address[] memory avaxDVNs = new address[](2);
-        avaxDVNs[0] = 0x962F502A63F5FBeB44DC9ab932122648E8352959; // LayerZero Labs (Avalanche)
-        avaxDVNs[1] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
-
-        OAppConfig memory avaxCfg = OAppConfig({
-            oapp:                     avaxUsdsOft,
-            endpoint:                 avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"),
-            owner:                    avalanche.addr("L2_AVALANCHE_GOV_RELAY"),
-            remoteEid:                30101, // ETH_EID
-            peer:                     bytes32(uint256(uint160(usdsOft))),
-            sendLib:                  avalanche.addr("L2_AVALANCHE_LZ_SEND_302"),
-            recvLib:                  avalanche.addr("L2_AVALANCHE_LZ_RECV_302"),
-            sendConfirmations:        12,
-            sendRequiredDVNCount:     2,
-            sendOptionalDVNCount:     0,
-            sendOptionalDVNThreshold: 0,
-            sendRequiredDVNs:         avaxDVNs,
-            sendOptionalDVNs:         new address[](0),
-            sendMaxMessageSize:       10_000,
-            sendExecutor:             0x90E595783E43eb89fF07f63d27B8430e6B44bD9c,
-            recvConfirmations:        15,
-            recvRequiredDVNCount:     2,
-            recvOptionalDVNCount:     0,
-            recvOptionalDVNThreshold: 0,
-            recvRequiredDVNs:         avaxDVNs,
-            recvOptionalDVNs:         new address[](0)
-        });
-
+        // L2 (Avalanche) config — predeployed; verify it matches
         vm.selectFork(avaxBridge.forkId);
-        LZBridgeTesting.checkOAppConfig(avaxCfg);
-    }
-
-    function testGovernanceRelayAvalancheE2E() public {
-        uint32  AVAX_EID = 30106;
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        L1GovernanceRelayLike l1GovernanceRelay = L1GovernanceRelayLike(addr.addr("LZ_GOV_RELAY"));
-
-        // Note: Capture addresses before switching forks (contract state is fork-local)
-        address ethEndpoint      = addr.addr("LZ_ENDPOINT");
-        address ethGovSender     = addr.addr("LZ_GOV_SENDER");
-        address avaxGovReceiver  = avalanche.addr("L2_AVALANCHE_GOV_RECEIVER");
-        address avaxL2GovRelay   = avalanche.addr("L2_AVALANCHE_GOV_RELAY");
-        address avaxUsdsOft      = avalanche.addr("L2_AVALANCHE_USDS_OFT");
-
-        // Deploy a spell on Avalanche that the relay will delegatecall into.
-        // Inside delegatecall: address(this) = relay = OFT owner, so the spell's
-        // regular call to usdsOft.setRateLimits passes the onlyOwner check and
-        // writes state to the OFT's own storage.
-        vm.selectFork(avaxBridge.forkId);
-        address avaxSpell = address(new AvaxSetRateLimitsSpell());
-        vm.selectFork(0); // back to mainnet
-
-        // Build the governance payload
-        RateLimitConfig[] memory inbound = new RateLimitConfig[](1);
-        inbound[0] = RateLimitConfig({ eid: 30101, window: uint48(1 days), limit: 10_000_000 * WAD });
-        RateLimitConfig[] memory outbound = new RateLimitConfig[](1);
-        outbound[0] = RateLimitConfig({ eid: 30101, window: uint48(1 days), limit: 10_000_000 * WAD });
-        bytes memory targetData = abi.encodeWithSelector(
-            AvaxSetRateLimitsSpell.execute.selector, avaxUsdsOft, inbound, outbound
-        );
-
-        vm.startPrank(pauseProxy);
-        vm.deal(pauseProxy, 10 ether);
-
-        uint256 nativeFee = 1 ether;
-
-        // Record logs, then relay the governance message to Avalanche
-        vm.recordLogs();
-        l1GovernanceRelay.relayEVM{value: nativeFee}(
-            AVAX_EID,
-            avaxL2GovRelay,
-            // target: spell on Avalanche (relay delegatecalls it, spell calls OFT)
-            avaxSpell,
-            targetData,
-            hex"00030100210100000000000000000000000000030d40000000000000000000000000001f1df0",
-            L1GovernanceRelayLike.MessagingFee({
-                nativeFee:  nativeFee,
-                lzTokenFee: 0
-            }),
-            address(0xdead)
-        );
-        vm.stopPrank();
-
-        Vm.Log[] memory logs = vm.getRecordedLogs();
-
-        // Relay to Avalanche fork
-        LZBridgeTesting.relayMessagesToDestination(
-            avaxBridge, logs, ethEndpoint, ethGovSender, avaxGovReceiver
-        );
-
-        // Verify: rate limits were updated on the Avalanche USDS OFT
-        (,uint48 outW,, uint256 outL) = ILZOFTAdapter(avaxUsdsOft).outboundRateLimits(30101);
-        (,uint48  inW,, uint256  inL) = ILZOFTAdapter(avaxUsdsOft).inboundRateLimits(30101);
-        assertEq(outW, uint48(1 days), "TestError/avax-gov-relay-outbound-window-not-set");
-        assertEq(outL, 10_000_000 * WAD, "TestError/avax-gov-relay-outbound-limit-not-set");
-        assertEq(inW, uint48(1 days), "TestError/avax-gov-relay-inbound-window-not-set");
-        assertEq(inL, 10_000_000 * WAD, "TestError/avax-gov-relay-inbound-limit-not-set");
-    }
-
-    function testUsdsOftAvalancheE2E() public {
-        uint32 AVAX_EID = 30106;
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        SkyOFTAdapterLike oft = SkyOFTAdapterLike(addr.addr("USDS_OFT"));
-
-        // Setup: give the test address some USDS and ETH for gas
-        uint256 sendAmount = 5 * WAD;
-        GodMode.setBalance(address(usds), address(this), sendAmount);
-        GemAbstract(address(usds)).approve(address(oft), sendAmount);
-        vm.deal(address(this), 10 ether);
-
-        address recipient = makeAddr("avax-recipient");
-
-        SkyOFTAdapterLike.SendParam memory sendParams = SkyOFTAdapterLike.SendParam({
-            dstEid:       AVAX_EID,
-            to:           bytes32(uint256(uint160(recipient))),
-            amountLD:     sendAmount,
-            minAmountLD:  sendAmount,
-            extraOptions: bytes(""),
-            composeMsg:   bytes(""),
-            oftCmd:       bytes("")
-        });
-
-        SkyOFTAdapterLike.MessagingFee memory msgFee = oft.quoteSend(sendParams, false);
-
-        // Note: Capture addresses before switching forks (contract state is fork-local)
-        address ethEndpoint   = addr.addr("LZ_ENDPOINT");
-        address ethUsdsOft    = addr.addr("USDS_OFT");
-        address avaxUsdsOft   = avalanche.addr("L2_AVALANCHE_USDS_OFT");
-        address avaxUsds      = avalanche.addr("L2_AVALANCHE_USDS");
-
-        // Record logs, then send on mainnet
-        vm.recordLogs();
-        oft.send{value: msgFee.nativeFee}(sendParams, msgFee, payable(address(this)));
-        Vm.Log[] memory logs = vm.getRecordedLogs();
-
-        // Relay to Avalanche fork and verify
-        LZBridgeTesting.relayMessagesToDestination(
-            avaxBridge, logs, ethEndpoint, ethUsdsOft, avaxUsdsOft
-        );
-
-        // Note: We are now on the Avalanche fork after relayMessagesToDestination
-        assertEq(
-            GemAbstract(avaxUsds).balanceOf(recipient),
-            sendAmount,
-            "TestError/e2e-avax-recipient-usds-not-received"
-        );
+        LZLaneTesting.assertPeerSet(reverseLane);
+        LZLaneTesting.assertSendLibrary(reverseLane);
+        LZLaneTesting.assertReceiveLibrary(reverseLane);
+        LZLaneTesting.assertSendExecutor(reverseLane);
+        LZLaneTesting.assertSendUln(reverseLane);
+        LZLaneTesting.assertReceiveUln(reverseLane);
+        LZLaneTesting.assertEnforcedOptions(reverseLane);
     }
 
     function testWireSUsdsOftAvalanche() public {
-        uint32  AVAX_EID = 30106;
-        address susdsOft = addr.addr("SUSDS_OFT");
-        address avaxSUsdsOft = avalanche.addr("L2_AVALANCHE_SUSDS_OFT");
+        LzLaneConfig memory lane = _avalancheSUsdsLane();
+        address susdsOft = lane.localOApp;
 
         // Verify SUSDS_OFT is not in chainlog before spell
         vm.expectRevert("dss-chain-log/invalid-key");
@@ -1902,71 +1607,158 @@ contract DssSpellTest is DssSpellTestBase {
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        // Verify SUSDS_OFT added to chainlog
-        assertEq(chainLog.getAddress(_stringToBytes32("SUSDS_OFT")), susdsOft, "TestError/susds-oft-not-in-chainlog");
+        assertEq(chainLog.getAddress(_stringToBytes32("SUSDS_OFT")), susdsOft, "TestError/susds/not-in-chainlog");
+        assertTrue(SkyOFTAdapterLike(susdsOft).pausers(addr.addr("SUSDS_OFT_PAUSER")), "TestError/susds/pauser-not-set");
 
-        // ---- L1 (Ethereum) config verification ----
-        address[] memory ethDVNs = new address[](2);
-        ethDVNs[0] = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b; // LayerZero Labs
-        ethDVNs[1] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
-        bytes memory enforcedOpts = LZBridgeTesting.buildEnforcedOptions(130_000, 0);
-
-        LZBridgeTesting.checkOAppConfig(OAppConfig({
-            oapp:                     susdsOft,
-            endpoint:                 addr.addr("LZ_ENDPOINT"),
-            owner:                    pauseProxy,
-            remoteEid:                AVAX_EID,
-            peer:                     bytes32(uint256(uint160(avaxSUsdsOft))),
-            sendLib:                  addr.addr("LZ_SEND_302"),
-            recvLib:                  addr.addr("LZ_RECV_302"),
-            sendConfirmations:        15,
-            sendRequiredDVNCount:     2,
-            sendOptionalDVNCount:     0,
-            sendOptionalDVNThreshold: 0,
-            sendRequiredDVNs:         ethDVNs,
-            sendOptionalDVNs:         new address[](0),
-            sendMaxMessageSize:       10_000,
-            sendExecutor:             addr.addr("LZ_EXECUTOR"),
-            recvConfirmations:        12,
-            recvRequiredDVNCount:     2,
-            recvOptionalDVNCount:     0,
-            recvOptionalDVNThreshold: 0,
-            recvRequiredDVNs:         ethDVNs,
-            recvOptionalDVNs:         new address[](0)
-        }));
-        LZBridgeTesting.checkOFTAdapterConfig(susdsOft, AVAX_EID, OFTAdapterConfig({
-            token:                     SkyOFTAdapterLike(susdsOft).token(),
-            paused:                    false,
-            pauser:                    0x38d1114b4cE3e079CC0f627df6aC2776B5887776,
-            outboundWindow:            0, // Note: rate limits not set in this spell
-            outboundLimit:             0,
-            inboundWindow:             0,
-            inboundLimit:              0,
-            enforcedOptionsSend:       enforcedOpts,
-            enforcedOptionsSendAndCall: enforcedOpts
-        }));
+        LZLaneTesting.assertPeerSet(lane);
+        LZLaneTesting.assertSendLibrary(lane);
+        LZLaneTesting.assertReceiveLibrary(lane);
+        LZLaneTesting.assertSendExecutor(lane);
+        LZLaneTesting.assertSendUln(lane);
+        LZLaneTesting.assertReceiveUln(lane);
+        LZLaneTesting.assertEnforcedOptions(lane);
     }
 
-    function testSUsdsOftAvalancheRateLimitBlocked() public {
-        uint32 AVAX_EID = 30106;
+    function testUsdsOftAvalancheRateLimits() public {
+        LzLaneConfig memory lane = _avalancheUsdsLane();
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        address susdsOft = addr.addr("SUSDS_OFT");
-        SkyOFTAdapterLike oft = SkyOFTAdapterLike(susdsOft);
+        SkyOFTAdapterLike oft = SkyOFTAdapterLike(lane.localOApp);
+        (, uint48 outW,, uint256 outL) = oft.outboundRateLimits(lane.remoteChain.eid);
+        (, uint48  inW,, uint256  inL) = oft.inboundRateLimits(lane.remoteChain.eid);
+        assertEq(outW, uint48(1 days), "TestError/usds/outbound-window-mismatch");
+        assertEq(outL, 5_000_000 * WAD, "TestError/usds/outbound-limit-mismatch");
+        assertEq(inW, uint48(1 days), "TestError/usds/inbound-window-mismatch");
+        assertEq(inL, 5_000_000 * WAD, "TestError/usds/inbound-limit-mismatch");
+    }
 
-        // Setup: give the test address some sUSDS and ETH for gas
+    function testGovernanceRelayAvalancheE2E() public {
+        LzLaneConfig memory lane = _avalancheGovLane();
+        uint256 ethFork = vm.activeFork();
+        address avaxL2GovRelay = avalanche.addr("L2_AVALANCHE_GOV_RELAY");
+        address avaxUsdsOft    = avalanche.addr("L2_AVALANCHE_USDS_OFT");
+
+        // Deploy a spell on Avalanche for the relay to delegatecall into
+        vm.selectFork(avaxBridge.forkId);
+        address avaxSpell = address(new AvaxSetRateLimitsSpell());
+        uint256 avaxFork = vm.activeFork();
+        vm.selectFork(ethFork);
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        L1GovernanceRelayLike l1GovernanceRelay = L1GovernanceRelayLike(addr.addr("LZ_GOV_RELAY"));
+
+        // Build governance payload: delegatecall spell → spell calls setRateLimits on OFT
+        RateLimitConfig[] memory inbound = new RateLimitConfig[](1);
+        inbound[0] = RateLimitConfig({ eid: 30101, window: uint48(1 days), limit: 10_000_000 * WAD });
+        RateLimitConfig[] memory outbound = new RateLimitConfig[](1);
+        outbound[0] = RateLimitConfig({ eid: 30101, window: uint48(1 days), limit: 10_000_000 * WAD });
+        bytes memory targetData = abi.encodeWithSelector(AvaxSetRateLimitsSpell.execute.selector, avaxUsdsOft, inbound, outbound);
+
+        vm.startPrank(pauseProxy);
+        vm.deal(pauseProxy, 10 ether);
+
+        vm.recordLogs();
+        l1GovernanceRelay.relayEVM{value: 1 ether}(
+            lane.remoteChain.eid,
+            avaxL2GovRelay,
+            avaxSpell,
+            targetData,
+            LZLaneTesting.executorLzReceiveOption(200_000),
+            L1GovernanceRelayLike.MessagingFee({ nativeFee: 1 ether, lzTokenFee: 0 }),
+            address(0xdead)
+        );
+        vm.stopPrank();
+
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        // Relay to Avalanche and verify state
+        LZLaneTesting.relayToFork(logs, lane, avaxFork);
+        vm.selectFork(avaxFork);
+
+        (, uint48 outW,, uint256 outL) = SkyOFTAdapterLike(avaxUsdsOft).outboundRateLimits(30101);
+        (, uint48  inW,, uint256  inL) = SkyOFTAdapterLike(avaxUsdsOft).inboundRateLimits(30101);
+        assertEq(outW, uint48(1 days), "TestError/gov/outbound-window-not-set");
+        assertEq(outL, 10_000_000 * WAD, "TestError/gov/outbound-limit-not-set");
+        assertEq(inW, uint48(1 days), "TestError/gov/inbound-window-not-set");
+        assertEq(inL, 10_000_000 * WAD, "TestError/gov/inbound-limit-not-set");
+    }
+
+    function testUsdsOftAvalancheE2E() public {
+        LzLaneConfig memory lane = _avalancheUsdsLane();
+        LzLaneConfig memory reverseLane = _avalancheUsdsRemoteLane();
+        uint256 ethFork = vm.activeFork();
+        uint256 avaxFork = avaxBridge.forkId;
+        address avaxUsds = avalanche.addr("L2_AVALANCHE_USDS");
+        address recipient = makeAddr("avalanche-recipient");
+
+        // Capture Avalanche supply before
+        vm.selectFork(avaxFork);
+        uint256 avaxSupplyBefore = GemAbstract(avaxUsds).totalSupply();
+        vm.selectFork(ethFork);
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        SkyOFTAdapterLike oft = SkyOFTAdapterLike(lane.localOApp);
+        uint256 sendAmount = 5 * WAD;
+        uint256 ethSupplyBefore = usds.totalSupply();
+        GodMode.setBalance(address(usds), address(this), sendAmount);
+        GemAbstract(address(usds)).approve(address(oft), sendAmount);
+        vm.deal(address(this), 10 ether);
+
+        // Forward leg: Ethereum → Avalanche
+        Vm.Log[] memory forwardLogs = LZLaneTesting.sendOft(oft, lane.remoteChain.eid, recipient, sendAmount, address(this));
+        assertEq(usds.totalSupply(), ethSupplyBefore, "TestError/usds/e2e-eth-supply-changed-after-send");
+
+        LZLaneTesting.relayToFork(forwardLogs, lane, avaxFork);
+        vm.selectFork(avaxFork);
+
+        assertEq(GemAbstract(avaxUsds).balanceOf(recipient), sendAmount, "TestError/usds/e2e-avax-not-received");
+        assertEq(GemAbstract(avaxUsds).totalSupply(), avaxSupplyBefore + sendAmount, "TestError/usds/e2e-avax-not-minted");
+
+        // Return leg: Avalanche → Ethereum
+        SkyOFTAdapterLike reverseOft = SkyOFTAdapterLike(reverseLane.localOApp);
+        vm.startPrank(recipient);
+        GemAbstract(avaxUsds).approve(address(reverseOft), sendAmount);
+        vm.deal(recipient, 10 ether);
+        Vm.Log[] memory returnLogs = LZLaneTesting.sendOft(reverseOft, reverseLane.remoteChain.eid, address(this), sendAmount, recipient);
+        vm.stopPrank();
+
+        LZLaneTesting.relayToFork(returnLogs, reverseLane, ethFork);
+        vm.selectFork(ethFork);
+
+        assertEq(usds.totalSupply(), ethSupplyBefore, "TestError/usds/e2e-eth-supply-changed-after-roundtrip");
+        assertEq(usds.balanceOf(address(this)), sendAmount, "TestError/usds/e2e-eth-not-unlocked");
+
+        vm.selectFork(avaxFork);
+        assertEq(GemAbstract(avaxUsds).balanceOf(recipient), 0, "TestError/usds/e2e-avax-not-burned");
+        assertEq(GemAbstract(avaxUsds).totalSupply(), avaxSupplyBefore, "TestError/usds/e2e-avax-supply-not-restored");
+    }
+
+    function testSUsdsOftAvalancheRateLimitBlocked() public {
+        LzLaneConfig memory lane = _avalancheSUsdsLane();
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        SkyOFTAdapterLike oft = SkyOFTAdapterLike(lane.localOApp);
         address susdsToken = oft.token();
         uint256 sendAmount = 5 * WAD;
         GodMode.setBalance(susdsToken, address(this), sendAmount);
-        GemAbstract(susdsToken).approve(susdsOft, sendAmount);
+        GemAbstract(susdsToken).approve(lane.localOApp, sendAmount);
         vm.deal(address(this), 10 ether);
 
         SkyOFTAdapterLike.SendParam memory sendParams = SkyOFTAdapterLike.SendParam({
-            dstEid:       AVAX_EID,
-            to:           bytes32(uint256(uint160(address(this)))),
+            dstEid:       lane.remoteChain.eid,
+            to:           LZLaneTesting.toBytes32(address(this)),
             amountLD:     sendAmount,
             minAmountLD:  sendAmount,
             extraOptions: bytes(""),
@@ -1976,9 +1768,108 @@ contract DssSpellTest is DssSpellTestBase {
 
         SkyOFTAdapterLike.MessagingFee memory msgFee = oft.quoteSend(sendParams, false);
 
-        // Note: sUSDS rate limits are not set in this spell (will be configured in a future spell).
-        //       Verify that sending is blocked with RateLimitExceeded.
-        vm.expectRevert(0xa74c1c5f); // RateLimitExceeded()
+        vm.expectRevert(RateLimitExceeded.selector);
         oft.send{value: msgFee.nativeFee}(sendParams, msgFee, payable(address(this)));
+    }
+
+    // --- Lane builders ---
+
+    function _avalancheGovLane() internal view returns (LzLaneConfig memory lane) {
+        address[] memory optDVNs = new address[](7);
+        optDVNs[0] = 0x06559EE34D85a88317Bf0bfE307444116c631b67; // P2P
+        optDVNs[1] = 0x373a6E5c0C4E89E24819f00AA37ea370917AAfF4; // Deutsche Telekom
+        optDVNs[2] = 0x380275805876Ff19055EA900CDb2B46a94ecF20D; // Horizen
+        optDVNs[3] = 0x58249a2Ec05c1978bF21DF1f5eC1847e42455CF4; // Luganodes
+        optDVNs[4] = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b; // LayerZero Labs
+        optDVNs[5] = 0xa4fE5A5B9A846458a70Cd0748228aED3bF65c2cd; // Canary
+        optDVNs[6] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
+
+        lane.localChain = LzChainConfig({
+            eid: 30101, endpoint: addr.addr("LZ_ENDPOINT"),
+            sendLib302: addr.addr("LZ_SEND_302"), recvLib302: address(0)
+        });
+        lane.remoteChain = LzChainConfig({
+            eid: 30106, endpoint: avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"),
+            sendLib302: avalanche.addr("L2_AVALANCHE_LZ_SEND_302"), recvLib302: avalanche.addr("L2_AVALANCHE_LZ_RECV_302")
+        });
+        lane.localOApp  = addr.addr("LZ_GOV_SENDER");
+        lane.remoteOApp = avalanche.addr("L2_AVALANCHE_GOV_RECEIVER");
+        lane.remotePeer = LZLaneTesting.toBytes32(lane.remoteOApp);
+        lane.sendExecutor = LzExecutorConfig({ maxMessageSize: 10_000, executor: addr.addr("LZ_EXECUTOR") });
+        lane.sendUln = LzUlnConfig({
+            confirmations: 15, requiredDVNCount: 0, optionalDVNCount: 7, optionalDVNThreshold: 4,
+            requiredDVNs: new address[](0), optionalDVNs: optDVNs
+        });
+    }
+
+    function _avalancheUsdsLane() internal view returns (LzLaneConfig memory lane) {
+        address[] memory ethDVNs = new address[](2);
+        ethDVNs[0] = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b; // LayerZero Labs
+        ethDVNs[1] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
+
+        lane.localChain = LzChainConfig({
+            eid: 30101, endpoint: addr.addr("LZ_ENDPOINT"),
+            sendLib302: addr.addr("LZ_SEND_302"), recvLib302: addr.addr("LZ_RECV_302")
+        });
+        lane.remoteChain = LzChainConfig({
+            eid: 30106, endpoint: avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"),
+            sendLib302: avalanche.addr("L2_AVALANCHE_LZ_SEND_302"), recvLib302: avalanche.addr("L2_AVALANCHE_LZ_RECV_302")
+        });
+        lane.localOApp  = addr.addr("USDS_OFT");
+        lane.remoteOApp = avalanche.addr("L2_AVALANCHE_USDS_OFT");
+        lane.remotePeer = LZLaneTesting.toBytes32(lane.remoteOApp);
+        lane.sendExecutor = LzExecutorConfig({ maxMessageSize: 10_000, executor: addr.addr("LZ_EXECUTOR") });
+        lane.recvExecutor = LzExecutorConfig({ maxMessageSize: 10_000, executor: avalanche.addr("L2_AVALANCHE_LZ_EXECUTOR") });
+        lane.sendUln = LzUlnConfig({
+            confirmations: 15, requiredDVNCount: 2, optionalDVNCount: 0, optionalDVNThreshold: 0,
+            requiredDVNs: ethDVNs, optionalDVNs: new address[](0)
+        });
+        lane.recvUln = LzUlnConfig({
+            confirmations: 12, requiredDVNCount: 2, optionalDVNCount: 0, optionalDVNThreshold: 0,
+            requiredDVNs: ethDVNs, optionalDVNs: new address[](0)
+        });
+        lane.enforcedOptions = LZLaneTesting.executorLzReceiveOption(130_000);
+    }
+
+    function _avalancheUsdsRemoteLane() internal view returns (LzLaneConfig memory) {
+        address[] memory avaxDVNs = new address[](2);
+        avaxDVNs[0] = 0x962F502A63F5FBeB44DC9ab932122648E8352959; // LayerZero Labs (Avalanche)
+        avaxDVNs[1] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
+
+        return LZLaneTesting.reverse(
+            _avalancheUsdsLane(),
+            LzUlnConfig({ confirmations: 12, requiredDVNCount: 2, optionalDVNCount: 0, optionalDVNThreshold: 0, requiredDVNs: avaxDVNs, optionalDVNs: new address[](0) }),
+            LzUlnConfig({ confirmations: 15, requiredDVNCount: 2, optionalDVNCount: 0, optionalDVNThreshold: 0, requiredDVNs: avaxDVNs, optionalDVNs: new address[](0) }),
+            LZLaneTesting.executorLzReceiveOption(130_000)
+        );
+    }
+
+    function _avalancheSUsdsLane() internal view returns (LzLaneConfig memory lane) {
+        address[] memory ethDVNs = new address[](2);
+        ethDVNs[0] = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b; // LayerZero Labs
+        ethDVNs[1] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
+
+        lane.localChain = LzChainConfig({
+            eid: 30101, endpoint: addr.addr("LZ_ENDPOINT"),
+            sendLib302: addr.addr("LZ_SEND_302"), recvLib302: addr.addr("LZ_RECV_302")
+        });
+        lane.remoteChain = LzChainConfig({
+            eid: 30106, endpoint: avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"),
+            sendLib302: avalanche.addr("L2_AVALANCHE_LZ_SEND_302"), recvLib302: avalanche.addr("L2_AVALANCHE_LZ_RECV_302")
+        });
+        lane.localOApp  = addr.addr("SUSDS_OFT");
+        lane.remoteOApp = avalanche.addr("L2_AVALANCHE_SUSDS_OFT");
+        lane.remotePeer = LZLaneTesting.toBytes32(lane.remoteOApp);
+        lane.sendExecutor = LzExecutorConfig({ maxMessageSize: 10_000, executor: addr.addr("LZ_EXECUTOR") });
+        lane.recvExecutor = LzExecutorConfig({ maxMessageSize: 10_000, executor: avalanche.addr("L2_AVALANCHE_LZ_EXECUTOR") });
+        lane.sendUln = LzUlnConfig({
+            confirmations: 15, requiredDVNCount: 2, optionalDVNCount: 0, optionalDVNThreshold: 0,
+            requiredDVNs: ethDVNs, optionalDVNs: new address[](0)
+        });
+        lane.recvUln = LzUlnConfig({
+            confirmations: 12, requiredDVNCount: 2, optionalDVNCount: 0, optionalDVNThreshold: 0,
+            requiredDVNs: ethDVNs, optionalDVNs: new address[](0)
+        });
+        lane.enforcedOptions = LZLaneTesting.executorLzReceiveOption(130_000);
     }
 }
