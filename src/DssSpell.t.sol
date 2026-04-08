@@ -17,7 +17,7 @@
 pragma solidity 0.8.16;
 
 import "./DssSpell.t.base.sol";
-import {LZBridgeTesting} from "./test/helpers/LZBridgeTesting.sol";
+import {LZBridgeTesting, OAppConfig, OFTAdapterConfig} from "./test/helpers/LZBridgeTesting.sol";
 
 interface L2Spell {
     function dstDomain() external returns (bytes32);
@@ -1592,207 +1592,147 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
-    function testWireLzGovSenderAvalanche() public {
-        uint32  AVAX_EID          = 30106;
-        address ETH_LZ_ENDPOINT   = addr.addr("LZ_ENDPOINT");
-        address ETH_LZ_SEND_302   = addr.addr("LZ_SEND_302");
-        bytes32 AVAX_GOV_RECEIVER = bytes32(uint256(uint160(avalanche.addr("L2_AVALANCHE_GOV_RECEIVER"))));
-        bytes32 AVAX_L2_GOV_RELAY = bytes32(uint256(uint160(avalanche.addr("L2_AVALANCHE_GOV_RELAY"))));
+    // --- LZ config tests ---
 
+    function testWireLzGovSenderAvalanche() public {
+        uint32  AVAX_EID  = 30106;
         address govSender = addr.addr("LZ_GOV_SENDER");
         address govRelay  = addr.addr("LZ_GOV_RELAY");
-
-        GovernanceOAppSenderLike govOapp = GovernanceOAppSenderLike(govSender);
+        bytes32 avaxL2GovRelay = bytes32(uint256(uint160(avalanche.addr("L2_AVALANCHE_GOV_RELAY"))));
 
         // Verify pre-spell state
+        GovernanceOAppSenderLike govOapp = GovernanceOAppSenderLike(govSender);
         assertEq(govOapp.peers(AVAX_EID), bytes32(0), "TestError/gov-sender-peer-already-set");
-        assertFalse(govOapp.canCallTarget(govRelay, AVAX_EID, AVAX_L2_GOV_RELAY), "TestError/canCallTarget-already-set");
+        assertFalse(govOapp.canCallTarget(govRelay, AVAX_EID, avaxL2GovRelay), "TestError/canCallTarget-already-set");
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        // Verify peer is set
-        assertEq(govOapp.peers(AVAX_EID), AVAX_GOV_RECEIVER, "TestError/gov-sender-wrong-peer");
+        // Verify OApp config (send-only: no receive library)
+        address[] memory optDVNs = new address[](7);
+        optDVNs[0] = 0x06559EE34D85a88317Bf0bfE307444116c631b67; // P2P
+        optDVNs[1] = 0x373a6E5c0C4E89E24819f00AA37ea370917AAfF4; // Deutsche Telekom
+        optDVNs[2] = 0x380275805876Ff19055EA900CDb2B46a94ecF20D; // Horizen
+        optDVNs[3] = 0x58249a2Ec05c1978bF21DF1f5eC1847e42455CF4; // Luganodes
+        optDVNs[4] = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b; // LayerZero Labs
+        optDVNs[5] = 0xa4fE5A5B9A846458a70Cd0748228aED3bF65c2cd; // Canary
+        optDVNs[6] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
 
-        // Verify send library is set
-        assertEq(
-            EndpointV2Like(ETH_LZ_ENDPOINT).getSendLibrary(govSender, AVAX_EID),
-            ETH_LZ_SEND_302,
-            "TestError/gov-sender-wrong-send-library"
-        );
-
-        // Verify executor config (configType 1)
-        {
-            bytes memory executorConfig = EndpointV2Like(ETH_LZ_ENDPOINT).getConfig(govSender, ETH_LZ_SEND_302, AVAX_EID, 1);
-            ExecutorConfig memory execCfg = abi.decode(executorConfig, (ExecutorConfig));
-            assertEq(execCfg.maxMessageSize, 10_000, "TestError/gov-sender-wrong-max-message-size");
-            assertEq(execCfg.executor, addr.addr("LZ_EXECUTOR"), "TestError/gov-sender-wrong-executor");
-        }
-
-        // Verify ULN config (configType 2)
-        {
-            bytes memory ulnConfig = EndpointV2Like(ETH_LZ_ENDPOINT).getConfig(govSender, ETH_LZ_SEND_302, AVAX_EID, 2);
-            UlnConfig memory cfg = abi.decode(ulnConfig, (UlnConfig));
-            assertEq(cfg.confirmations, 15, "TestError/gov-sender-wrong-confirmations");
-            assertEq(cfg.requiredDVNCount, 0, "TestError/gov-sender-wrong-required-dvn-count");
-            assertEq(cfg.optionalDVNCount, 7, "TestError/gov-sender-wrong-optional-dvn-count");
-            assertEq(cfg.optionalDVNThreshold, 4, "TestError/gov-sender-wrong-optional-dvn-threshold");
-            assertEq(cfg.requiredDVNs.length, 0, "TestError/gov-sender-wrong-required-dvns-length");
-            assertEq(cfg.optionalDVNs.length, 7, "TestError/gov-sender-wrong-optional-dvns-length");
-            // Note: DVN addresses in ascending order
-            assertEq(cfg.optionalDVNs[0], 0x06559EE34D85a88317Bf0bfE307444116c631b67, "TestError/gov-sender-wrong-optional-dvn-0"); // P2P
-            assertEq(cfg.optionalDVNs[1], 0x373a6E5c0C4E89E24819f00AA37ea370917AAfF4, "TestError/gov-sender-wrong-optional-dvn-1"); // Deutsche Telekom
-            assertEq(cfg.optionalDVNs[2], 0x380275805876Ff19055EA900CDb2B46a94ecF20D, "TestError/gov-sender-wrong-optional-dvn-2"); // Horizen
-            assertEq(cfg.optionalDVNs[3], 0x58249a2Ec05c1978bF21DF1f5eC1847e42455CF4, "TestError/gov-sender-wrong-optional-dvn-3"); // Luganodes
-            assertEq(cfg.optionalDVNs[4], 0x589dEDbD617e0CBcB916A9223F4d1300c294236b, "TestError/gov-sender-wrong-optional-dvn-4"); // LayerZero Labs
-            assertEq(cfg.optionalDVNs[5], 0xa4fE5A5B9A846458a70Cd0748228aED3bF65c2cd, "TestError/gov-sender-wrong-optional-dvn-5"); // Canary
-            assertEq(cfg.optionalDVNs[6], 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5, "TestError/gov-sender-wrong-optional-dvn-6"); // Nethermind
-        }
+        LZBridgeTesting.checkOAppConfig(OAppConfig({
+            oapp:                     govSender,
+            endpoint:                 addr.addr("LZ_ENDPOINT"),
+            owner:                    pauseProxy,
+            remoteEid:                AVAX_EID,
+            peer:                     bytes32(uint256(uint160(avalanche.addr("L2_AVALANCHE_GOV_RECEIVER")))),
+            sendLib:                  addr.addr("LZ_SEND_302"),
+            recvLib:                  address(0), // send-only
+            sendConfirmations:        15,
+            sendRequiredDVNCount:     0,  // NONE (255 stored, getter returns 0)
+            sendOptionalDVNCount:     7,
+            sendOptionalDVNThreshold: 4,
+            sendRequiredDVNs:         new address[](0),
+            sendOptionalDVNs:         optDVNs,
+            sendMaxMessageSize:       10_000,
+            sendExecutor:             addr.addr("LZ_EXECUTOR"),
+            recvConfirmations:        0,
+            recvRequiredDVNCount:     0,
+            recvOptionalDVNCount:     0,
+            recvOptionalDVNThreshold: 0,
+            recvRequiredDVNs:         new address[](0),
+            recvOptionalDVNs:         new address[](0)
+        }));
 
         // Verify canCallTarget for LZ_GOV_RELAY -> Avalanche L2GovernanceRelay
-        assertTrue(govOapp.canCallTarget(govRelay, AVAX_EID, AVAX_L2_GOV_RELAY), "TestError/canCallTarget-not-set");
+        assertTrue(govOapp.canCallTarget(govRelay, AVAX_EID, avaxL2GovRelay), "TestError/canCallTarget-not-set");
     }
 
     function testWireUsdsOftAvalanche() public {
-        uint32  AVAX_EID  = 30106;
-        uint32  ETH_EID   = 30101;
-        address usdsOft   = addr.addr("USDS_OFT");
-
-        // Note: Capture all addresses before switching forks (contract state is fork-local)
-        address[3] memory ethAddrs = [
-            addr.addr("LZ_ENDPOINT"),                   // [0] ETH_LZ_ENDPOINT
-            addr.addr("LZ_SEND_302"),                   // [1] ETH_LZ_SEND_302
-            addr.addr("LZ_RECV_302")                    // [2] ETH_LZ_RECV_302
-        ];
-        address[4] memory avaxAddrs = [
-            avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"), // [0] avaxEndpoint
-            avalanche.addr("L2_AVALANCHE_LZ_SEND_302"), // [1] avaxSend302
-            avalanche.addr("L2_AVALANCHE_LZ_RECV_302"), // [2] avaxRecv302
-            avalanche.addr("L2_AVALANCHE_USDS_OFT")     // [3] avaxUsdsOft
-        ];
-
-        SkyOFTAdapterLike oft = SkyOFTAdapterLike(usdsOft);
+        uint32  AVAX_EID    = 30106;
+        address usdsOft     = addr.addr("USDS_OFT");
+        address avaxUsdsOft = avalanche.addr("L2_AVALANCHE_USDS_OFT");
 
         // Verify pre-spell state
-        assertEq(oft.peers(AVAX_EID), bytes32(0), "TestError/usds-oft-peer-already-set");
+        assertEq(OAppLike(usdsOft).peers(AVAX_EID), bytes32(0), "TestError/usds-oft-peer-already-set");
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
         // ---- L1 (Ethereum) config verification ----
+        address[] memory ethDVNs = new address[](2);
+        ethDVNs[0] = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b; // LayerZero Labs
+        ethDVNs[1] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
+        bytes memory enforcedOpts = LZBridgeTesting.buildEnforcedOptions(130_000, 0);
 
-        // Verify peer is set
-        assertEq(oft.peers(AVAX_EID), bytes32(uint256(uint160(avaxAddrs[3]))), "TestError/usds-oft-wrong-peer");
-
-        // Verify send library is set
-        assertEq(
-            EndpointV2Like(ethAddrs[0]).getSendLibrary(usdsOft, AVAX_EID),
-            ethAddrs[1],
-            "TestError/usds-oft-wrong-send-library"
-        );
-
-        // Verify receive library is set
-        {
-            (address recvLib,) = EndpointV2Like(ethAddrs[0]).getReceiveLibrary(usdsOft, AVAX_EID);
-            assertEq(recvLib, ethAddrs[2], "TestError/usds-oft-wrong-receive-library");
-        }
-
-        // Verify send executor config (configType 1)
-        {
-            bytes memory executorConfig = EndpointV2Like(ethAddrs[0]).getConfig(usdsOft, ethAddrs[1], AVAX_EID, 1);
-            ExecutorConfig memory execCfg = abi.decode(executorConfig, (ExecutorConfig));
-            assertEq(execCfg.maxMessageSize, 10_000, "TestError/usds-oft-send-wrong-max-message-size");
-            assertEq(execCfg.executor, 0x173272739Bd7Aa6e4e214714048a9fE699453059, "TestError/usds-oft-send-wrong-executor");
-        }
-
-        // Verify send ULN config (configType 2)
-        {
-            bytes memory sendUlnConfig = EndpointV2Like(ethAddrs[0]).getConfig(usdsOft, ethAddrs[1], AVAX_EID, 2);
-            UlnConfig memory cfg = abi.decode(sendUlnConfig, (UlnConfig));
-            assertEq(cfg.confirmations, 15, "TestError/usds-oft-send-wrong-confirmations");
-            assertEq(cfg.requiredDVNCount, 2, "TestError/usds-oft-send-wrong-required-dvn-count");
-            assertEq(cfg.optionalDVNCount, 0, "TestError/usds-oft-send-wrong-optional-dvn-count");
-            assertEq(cfg.requiredDVNs.length, 2, "TestError/usds-oft-send-wrong-required-dvns-length");
-            assertEq(cfg.requiredDVNs[0], 0x589dEDbD617e0CBcB916A9223F4d1300c294236b, "TestError/usds-oft-send-wrong-required-dvn-0"); // LayerZero Labs
-            assertEq(cfg.requiredDVNs[1], 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5, "TestError/usds-oft-send-wrong-required-dvn-1"); // Nethermind
-        }
-
-        // Verify receive ULN config (configType 2)
-        {
-            bytes memory recvUlnConfig = EndpointV2Like(ethAddrs[0]).getConfig(usdsOft, ethAddrs[2], AVAX_EID, 2);
-            UlnConfig memory cfg = abi.decode(recvUlnConfig, (UlnConfig));
-            assertEq(cfg.confirmations, 12, "TestError/usds-oft-recv-wrong-confirmations");
-            assertEq(cfg.requiredDVNCount, 2, "TestError/usds-oft-recv-wrong-required-dvn-count");
-            assertEq(cfg.optionalDVNCount, 0, "TestError/usds-oft-recv-wrong-optional-dvn-count");
-            assertEq(cfg.requiredDVNs.length, 2, "TestError/usds-oft-recv-wrong-required-dvns-length");
-            assertEq(cfg.requiredDVNs[0], 0x589dEDbD617e0CBcB916A9223F4d1300c294236b, "TestError/usds-oft-recv-wrong-required-dvn-0"); // LayerZero Labs
-            assertEq(cfg.requiredDVNs[1], 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5, "TestError/usds-oft-recv-wrong-required-dvn-1"); // Nethermind
-        }
-
-        // Verify enforced options
-        {
-            bytes memory expectedOptions = hex"0003010011010000000000000000000000000001fbd0";
-            assertEq(keccak256(oft.enforcedOptions(AVAX_EID, 1)), keccak256(expectedOptions), "TestError/usds-oft-send-enforced-options-mismatch");
-            assertEq(keccak256(oft.enforcedOptions(AVAX_EID, 2)), keccak256(expectedOptions), "TestError/usds-oft-send-and-call-enforced-options-mismatch");
-        }
+        LZBridgeTesting.checkOAppConfig(OAppConfig({
+            oapp:                     usdsOft,
+            endpoint:                 addr.addr("LZ_ENDPOINT"),
+            owner:                    pauseProxy,
+            remoteEid:                AVAX_EID,
+            peer:                     bytes32(uint256(uint160(avaxUsdsOft))),
+            sendLib:                  addr.addr("LZ_SEND_302"),
+            recvLib:                  addr.addr("LZ_RECV_302"),
+            sendConfirmations:        15,
+            sendRequiredDVNCount:     2,
+            sendOptionalDVNCount:     0,
+            sendOptionalDVNThreshold: 0,
+            sendRequiredDVNs:         ethDVNs,
+            sendOptionalDVNs:         new address[](0),
+            sendMaxMessageSize:       10_000,
+            sendExecutor:             addr.addr("LZ_EXECUTOR"),
+            recvConfirmations:        12,
+            recvRequiredDVNCount:     2,
+            recvOptionalDVNCount:     0,
+            recvOptionalDVNThreshold: 0,
+            recvRequiredDVNs:         ethDVNs,
+            recvOptionalDVNs:         new address[](0)
+        }));
+        LZBridgeTesting.checkOFTAdapterConfig(usdsOft, AVAX_EID, OFTAdapterConfig({
+            token:                     address(usds),
+            paused:                    false,
+            pauser:                    address(0), // USDS OFT pauser was set in a previous spell, not checked here
+            outboundWindow:            uint48(1 days),
+            outboundLimit:             5_000_000 * WAD,
+            inboundWindow:             uint48(1 days),
+            inboundLimit:              5_000_000 * WAD,
+            enforcedOptionsSend:       enforcedOpts,
+            enforcedOptionsSendAndCall: enforcedOpts
+        }));
 
         // ---- L2 (Avalanche) config verification ----
         // Note: These configs were set during pre-deployment (not by the spell).
-        //       Verified here to ensure the remote chain matches the L1 configuration.
+        //       Capture addresses before switching forks.
+        address[] memory avaxDVNs = new address[](2);
+        avaxDVNs[0] = 0x962F502A63F5FBeB44DC9ab932122648E8352959; // LayerZero Labs (Avalanche)
+        avaxDVNs[1] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
+
+        OAppConfig memory avaxCfg = OAppConfig({
+            oapp:                     avaxUsdsOft,
+            endpoint:                 avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"),
+            owner:                    avalanche.addr("L2_AVALANCHE_GOV_RELAY"),
+            remoteEid:                30101, // ETH_EID
+            peer:                     bytes32(uint256(uint160(usdsOft))),
+            sendLib:                  avalanche.addr("L2_AVALANCHE_LZ_SEND_302"),
+            recvLib:                  avalanche.addr("L2_AVALANCHE_LZ_RECV_302"),
+            sendConfirmations:        12,
+            sendRequiredDVNCount:     2,
+            sendOptionalDVNCount:     0,
+            sendOptionalDVNThreshold: 0,
+            sendRequiredDVNs:         avaxDVNs,
+            sendOptionalDVNs:         new address[](0),
+            sendMaxMessageSize:       10_000,
+            sendExecutor:             0x90E595783E43eb89fF07f63d27B8430e6B44bD9c,
+            recvConfirmations:        15,
+            recvRequiredDVNCount:     2,
+            recvOptionalDVNCount:     0,
+            recvOptionalDVNThreshold: 0,
+            recvRequiredDVNs:         avaxDVNs,
+            recvOptionalDVNs:         new address[](0)
+        });
 
         vm.selectFork(avaxBridge.forkId);
-
-        // Verify Avalanche peer points back to Ethereum USDS_OFT
-        assertEq(
-            OAppLike(avaxAddrs[3]).peers(ETH_EID),
-            bytes32(uint256(uint160(usdsOft))),
-            "TestError/avax-usds-oft-wrong-peer"
-        );
-
-        // Verify Avalanche send library
-        assertEq(
-            EndpointV2Like(avaxAddrs[0]).getSendLibrary(avaxAddrs[3], ETH_EID),
-            avaxAddrs[1],
-            "TestError/avax-usds-oft-wrong-send-library"
-        );
-
-        // Verify Avalanche receive library
-        {
-            (address avaxRecvLib,) = EndpointV2Like(avaxAddrs[0]).getReceiveLibrary(avaxAddrs[3], ETH_EID);
-            assertEq(avaxRecvLib, avaxAddrs[2], "TestError/avax-usds-oft-wrong-receive-library");
-        }
-
-        // Verify Avalanche send executor config (configType 1)
-        {
-            bytes memory executorConfig = EndpointV2Like(avaxAddrs[0]).getConfig(avaxAddrs[3], avaxAddrs[1], ETH_EID, 1);
-            ExecutorConfig memory execCfg = abi.decode(executorConfig, (ExecutorConfig));
-            assertEq(execCfg.maxMessageSize, 10_000, "TestError/avax-usds-oft-send-wrong-max-message-size");
-            assertEq(execCfg.executor, 0x90E595783E43eb89fF07f63d27B8430e6B44bD9c, "TestError/avax-usds-oft-send-wrong-executor");
-        }
-
-        // Verify Avalanche send ULN config (configType 2)
-        {
-            bytes memory sendUlnConfig = EndpointV2Like(avaxAddrs[0]).getConfig(avaxAddrs[3], avaxAddrs[1], ETH_EID, 2);
-            UlnConfig memory cfg = abi.decode(sendUlnConfig, (UlnConfig));
-            assertEq(cfg.confirmations, 12, "TestError/avax-usds-oft-send-wrong-confirmations");
-            assertEq(cfg.requiredDVNCount, 2, "TestError/avax-usds-oft-send-wrong-required-dvn-count");
-            assertEq(cfg.requiredDVNs.length, 2, "TestError/avax-usds-oft-send-wrong-required-dvns-length");
-            assertEq(cfg.requiredDVNs[0], 0x962F502A63F5FBeB44DC9ab932122648E8352959, "TestError/avax-usds-oft-send-wrong-required-dvn-0"); // LayerZero Labs
-            assertEq(cfg.requiredDVNs[1], 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5, "TestError/avax-usds-oft-send-wrong-required-dvn-1"); // Nethermind
-        }
-
-        // Verify Avalanche receive ULN config (configType 2)
-        {
-            bytes memory recvUlnConfig = EndpointV2Like(avaxAddrs[0]).getConfig(avaxAddrs[3], avaxAddrs[2], ETH_EID, 2);
-            UlnConfig memory cfg = abi.decode(recvUlnConfig, (UlnConfig));
-            assertEq(cfg.confirmations, 15, "TestError/avax-usds-oft-recv-wrong-confirmations");
-            assertEq(cfg.requiredDVNCount, 2, "TestError/avax-usds-oft-recv-wrong-required-dvn-count");
-            assertEq(cfg.requiredDVNs.length, 2, "TestError/avax-usds-oft-recv-wrong-required-dvns-length");
-            assertEq(cfg.requiredDVNs[0], 0x962F502A63F5FBeB44DC9ab932122648E8352959, "TestError/avax-usds-oft-recv-wrong-required-dvn-0"); // LayerZero Labs
-            assertEq(cfg.requiredDVNs[1], 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5, "TestError/avax-usds-oft-recv-wrong-required-dvn-1"); // Nethermind
-        }
+        LZBridgeTesting.checkOAppConfig(avaxCfg);
     }
 
     function testGovernanceRelayAvalancheE2E() public {
@@ -1893,13 +1833,9 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     function testWireSUsdsOftAvalanche() public {
-        uint32  AVAX_EID          = 30106;
-        address ETH_LZ_ENDPOINT   = addr.addr("LZ_ENDPOINT");
-        address ETH_LZ_SEND_302   = addr.addr("LZ_SEND_302");
-        address ETH_LZ_RECV_302   = addr.addr("LZ_RECV_302");
-        bytes32 AVAX_SUSDS_OFT    = bytes32(uint256(uint160(avalanche.addr("L2_AVALANCHE_SUSDS_OFT"))));
-
+        uint32  AVAX_EID = 30106;
         address susdsOft = addr.addr("SUSDS_OFT");
+        address avaxSUsdsOft = avalanche.addr("L2_AVALANCHE_SUSDS_OFT");
 
         // Verify SUSDS_OFT is not in chainlog before spell
         vm.expectRevert("dss-chain-log/invalid-key");
@@ -1910,74 +1846,48 @@ contract DssSpellTest is DssSpellTestBase {
         assertTrue(spell.done(), "TestError/spell-not-done");
 
         // Verify SUSDS_OFT added to chainlog
-        assertEq(
-            chainLog.getAddress(_stringToBytes32("SUSDS_OFT")),
-            susdsOft,
-            "TestError/susds-oft-not-in-chainlog"
-        );
+        assertEq(chainLog.getAddress(_stringToBytes32("SUSDS_OFT")), susdsOft, "TestError/susds-oft-not-in-chainlog");
 
-        SkyOFTAdapterLike oft = SkyOFTAdapterLike(susdsOft);
+        // ---- L1 (Ethereum) config verification ----
+        address[] memory ethDVNs = new address[](2);
+        ethDVNs[0] = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b; // LayerZero Labs
+        ethDVNs[1] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
+        bytes memory enforcedOpts = LZBridgeTesting.buildEnforcedOptions(130_000, 0);
 
-        // Verify peer is set
-        assertEq(oft.peers(AVAX_EID), AVAX_SUSDS_OFT, "TestError/susds-oft-wrong-peer");
-
-        // Verify pauser is set
-        assertTrue(
-            SkyOFTAdapterLike(susdsOft).pausers(0x38d1114b4cE3e079CC0f627df6aC2776B5887776),
-            "TestError/susds-oft-pauser-not-set"
-        );
-
-        // Verify send library is set
-        assertEq(
-            EndpointV2Like(ETH_LZ_ENDPOINT).getSendLibrary(susdsOft, AVAX_EID),
-            ETH_LZ_SEND_302,
-            "TestError/susds-oft-wrong-send-library"
-        );
-
-        // Verify receive library is set
-        (address recvLib,) = EndpointV2Like(ETH_LZ_ENDPOINT).getReceiveLibrary(susdsOft, AVAX_EID);
-        assertEq(recvLib, ETH_LZ_RECV_302, "TestError/susds-oft-wrong-receive-library");
-
-        // Verify send executor config (configType 1)
-        {
-            bytes memory executorConfig = EndpointV2Like(ETH_LZ_ENDPOINT).getConfig(susdsOft, ETH_LZ_SEND_302, AVAX_EID, 1);
-            ExecutorConfig memory execCfg = abi.decode(executorConfig, (ExecutorConfig));
-            assertEq(execCfg.maxMessageSize, 10_000, "TestError/susds-oft-send-wrong-max-message-size");
-            assertEq(execCfg.executor, 0x173272739Bd7Aa6e4e214714048a9fE699453059, "TestError/susds-oft-send-wrong-executor");
-        }
-
-        // Verify send ULN config (configType 2)
-        {
-            bytes memory sendUlnConfig = EndpointV2Like(ETH_LZ_ENDPOINT).getConfig(susdsOft, ETH_LZ_SEND_302, AVAX_EID, 2);
-            UlnConfig memory cfg = abi.decode(sendUlnConfig, (UlnConfig));
-            assertEq(cfg.confirmations, 15, "TestError/susds-oft-send-wrong-confirmations");
-            assertEq(cfg.requiredDVNCount, 2, "TestError/susds-oft-send-wrong-required-dvn-count");
-            assertEq(cfg.optionalDVNCount, 0, "TestError/susds-oft-send-wrong-optional-dvn-count");
-            assertEq(cfg.requiredDVNs.length, 2, "TestError/susds-oft-send-wrong-required-dvns-length");
-            assertEq(cfg.requiredDVNs[0], 0x589dEDbD617e0CBcB916A9223F4d1300c294236b, "TestError/susds-oft-send-wrong-required-dvn-0"); // LayerZero Labs
-            assertEq(cfg.requiredDVNs[1], 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5, "TestError/susds-oft-send-wrong-required-dvn-1"); // Nethermind
-        }
-
-        // Verify receive ULN config (configType 2)
-        {
-            bytes memory recvUlnConfig = EndpointV2Like(ETH_LZ_ENDPOINT).getConfig(susdsOft, ETH_LZ_RECV_302, AVAX_EID, 2);
-            UlnConfig memory cfg = abi.decode(recvUlnConfig, (UlnConfig));
-            assertEq(cfg.confirmations, 12, "TestError/susds-oft-recv-wrong-confirmations");
-            assertEq(cfg.requiredDVNCount, 2, "TestError/susds-oft-recv-wrong-required-dvn-count");
-            assertEq(cfg.optionalDVNCount, 0, "TestError/susds-oft-recv-wrong-optional-dvn-count");
-            assertEq(cfg.requiredDVNs.length, 2, "TestError/susds-oft-recv-wrong-required-dvns-length");
-            assertEq(cfg.requiredDVNs[0], 0x589dEDbD617e0CBcB916A9223F4d1300c294236b, "TestError/susds-oft-recv-wrong-required-dvn-0"); // LayerZero Labs
-            assertEq(cfg.requiredDVNs[1], 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5, "TestError/susds-oft-recv-wrong-required-dvn-1"); // Nethermind
-        }
-
-        // Verify enforced options
-        bytes memory expectedOptions = hex"0003010011010000000000000000000000000001fbd0";
-
-        bytes memory sendOptions = oft.enforcedOptions(AVAX_EID, 1);
-        assertEq(keccak256(sendOptions), keccak256(expectedOptions), "TestError/susds-oft-send-enforced-options-mismatch");
-
-        bytes memory sendAndCallOptions = oft.enforcedOptions(AVAX_EID, 2);
-        assertEq(keccak256(sendAndCallOptions), keccak256(expectedOptions), "TestError/susds-oft-send-and-call-enforced-options-mismatch");
+        LZBridgeTesting.checkOAppConfig(OAppConfig({
+            oapp:                     susdsOft,
+            endpoint:                 addr.addr("LZ_ENDPOINT"),
+            owner:                    pauseProxy,
+            remoteEid:                AVAX_EID,
+            peer:                     bytes32(uint256(uint160(avaxSUsdsOft))),
+            sendLib:                  addr.addr("LZ_SEND_302"),
+            recvLib:                  addr.addr("LZ_RECV_302"),
+            sendConfirmations:        15,
+            sendRequiredDVNCount:     2,
+            sendOptionalDVNCount:     0,
+            sendOptionalDVNThreshold: 0,
+            sendRequiredDVNs:         ethDVNs,
+            sendOptionalDVNs:         new address[](0),
+            sendMaxMessageSize:       10_000,
+            sendExecutor:             addr.addr("LZ_EXECUTOR"),
+            recvConfirmations:        12,
+            recvRequiredDVNCount:     2,
+            recvOptionalDVNCount:     0,
+            recvOptionalDVNThreshold: 0,
+            recvRequiredDVNs:         ethDVNs,
+            recvOptionalDVNs:         new address[](0)
+        }));
+        LZBridgeTesting.checkOFTAdapterConfig(susdsOft, AVAX_EID, OFTAdapterConfig({
+            token:                     SkyOFTAdapterLike(susdsOft).token(),
+            paused:                    false,
+            pauser:                    0x38d1114b4cE3e079CC0f627df6aC2776B5887776,
+            outboundWindow:            0, // Note: rate limits not set in this spell
+            outboundLimit:             0,
+            inboundWindow:             0,
+            inboundLimit:              0,
+            enforcedOptionsSend:       enforcedOpts,
+            enforcedOptionsSendAndCall: enforcedOpts
+        }));
     }
 
     function testSUsdsOftAvalancheRateLimitBlocked() public {
