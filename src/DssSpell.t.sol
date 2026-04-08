@@ -810,32 +810,32 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public skipped { // add the `skipped` modifier to skip
+    function testVestSky() public { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
-        uint256 APRIL_25_2026_14_38_11 = 1777127891;
+        uint256 AUG_29_2026_14_00_23 = 1788012023;
 
         uint256 spellCastTime = _getSpellCastTime();
 
         // Build expected new stream
         NewVestStream[] memory newStreams = new NewVestStream[](1);
         newStreams[0] = NewVestStream({
-            id:  10,
+            id:  11,
             usr: addr.addr("REWARDS_DIST_LSSKY_SKY"),
             bgn: spellCastTime,
             clf: spellCastTime,
-            fin: spellCastTime + 180 days,
-            tau: 180 days,
+            fin: spellCastTime + 90 days,
+            tau: 90 days,
             mgr: address(0),
             res: 1,
-            tot: 838_182_330 * WAD,
+            tot: 192_110_322 * WAD,
             rxd: 0 // Amount already claimed
         });
 
         // For each yanked stream, provide Stream object and initialize the array with the current number of yanked streams
         YankedVestStream[] memory yankedStreams = new YankedVestStream[](1);
         yankedStreams[0] = YankedVestStream({
-            id:  8,
-            fin: APRIL_25_2026_14_38_11,
+            id:  10,
+            fin: AUG_29_2026_14_00_23,
             end: spellCastTime
         });
 
@@ -901,11 +901,11 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestedRewardsDist() public skipped {
+    function testVestedRewardsDist() public {
         address rewardsDist = addr.addr("REWARDS_DIST_LSSKY_SKY");
         address stakingRewards = addr.addr("REWARDS_LSSKY_SKY");
         VestAbstract vest = VestAbstract(addr.addr("MCD_VEST_SKY_TREASURY"));
-        uint256 expectedVestId = 8;
+        uint256 expectedVestId = 10;
 
         uint256 vestId = VestedRewardsDistributionLike(rewardsDist).vestId();
         assertEq(vestId, expectedVestId, "TestError/rewards-dist-lssky-sky-invalid-vest-id-before");
@@ -924,7 +924,7 @@ contract DssSpellTest is DssSpellTestBase {
 
         // Check newly set vestId if updated
         vestId = VestedRewardsDistributionLike(rewardsDist).vestId();
-        assertEq(vestId, 10, "TestError/rewards-dist-lssky-sky-invalid-vest-id-after");
+        assertEq(vestId, 11, "TestError/rewards-dist-lssky-sky-invalid-vest-id-after");
 
         assertEq(StakingRewardsLike(stakingRewards).lastUpdateTime(), block.timestamp, "TestError/rewards-lssky-sky-invalid-last-update-time");
     }
@@ -1462,18 +1462,18 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
+    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
         PrimeAgentSpell[2] memory primeAgentSpells = [
             PrimeAgentSpell({
                 starGuardKey: "SPARK_STARGUARD",                                              // Insert Prime Agent StarGuards Chainlog key
-                addr: 0xe854CE4A58eC1BAf997ccA483de26B0935Ae0f45,                             // Insert Prime Agent spell address
-                codehash: 0xc941bea37a2ac710acd87d9c097f9ff23f44d43121857dd8fde7833964c7c280, // Insert Prime Agent spell codehash
+                addr: 0xFa5fc020311fCC1A467FEC5886640c7dD746deAa,                             // Insert Prime Agent spell address
+                codehash: 0x2572a97846f7a6f9f159a9a69c2707cfa4186c061de2a0ec59e7a0d46473c74c, // Insert Prime Agent spell codehash
                 directExecutionEnabled: false                                                 // Set to true if the Prime Agent spell is executed directly from core spell
             }),
             PrimeAgentSpell({
                 starGuardKey: "GROVE_STARGUARD",
-                addr: 0x78e187473527938211187C85a414b19dD34ECD53,
-                codehash: 0xa0162bcb9891a8c322c525502626282d5fc545bfb5ef2251b06c75f674af681f,
+                addr: 0x679eD4739c71300f7d78102AE5eE17EF8b8b2162,
+                codehash: 0x4fa1f743b3d6d2855390724459129186dd684e1c07d59f88925f0059ba1e6c84,
                 directExecutionEnabled: false
             })
         ];
