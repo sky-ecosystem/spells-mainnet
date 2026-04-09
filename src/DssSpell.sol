@@ -442,7 +442,7 @@ contract DssSpellAction is DssAction {
         SkyOFTAdapterLike.EnforcedOptionParam[] memory usdsOftEnforcedOptions =
             new SkyOFTAdapterLike.EnforcedOptionParam[](2);
 
-        // SendOption (generated with OptionsBuilder.addExecutorLzReceiveOption
+        // SendOption (generated with OptionsBuilder.addExecutorLzReceiveOption)
         usdsOftEnforcedOptions[0] = SkyOFTAdapterLike.EnforcedOptionParam({
             // uint32 eid being 30106
             eid: AVAX_EID,
@@ -681,6 +681,7 @@ contract DssSpellAction is DssAction {
             sUsdsOftRecvParams
         );
 
+        // EnforcedOptionParam[] _enforcedOptions being an array with 2 items:
         // Note: Create dynamic array for _enforcedOptions argument in SkyOFTAdapterLike(SUSDS_OFT).setEnforcedOptions():
         SkyOFTAdapterLike.EnforcedOptionParam[] memory sUsdsOftEnforcedOptions = new SkyOFTAdapterLike.EnforcedOptionParam[](2);
 
