@@ -1537,79 +1537,88 @@ contract DssSpellTest is DssSpellTestBase {
     error RateLimitExceeded();
 
     function testWireLzGovSenderAvalanche() public {
+        LzChainConfig memory ethChain = _ethChain();
         LzLaneConfig memory lane = _avalancheGovLane();
+        address govSender = addr.addr("LZ_GOV_SENDER");
         address govRelay = addr.addr("LZ_GOV_RELAY");
         bytes32 avaxL2GovRelay = LZLaneTesting.toBytes32(avalanche.addr("L2_AVALANCHE_GOV_RELAY"));
 
-        GovernanceOAppSenderLike govOapp = GovernanceOAppSenderLike(lane.localOApp);
+        GovernanceOAppSenderLike govOapp = GovernanceOAppSenderLike(govSender);
 
         // Verify pre-spell state
-        assertEq(govOapp.peers(lane.remoteChain.eid), bytes32(0), "TestError/gov/peer-already-set");
-        assertFalse(govOapp.canCallTarget(govRelay, lane.remoteChain.eid, avaxL2GovRelay), "TestError/gov/can-call-target-already-set");
+        assertEq(govOapp.peers(lane.remoteEid), bytes32(0), "TestError/gov/peer-already-set");
+        assertFalse(govOapp.canCallTarget(govRelay, lane.remoteEid, avaxL2GovRelay), "TestError/gov/can-call-target-already-set");
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        LZLaneTesting.assertOwner(lane);
-        LZLaneTesting.assertDelegate(lane);
-        LZLaneTesting.assertPeerSet(lane);
-        LZLaneTesting.assertSendLibrary(lane);
-        LZLaneTesting.assertSendExecutor(lane);
-        LZLaneTesting.assertSendUln(lane);
+        LZLaneTesting.assertOwner(govSender, lane);
+        LZLaneTesting.assertDelegate(ethChain, govSender, lane);
+        LZLaneTesting.assertPeerSet(govSender, lane);
+        LZLaneTesting.assertSendLibrary(ethChain, govSender, lane);
+        LZLaneTesting.assertSendExecutor(ethChain, govSender, lane);
+        LZLaneTesting.assertSendUln(ethChain, govSender, lane);
 
-        assertTrue(govOapp.canCallTarget(govRelay, lane.remoteChain.eid, avaxL2GovRelay), "TestError/gov/can-call-target-not-set");
+        assertTrue(govOapp.canCallTarget(govRelay, lane.remoteEid, avaxL2GovRelay), "TestError/gov/can-call-target-not-set");
 
         // L2 (Avalanche) — GovernanceOAppReceiver config (predeployed)
+        LzChainConfig memory avaxChain = _avaxChain();
         LzLaneConfig memory govRemoteLane = _avalancheGovRemoteLane();
+        address govReceiver = avalanche.addr("L2_AVALANCHE_GOV_RECEIVER");
         vm.createSelectFork(vm.envString("AVAX_RPC_URL"));
-        LZLaneTesting.assertOwner(govRemoteLane);
-        LZLaneTesting.assertDelegate(govRemoteLane);
-        LZLaneTesting.assertPeerSet(govRemoteLane);
-        LZLaneTesting.assertReceiveLibrary(govRemoteLane);
-        LZLaneTesting.assertReceiveUln(govRemoteLane);
+        LZLaneTesting.assertOwner(govReceiver, govRemoteLane);
+        LZLaneTesting.assertDelegate(avaxChain, govReceiver, govRemoteLane);
+        LZLaneTesting.assertPeerSet(govReceiver, govRemoteLane);
+        LZLaneTesting.assertReceiveLibrary(avaxChain, govReceiver, govRemoteLane);
+        LZLaneTesting.assertReceiveUln(avaxChain, govReceiver, govRemoteLane);
     }
 
     function testWireUsdsOftAvalanche() public {
+        LzChainConfig memory ethChain = _ethChain();
         LzLaneConfig memory lane = _avalancheUsdsLane();
-        LzLaneConfig memory reverseLane = _avalancheUsdsRemoteLane();
+        address oapp = addr.addr("USDS_OFT");
 
         // Verify pre-spell state
-        assertEq(SkyOFTAdapterLike(lane.localOApp).peers(lane.remoteChain.eid), bytes32(0), "TestError/usds/peer-already-set");
+        assertEq(SkyOFTAdapterLike(oapp).peers(lane.remoteEid), bytes32(0), "TestError/usds/peer-already-set");
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
         // L1 (Ethereum) config
-        LZLaneTesting.assertOwner(lane);
-        LZLaneTesting.assertDelegate(lane);
-        LZLaneTesting.assertPeerSet(lane);
-        LZLaneTesting.assertSendLibrary(lane);
-        LZLaneTesting.assertReceiveLibrary(lane);
-        LZLaneTesting.assertSendExecutor(lane);
-        LZLaneTesting.assertSendUln(lane);
-        LZLaneTesting.assertReceiveUln(lane);
-        LZLaneTesting.assertEnforcedOptions(lane);
-        LZLaneTesting.assertOftSanity(lane.localOApp, lane.remoteChain.eid, 0);
+        LZLaneTesting.assertOwner(oapp, lane);
+        LZLaneTesting.assertDelegate(ethChain, oapp, lane);
+        LZLaneTesting.assertPeerSet(oapp, lane);
+        LZLaneTesting.assertSendLibrary(ethChain, oapp, lane);
+        LZLaneTesting.assertReceiveLibrary(ethChain, oapp, lane);
+        LZLaneTesting.assertSendExecutor(ethChain, oapp, lane);
+        LZLaneTesting.assertSendUln(ethChain, oapp, lane);
+        LZLaneTesting.assertReceiveUln(ethChain, oapp, lane);
+        LZLaneTesting.assertEnforcedOptions(oapp, lane);
+        LZLaneTesting.assertOftSanity(oapp, lane.remoteEid, 0);
 
         // L2 (Avalanche) config — predeployed; verify it matches
+        LzChainConfig memory avaxChain = _avaxChain();
+        LzLaneConfig memory reverseLane = _avalancheUsdsRemoteLane();
+        address remoteOapp = avalanche.addr("L2_AVALANCHE_USDS_OFT");
         vm.createSelectFork(vm.envString("AVAX_RPC_URL"));
-        LZLaneTesting.assertOwner(reverseLane);
-        LZLaneTesting.assertDelegate(reverseLane);
-        LZLaneTesting.assertPeerSet(reverseLane);
-        LZLaneTesting.assertSendLibrary(reverseLane);
-        LZLaneTesting.assertReceiveLibrary(reverseLane);
-        LZLaneTesting.assertSendExecutor(reverseLane);
-        LZLaneTesting.assertSendUln(reverseLane);
-        LZLaneTesting.assertReceiveUln(reverseLane);
-        LZLaneTesting.assertEnforcedOptions(reverseLane);
-        LZLaneTesting.assertOftSanity(reverseLane.localOApp, reverseLane.remoteChain.eid, 0);
+        LZLaneTesting.assertOwner(remoteOapp, reverseLane);
+        LZLaneTesting.assertDelegate(avaxChain, remoteOapp, reverseLane);
+        LZLaneTesting.assertPeerSet(remoteOapp, reverseLane);
+        LZLaneTesting.assertSendLibrary(avaxChain, remoteOapp, reverseLane);
+        LZLaneTesting.assertReceiveLibrary(avaxChain, remoteOapp, reverseLane);
+        LZLaneTesting.assertSendExecutor(avaxChain, remoteOapp, reverseLane);
+        LZLaneTesting.assertSendUln(avaxChain, remoteOapp, reverseLane);
+        LZLaneTesting.assertReceiveUln(avaxChain, remoteOapp, reverseLane);
+        LZLaneTesting.assertEnforcedOptions(remoteOapp, reverseLane);
+        LZLaneTesting.assertOftSanity(remoteOapp, reverseLane.remoteEid, 0);
     }
 
     function testWireSUsdsOftAvalanche() public {
+        LzChainConfig memory ethChain = _ethChain();
         LzLaneConfig memory lane = _avalancheSUsdsLane();
-        address susdsOft = lane.localOApp;
+        address oapp = addr.addr("SUSDS_OFT");
 
         // Verify SUSDS_OFT is not in chainlog before spell
         vm.expectRevert("dss-chain-log/invalid-key");
@@ -1619,50 +1628,51 @@ contract DssSpellTest is DssSpellTestBase {
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        assertEq(chainLog.getAddress(_stringToBytes32("SUSDS_OFT")), susdsOft, "TestError/susds/not-in-chainlog");
-        assertTrue(SkyOFTAdapterLike(susdsOft).pausers(addr.addr("SUSDS_OFT_PAUSER")), "TestError/susds/pauser-not-set");
+        assertEq(chainLog.getAddress(_stringToBytes32("SUSDS_OFT")), oapp, "TestError/susds/not-in-chainlog");
+        assertTrue(SkyOFTAdapterLike(oapp).pausers(addr.addr("SUSDS_OFT_PAUSER")), "TestError/susds/pauser-not-set");
 
-        LZLaneTesting.assertOwner(lane);
-        LZLaneTesting.assertDelegate(lane);
-        LZLaneTesting.assertPeerSet(lane);
-        LZLaneTesting.assertSendLibrary(lane);
-        LZLaneTesting.assertReceiveLibrary(lane);
-        LZLaneTesting.assertSendExecutor(lane);
-        LZLaneTesting.assertSendUln(lane);
-        LZLaneTesting.assertReceiveUln(lane);
-        LZLaneTesting.assertEnforcedOptions(lane);
-        LZLaneTesting.assertOftSanity(lane.localOApp, lane.remoteChain.eid, 0);
+        LZLaneTesting.assertOwner(oapp, lane);
+        LZLaneTesting.assertDelegate(ethChain, oapp, lane);
+        LZLaneTesting.assertPeerSet(oapp, lane);
+        LZLaneTesting.assertSendLibrary(ethChain, oapp, lane);
+        LZLaneTesting.assertReceiveLibrary(ethChain, oapp, lane);
+        LZLaneTesting.assertSendExecutor(ethChain, oapp, lane);
+        LZLaneTesting.assertSendUln(ethChain, oapp, lane);
+        LZLaneTesting.assertReceiveUln(ethChain, oapp, lane);
+        LZLaneTesting.assertEnforcedOptions(oapp, lane);
+        LZLaneTesting.assertOftSanity(oapp, lane.remoteEid, 0);
 
         // L2 (Avalanche) — sUSDS OFT config (predeployed) + deployer ward check
+        LzChainConfig memory avaxChain = _avaxChain();
         LzLaneConfig memory reverseLane = _avalancheSUsdsRemoteLane();
+        address remoteOapp = avalanche.addr("L2_AVALANCHE_SUSDS_OFT");
         address avaxSUsds    = avalanche.addr("L2_AVALANCHE_SUSDS");
         address avaxDeployer = 0x48C4DbA0833748e576Ad60E12a3c01C5785b09Ab;
 
         vm.createSelectFork(vm.envString("AVAX_RPC_URL"));
-        LZLaneTesting.assertOwner(reverseLane);
-        LZLaneTesting.assertDelegate(reverseLane);
-        LZLaneTesting.assertPeerSet(reverseLane);
-        LZLaneTesting.assertSendLibrary(reverseLane);
-        LZLaneTesting.assertReceiveLibrary(reverseLane);
-        LZLaneTesting.assertSendExecutor(reverseLane);
-        LZLaneTesting.assertSendUln(reverseLane);
-        LZLaneTesting.assertReceiveUln(reverseLane);
-        LZLaneTesting.assertEnforcedOptions(reverseLane);
-        LZLaneTesting.assertOftSanity(reverseLane.localOApp, reverseLane.remoteChain.eid, 0);
+        LZLaneTesting.assertOwner(remoteOapp, reverseLane);
+        LZLaneTesting.assertDelegate(avaxChain, remoteOapp, reverseLane);
+        LZLaneTesting.assertPeerSet(remoteOapp, reverseLane);
+        LZLaneTesting.assertSendLibrary(avaxChain, remoteOapp, reverseLane);
+        LZLaneTesting.assertReceiveLibrary(avaxChain, remoteOapp, reverseLane);
+        LZLaneTesting.assertSendExecutor(avaxChain, remoteOapp, reverseLane);
+        LZLaneTesting.assertSendUln(avaxChain, remoteOapp, reverseLane);
+        LZLaneTesting.assertReceiveUln(avaxChain, remoteOapp, reverseLane);
+        LZLaneTesting.assertEnforcedOptions(remoteOapp, reverseLane);
+        LZLaneTesting.assertOftSanity(remoteOapp, reverseLane.remoteEid, 0);
 
         assertEq(WardsAbstract(avaxSUsds).wards(avaxDeployer), 0, "TestError/susds/deployer-still-ward-on-avax-susds");
     }
 
     function testUsdsOftAvalancheRateLimits() public {
-        LzLaneConfig memory lane = _avalancheUsdsLane();
-
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        SkyOFTAdapterLike oft = SkyOFTAdapterLike(lane.localOApp);
-        (, uint48 outW,, uint256 outL) = oft.outboundRateLimits(lane.remoteChain.eid);
-        (, uint48  inW,, uint256  inL) = oft.inboundRateLimits(lane.remoteChain.eid);
+        SkyOFTAdapterLike oft = SkyOFTAdapterLike(addr.addr("USDS_OFT"));
+        uint32 avaxEid = _avaxChain().eid;
+        (, uint48 outW,, uint256 outL) = oft.outboundRateLimits(avaxEid);
+        (, uint48  inW,, uint256  inL) = oft.inboundRateLimits(avaxEid);
         assertEq(outW, uint48(1 days), "TestError/usds/outbound-window-mismatch");
         assertEq(outL, 5_000_000 * WAD, "TestError/usds/outbound-limit-mismatch");
         assertEq(inW, uint48(1 days), "TestError/usds/inbound-window-mismatch");
@@ -1730,10 +1740,13 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     function testGovernanceRelayAvalancheE2E() public {
-        LzLaneConfig memory lane = _avalancheGovLane();
+        LzChainConfig memory ethChain = _ethChain();
+        LzChainConfig memory avaxChain = _avaxChain();
+        address govSender       = addr.addr("LZ_GOV_SENDER");
+        address avaxL2GovRelay  = avalanche.addr("L2_AVALANCHE_GOV_RELAY");
+        address avaxGovReceiver = avalanche.addr("L2_AVALANCHE_GOV_RECEIVER");
+        address avaxUsdsOft     = avalanche.addr("L2_AVALANCHE_USDS_OFT");
         uint256 ethFork = vm.activeFork();
-        address avaxL2GovRelay = avalanche.addr("L2_AVALANCHE_GOV_RELAY");
-        address avaxUsdsOft    = avalanche.addr("L2_AVALANCHE_USDS_OFT");
 
         // Deploy a spell on Avalanche for the relay to delegatecall into
         uint256 avaxFork = vm.createSelectFork(vm.envString("AVAX_RPC_URL"));
@@ -1749,13 +1762,13 @@ contract DssSpellTest is DssSpellTestBase {
         {
             RateLimitConfig[] memory inbound = new RateLimitConfig[](1);
             inbound[0] = RateLimitConfig({
-                eid:    lane.localChain.eid,
+                eid:    ethChain.eid,
                 window: uint48(1 days),
                 limit:  10_000_000 * WAD
             });
             RateLimitConfig[] memory outbound = new RateLimitConfig[](1);
             outbound[0] = RateLimitConfig({
-                eid:    lane.localChain.eid,
+                eid:    ethChain.eid,
                 window: uint48(1 days),
                 limit:  10_000_000 * WAD
             });
@@ -1765,7 +1778,7 @@ contract DssSpellTest is DssSpellTestBase {
             vm.deal(pauseProxy, 10 ether);
             vm.recordLogs();
             L1GovernanceRelayLike(addr.addr("LZ_GOV_RELAY")).relayEVM{value: 1 ether}(
-                lane.remoteChain.eid,
+                avaxChain.eid,
                 avaxL2GovRelay,
                 avaxSpell,
                 targetData,
@@ -1781,11 +1794,11 @@ contract DssSpellTest is DssSpellTestBase {
         }
 
         // Relay to Avalanche and verify state
-        LZLaneTesting.relayToFork(logs, lane, avaxFork);
+        LZLaneTesting.relayToFork(logs, ethChain, avaxChain, govSender, avaxGovReceiver, avaxFork);
         vm.selectFork(avaxFork);
 
-        (, uint48 outW,, uint256 outL) = SkyOFTAdapterLike(avaxUsdsOft).outboundRateLimits(lane.localChain.eid);
-        (, uint48  inW,, uint256  inL) = SkyOFTAdapterLike(avaxUsdsOft).inboundRateLimits(lane.localChain.eid);
+        (, uint48 outW,, uint256 outL) = SkyOFTAdapterLike(avaxUsdsOft).outboundRateLimits(ethChain.eid);
+        (, uint48  inW,, uint256  inL) = SkyOFTAdapterLike(avaxUsdsOft).inboundRateLimits(ethChain.eid);
         assertEq(outW, uint48(1 days), "TestError/gov/outbound-window-not-set");
         assertEq(outL, 10_000_000 * WAD, "TestError/gov/outbound-limit-not-set");
         assertEq(inW, uint48(1 days), "TestError/gov/inbound-window-not-set");
@@ -1793,11 +1806,13 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     function testUsdsOftAvalancheE2E() public {
-        LzLaneConfig memory lane = _avalancheUsdsLane();
-        LzLaneConfig memory reverseLane = _avalancheUsdsRemoteLane();
-        uint256 ethFork = vm.activeFork();
+        LzChainConfig memory ethChain = _ethChain();
+        LzChainConfig memory avaxChain = _avaxChain();
+        address oapp = addr.addr("USDS_OFT");
+        address remoteOapp = avalanche.addr("L2_AVALANCHE_USDS_OFT");
         address avaxUsds = avalanche.addr("L2_AVALANCHE_USDS");
         address recipient = makeAddr("avalanche-recipient");
+        uint256 ethFork = vm.activeFork();
 
         // Capture Avalanche supply before
         uint256 avaxFork = vm.createSelectFork(vm.envString("AVAX_RPC_URL"));
@@ -1808,32 +1823,32 @@ contract DssSpellTest is DssSpellTestBase {
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        SkyOFTAdapterLike oft = SkyOFTAdapterLike(lane.localOApp);
         uint256 sendAmount = 5 * WAD;
         uint256 ethSupplyBefore = usds.totalSupply();
         GodMode.setBalance(address(usds), address(this), sendAmount);
-        GemAbstract(address(usds)).approve(address(oft), sendAmount);
+        GemAbstract(address(usds)).approve(oapp, sendAmount);
         vm.deal(address(this), 10 ether);
 
         // Forward leg: Ethereum → Avalanche
-        Vm.Log[] memory forwardLogs = LZLaneTesting.sendOft(oft, lane.remoteChain.eid, recipient, sendAmount, address(this));
-        assertEq(usds.totalSupply(), ethSupplyBefore, "TestError/usds/e2e-eth-supply-changed-after-send");
-
-        LZLaneTesting.relayToFork(forwardLogs, lane, avaxFork);
+        {
+            Vm.Log[] memory forwardLogs = LZLaneTesting.sendOft(SkyOFTAdapterLike(oapp), avaxChain.eid, recipient, sendAmount, address(this));
+            assertEq(usds.totalSupply(), ethSupplyBefore, "TestError/usds/e2e-eth-supply-changed-after-send");
+            LZLaneTesting.relayToFork(forwardLogs, ethChain, avaxChain, oapp, remoteOapp, avaxFork);
+        }
         vm.selectFork(avaxFork);
 
         assertEq(GemAbstract(avaxUsds).balanceOf(recipient), sendAmount, "TestError/usds/e2e-avax-not-received");
         assertEq(GemAbstract(avaxUsds).totalSupply(), avaxSupplyBefore + sendAmount, "TestError/usds/e2e-avax-not-minted");
 
         // Return leg: Avalanche → Ethereum
-        SkyOFTAdapterLike reverseOft = SkyOFTAdapterLike(reverseLane.localOApp);
-        vm.startPrank(recipient);
-        GemAbstract(avaxUsds).approve(address(reverseOft), sendAmount);
-        vm.deal(recipient, 10 ether);
-        Vm.Log[] memory returnLogs = LZLaneTesting.sendOft(reverseOft, reverseLane.remoteChain.eid, address(this), sendAmount, recipient);
-        vm.stopPrank();
-
-        LZLaneTesting.relayToFork(returnLogs, reverseLane, ethFork);
+        {
+            vm.startPrank(recipient);
+            GemAbstract(avaxUsds).approve(remoteOapp, sendAmount);
+            vm.deal(recipient, 10 ether);
+            Vm.Log[] memory returnLogs = LZLaneTesting.sendOft(SkyOFTAdapterLike(remoteOapp), ethChain.eid, address(this), sendAmount, recipient);
+            vm.stopPrank();
+            LZLaneTesting.relayToFork(returnLogs, avaxChain, ethChain, remoteOapp, oapp, ethFork);
+        }
         vm.selectFork(ethFork);
 
         assertEq(usds.totalSupply(), ethSupplyBefore, "TestError/usds/e2e-eth-supply-changed-after-roundtrip");
@@ -1845,21 +1860,20 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     function testSUsdsOftAvalancheRateLimitBlocked() public {
-        LzLaneConfig memory lane = _avalancheSUsdsLane();
-
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        SkyOFTAdapterLike oft = SkyOFTAdapterLike(lane.localOApp);
+        address oapp = addr.addr("SUSDS_OFT");
+        SkyOFTAdapterLike oft = SkyOFTAdapterLike(oapp);
         address susdsToken = oft.token();
         uint256 sendAmount = 5 * WAD;
         GodMode.setBalance(susdsToken, address(this), sendAmount);
-        GemAbstract(susdsToken).approve(lane.localOApp, sendAmount);
+        GemAbstract(susdsToken).approve(oapp, sendAmount);
         vm.deal(address(this), 10 ether);
 
         SkyOFTAdapterLike.SendParam memory sendParams = SkyOFTAdapterLike.SendParam({
-            dstEid:       lane.remoteChain.eid,
+            dstEid:       _avaxChain().eid,
             to:           LZLaneTesting.toBytes32(address(this)),
             amountLD:     sendAmount,
             minAmountLD:  sendAmount,
@@ -1876,6 +1890,24 @@ contract DssSpellTest is DssSpellTestBase {
 
     // --- Lane builders ---
 
+    function _ethChain() internal view returns (LzChainConfig memory) {
+        return LzChainConfig({
+            eid:        30101,
+            endpoint:   addr.addr("LZ_ENDPOINT"),
+            sendLib302: addr.addr("LZ_SEND_302"),
+            recvLib302: addr.addr("LZ_RECV_302")
+        });
+    }
+
+    function _avaxChain() internal view returns (LzChainConfig memory) {
+        return LzChainConfig({
+            eid:        30106,
+            endpoint:   avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"),
+            sendLib302: avalanche.addr("L2_AVALANCHE_LZ_SEND_302"),
+            recvLib302: avalanche.addr("L2_AVALANCHE_LZ_RECV_302")
+        });
+    }
+
     function _avalancheGovLane() internal view returns (LzLaneConfig memory lane) {
         address[] memory optDVNs = new address[](7);
         optDVNs[0] = 0x06559EE34D85a88317Bf0bfE307444116c631b67; // P2P
@@ -1886,21 +1918,8 @@ contract DssSpellTest is DssSpellTestBase {
         optDVNs[5] = 0xa4fE5A5B9A846458a70Cd0748228aED3bF65c2cd; // Canary
         optDVNs[6] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
 
-        lane.localChain = LzChainConfig({
-            eid: 30101,
-            endpoint: addr.addr("LZ_ENDPOINT"),
-            sendLib302: addr.addr("LZ_SEND_302"),
-            recvLib302: address(0)
-        });
-        lane.remoteChain = LzChainConfig({
-            eid: 30106,
-            endpoint: avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"),
-            sendLib302: avalanche.addr("L2_AVALANCHE_LZ_SEND_302"),
-            recvLib302: avalanche.addr("L2_AVALANCHE_LZ_RECV_302")
-        });
-        lane.localOApp  = addr.addr("LZ_GOV_SENDER");
+        lane.remoteEid  = 30106;
         lane.remoteOApp = avalanche.addr("L2_AVALANCHE_GOV_RECEIVER");
-
         lane.owner      = pauseProxy;
         lane.sendExecutor = LzExecutorConfig({
             maxMessageSize: 10_000,
@@ -1921,21 +1940,8 @@ contract DssSpellTest is DssSpellTestBase {
         ethDVNs[0] = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b; // LayerZero Labs
         ethDVNs[1] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
 
-        lane.localChain = LzChainConfig({
-            eid: 30101,
-            endpoint: addr.addr("LZ_ENDPOINT"),
-            sendLib302: addr.addr("LZ_SEND_302"),
-            recvLib302: addr.addr("LZ_RECV_302")
-        });
-        lane.remoteChain = LzChainConfig({
-            eid: 30106,
-            endpoint: avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"),
-            sendLib302: avalanche.addr("L2_AVALANCHE_LZ_SEND_302"),
-            recvLib302: avalanche.addr("L2_AVALANCHE_LZ_RECV_302")
-        });
-        lane.localOApp  = addr.addr("USDS_OFT");
+        lane.remoteEid  = 30106;
         lane.remoteOApp = avalanche.addr("L2_AVALANCHE_USDS_OFT");
-
         lane.owner      = pauseProxy;
         lane.sendExecutor = LzExecutorConfig({
             maxMessageSize: 10_000,
@@ -1966,21 +1972,8 @@ contract DssSpellTest is DssSpellTestBase {
         avaxDVNs[0] = 0x962F502A63F5FBeB44DC9ab932122648E8352959; // LayerZero Labs (Avalanche)
         avaxDVNs[1] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
 
-        lane.localChain = LzChainConfig({
-            eid: 30106,
-            endpoint: avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"),
-            sendLib302: avalanche.addr("L2_AVALANCHE_LZ_SEND_302"),
-            recvLib302: avalanche.addr("L2_AVALANCHE_LZ_RECV_302")
-        });
-        lane.remoteChain = LzChainConfig({
-            eid: 30101,
-            endpoint: addr.addr("LZ_ENDPOINT"),
-            sendLib302: addr.addr("LZ_SEND_302"),
-            recvLib302: addr.addr("LZ_RECV_302")
-        });
-        lane.localOApp  = avalanche.addr("L2_AVALANCHE_USDS_OFT");
+        lane.remoteEid  = 30101;
         lane.remoteOApp = addr.addr("USDS_OFT");
-
         lane.owner      = avalanche.addr("L2_AVALANCHE_GOV_RELAY");
         lane.sendExecutor = LzExecutorConfig({
             maxMessageSize: 10_000,
@@ -2011,21 +2004,8 @@ contract DssSpellTest is DssSpellTestBase {
         ethDVNs[0] = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b; // LayerZero Labs
         ethDVNs[1] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
 
-        lane.localChain = LzChainConfig({
-            eid: 30101,
-            endpoint: addr.addr("LZ_ENDPOINT"),
-            sendLib302: addr.addr("LZ_SEND_302"),
-            recvLib302: addr.addr("LZ_RECV_302")
-        });
-        lane.remoteChain = LzChainConfig({
-            eid: 30106,
-            endpoint: avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"),
-            sendLib302: avalanche.addr("L2_AVALANCHE_LZ_SEND_302"),
-            recvLib302: avalanche.addr("L2_AVALANCHE_LZ_RECV_302")
-        });
-        lane.localOApp  = addr.addr("SUSDS_OFT");
+        lane.remoteEid  = 30106;
         lane.remoteOApp = avalanche.addr("L2_AVALANCHE_SUSDS_OFT");
-
         lane.owner      = pauseProxy;
         lane.sendExecutor = LzExecutorConfig({
             maxMessageSize: 10_000,
@@ -2056,21 +2036,8 @@ contract DssSpellTest is DssSpellTestBase {
         avaxDVNs[0] = 0x962F502A63F5FBeB44DC9ab932122648E8352959; // LayerZero Labs (Avalanche)
         avaxDVNs[1] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
 
-        lane.localChain = LzChainConfig({
-            eid: 30106,
-            endpoint: avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"),
-            sendLib302: avalanche.addr("L2_AVALANCHE_LZ_SEND_302"),
-            recvLib302: avalanche.addr("L2_AVALANCHE_LZ_RECV_302")
-        });
-        lane.remoteChain = LzChainConfig({
-            eid: 30101,
-            endpoint: addr.addr("LZ_ENDPOINT"),
-            sendLib302: addr.addr("LZ_SEND_302"),
-            recvLib302: addr.addr("LZ_RECV_302")
-        });
-        lane.localOApp  = avalanche.addr("L2_AVALANCHE_SUSDS_OFT");
+        lane.remoteEid  = 30101;
         lane.remoteOApp = addr.addr("SUSDS_OFT");
-
         lane.owner      = avalanche.addr("L2_AVALANCHE_GOV_RELAY");
         lane.sendExecutor = LzExecutorConfig({
             maxMessageSize: 10_000,
@@ -2108,21 +2075,8 @@ contract DssSpellTest is DssSpellTestBase {
         avaxOptDVNs[5] = 0xE4193136B92bA91402313e95347c8e9FAD8d27d0; // Luganodes
         avaxOptDVNs[6] = 0xE94aE34DfCC87A61836938641444080B98402c75; // P2P
 
-        lane.localChain = LzChainConfig({
-            eid: 30106,
-            endpoint: avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"),
-            sendLib302: avalanche.addr("L2_AVALANCHE_LZ_SEND_302"),
-            recvLib302: avalanche.addr("L2_AVALANCHE_LZ_RECV_302")
-        });
-        lane.remoteChain = LzChainConfig({
-            eid: 30101,
-            endpoint: addr.addr("LZ_ENDPOINT"),
-            sendLib302: addr.addr("LZ_SEND_302"),
-            recvLib302: address(0)
-        });
-        lane.localOApp  = avalanche.addr("L2_AVALANCHE_GOV_RECEIVER");
+        lane.remoteEid  = 30101;
         lane.remoteOApp = addr.addr("LZ_GOV_SENDER");
-
         lane.owner      = avalanche.addr("L2_AVALANCHE_GOV_RELAY");
         // Note: GovernanceOAppReceiver has no send config (receive-only)
         // Receive ULN config: 7 optional DVNs, threshold 4, no required DVNs

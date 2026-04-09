@@ -37,18 +37,6 @@ interface ILZOApp {
     function peers(uint32 eid) external view returns (bytes32);
 }
 
-interface ILZOFTAdapter is ILZOApp {
-    function defaultFeeBps() external view returns (uint16);
-    function feeBps(uint32 dstEid) external view returns (uint16 feeBps, bool enabled);
-    function token() external view returns (address);
-    function paused() external view returns (bool);
-    function pausers(address) external view returns (bool);
-    function rateLimitAccountingType() external view returns (uint8);
-    function enforcedOptions(uint32 eid, uint16 msgType) external view returns (bytes memory);
-    function outboundRateLimits(uint32) external view returns (uint128, uint48, uint256, uint256);
-    function inboundRateLimits(uint32) external view returns (uint128, uint48, uint256, uint256);
-}
-
 struct RateLimitConfig {
     uint32 eid;
     uint48 window;
@@ -98,18 +86,21 @@ interface SkyOFTAdapterLike is ILZOApp {
         bytes   composeMsg;
         bytes   oftCmd;
     }
+    function defaultFeeBps() external view returns (uint16);
     function enforcedOptions(uint32 eid, uint16 msgType) external view returns (bytes memory);
+    function feeBps(uint32 dstEid) external view returns (uint16 feeBps, bool enabled);
     function inboundRateLimits(uint32 dstEid) external view returns (uint128 lastUpdated, uint48 window, uint256 amountInFlight, uint256 limit);
+    function outboundRateLimits(uint32 srcEid) external view returns (uint128 lastUpdated, uint48 window, uint256 amountInFlight, uint256 limit);
     function pause() external;
     function paused() external view returns (bool);
     function pausers(address pauser) external view returns (bool canPause);
-    function unpause() external;
     function quoteSend(SendParam memory _sendParam, bool _payInLzToken) external view returns (MessagingFee memory msgFee);
+    function rateLimitAccountingType() external view returns (uint8);
     function send(SendParam memory _sendParam, MessagingFee memory _fee, address _refundAddress)
         external payable returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt);
     function setRateLimits(RateLimitConfig[] calldata _rateLimitConfigsInbound, RateLimitConfig[] calldata _rateLimitConfigsOutbound) external;
     function token() external view returns (address);
-    function outboundRateLimits(uint32 srcEid) external view returns (uint128 lastUpdated, uint48 window, uint256 amountInFlight, uint256 limit);
+    function unpause() external;
 }
 
 // --- Lane config structs ---
@@ -136,11 +127,9 @@ struct LzUlnConfig {
 }
 
 struct LzLaneConfig {
-    LzChainConfig    localChain;
-    LzChainConfig    remoteChain;
-    address          localOApp;
-    address          remoteOApp;
     address          owner;
+    uint32           remoteEid;
+    address          remoteOApp;
     LzExecutorConfig sendExecutor;
     LzUlnConfig      sendUln;
     LzUlnConfig      recvUln;
@@ -162,79 +151,79 @@ library LZLaneTesting {
 
     // --- Lane assertions ---
 
-    function assertOwner(LzLaneConfig memory lane) internal view {
+    function assertOwner(address oapp, LzLaneConfig memory cfg) internal view {
         require(
-            ILZOApp(lane.localOApp).owner() == lane.owner,
+            ILZOApp(oapp).owner() == cfg.owner,
             "LZLaneTesting/owner-mismatch"
         );
     }
 
-    function assertDelegate(LzLaneConfig memory lane) internal view {
+    function assertDelegate(LzChainConfig memory chain, address oapp, LzLaneConfig memory cfg) internal view {
         require(
-            ILZEndpointView(lane.localChain.endpoint).delegates(lane.localOApp) == lane.owner,
+            ILZEndpointView(chain.endpoint).delegates(oapp) == cfg.owner,
             "LZLaneTesting/delegate-mismatch"
         );
     }
 
-    function assertPeerSet(LzLaneConfig memory lane) internal view {
+    function assertPeerSet(address oapp, LzLaneConfig memory cfg) internal view {
         require(
-            ILZOApp(lane.localOApp).peers(lane.remoteChain.eid) == toBytes32(lane.remoteOApp),
+            ILZOApp(oapp).peers(cfg.remoteEid) == toBytes32(cfg.remoteOApp),
             "LZLaneTesting/peer-mismatch"
         );
     }
 
-    function assertSendLibrary(LzLaneConfig memory lane) internal view {
+    function assertSendLibrary(LzChainConfig memory chain, address oapp, LzLaneConfig memory cfg) internal view {
         require(
-            ILZEndpointView(lane.localChain.endpoint).getSendLibrary(lane.localOApp, lane.remoteChain.eid) == lane.localChain.sendLib302,
+            ILZEndpointView(chain.endpoint).getSendLibrary(oapp, cfg.remoteEid) == chain.sendLib302,
             "LZLaneTesting/send-library-mismatch"
         );
     }
 
-    function assertReceiveLibrary(LzLaneConfig memory lane) internal view {
-        if (lane.localChain.recvLib302 == address(0)) return;
-        (address lib,) = ILZEndpointView(lane.localChain.endpoint).getReceiveLibrary(lane.localOApp, lane.remoteChain.eid);
-        require(lib == lane.localChain.recvLib302, "LZLaneTesting/recv-library-mismatch");
+    function assertReceiveLibrary(LzChainConfig memory chain, address oapp, LzLaneConfig memory cfg) internal view {
+        if (chain.recvLib302 == address(0)) return;
+        (address lib,) = ILZEndpointView(chain.endpoint).getReceiveLibrary(oapp, cfg.remoteEid);
+        require(lib == chain.recvLib302, "LZLaneTesting/recv-library-mismatch");
     }
 
-    function assertSendExecutor(LzLaneConfig memory lane) internal view {
-        bytes memory raw = ILZEndpointView(lane.localChain.endpoint).getConfig(
-            lane.localOApp, lane.localChain.sendLib302, lane.remoteChain.eid, 1
+    function assertSendExecutor(LzChainConfig memory chain, address oapp, LzLaneConfig memory cfg) internal view {
+        bytes memory raw = ILZEndpointView(chain.endpoint).getConfig(
+            oapp, chain.sendLib302, cfg.remoteEid, 1
         );
         LzExecutorConfig memory exec = abi.decode(raw, (LzExecutorConfig));
-        require(exec.maxMessageSize == lane.sendExecutor.maxMessageSize, "LZLaneTesting/send-executor-max-msg-size-mismatch");
-        require(exec.executor       == lane.sendExecutor.executor,       "LZLaneTesting/send-executor-mismatch");
+        require(exec.maxMessageSize == cfg.sendExecutor.maxMessageSize, "LZLaneTesting/send-executor-max-msg-size-mismatch");
+        require(exec.executor       == cfg.sendExecutor.executor,       "LZLaneTesting/send-executor-mismatch");
     }
 
-    function assertSendUln(LzLaneConfig memory lane) internal view {
+    function assertSendUln(LzChainConfig memory chain, address oapp, LzLaneConfig memory cfg) internal view {
         _assertUlnConfig(
-            lane.localChain.endpoint, lane.localOApp, lane.localChain.sendLib302, lane.remoteChain.eid,
-            lane.sendUln, "send"
+            chain.endpoint, oapp, chain.sendLib302, cfg.remoteEid,
+            cfg.sendUln, "send"
         );
     }
 
-    function assertReceiveUln(LzLaneConfig memory lane) internal view {
-        if (lane.localChain.recvLib302 == address(0)) return;
+    function assertReceiveUln(LzChainConfig memory chain, address oapp, LzLaneConfig memory cfg) internal view {
+        if (chain.recvLib302 == address(0)) return;
         _assertUlnConfig(
-            lane.localChain.endpoint, lane.localOApp, lane.localChain.recvLib302, lane.remoteChain.eid,
-            lane.recvUln, "recv"
+            chain.endpoint, oapp, chain.recvLib302, cfg.remoteEid,
+            cfg.recvUln, "recv"
         );
     }
 
-    function assertEnforcedOptions(LzLaneConfig memory lane) internal view {
+    function assertEnforcedOptions(address oapp, LzLaneConfig memory cfg) internal view {
         uint16 SEND_MSG_TYPE = 1;
         uint16 SEND_CALL_MSG_TYPE = 2;
 
-        if (lane.enforcedOptions.length == 0) return;
-        ILZOFTAdapter oft = ILZOFTAdapter(lane.localOApp);
-        bytes32 expected = keccak256(lane.enforcedOptions);
-        require(keccak256(oft.enforcedOptions(lane.remoteChain.eid, SEND_MSG_TYPE)) == expected, "LZLaneTesting/enforced-options-send-mismatch");
-        require(keccak256(oft.enforcedOptions(lane.remoteChain.eid, SEND_CALL_MSG_TYPE)) == expected, "LZLaneTesting/enforced-options-send-and-call-mismatch");
+        if (cfg.enforcedOptions.length == 0) return;
+        SkyOFTAdapterLike oft = SkyOFTAdapterLike(oapp);
+        bytes32 expected = keccak256(cfg.enforcedOptions);
+        require(keccak256(oft.enforcedOptions(cfg.remoteEid, SEND_MSG_TYPE)) == expected, "LZLaneTesting/enforced-options-send-mismatch");
+        require(keccak256(oft.enforcedOptions(cfg.remoteEid, SEND_CALL_MSG_TYPE)) == expected, "LZLaneTesting/enforced-options-send-and-call-mismatch");
     }
 
     /// @notice Verify OFT adapter sanity: fees, rate limit accounting type, and paused state.
     /// @dev    Mirrors https://github.com/sky-ecosystem/wh-lz-migration/blob/2c16517aab011ba32ed6f1b5977b888d2a6a753f/deploy/MigrationInit.sol#L142-L151
     function assertOftSanity(address oapp, uint32 remoteEid, uint8 expectedRlAccountingType) internal view {
-        ILZOFTAdapter oft = ILZOFTAdapter(oapp);
+        SkyOFTAdapterLike oft = SkyOFTAdapterLike(oapp);
         require(oft.defaultFeeBps() == 0, "LZLaneTesting/default-fee-bps-nonzero");
         (uint16 feeBps, bool enabled) = oft.feeBps(remoteEid);
         require(feeBps == 0 && !enabled, "LZLaneTesting/fee-bps-nonzero-or-enabled");
@@ -296,23 +285,24 @@ library LZLaneTesting {
     /// @notice Relay LZ messages to the destination fork, then restore the caller's active fork.
     function relayToFork(
         Vm.Log[] memory logs,
-        LzLaneConfig memory lane,
+        LzChainConfig memory srcChain,
+        LzChainConfig memory dstChain,
+        address srcOApp,
+        address dstOApp,
         uint256 destForkId
     ) internal {
         uint256 callerForkId = vm.activeFork();
         LZBridgeTesting.relayMessages(
             logs,
             destForkId,
-            lane.localChain.endpoint,
-            lane.remoteChain.endpoint,
-            lane.remoteChain.recvLib302,
-            lane.localOApp,
-            lane.remoteOApp
+            srcChain.endpoint,
+            dstChain.endpoint,
+            dstChain.recvLib302,
+            srcOApp,
+            dstOApp
         );
         vm.selectFork(callerForkId);
     }
-
-    // --- Lane reversal ---
 
     // --- Private helpers ---
 
