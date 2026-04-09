@@ -39,9 +39,12 @@ interface ILZOApp {
 }
 
 interface ILZOFTAdapter is ILZOApp {
+    function defaultFeeBps() external view returns (uint16);
+    function feeBps(uint32 dstEid) external view returns (uint16 feeBps, bool enabled);
     function token() external view returns (address);
     function paused() external view returns (bool);
     function pausers(address) external view returns (bool);
+    function rateLimitAccountingType() external view returns (uint8);
     function enforcedOptions(uint32 eid, uint16 msgType) external view returns (bytes memory);
     function outboundRateLimits(uint32) external view returns (uint128, uint48, uint256, uint256);
     function inboundRateLimits(uint32) external view returns (uint128, uint48, uint256, uint256);
@@ -215,6 +218,17 @@ library LZLaneTesting {
         bytes32 expected = keccak256(lane.enforcedOptions);
         require(keccak256(oft.enforcedOptions(lane.remoteChain.eid, SEND_MSG_TYPE)) == expected, "LZLaneTesting/enforced-options-send-mismatch");
         require(keccak256(oft.enforcedOptions(lane.remoteChain.eid, SEND_CALL_MSG_TYPE)) == expected, "LZLaneTesting/enforced-options-send-and-call-mismatch");
+    }
+
+    /// @notice Verify OFT adapter sanity: fees, rate limit accounting type, and paused state.
+    /// @dev    Mirrors https://github.com/sky-ecosystem/wh-lz-migration/blob/2c16517aab011ba32ed6f1b5977b888d2a6a753f/deploy/MigrationInit.sol#L142-L151
+    function assertOftSanity(address oapp, uint32 remoteEid, uint8 expectedRlAccountingType) internal view {
+        ILZOFTAdapter oft = ILZOFTAdapter(oapp);
+        require(oft.defaultFeeBps() == 0, "LZLaneTesting/default-fee-bps-nonzero");
+        (uint16 feeBps, bool enabled) = oft.feeBps(remoteEid);
+        require(feeBps == 0 && !enabled, "LZLaneTesting/fee-bps-nonzero-or-enabled");
+        require(!oft.paused(), "LZLaneTesting/paused");
+        require(oft.rateLimitAccountingType() == expectedRlAccountingType, "LZLaneTesting/rl-accounting-type-mismatch");
     }
 
     // --- Encoding helpers ---

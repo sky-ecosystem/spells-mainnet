@@ -1585,6 +1585,7 @@ contract DssSpellTest is DssSpellTestBase {
         LZLaneTesting.assertSendUln(lane);
         LZLaneTesting.assertReceiveUln(lane);
         LZLaneTesting.assertEnforcedOptions(lane);
+        LZLaneTesting.assertOftSanity(lane.localOApp, lane.remoteChain.eid, 0);
 
         // L2 (Avalanche) config — predeployed; verify it matches
         vm.createSelectFork(vm.envString("AVAX_RPC_URL"));
@@ -1595,6 +1596,7 @@ contract DssSpellTest is DssSpellTestBase {
         LZLaneTesting.assertSendUln(reverseLane);
         LZLaneTesting.assertReceiveUln(reverseLane);
         LZLaneTesting.assertEnforcedOptions(reverseLane);
+        LZLaneTesting.assertOftSanity(reverseLane.localOApp, reverseLane.remoteChain.eid, 0);
     }
 
     function testWireSUsdsOftAvalanche() public {
@@ -1619,6 +1621,7 @@ contract DssSpellTest is DssSpellTestBase {
         LZLaneTesting.assertSendUln(lane);
         LZLaneTesting.assertReceiveUln(lane);
         LZLaneTesting.assertEnforcedOptions(lane);
+        LZLaneTesting.assertOftSanity(lane.localOApp, lane.remoteChain.eid, 0);
 
         // L2 (Avalanche) — sUSDS OFT config (predeployed) + deployer ward check
         LzLaneConfig memory reverseLane = _avalancheSUsdsRemoteLane();
@@ -1633,6 +1636,7 @@ contract DssSpellTest is DssSpellTestBase {
         LZLaneTesting.assertSendUln(reverseLane);
         LZLaneTesting.assertReceiveUln(reverseLane);
         LZLaneTesting.assertEnforcedOptions(reverseLane);
+        LZLaneTesting.assertOftSanity(reverseLane.localOApp, reverseLane.remoteChain.eid, 0);
 
         assertEq(WardsAbstract(avaxSUsds).wards(avaxDeployer), 0, "TestError/susds/deployer-still-ward-on-avax-susds");
     }
