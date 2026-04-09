@@ -1732,38 +1732,48 @@ contract DssSpellTest is DssSpellTestBase {
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        L1GovernanceRelayLike l1GovernanceRelay = L1GovernanceRelayLike(addr.addr("LZ_GOV_RELAY"));
+        // Build governance payload and send
+        Vm.Log[] memory logs;
+        {
+            RateLimitConfig[] memory inbound = new RateLimitConfig[](1);
+            inbound[0] = RateLimitConfig({
+                eid:    lane.localChain.eid,
+                window: uint48(1 days),
+                limit:  10_000_000 * WAD
+            });
+            RateLimitConfig[] memory outbound = new RateLimitConfig[](1);
+            outbound[0] = RateLimitConfig({
+                eid:    lane.localChain.eid,
+                window: uint48(1 days),
+                limit:  10_000_000 * WAD
+            });
+            bytes memory targetData = abi.encodeWithSelector(AvaxSetRateLimitsSpell.execute.selector, avaxUsdsOft, inbound, outbound);
 
-        // Build governance payload: delegatecall spell → spell calls setRateLimits on OFT
-        RateLimitConfig[] memory inbound = new RateLimitConfig[](1);
-        inbound[0] = RateLimitConfig({ eid: 30101, window: uint48(1 days), limit: 10_000_000 * WAD });
-        RateLimitConfig[] memory outbound = new RateLimitConfig[](1);
-        outbound[0] = RateLimitConfig({ eid: 30101, window: uint48(1 days), limit: 10_000_000 * WAD });
-        bytes memory targetData = abi.encodeWithSelector(AvaxSetRateLimitsSpell.execute.selector, avaxUsdsOft, inbound, outbound);
-
-        vm.startPrank(pauseProxy);
-        vm.deal(pauseProxy, 10 ether);
-
-        vm.recordLogs();
-        l1GovernanceRelay.relayEVM{value: 1 ether}(
-            lane.remoteChain.eid,
-            avaxL2GovRelay,
-            avaxSpell,
-            targetData,
-            LZLaneTesting.executorLzReceiveOption(200_000),
-            L1GovernanceRelayLike.MessagingFee({ nativeFee: 1 ether, lzTokenFee: 0 }),
-            address(0xdead)
-        );
-        vm.stopPrank();
-
-        Vm.Log[] memory logs = vm.getRecordedLogs();
+            vm.startPrank(pauseProxy);
+            vm.deal(pauseProxy, 10 ether);
+            vm.recordLogs();
+            L1GovernanceRelayLike(addr.addr("LZ_GOV_RELAY")).relayEVM{value: 1 ether}(
+                lane.remoteChain.eid,
+                avaxL2GovRelay,
+                avaxSpell,
+                targetData,
+                LZLaneTesting.executorLzReceiveOption(200_000),
+                L1GovernanceRelayLike.MessagingFee({
+                    nativeFee:  1 ether,
+                    lzTokenFee: 0
+                }),
+                address(0xdead)
+            );
+            vm.stopPrank();
+            logs = vm.getRecordedLogs();
+        }
 
         // Relay to Avalanche and verify state
         LZLaneTesting.relayToFork(logs, lane, avaxFork);
         vm.selectFork(avaxFork);
 
-        (, uint48 outW,, uint256 outL) = SkyOFTAdapterLike(avaxUsdsOft).outboundRateLimits(30101);
-        (, uint48  inW,, uint256  inL) = SkyOFTAdapterLike(avaxUsdsOft).inboundRateLimits(30101);
+        (, uint48 outW,, uint256 outL) = SkyOFTAdapterLike(avaxUsdsOft).outboundRateLimits(lane.localChain.eid);
+        (, uint48  inW,, uint256  inL) = SkyOFTAdapterLike(avaxUsdsOft).inboundRateLimits(lane.localChain.eid);
         assertEq(outW, uint48(1 days), "TestError/gov/outbound-window-not-set");
         assertEq(outL, 10_000_000 * WAD, "TestError/gov/outbound-limit-not-set");
         assertEq(inW, uint48(1 days), "TestError/gov/inbound-window-not-set");
