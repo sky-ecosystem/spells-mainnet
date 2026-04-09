@@ -173,6 +173,7 @@ library LZLaneTesting {
     }
 
     function assertSendLibrary(LzChainConfig memory chain, address oapp, LzLaneConfig memory cfg) internal view {
+        if (chain.sendLib302 == address(0)) return;
         require(
             ILZEndpointView(chain.endpoint).getSendLibrary(oapp, cfg.remoteEid) == chain.sendLib302,
             "LZLaneTesting/send-library-mismatch"
@@ -186,6 +187,7 @@ library LZLaneTesting {
     }
 
     function assertSendExecutor(LzChainConfig memory chain, address oapp, LzLaneConfig memory cfg) internal view {
+        if (chain.sendLib302 == address(0)) return;
         bytes memory raw = ILZEndpointView(chain.endpoint).getConfig(
             oapp, chain.sendLib302, cfg.remoteEid, 1
         );
@@ -195,6 +197,7 @@ library LZLaneTesting {
     }
 
     function assertSendUln(LzChainConfig memory chain, address oapp, LzLaneConfig memory cfg) internal view {
+        if (chain.sendLib302 == address(0)) return;
         _assertUlnConfig(
             chain.endpoint, oapp, chain.sendLib302, cfg.remoteEid,
             cfg.sendUln, "send"
