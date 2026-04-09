@@ -325,10 +325,16 @@ library LZLaneTesting {
     // --- Private helpers ---
 
     function _assertUlnConfig(
-        address endpoint, address oapp, address lib, uint32 eid,
-        LzUlnConfig memory expected, string memory direction
+        address endpoint,
+        address oapp,
+        address lib,
+        uint32 eid,
+        LzUlnConfig memory expected,
+        string memory direction
     ) private view {
-        bytes memory raw = ILZEndpointView(endpoint).getConfig(oapp, lib, eid, 2);
+        uint32 configType = 2; // Source: https://github.com/LayerZero-Labs/LayerZero-v2/blob/9c741e7f9790639537b1710a203bcdfd73b0b9ac/packages/layerzero-v2/evm/messagelib/contracts/uln/uln302/SendUln302.sol#L17
+
+        bytes memory raw = ILZEndpointView(endpoint).getConfig(oapp, lib, eid, configType);
         LzUlnConfig memory actual = abi.decode(raw, (LzUlnConfig));
         require(actual.confirmations        == expected.confirmations,        _err(direction, "confirmations-mismatch"));
         require(actual.requiredDVNCount     == expected.requiredDVNCount,     _err(direction, "required-dvn-count-mismatch"));
