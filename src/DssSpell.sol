@@ -240,7 +240,7 @@ contract DssSpellAction is DssAction {
                 // address[] requiredDVNs being an array with 0 addresses
                 // Note: dynamic array previously created
                 requiredDVNs: govRequiredDVNs,
-                // address[] optionalDVNs being an array with 7 addresses: [0x589dEDbD617e0CBcB916A9223F4d1300c294236b (LayerZero Labs), 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5 (Nethermind), 0xa4fE5A5B9A846458a70Cd0748228aED3bF65c2cd (Canary),0x373a6E5c0C4E89E24819f00AA37ea370917AAfF4 (Deutsche Telekom), 0x06559EE34D85a88317Bf0bfE307444116c631b67 (P2P), 0x380275805876Ff19055EA900CDb2B46a94ecF20D (Horizen), 0x58249a2Ec05c1978bF21DF1f5eC1847e42455CF4 (Luganodes)]
+                // address[] optionalDVNs being an array with 7 addresses: [0x589dEDbD617e0CBcB916A9223F4d1300c294236b, 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5, 0xa4fE5A5B9A846458a70Cd0748228aED3bF65c2cd, 0x373a6E5c0C4E89E24819f00AA37ea370917AAfF4, 0x06559EE34D85a88317Bf0bfE307444116c631b67, 0x380275805876Ff19055EA900CDb2B46a94ecF20D, 0x58249a2Ec05c1978bF21DF1f5eC1847e42455CF4]
                 // Note: dynamic array previously created
                 optionalDVNs: govOptionalDVNs
             }))
@@ -358,7 +358,7 @@ contract DssSpellAction is DssAction {
                 optionalDVNCount: 0,
                 // uint8 optionalDVNThreshold being 0
                 optionalDVNThreshold: 0,
-                // address[] requiredDVNs being an array with 2 addresses: [0x589dEDbD617e0CBcB916A9223F4d1300c294236b (LayerZero Labs), 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5 (Nethermind)]
+                // address[] requiredDVNs being an array with 2 addresses: [0x589dEDbD617e0CBcB916A9223F4d1300c294236b, 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5]
                 // Note: dynamic array previously created
                 requiredDVNs: usdsOftSendRequiredDVNs,
                 // address[] optionalDVNs being an array with 0 addresses
@@ -410,7 +410,7 @@ contract DssSpellAction is DssAction {
                 optionalDVNCount: 0,
                 // uint8 optionalDVNThreshold being 0
                 optionalDVNThreshold: 0,
-                // address[] requiredDVNs being an array with 2 addresses: [0x589dEDbD617e0CBcB916A9223F4d1300c294236b (LayerZero Labs), 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5 (Nethermind)]
+                // address[] requiredDVNs being an array with 2 addresses: [0x589dEDbD617e0CBcB916A9223F4d1300c294236b, 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5]
                 // Note: dynamic array previously created
                 requiredDVNs: usdsOftRecvRequiredDVNs,
                 // address[] optionalDVNs being an array with 0 addresses
@@ -608,9 +608,7 @@ contract DssSpellAction is DssAction {
                 optionalDVNCount: 0,
                 // uint8 optionalDVNThreshold being 0
                 optionalDVNThreshold: 0,
-                // address[] requiredDVNs being an array with 2 addresses:
-                // 0x589dEDbD617e0CBcB916A9223F4d1300c294236b
-                // 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5
+                // address[] requiredDVNs being an array with 2 addresses: [0x589dEDbD617e0CBcB916A9223F4d1300c294236b, 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5]
                 // Note: dynamic array previously created
                 requiredDVNs: sUsdsOftSendRequiredDVNs,
                 // address[] optionalDVNs being an array with 0 addresses
@@ -662,9 +660,7 @@ contract DssSpellAction is DssAction {
                 optionalDVNCount: 0,
                 // uint8 optionalDVNThreshold being 0
                 optionalDVNThreshold: 0,
-                // address[] requiredDVNs being an array with 2 addresses:
-                // 0x589dEDbD617e0CBcB916A9223F4d1300c294236b
-                // 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5
+                // address[] requiredDVNs being an array with 2 addresses: [0x589dEDbD617e0CBcB916A9223F4d1300c294236b, 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5]
                 // Note: dynamic array previously created
                 requiredDVNs: sUsdsOftRecvRequiredDVNs,
                 // address[] optionalDVNs being an array with 0 addresses
