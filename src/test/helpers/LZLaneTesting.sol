@@ -230,8 +230,9 @@ library LZLaneTesting {
 
     /// @notice Verify OFT adapter sanity: fees, rate limit accounting type, and paused state.
     /// @dev    Mirrors https://github.com/sky-ecosystem/wh-lz-migration/blob/2c16517aab011ba32ed6f1b5977b888d2a6a753f/deploy/MigrationInit.sol#L142-L151
-    function assertOftSanity(address oapp, uint32 remoteEid, uint8 expectedRlAccountingType) internal view {
+    function assertOftSanity(address oapp, uint32 remoteEid, address expectedToken, uint8 expectedRlAccountingType) internal view {
         SkyOFTAdapterLike oft = SkyOFTAdapterLike(oapp);
+        vm.assertEq(oft.token(), expectedToken, "LZLaneTesting/token-mismatch");
         vm.assertEq(oft.defaultFeeBps(), 0, "LZLaneTesting/default-fee-bps-nonzero");
         (uint16 feeBps, bool enabled) = oft.feeBps(remoteEid);
         vm.assertEq(feeBps, 0, "LZLaneTesting/fee-bps-nonzero");

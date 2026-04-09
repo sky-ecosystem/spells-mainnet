@@ -1617,12 +1617,13 @@ contract DssSpellTest is DssSpellTestBase {
         LZLaneTesting.assertSendUln(ethChain, oapp, lane);
         LZLaneTesting.assertReceiveUln(ethChain, oapp, lane);
         LZLaneTesting.assertEnforcedOptions(oapp, lane);
-        LZLaneTesting.assertOftSanity(oapp, lane.remoteEid, 0);
+        LZLaneTesting.assertOftSanity(oapp, lane.remoteEid, address(usds), 0);
 
         // L2 (Avalanche) config — predeployed; verify it matches
         LzChainConfig memory avalancheChain = _avalancheChain();
         LzLaneConfig memory reverseLane = _avalancheUsdsRemoteLane();
         address remoteOapp = avalanche.addr("L2_AVALANCHE_USDS_OFT");
+        address avalancheUsdsToken = avalanche.addr("L2_AVALANCHE_USDS");
         vm.createSelectFork(vm.envString("AVAX_RPC_URL"));
         LZLaneTesting.assertOwner(remoteOapp, reverseLane);
         LZLaneTesting.assertDelegate(avalancheChain, remoteOapp, reverseLane);
@@ -1633,7 +1634,7 @@ contract DssSpellTest is DssSpellTestBase {
         LZLaneTesting.assertSendUln(avalancheChain, remoteOapp, reverseLane);
         LZLaneTesting.assertReceiveUln(avalancheChain, remoteOapp, reverseLane);
         LZLaneTesting.assertEnforcedOptions(remoteOapp, reverseLane);
-        LZLaneTesting.assertOftSanity(remoteOapp, reverseLane.remoteEid, 0);
+        LZLaneTesting.assertOftSanity(remoteOapp, reverseLane.remoteEid, avalancheUsdsToken, 0);
     }
 
     function testWireSUsdsOftAvalanche() public {
@@ -1661,7 +1662,7 @@ contract DssSpellTest is DssSpellTestBase {
         LZLaneTesting.assertSendUln(ethChain, oapp, lane);
         LZLaneTesting.assertReceiveUln(ethChain, oapp, lane);
         LZLaneTesting.assertEnforcedOptions(oapp, lane);
-        LZLaneTesting.assertOftSanity(oapp, lane.remoteEid, 0);
+        LZLaneTesting.assertOftSanity(oapp, lane.remoteEid, address(susds), 0);
 
         // L2 (Avalanche) — sUSDS OFT config (predeployed) + deployer ward check
         LzChainConfig memory avalancheChain = _avalancheChain();
@@ -1680,7 +1681,7 @@ contract DssSpellTest is DssSpellTestBase {
         LZLaneTesting.assertSendUln(avalancheChain, remoteOapp, reverseLane);
         LZLaneTesting.assertReceiveUln(avalancheChain, remoteOapp, reverseLane);
         LZLaneTesting.assertEnforcedOptions(remoteOapp, reverseLane);
-        LZLaneTesting.assertOftSanity(remoteOapp, reverseLane.remoteEid, 0);
+        LZLaneTesting.assertOftSanity(remoteOapp, reverseLane.remoteEid, avalancheSUsds, 0);
 
         assertEq(WardsAbstract(avalancheSUsds).wards(avalancheDeployer), 0, "TestError/susds/deployer-still-ward-on-avax-susds");
     }
