@@ -154,7 +154,7 @@ contract DssSpellAction is DssAction {
     uint8  internal constant LZ_EXECUTOR_WORKER_ID         = 1; // Note: https://github.com/LayerZero-Labs/LayerZero-v2/blob/9c741e7f9790639537b1710a203bcdfd73b0b9ac/packages/layerzero-v2/evm/messagelib/contracts/libs/ExecutorOptions.sol#L10
     uint8  internal constant LZ_OPTION_TYPE_LZRECEIVE      = 1; // Note: https://github.com/LayerZero-Labs/LayerZero-v2/blob/9c741e7f9790639537b1710a203bcdfd73b0b9ac/packages/layerzero-v2/evm/messagelib/contracts/libs/ExecutorOptions.sol#L12
     uint128 internal constant LZ_GAS                       = 130_000;
-    // Note: option_length = 1 (LZ_OPTION_TYPE_LZRECEIVE, uint8) + 16 (LZ_GAS, uint128) = 17
+    // Note: LZ_OPTION_LENGTH = 1 (LZ_OPTION_TYPE_LZRECEIVE, uint8) + 16 (LZ_GAS, uint128) = 17
     uint16  internal constant LZ_OPTION_LENGTH             = 17;
 
     function actions() public override {

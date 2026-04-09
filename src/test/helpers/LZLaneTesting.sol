@@ -236,15 +236,15 @@ library LZLaneTesting {
     /// @notice Encode enforced options for lzReceive (value = 0), replicating OptionsBuilder.addExecutorLzReceiveOption
     /// @dev    See https://github.com/LayerZero-Labs/LayerZero-v2/blob/9c741e7f9790639537b1710a203bcdfd73b0b9ac/packages/layerzero-v2/evm/oapp/contracts/oapp/libs/OptionsBuilder.sol#L53
     function executorLzReceiveOption(uint128 _gas) internal pure returns (bytes memory) {
-        uint16 option_length = 17; // option_length = 1 (optionType) + 16 (uint128 gas) = 17
-        return abi.encodePacked(TYPE_3, WORKER_ID, option_length, OPTION_TYPE, _gas);
+        uint16 optionLength = 17; // optionLength = 1 (optionType) + 16 (uint128 gas) = 17
+        return abi.encodePacked(TYPE_3, WORKER_ID, optionLength, OPTION_TYPE, _gas);
     }
 
     /// @notice Encode enforced options for lzReceive (with value), replicating OptionsBuilder.addExecutorLzReceiveOption
     /// @dev    See https://github.com/LayerZero-Labs/LayerZero-v2/blob/9c741e7f9790639537b1710a203bcdfd73b0b9ac/packages/layerzero-v2/evm/oapp/contracts/oapp/libs/OptionsBuilder.sol#L53
     function executorLzReceiveOption(uint128 _gas, uint128 _value) internal pure returns (bytes memory) {
-        uint16 option_length = 33; // option_length = 1 (optionType) + 16 (uint128 gas) + 16 (uint128 value) = 33
-        return abi.encodePacked(TYPE_3, WORKER_ID, option_length, OPTION_TYPE, _gas, _value);
+        uint16 optionLength = 33; // optionLength = 1 (optionType) + 16 (uint128 gas) + 16 (uint128 value) = 33
+        return abi.encodePacked(TYPE_3, WORKER_ID, optionLength, OPTION_TYPE, _gas, _value);
     }
 
     // --- OFT send ceremony ---
