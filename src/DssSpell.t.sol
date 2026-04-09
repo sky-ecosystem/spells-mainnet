@@ -1562,7 +1562,7 @@ contract DssSpellTest is DssSpellTestBase {
         LzLaneConfig memory lane = _avalancheGovLane();
         address govSender = addr.addr("LZ_GOV_SENDER");
         address govRelay = addr.addr("LZ_GOV_RELAY");
-        bytes32 avalancheL2GovRelay = LZLaneTesting.toBytes32(avalanche.addr("L2_AVALANCHE_GOV_RELAY"));
+        bytes32 avalancheL2GovRelay = LZLaneTesting.toBytes32(avalanche.addr("L2_AVALANCHE_LZ_GOV_RELAY"));
 
         GovernanceOAppSenderLike govOapp = GovernanceOAppSenderLike(govSender);
 
@@ -1586,7 +1586,7 @@ contract DssSpellTest is DssSpellTestBase {
         // L2 (Avalanche) — GovernanceOAppReceiver config (predeployed)
         LzChainConfig memory avalancheChain = _avalancheChain();
         LzLaneConfig memory govRemoteLane = _avalancheGovRemoteLane();
-        address govReceiver = avalanche.addr("L2_AVALANCHE_GOV_RECEIVER");
+        address govReceiver = avalanche.addr("L2_AVALANCHE_LZ_GOV_RECEIVER");
         vm.createSelectFork(vm.envString("AVAX_RPC_URL"));
         LZLaneTesting.assertOwner(govReceiver, govRemoteLane);
         LZLaneTesting.assertDelegate(avalancheChain, govReceiver, govRemoteLane);
@@ -1732,13 +1732,13 @@ contract DssSpellTest is DssSpellTestBase {
         avalancheCases[0] = OftPauseTestCase({
             oft:    avalanche.addr("L2_AVALANCHE_USDS_OFT"),
             pauser: avalanche.addr("L2_AVALANCHE_OFT_PAUSER"),
-            owner:  avalanche.addr("L2_AVALANCHE_GOV_RELAY"),
+            owner:  avalanche.addr("L2_AVALANCHE_LZ_GOV_RELAY"),
             label:  "avax-usds-oft"
         });
         avalancheCases[1] = OftPauseTestCase({
             oft:    avalanche.addr("L2_AVALANCHE_SUSDS_OFT"),
             pauser: avalanche.addr("L2_AVALANCHE_OFT_PAUSER"),
-            owner:  avalanche.addr("L2_AVALANCHE_GOV_RELAY"),
+            owner:  avalanche.addr("L2_AVALANCHE_LZ_GOV_RELAY"),
             label:  "avax-susds-oft"
         });
 
@@ -1771,8 +1771,8 @@ contract DssSpellTest is DssSpellTestBase {
         LzChainConfig memory ethChain = _ethChain();
         LzChainConfig memory avalancheChain = _avalancheChain();
         address govSender       = addr.addr("LZ_GOV_SENDER");
-        address avalancheL2GovRelay  = avalanche.addr("L2_AVALANCHE_GOV_RELAY");
-        address avalancheGovReceiver = avalanche.addr("L2_AVALANCHE_GOV_RECEIVER");
+        address avalancheL2GovRelay  = avalanche.addr("L2_AVALANCHE_LZ_GOV_RELAY");
+        address avalancheGovReceiver = avalanche.addr("L2_AVALANCHE_LZ_GOV_RECEIVER");
         address avalancheUsdsOft     = avalanche.addr("L2_AVALANCHE_USDS_OFT");
         uint256 ethFork = vm.activeFork();
 
@@ -1948,7 +1948,7 @@ contract DssSpellTest is DssSpellTestBase {
         optDVNs[6] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
 
         lane.remoteEid  = 30106;
-        lane.remoteOApp = avalanche.addr("L2_AVALANCHE_GOV_RECEIVER");
+        lane.remoteOApp = avalanche.addr("L2_AVALANCHE_LZ_GOV_RECEIVER");
         lane.owner      = pauseProxy;
         lane.sendExecutor = LzExecutorConfig({
             maxMessageSize: 10_000,
@@ -2006,7 +2006,7 @@ contract DssSpellTest is DssSpellTestBase {
 
         lane.remoteEid  = 30101;
         lane.remoteOApp = addr.addr("USDS_OFT");
-        lane.owner      = avalanche.addr("L2_AVALANCHE_GOV_RELAY");
+        lane.owner      = avalanche.addr("L2_AVALANCHE_LZ_GOV_RELAY");
         lane.sendExecutor = LzExecutorConfig({
             maxMessageSize: 10_000,
             executor: avalanche.addr("L2_AVALANCHE_LZ_EXECUTOR")
@@ -2076,7 +2076,7 @@ contract DssSpellTest is DssSpellTestBase {
 
         lane.remoteEid  = 30101;
         lane.remoteOApp = addr.addr("SUSDS_OFT");
-        lane.owner      = avalanche.addr("L2_AVALANCHE_GOV_RELAY");
+        lane.owner      = avalanche.addr("L2_AVALANCHE_LZ_GOV_RELAY");
         lane.sendExecutor = LzExecutorConfig({
             maxMessageSize: 10_000,
             executor: avalanche.addr("L2_AVALANCHE_LZ_EXECUTOR")
@@ -2118,7 +2118,7 @@ contract DssSpellTest is DssSpellTestBase {
 
         lane.remoteEid  = 30101;
         lane.remoteOApp = addr.addr("LZ_GOV_SENDER");
-        lane.owner      = avalanche.addr("L2_AVALANCHE_GOV_RELAY");
+        lane.owner      = avalanche.addr("L2_AVALANCHE_LZ_GOV_RELAY");
         // Note: GovernanceOAppReceiver has no send config (receive-only)
         // Receive ULN config: 7 optional DVNs, threshold 4, no required DVNs
         lane.recvUln = LzUlnConfig({
