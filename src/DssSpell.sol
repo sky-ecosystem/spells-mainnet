@@ -71,7 +71,7 @@ interface SkyOFTAdapterLike {
 }
 
 interface StarGuardLike {
-    function plot(address _spell, bytes32 _hash) external;
+    function plot(address addr_, bytes32 tag_) external;
 }
 
 interface DaiUsdsLike {
