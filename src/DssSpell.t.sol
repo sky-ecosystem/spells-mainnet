@@ -1626,7 +1626,7 @@ contract DssSpellTest is DssSpellTestBase {
         // L2 (Avalanche) — sUSDS OFT config (predeployed) + deployer ward check
         LzLaneConfig memory reverseLane = _avalancheSUsdsRemoteLane();
         address avaxSUsds    = avalanche.addr("L2_AVALANCHE_SUSDS");
-        address avaxDeployer = avalanche.addr("L2_AVALANCHE_DEPLOYER");
+        address avaxDeployer = 0x48C4DbA0833748e576Ad60E12a3c01C5785b09Ab;
 
         vm.createSelectFork(vm.envString("AVAX_RPC_URL"));
         LZLaneTesting.assertPeerSet(reverseLane);
