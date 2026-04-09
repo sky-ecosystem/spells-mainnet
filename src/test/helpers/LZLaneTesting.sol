@@ -152,38 +152,26 @@ library LZLaneTesting {
     // --- Lane assertions ---
 
     function assertOwner(address oapp, LzLaneConfig memory cfg) internal view {
-        require(
-            ILZOApp(oapp).owner() == cfg.owner,
-            "LZLaneTesting/owner-mismatch"
-        );
+        vm.assertEq(ILZOApp(oapp).owner(), cfg.owner, "LZLaneTesting/owner-mismatch");
     }
 
     function assertDelegate(LzChainConfig memory chain, address oapp, LzLaneConfig memory cfg) internal view {
-        require(
-            ILZEndpointView(chain.endpoint).delegates(oapp) == cfg.owner,
-            "LZLaneTesting/delegate-mismatch"
-        );
+        vm.assertEq(ILZEndpointView(chain.endpoint).delegates(oapp), cfg.owner, "LZLaneTesting/delegate-mismatch");
     }
 
     function assertPeerSet(address oapp, LzLaneConfig memory cfg) internal view {
-        require(
-            ILZOApp(oapp).peers(cfg.remoteEid) == toBytes32(cfg.remoteOApp),
-            "LZLaneTesting/peer-mismatch"
-        );
+        vm.assertEq(ILZOApp(oapp).peers(cfg.remoteEid), toBytes32(cfg.remoteOApp), "LZLaneTesting/peer-mismatch");
     }
 
     function assertSendLibrary(LzChainConfig memory chain, address oapp, LzLaneConfig memory cfg) internal view {
         if (chain.sendLib302 == address(0)) return;
-        require(
-            ILZEndpointView(chain.endpoint).getSendLibrary(oapp, cfg.remoteEid) == chain.sendLib302,
-            "LZLaneTesting/send-library-mismatch"
-        );
+        vm.assertEq(ILZEndpointView(chain.endpoint).getSendLibrary(oapp, cfg.remoteEid), chain.sendLib302, "LZLaneTesting/send-library-mismatch");
     }
 
     function assertReceiveLibrary(LzChainConfig memory chain, address oapp, LzLaneConfig memory cfg) internal view {
         if (chain.recvLib302 == address(0)) return;
         (address lib,) = ILZEndpointView(chain.endpoint).getReceiveLibrary(oapp, cfg.remoteEid);
-        require(lib == chain.recvLib302, "LZLaneTesting/recv-library-mismatch");
+        vm.assertEq(lib, chain.recvLib302, "LZLaneTesting/recv-library-mismatch");
     }
 
     function assertSendExecutor(LzChainConfig memory chain, address oapp, LzLaneConfig memory cfg) internal view {
@@ -192,8 +180,8 @@ library LZLaneTesting {
             oapp, chain.sendLib302, cfg.remoteEid, 1
         );
         LzExecutorConfig memory exec = abi.decode(raw, (LzExecutorConfig));
-        require(exec.maxMessageSize == cfg.sendExecutor.maxMessageSize, "LZLaneTesting/send-executor-max-msg-size-mismatch");
-        require(exec.executor       == cfg.sendExecutor.executor,       "LZLaneTesting/send-executor-mismatch");
+        vm.assertEq(exec.maxMessageSize, cfg.sendExecutor.maxMessageSize, "LZLaneTesting/send-executor-max-msg-size-mismatch");
+        vm.assertEq(exec.executor, cfg.sendExecutor.executor, "LZLaneTesting/send-executor-mismatch");
     }
 
     function assertSendUln(LzChainConfig memory chain, address oapp, LzLaneConfig memory cfg) internal view {
@@ -219,19 +207,20 @@ library LZLaneTesting {
         if (cfg.enforcedOptions.length == 0) return;
         SkyOFTAdapterLike oft = SkyOFTAdapterLike(oapp);
         bytes32 expected = keccak256(cfg.enforcedOptions);
-        require(keccak256(oft.enforcedOptions(cfg.remoteEid, SEND_MSG_TYPE)) == expected, "LZLaneTesting/enforced-options-send-mismatch");
-        require(keccak256(oft.enforcedOptions(cfg.remoteEid, SEND_CALL_MSG_TYPE)) == expected, "LZLaneTesting/enforced-options-send-and-call-mismatch");
+        vm.assertEq(keccak256(oft.enforcedOptions(cfg.remoteEid, SEND_MSG_TYPE)), expected, "LZLaneTesting/enforced-options-send-mismatch");
+        vm.assertEq(keccak256(oft.enforcedOptions(cfg.remoteEid, SEND_CALL_MSG_TYPE)), expected, "LZLaneTesting/enforced-options-send-and-call-mismatch");
     }
 
     /// @notice Verify OFT adapter sanity: fees, rate limit accounting type, and paused state.
     /// @dev    Mirrors https://github.com/sky-ecosystem/wh-lz-migration/blob/2c16517aab011ba32ed6f1b5977b888d2a6a753f/deploy/MigrationInit.sol#L142-L151
     function assertOftSanity(address oapp, uint32 remoteEid, uint8 expectedRlAccountingType) internal view {
         SkyOFTAdapterLike oft = SkyOFTAdapterLike(oapp);
-        require(oft.defaultFeeBps() == 0, "LZLaneTesting/default-fee-bps-nonzero");
+        vm.assertEq(oft.defaultFeeBps(), 0, "LZLaneTesting/default-fee-bps-nonzero");
         (uint16 feeBps, bool enabled) = oft.feeBps(remoteEid);
-        require(feeBps == 0 && !enabled, "LZLaneTesting/fee-bps-nonzero-or-enabled");
-        require(!oft.paused(), "LZLaneTesting/paused");
-        require(oft.rateLimitAccountingType() == expectedRlAccountingType, "LZLaneTesting/rl-accounting-type-mismatch");
+        vm.assertEq(feeBps, 0, "LZLaneTesting/fee-bps-nonzero");
+        vm.assertEq(enabled, false, "LZLaneTesting/fee-bps-enabled");
+        vm.assertTrue(!oft.paused(), "LZLaneTesting/paused");
+        vm.assertEq(oft.rateLimitAccountingType(), expectedRlAccountingType, "LZLaneTesting/rl-accounting-type-mismatch");
     }
 
     // --- Encoding helpers ---
@@ -321,17 +310,17 @@ library LZLaneTesting {
 
         bytes memory raw = ILZEndpointView(endpoint).getConfig(oapp, lib, eid, configType);
         LzUlnConfig memory actual = abi.decode(raw, (LzUlnConfig));
-        require(actual.confirmations        == expected.confirmations,        _err(direction, "confirmations-mismatch"));
-        require(actual.requiredDVNCount     == expected.requiredDVNCount,     _err(direction, "required-dvn-count-mismatch"));
-        require(actual.optionalDVNCount     == expected.optionalDVNCount,     _err(direction, "optional-dvn-count-mismatch"));
-        require(actual.optionalDVNThreshold == expected.optionalDVNThreshold, _err(direction, "optional-dvn-threshold-mismatch"));
-        require(actual.requiredDVNs.length  == expected.requiredDVNs.length,  _err(direction, "required-dvns-length-mismatch"));
+        vm.assertEq(actual.confirmations, expected.confirmations, _err(direction, "confirmations-mismatch"));
+        vm.assertEq(actual.requiredDVNCount, expected.requiredDVNCount, _err(direction, "required-dvn-count-mismatch"));
+        vm.assertEq(actual.optionalDVNCount, expected.optionalDVNCount, _err(direction, "optional-dvn-count-mismatch"));
+        vm.assertEq(actual.optionalDVNThreshold, expected.optionalDVNThreshold, _err(direction, "optional-dvn-threshold-mismatch"));
+        vm.assertEq(actual.requiredDVNs.length, expected.requiredDVNs.length, _err(direction, "required-dvns-length-mismatch"));
         for (uint256 i = 0; i < expected.requiredDVNs.length; i++) {
-            require(actual.requiredDVNs[i] == expected.requiredDVNs[i], _err(direction, "required-dvn-mismatch"));
+            vm.assertEq(actual.requiredDVNs[i], expected.requiredDVNs[i], _err(direction, "required-dvn-mismatch"));
         }
-        require(actual.optionalDVNs.length == expected.optionalDVNs.length, _err(direction, "optional-dvns-length-mismatch"));
+        vm.assertEq(actual.optionalDVNs.length, expected.optionalDVNs.length, _err(direction, "optional-dvns-length-mismatch"));
         for (uint256 i = 0; i < expected.optionalDVNs.length; i++) {
-            require(actual.optionalDVNs[i] == expected.optionalDVNs[i], _err(direction, "optional-dvn-mismatch"));
+            vm.assertEq(actual.optionalDVNs[i], expected.optionalDVNs[i], _err(direction, "optional-dvn-mismatch"));
         }
     }
 
