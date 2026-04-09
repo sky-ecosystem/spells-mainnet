@@ -1508,27 +1508,47 @@ contract DssSpellTest is DssSpellTestBase {
         SafeHarborAgreementLike.AgreementDetails memory detailsAfter = agreement.getDetails();
         SafeHarborAgreementLike.Chain memory avalancheChain = _findChain(detailsAfter, avalancheChainId);
 
-        string[8] memory expectedAccounts = [
-            "0x6fdd46947ca6903c8c159d1dF2012Bc7fC5cEeec", // GovernanceOAppReceiver
-            "0xe928885BCe799Ed933651715608155F01abA23cA", // L2GovernanceRelay
-            "0xB5bc5dFe65a9ec30738DB3a0b592B8a18A191300", // USDS implementation
-            "0x86Ff09db814ac346a7C6FE2Cd648F27706D1D470", // USDS proxy
-            "0x4fec40719fD9a8AE3F8E20531669DEC5962D2619", // SkyOFTAdapterMintBurn(USDS)
-            "0xc8dB83458e8593Ed9a2D81DC29068B12D330729a", // sUSDS implementation
-            "0xb94D9613C7aAB11E548a327154Cc80eCa911B5c1", // sUSDS proxy
-            "0x7297D4811f088FC26bC5475681405B99b41E1FF9"  // SkyOFTAdapterMintBurn(sUSDS)
-        ];
+        SafeHarborAgreementLike.Account[] memory expectedAccounts = new SafeHarborAgreementLike.Account[](8);
+        expectedAccounts[0] = SafeHarborAgreementLike.Account({
+            accountAddress:     "0x6fdd46947ca6903c8c159d1dF2012Bc7fC5cEeec", // GovernanceOAppReceiver
+            ChildContractScope: 0
+        });
+        expectedAccounts[1] = SafeHarborAgreementLike.Account({
+            accountAddress:     "0xe928885BCe799Ed933651715608155F01abA23cA", // L2GovernanceRelay
+            ChildContractScope: 0
+        });
+        expectedAccounts[2] = SafeHarborAgreementLike.Account({
+            accountAddress:     "0xB5bc5dFe65a9ec30738DB3a0b592B8a18A191300", // USDS implementation
+            ChildContractScope: 0
+        });
+        expectedAccounts[3] = SafeHarborAgreementLike.Account({
+            accountAddress:     "0x86Ff09db814ac346a7C6FE2Cd648F27706D1D470", // USDS proxy
+            ChildContractScope: 0
+        });
+        expectedAccounts[4] = SafeHarborAgreementLike.Account({
+            accountAddress:     "0x4fec40719fD9a8AE3F8E20531669DEC5962D2619", // SkyOFTAdapterMintBurn(USDS)
+            ChildContractScope: 0
+        });
+        expectedAccounts[5] = SafeHarborAgreementLike.Account({
+            accountAddress:     "0xc8dB83458e8593Ed9a2D81DC29068B12D330729a", // sUSDS implementation
+            ChildContractScope: 0
+        });
+        expectedAccounts[6] = SafeHarborAgreementLike.Account({
+            accountAddress:     "0xb94D9613C7aAB11E548a327154Cc80eCa911B5c1", // sUSDS proxy
+            ChildContractScope: 0
+        });
+        expectedAccounts[7] = SafeHarborAgreementLike.Account({
+            accountAddress:     "0x7297D4811f088FC26bC5475681405B99b41E1FF9", // SkyOFTAdapterMintBurn(sUSDS)
+            ChildContractScope: 0
+        });
 
         assertEq(avalancheChain.accounts.length, expectedAccounts.length, "TestError/avalanche-wrong-account-count");
         for (uint256 i = 0; i < expectedAccounts.length; i++) {
-            assertTrue(
-                _accountExistsInChain(avalancheChain, expectedAccounts[i]),
-                string.concat("TestError/avalanche-account-not-found-", expectedAccounts[i])
-            );
+            SafeHarborAgreementLike.Account memory actual = _findAccountInChain(avalancheChain, expectedAccounts[i].accountAddress);
             assertEq(
-                avalancheChain.accounts[i].ChildContractScope,
-                0,
-                string.concat("TestError/avalanche-account-child-contract-scope-not-set-", expectedAccounts[i])
+                actual.ChildContractScope,
+                expectedAccounts[i].ChildContractScope,
+                string.concat("TestError/avalanche-account-child-contract-scope-mismatch-", expectedAccounts[i].accountAddress)
             );
         }
     }
