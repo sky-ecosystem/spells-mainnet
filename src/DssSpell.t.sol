@@ -1703,7 +1703,7 @@ contract DssSpellTest is DssSpellTestBase {
     struct OftPauseTestCase {
         address oft;
         address pauser;
-        address unpauser;
+        address owner;
         string  label;
     }
 
@@ -1715,30 +1715,30 @@ contract DssSpellTest is DssSpellTestBase {
         // Capture all addresses before fork switch
         OftPauseTestCase[] memory ethCases = new OftPauseTestCase[](2);
         ethCases[0] = OftPauseTestCase({
-            oft:      addr.addr("USDS_OFT"),
-            pauser:   addr.addr("SUSDS_OFT_PAUSER"),
-            unpauser: pauseProxy,
-            label:    "eth-usds-oft"
+            oft:    addr.addr("USDS_OFT"),
+            pauser: addr.addr("SUSDS_OFT_PAUSER"),
+            owner:  pauseProxy,
+            label:  "eth-usds-oft"
         });
         ethCases[1] = OftPauseTestCase({
-            oft:      addr.addr("SUSDS_OFT"),
-            pauser:   addr.addr("SUSDS_OFT_PAUSER"),
-            unpauser: pauseProxy,
-            label:    "eth-susds-oft"
+            oft:    addr.addr("SUSDS_OFT"),
+            pauser: addr.addr("SUSDS_OFT_PAUSER"),
+            owner:  pauseProxy,
+            label:  "eth-susds-oft"
         });
 
         OftPauseTestCase[] memory avalancheCases = new OftPauseTestCase[](2);
         avalancheCases[0] = OftPauseTestCase({
-            oft:      avalanche.addr("L2_AVALANCHE_USDS_OFT"),
-            pauser:   avalanche.addr("L2_AVALANCHE_OFT_PAUSER"),
-            unpauser: avalanche.addr("L2_AVALANCHE_GOV_RELAY"),
-            label:    "avax-usds-oft"
+            oft:    avalanche.addr("L2_AVALANCHE_USDS_OFT"),
+            pauser: avalanche.addr("L2_AVALANCHE_OFT_PAUSER"),
+            owner:  avalanche.addr("L2_AVALANCHE_GOV_RELAY"),
+            label:  "avax-usds-oft"
         });
         avalancheCases[1] = OftPauseTestCase({
-            oft:      avalanche.addr("L2_AVALANCHE_SUSDS_OFT"),
-            pauser:   avalanche.addr("L2_AVALANCHE_OFT_PAUSER"),
-            unpauser: avalanche.addr("L2_AVALANCHE_GOV_RELAY"),
-            label:    "avax-susds-oft"
+            oft:    avalanche.addr("L2_AVALANCHE_SUSDS_OFT"),
+            pauser: avalanche.addr("L2_AVALANCHE_OFT_PAUSER"),
+            owner:  avalanche.addr("L2_AVALANCHE_GOV_RELAY"),
+            label:  "avax-susds-oft"
         });
 
         // Ethereum OFTs
@@ -1761,7 +1761,7 @@ contract DssSpellTest is DssSpellTestBase {
         oft.pause();
         assertTrue(oft.paused(), string.concat("TestError/", tc.label, "/not-paused"));
 
-        vm.prank(tc.unpauser);
+        vm.prank(tc.owner);
         oft.unpause();
         assertFalse(oft.paused(), string.concat("TestError/", tc.label, "/not-unpaused"));
     }
@@ -1859,6 +1859,7 @@ contract DssSpellTest is DssSpellTestBase {
         // Forward leg: Ethereum → Avalanche
         {
             Vm.Log[] memory forwardLogs = LZLaneTesting.sendOft(SkyOFTAdapterLike(oapp), avalancheChain.eid, recipient, sendAmount, address(this));
+            assertEq(usds.balanceOf(address(this)), 0, "TestError/usds/e2e-eth-sender-balance-not-zero-after-send");
             assertEq(usds.totalSupply(), ethSupplyBefore, "TestError/usds/e2e-eth-supply-changed-after-send");
             LZLaneTesting.relayToFork(forwardLogs, ethChain, avalancheChain, oapp, remoteOapp, avalancheFork);
         }
