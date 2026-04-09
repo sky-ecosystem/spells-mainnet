@@ -126,14 +126,19 @@ struct LzUlnConfig {
     address[] optionalDVNs;
 }
 
+struct LzEnforcedOptionsConfig {
+    bytes send;
+    bytes sendAndCall;
+}
+
 struct LzLaneConfig {
-    address          owner;
-    uint32           remoteEid;
-    address          remoteOApp;
-    LzExecutorConfig sendExecutor;
-    LzUlnConfig      sendUln;
-    LzUlnConfig      recvUln;
-    bytes            enforcedOptions;
+    address                 owner;
+    uint32                  remoteEid;
+    address                 remoteOApp;
+    LzExecutorConfig        sendExecutor;
+    LzUlnConfig             sendUln;
+    LzUlnConfig             recvUln;
+    LzEnforcedOptionsConfig enforcedOptions;
 }
 
 /// @title  LZLaneTesting
@@ -204,11 +209,23 @@ library LZLaneTesting {
         uint16 SEND_MSG_TYPE = 1;
         uint16 SEND_CALL_MSG_TYPE = 2;
 
-        if (cfg.enforcedOptions.length == 0) return;
         SkyOFTAdapterLike oft = SkyOFTAdapterLike(oapp);
-        bytes32 expected = keccak256(cfg.enforcedOptions);
-        vm.assertEq(keccak256(oft.enforcedOptions(cfg.remoteEid, SEND_MSG_TYPE)), expected, "LZLaneTesting/enforced-options-send-mismatch");
-        vm.assertEq(keccak256(oft.enforcedOptions(cfg.remoteEid, SEND_CALL_MSG_TYPE)), expected, "LZLaneTesting/enforced-options-send-and-call-mismatch");
+
+        if (cfg.enforcedOptions.send.length > 0) {
+            vm.assertEq(
+                oft.enforcedOptions(cfg.remoteEid, SEND_MSG_TYPE),
+                cfg.enforcedOptions.send,
+                "LZLaneTesting/enforced-options-send-mismatch"
+            );
+        }
+
+        if (cfg.enforcedOptions.sendAndCall.length > 0) {
+            vm.assertEq(
+                oft.enforcedOptions(cfg.remoteEid, SEND_CALL_MSG_TYPE),
+                cfg.enforcedOptions.sendAndCall,
+                "LZLaneTesting/enforced-options-send-and-call-mismatch"
+            );
+        }
     }
 
     /// @notice Verify OFT adapter sanity: fees, rate limit accounting type, and paused state.

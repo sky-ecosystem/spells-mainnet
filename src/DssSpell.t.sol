@@ -22,6 +22,7 @@ import {
     L1GovernanceRelayLike,
     LZLaneTesting,
     LzChainConfig,
+    LzEnforcedOptionsConfig,
     LzExecutorConfig,
     LzLaneConfig,
     LzUlnConfig,
@@ -1970,7 +1971,10 @@ contract DssSpellTest is DssSpellTestBase {
             requiredDVNs: ethDVNs,
             optionalDVNs: new address[](0)
         });
-        lane.enforcedOptions = LZLaneTesting.executorLzReceiveOption(130_000);
+        lane.enforcedOptions = LzEnforcedOptionsConfig({
+            send:        LZLaneTesting.executorLzReceiveOption(130_000),
+            sendAndCall: LZLaneTesting.executorLzReceiveOption(130_000)
+        });
     }
 
     function _avalancheUsdsRemoteLane() internal view returns (LzLaneConfig memory lane) {
@@ -2002,7 +2006,10 @@ contract DssSpellTest is DssSpellTestBase {
             requiredDVNs: avalancheDVNs,
             optionalDVNs: new address[](0)
         });
-        lane.enforcedOptions = LZLaneTesting.executorLzReceiveOption(130_000);
+        lane.enforcedOptions = LzEnforcedOptionsConfig({
+            send:        LZLaneTesting.executorLzReceiveOption(130_000),
+            sendAndCall: LZLaneTesting.executorLzReceiveOption(130_000)
+        });
     }
 
     function _avalancheSUsdsLane() internal view returns (LzLaneConfig memory lane) {
@@ -2034,7 +2041,10 @@ contract DssSpellTest is DssSpellTestBase {
             requiredDVNs: ethDVNs,
             optionalDVNs: new address[](0)
         });
-        lane.enforcedOptions = LZLaneTesting.executorLzReceiveOption(130_000);
+        lane.enforcedOptions = LzEnforcedOptionsConfig({
+            send:        LZLaneTesting.executorLzReceiveOption(130_000),
+            sendAndCall: LZLaneTesting.executorLzReceiveOption(130_000)
+        });
     }
 
     function _avalancheSUsdsRemoteLane() internal view returns (LzLaneConfig memory lane) {
@@ -2066,7 +2076,10 @@ contract DssSpellTest is DssSpellTestBase {
             requiredDVNs: avalancheDVNs,
             optionalDVNs: new address[](0)
         });
-        lane.enforcedOptions = LZLaneTesting.executorLzReceiveOption(130_000);
+        lane.enforcedOptions = LzEnforcedOptionsConfig({
+            send:        LZLaneTesting.executorLzReceiveOption(130_000),
+            sendAndCall: LZLaneTesting.executorLzReceiveOption(130_000)
+        });
     }
 
     function _avalancheGovRemoteLane() internal view returns (LzLaneConfig memory lane) {
