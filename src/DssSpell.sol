@@ -105,7 +105,6 @@ contract DssSpellAction is DssAction {
     uint256 internal constant WAD = 10 ** 18;
 
     // ---------- Contracts ----------
-    address internal immutable CHAINLOG                 = DssExecLib.LOG;
     address internal immutable DAI                      = DssExecLib.dai();
     address internal immutable DAI_USDS                 = DssExecLib.getChangelogAddress("DAI_USDS");
     address internal immutable LZ_GOV_SENDER            = DssExecLib.getChangelogAddress("LZ_GOV_SENDER");
