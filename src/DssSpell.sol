@@ -185,27 +185,27 @@ contract DssSpellAction is DssAction {
         );
 
         // Note: Create dynamic array for _params argument in EndpointV2Like(ETH_LZ_ENDPOINT).setConfig():
-        EndpointV2Like.SetConfigParam[] memory setConfigParams = new EndpointV2Like.SetConfigParam[](2);
+        EndpointV2Like.SetConfigParam[] memory govOappSendParams = new EndpointV2Like.SetConfigParam[](2);
 
         // Note: Create dynamic array for requiredDVNs:
-        address[] memory govRequiredDVNs = new address[](0);
+        address[] memory govOappRequiredDVNs = new address[](0);
 
         // Note: Create dynamic array for optionalDVNs:
-        address[] memory govOptionalDVNs = new address[](7);
+        address[] memory govOappOptionalDVNs = new address[](7);
 
         // Note: DVN addresses sorted in ascending order
-        govOptionalDVNs[0] = P2P;
-        govOptionalDVNs[1] = DEUTSCHE_TELEKOM;
-        govOptionalDVNs[2] = HORIZEN;
-        govOptionalDVNs[3] = LUGANODES;
-        govOptionalDVNs[4] = LAYERZERO_LABS;
-        govOptionalDVNs[5] = CANARY;
-        govOptionalDVNs[6] = NETHERMIND;
+        govOappOptionalDVNs[0] = P2P;
+        govOappOptionalDVNs[1] = DEUTSCHE_TELEKOM;
+        govOappOptionalDVNs[2] = HORIZEN;
+        govOappOptionalDVNs[3] = LUGANODES;
+        govOappOptionalDVNs[4] = LAYERZERO_LABS;
+        govOappOptionalDVNs[5] = CANARY;
+        govOappOptionalDVNs[6] = NETHERMIND;
 
         // Note: altered order because dynamic arrays cannot be declared in the argument of the function call:
         // SetConfigParam[] _params being an array with two items:
         // First item: Executor parameters
-        setConfigParams[0] = EndpointV2Like.SetConfigParam({
+        govOappSendParams[0] = EndpointV2Like.SetConfigParam({
             // uint32 eid being 30106
             eid: AVAX_EID,
             // uint32 configType being 1
@@ -221,7 +221,7 @@ contract DssSpellAction is DssAction {
         });
 
         // Second item: ULN parameters
-        setConfigParams[1] = EndpointV2Like.SetConfigParam({
+        govOappSendParams[1] = EndpointV2Like.SetConfigParam({
             // uint32 eid being 30106
             eid: AVAX_EID,
             // uint32 configType being 2
@@ -239,10 +239,10 @@ contract DssSpellAction is DssAction {
                 optionalDVNThreshold: 4,
                 // address[] requiredDVNs being an array with 0 addresses
                 // Note: dynamic array previously created
-                requiredDVNs: govRequiredDVNs,
+                requiredDVNs: govOappRequiredDVNs,
                 // address[] optionalDVNs being an array with 7 addresses: [0x589dEDbD617e0CBcB916A9223F4d1300c294236b, 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5, 0xa4fE5A5B9A846458a70Cd0748228aED3bF65c2cd, 0x373a6E5c0C4E89E24819f00AA37ea370917AAfF4, 0x06559EE34D85a88317Bf0bfE307444116c631b67, 0x380275805876Ff19055EA900CDb2B46a94ecF20D, 0x58249a2Ec05c1978bF21DF1f5eC1847e42455CF4]
                 // Note: dynamic array previously created
-                optionalDVNs: govOptionalDVNs
+                optionalDVNs: govOappOptionalDVNs
             }))
         });
 
@@ -255,7 +255,7 @@ contract DssSpellAction is DssAction {
             ETH_LZ_SEND_302,
             // SetConfigParam[] _params being an array with two items:
             // Note: dynamic array previously created
-            setConfigParams
+            govOappSendParams
         );
 
         // Allow LZ_GOV_SENDER to send messages to Avalanche
