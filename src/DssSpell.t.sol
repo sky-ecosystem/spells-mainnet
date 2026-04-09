@@ -1964,32 +1964,52 @@ contract DssSpellTest is DssSpellTestBase {
         lane.enforcedOptions = LZLaneTesting.executorLzReceiveOption(130_000);
     }
 
-    function _avalancheUsdsRemoteLane() internal view returns (LzLaneConfig memory) {
+    function _avalancheUsdsRemoteLane() internal view returns (LzLaneConfig memory lane) {
         address[] memory avaxDVNs = new address[](2);
         avaxDVNs[0] = 0x962F502A63F5FBeB44DC9ab932122648E8352959; // LayerZero Labs (Avalanche)
         avaxDVNs[1] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
 
-        return LZLaneTesting.reverse(
-            _avalancheUsdsLane(),
-            avalanche.addr("L2_AVALANCHE_GOV_RELAY"),
-            LzUlnConfig({
-                confirmations: 12,
-                requiredDVNCount: 2,
-                optionalDVNCount: 0,
-                optionalDVNThreshold: 0,
-                requiredDVNs: avaxDVNs,
-                optionalDVNs: new address[](0)
-            }),
-            LzUlnConfig({
-                confirmations: 15,
-                requiredDVNCount: 2,
-                optionalDVNCount: 0,
-                optionalDVNThreshold: 0,
-                requiredDVNs: avaxDVNs,
-                optionalDVNs: new address[](0)
-            }),
-            LZLaneTesting.executorLzReceiveOption(130_000)
-        );
+        lane.localChain = LzChainConfig({
+            eid: 30106,
+            endpoint: avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"),
+            sendLib302: avalanche.addr("L2_AVALANCHE_LZ_SEND_302"),
+            recvLib302: avalanche.addr("L2_AVALANCHE_LZ_RECV_302")
+        });
+        lane.remoteChain = LzChainConfig({
+            eid: 30101,
+            endpoint: addr.addr("LZ_ENDPOINT"),
+            sendLib302: addr.addr("LZ_SEND_302"),
+            recvLib302: addr.addr("LZ_RECV_302")
+        });
+        lane.localOApp  = avalanche.addr("L2_AVALANCHE_USDS_OFT");
+        lane.remoteOApp = addr.addr("USDS_OFT");
+        lane.remotePeer = LZLaneTesting.toBytes32(lane.remoteOApp);
+        lane.owner      = avalanche.addr("L2_AVALANCHE_GOV_RELAY");
+        lane.sendExecutor = LzExecutorConfig({
+            maxMessageSize: 10_000,
+            executor: avalanche.addr("L2_AVALANCHE_LZ_EXECUTOR")
+        });
+        lane.recvExecutor = LzExecutorConfig({
+            maxMessageSize: 10_000,
+            executor: addr.addr("LZ_EXECUTOR")
+        });
+        lane.sendUln = LzUlnConfig({
+            confirmations: 12,
+            requiredDVNCount: 2,
+            optionalDVNCount: 0,
+            optionalDVNThreshold: 0,
+            requiredDVNs: avaxDVNs,
+            optionalDVNs: new address[](0)
+        });
+        lane.recvUln = LzUlnConfig({
+            confirmations: 15,
+            requiredDVNCount: 2,
+            optionalDVNCount: 0,
+            optionalDVNThreshold: 0,
+            requiredDVNs: avaxDVNs,
+            optionalDVNs: new address[](0)
+        });
+        lane.enforcedOptions = LZLaneTesting.executorLzReceiveOption(130_000);
     }
 
     function _avalancheSUsdsLane() internal view returns (LzLaneConfig memory lane) {
@@ -2040,32 +2060,52 @@ contract DssSpellTest is DssSpellTestBase {
         lane.enforcedOptions = LZLaneTesting.executorLzReceiveOption(130_000);
     }
 
-    function _avalancheSUsdsRemoteLane() internal view returns (LzLaneConfig memory) {
+    function _avalancheSUsdsRemoteLane() internal view returns (LzLaneConfig memory lane) {
         address[] memory avaxDVNs = new address[](2);
         avaxDVNs[0] = 0x962F502A63F5FBeB44DC9ab932122648E8352959; // LayerZero Labs (Avalanche)
         avaxDVNs[1] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
 
-        return LZLaneTesting.reverse(
-            _avalancheSUsdsLane(),
-            avalanche.addr("L2_AVALANCHE_GOV_RELAY"),
-            LzUlnConfig({
-                confirmations: 12,
-                requiredDVNCount: 2,
-                optionalDVNCount: 0,
-                optionalDVNThreshold: 0,
-                requiredDVNs: avaxDVNs,
-                optionalDVNs: new address[](0)
-            }),
-            LzUlnConfig({
-                confirmations: 15,
-                requiredDVNCount: 2,
-                optionalDVNCount: 0,
-                optionalDVNThreshold: 0,
-                requiredDVNs: avaxDVNs,
-                optionalDVNs: new address[](0)
-            }),
-            LZLaneTesting.executorLzReceiveOption(130_000)
-        );
+        lane.localChain = LzChainConfig({
+            eid: 30106,
+            endpoint: avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"),
+            sendLib302: avalanche.addr("L2_AVALANCHE_LZ_SEND_302"),
+            recvLib302: avalanche.addr("L2_AVALANCHE_LZ_RECV_302")
+        });
+        lane.remoteChain = LzChainConfig({
+            eid: 30101,
+            endpoint: addr.addr("LZ_ENDPOINT"),
+            sendLib302: addr.addr("LZ_SEND_302"),
+            recvLib302: addr.addr("LZ_RECV_302")
+        });
+        lane.localOApp  = avalanche.addr("L2_AVALANCHE_SUSDS_OFT");
+        lane.remoteOApp = addr.addr("SUSDS_OFT");
+        lane.remotePeer = LZLaneTesting.toBytes32(lane.remoteOApp);
+        lane.owner      = avalanche.addr("L2_AVALANCHE_GOV_RELAY");
+        lane.sendExecutor = LzExecutorConfig({
+            maxMessageSize: 10_000,
+            executor: avalanche.addr("L2_AVALANCHE_LZ_EXECUTOR")
+        });
+        lane.recvExecutor = LzExecutorConfig({
+            maxMessageSize: 10_000,
+            executor: addr.addr("LZ_EXECUTOR")
+        });
+        lane.sendUln = LzUlnConfig({
+            confirmations: 12,
+            requiredDVNCount: 2,
+            optionalDVNCount: 0,
+            optionalDVNThreshold: 0,
+            requiredDVNs: avaxDVNs,
+            optionalDVNs: new address[](0)
+        });
+        lane.recvUln = LzUlnConfig({
+            confirmations: 15,
+            requiredDVNCount: 2,
+            optionalDVNCount: 0,
+            optionalDVNThreshold: 0,
+            requiredDVNs: avaxDVNs,
+            optionalDVNs: new address[](0)
+        });
+        lane.enforcedOptions = LZLaneTesting.executorLzReceiveOption(130_000);
     }
 
     function _avalancheGovRemoteLane() internal view returns (LzLaneConfig memory lane) {

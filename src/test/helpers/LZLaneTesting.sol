@@ -316,27 +316,6 @@ library LZLaneTesting {
 
     // --- Lane reversal ---
 
-    /// @notice Create a reverse lane (remote→local) with new DVN configs, owner, and enforced options.
-    function reverse(
-        LzLaneConfig memory lane,
-        address remoteOwner,
-        LzUlnConfig memory sendUln,
-        LzUlnConfig memory recvUln,
-        bytes memory enforcedOpts
-    ) internal pure returns (LzLaneConfig memory rev) {
-        rev.localChain    = lane.remoteChain;
-        rev.remoteChain   = lane.localChain;
-        rev.localOApp     = lane.remoteOApp;
-        rev.remoteOApp    = lane.localOApp;
-        rev.remotePeer    = toBytes32(lane.localOApp);
-        rev.owner         = remoteOwner;
-        rev.sendExecutor  = lane.recvExecutor;
-        rev.recvExecutor  = lane.sendExecutor;
-        rev.sendUln       = sendUln;
-        rev.recvUln       = recvUln;
-        rev.enforcedOptions = enforcedOpts;
-    }
-
     // --- Private helpers ---
 
     function _assertUlnConfig(
