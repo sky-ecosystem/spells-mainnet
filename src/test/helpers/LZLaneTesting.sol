@@ -140,10 +140,8 @@ struct LzLaneConfig {
     LzChainConfig    remoteChain;
     address          localOApp;
     address          remoteOApp;
-    bytes32          remotePeer;
     address          owner;
     LzExecutorConfig sendExecutor;
-    LzExecutorConfig recvExecutor;
     LzUlnConfig      sendUln;
     LzUlnConfig      recvUln;
     bytes            enforcedOptions;
@@ -180,7 +178,7 @@ library LZLaneTesting {
 
     function assertPeerSet(LzLaneConfig memory lane) internal view {
         require(
-            ILZOApp(lane.localOApp).peers(lane.remoteChain.eid) == lane.remotePeer,
+            ILZOApp(lane.localOApp).peers(lane.remoteChain.eid) == toBytes32(lane.remoteOApp),
             "LZLaneTesting/peer-mismatch"
         );
     }

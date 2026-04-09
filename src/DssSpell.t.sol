@@ -1900,7 +1900,7 @@ contract DssSpellTest is DssSpellTestBase {
         });
         lane.localOApp  = addr.addr("LZ_GOV_SENDER");
         lane.remoteOApp = avalanche.addr("L2_AVALANCHE_GOV_RECEIVER");
-        lane.remotePeer = LZLaneTesting.toBytes32(lane.remoteOApp);
+
         lane.owner      = pauseProxy;
         lane.sendExecutor = LzExecutorConfig({
             maxMessageSize: 10_000,
@@ -1935,16 +1935,13 @@ contract DssSpellTest is DssSpellTestBase {
         });
         lane.localOApp  = addr.addr("USDS_OFT");
         lane.remoteOApp = avalanche.addr("L2_AVALANCHE_USDS_OFT");
-        lane.remotePeer = LZLaneTesting.toBytes32(lane.remoteOApp);
+
         lane.owner      = pauseProxy;
         lane.sendExecutor = LzExecutorConfig({
             maxMessageSize: 10_000,
             executor: addr.addr("LZ_EXECUTOR")
         });
-        lane.recvExecutor = LzExecutorConfig({
-            maxMessageSize: 10_000,
-            executor: avalanche.addr("L2_AVALANCHE_LZ_EXECUTOR")
-        });
+
         lane.sendUln = LzUlnConfig({
             confirmations: 15,
             requiredDVNCount: 2,
@@ -1983,16 +1980,13 @@ contract DssSpellTest is DssSpellTestBase {
         });
         lane.localOApp  = avalanche.addr("L2_AVALANCHE_USDS_OFT");
         lane.remoteOApp = addr.addr("USDS_OFT");
-        lane.remotePeer = LZLaneTesting.toBytes32(lane.remoteOApp);
+
         lane.owner      = avalanche.addr("L2_AVALANCHE_GOV_RELAY");
         lane.sendExecutor = LzExecutorConfig({
             maxMessageSize: 10_000,
             executor: avalanche.addr("L2_AVALANCHE_LZ_EXECUTOR")
         });
-        lane.recvExecutor = LzExecutorConfig({
-            maxMessageSize: 10_000,
-            executor: addr.addr("LZ_EXECUTOR")
-        });
+
         lane.sendUln = LzUlnConfig({
             confirmations: 12,
             requiredDVNCount: 2,
@@ -2031,16 +2025,13 @@ contract DssSpellTest is DssSpellTestBase {
         });
         lane.localOApp  = addr.addr("SUSDS_OFT");
         lane.remoteOApp = avalanche.addr("L2_AVALANCHE_SUSDS_OFT");
-        lane.remotePeer = LZLaneTesting.toBytes32(lane.remoteOApp);
+
         lane.owner      = pauseProxy;
         lane.sendExecutor = LzExecutorConfig({
             maxMessageSize: 10_000,
             executor: addr.addr("LZ_EXECUTOR")
         });
-        lane.recvExecutor = LzExecutorConfig({
-            maxMessageSize: 10_000,
-            executor: avalanche.addr("L2_AVALANCHE_LZ_EXECUTOR")
-        });
+
         lane.sendUln = LzUlnConfig({
             confirmations: 15,
             requiredDVNCount: 2,
@@ -2079,16 +2070,13 @@ contract DssSpellTest is DssSpellTestBase {
         });
         lane.localOApp  = avalanche.addr("L2_AVALANCHE_SUSDS_OFT");
         lane.remoteOApp = addr.addr("SUSDS_OFT");
-        lane.remotePeer = LZLaneTesting.toBytes32(lane.remoteOApp);
+
         lane.owner      = avalanche.addr("L2_AVALANCHE_GOV_RELAY");
         lane.sendExecutor = LzExecutorConfig({
             maxMessageSize: 10_000,
             executor: avalanche.addr("L2_AVALANCHE_LZ_EXECUTOR")
         });
-        lane.recvExecutor = LzExecutorConfig({
-            maxMessageSize: 10_000,
-            executor: addr.addr("LZ_EXECUTOR")
-        });
+
         lane.sendUln = LzUlnConfig({
             confirmations: 12,
             requiredDVNCount: 2,
@@ -2134,7 +2122,7 @@ contract DssSpellTest is DssSpellTestBase {
         });
         lane.localOApp  = avalanche.addr("L2_AVALANCHE_GOV_RECEIVER");
         lane.remoteOApp = addr.addr("LZ_GOV_SENDER");
-        lane.remotePeer = LZLaneTesting.toBytes32(lane.remoteOApp);
+
         lane.owner      = avalanche.addr("L2_AVALANCHE_GOV_RELAY");
         // Note: GovernanceOAppReceiver has no send config (receive-only)
         // Receive ULN config: 7 optional DVNs, threshold 4, no required DVNs
