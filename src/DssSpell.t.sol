@@ -1692,8 +1692,14 @@ contract DssSpellTest is DssSpellTestBase {
         assertTrue(spell.done(), "TestError/spell-not-done");
 
         // Capture all addresses before fork switch
-        OftPauseTestCase[] memory ethCases = new OftPauseTestCase[](1);
+        OftPauseTestCase[] memory ethCases = new OftPauseTestCase[](2);
         ethCases[0] = OftPauseTestCase({
+            oft:      addr.addr("USDS_OFT"),
+            pauser:   addr.addr("SUSDS_OFT_PAUSER"),
+            unpauser: pauseProxy,
+            label:    "eth-usds-oft"
+        });
+        ethCases[1] = OftPauseTestCase({
             oft:      addr.addr("SUSDS_OFT"),
             pauser:   addr.addr("SUSDS_OFT_PAUSER"),
             unpauser: pauseProxy,
