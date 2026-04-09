@@ -158,8 +158,11 @@ contract DssSpellAction is DssAction {
     uint16  internal constant LZ_OPTION_LENGTH             = 17;
 
     function actions() public override {
-        // ---------- Wire LZ_GOV_SENDER on Ethereum Mainnet with Avalanche Mainnet ----------
+        // ---------- Launch Avalanche SkyLink ----------
         // Forum: https://forum.skyeco.com/t/skylink-bridge-to-avalanche/27825
+
+        // Wire LZ_GOV_SENDER on Ethereum Mainnet with Avalanche Mainnet
+        // Note: This is only a subheading, actual instructions follow below.
 
         // Set GovernanceOAppReceiver as a peer on Avalanche by calling LZ_GOV_SENDER.setPeer with:
         // LZ_GOV_SENDER being the address from chainlog
@@ -733,6 +736,7 @@ contract DssSpellAction is DssAction {
         }));
 
         // ---------- Grove Genesis Capital Transfer ----------
+        // Forum: https://forum.skyeco.com/t/grove-genesis-capital-transfer/27828
         // Atlas: https://sky-atlas.io/#062fdb39-464e-4a5b-a44f-3462d2d38be5
         // Atlas: https://sky-atlas.io/#5a62cc3f-4337-4770-a4d1-8a9b3d158b3f
 
