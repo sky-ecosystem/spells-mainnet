@@ -34,7 +34,6 @@ interface ILZEndpointView {
 
 interface ILZOApp {
     function owner() external view returns (address);
-    function endpoint() external view returns (address);
     function peers(uint32 eid) external view returns (bytes32);
 }
 
@@ -65,7 +64,6 @@ interface L1GovernanceRelayLike {
         uint256 nativeFee;
         uint256 lzTokenFee;
     }
-    function l1Oapp() external view returns (address);
     function relayEVM(
         uint32                dstEid,
         address               l2GovernanceRelay,
@@ -143,6 +141,7 @@ struct LzLaneConfig {
     address          localOApp;
     address          remoteOApp;
     bytes32          remotePeer;
+    address          owner;
     LzExecutorConfig sendExecutor;
     LzExecutorConfig recvExecutor;
     LzUlnConfig      sendUln;
@@ -164,6 +163,20 @@ library LZLaneTesting {
     }
 
     // --- Lane assertions ---
+
+    function assertOwner(LzLaneConfig memory lane) internal view {
+        require(
+            ILZOApp(lane.localOApp).owner() == lane.owner,
+            "LZLaneTesting/owner-mismatch"
+        );
+    }
+
+    function assertDelegate(LzLaneConfig memory lane) internal view {
+        require(
+            ILZEndpointView(lane.localChain.endpoint).delegates(lane.localOApp) == lane.owner,
+            "LZLaneTesting/delegate-mismatch"
+        );
+    }
 
     function assertPeerSet(LzLaneConfig memory lane) internal view {
         require(
@@ -303,9 +316,10 @@ library LZLaneTesting {
 
     // --- Lane reversal ---
 
-    /// @notice Create a reverse lane (remote→local) with new DVN configs and enforced options.
+    /// @notice Create a reverse lane (remote→local) with new DVN configs, owner, and enforced options.
     function reverse(
         LzLaneConfig memory lane,
+        address remoteOwner,
         LzUlnConfig memory sendUln,
         LzUlnConfig memory recvUln,
         bytes memory enforcedOpts
@@ -315,6 +329,7 @@ library LZLaneTesting {
         rev.localOApp     = lane.remoteOApp;
         rev.remoteOApp    = lane.localOApp;
         rev.remotePeer    = toBytes32(lane.localOApp);
+        rev.owner         = remoteOwner;
         rev.sendExecutor  = lane.recvExecutor;
         rev.recvExecutor  = lane.sendExecutor;
         rev.sendUln       = sendUln;

@@ -1551,6 +1551,8 @@ contract DssSpellTest is DssSpellTestBase {
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
+        LZLaneTesting.assertOwner(lane);
+        LZLaneTesting.assertDelegate(lane);
         LZLaneTesting.assertPeerSet(lane);
         LZLaneTesting.assertSendLibrary(lane);
         LZLaneTesting.assertSendExecutor(lane);
@@ -1561,6 +1563,8 @@ contract DssSpellTest is DssSpellTestBase {
         // L2 (Avalanche) — GovernanceOAppReceiver config (predeployed)
         LzLaneConfig memory govRemoteLane = _avalancheGovRemoteLane();
         vm.createSelectFork(vm.envString("AVAX_RPC_URL"));
+        LZLaneTesting.assertOwner(govRemoteLane);
+        LZLaneTesting.assertDelegate(govRemoteLane);
         LZLaneTesting.assertPeerSet(govRemoteLane);
         LZLaneTesting.assertReceiveLibrary(govRemoteLane);
         LZLaneTesting.assertReceiveUln(govRemoteLane);
@@ -1578,6 +1582,8 @@ contract DssSpellTest is DssSpellTestBase {
         assertTrue(spell.done(), "TestError/spell-not-done");
 
         // L1 (Ethereum) config
+        LZLaneTesting.assertOwner(lane);
+        LZLaneTesting.assertDelegate(lane);
         LZLaneTesting.assertPeerSet(lane);
         LZLaneTesting.assertSendLibrary(lane);
         LZLaneTesting.assertReceiveLibrary(lane);
@@ -1589,6 +1595,8 @@ contract DssSpellTest is DssSpellTestBase {
 
         // L2 (Avalanche) config — predeployed; verify it matches
         vm.createSelectFork(vm.envString("AVAX_RPC_URL"));
+        LZLaneTesting.assertOwner(reverseLane);
+        LZLaneTesting.assertDelegate(reverseLane);
         LZLaneTesting.assertPeerSet(reverseLane);
         LZLaneTesting.assertSendLibrary(reverseLane);
         LZLaneTesting.assertReceiveLibrary(reverseLane);
@@ -1614,6 +1622,8 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(chainLog.getAddress(_stringToBytes32("SUSDS_OFT")), susdsOft, "TestError/susds/not-in-chainlog");
         assertTrue(SkyOFTAdapterLike(susdsOft).pausers(addr.addr("SUSDS_OFT_PAUSER")), "TestError/susds/pauser-not-set");
 
+        LZLaneTesting.assertOwner(lane);
+        LZLaneTesting.assertDelegate(lane);
         LZLaneTesting.assertPeerSet(lane);
         LZLaneTesting.assertSendLibrary(lane);
         LZLaneTesting.assertReceiveLibrary(lane);
@@ -1629,6 +1639,8 @@ contract DssSpellTest is DssSpellTestBase {
         address avaxDeployer = 0x48C4DbA0833748e576Ad60E12a3c01C5785b09Ab;
 
         vm.createSelectFork(vm.envString("AVAX_RPC_URL"));
+        LZLaneTesting.assertOwner(reverseLane);
+        LZLaneTesting.assertDelegate(reverseLane);
         LZLaneTesting.assertPeerSet(reverseLane);
         LZLaneTesting.assertSendLibrary(reverseLane);
         LZLaneTesting.assertReceiveLibrary(reverseLane);
@@ -1889,6 +1901,7 @@ contract DssSpellTest is DssSpellTestBase {
         lane.localOApp  = addr.addr("LZ_GOV_SENDER");
         lane.remoteOApp = avalanche.addr("L2_AVALANCHE_GOV_RECEIVER");
         lane.remotePeer = LZLaneTesting.toBytes32(lane.remoteOApp);
+        lane.owner      = pauseProxy;
         lane.sendExecutor = LzExecutorConfig({
             maxMessageSize: 10_000,
             executor: addr.addr("LZ_EXECUTOR")
@@ -1923,6 +1936,7 @@ contract DssSpellTest is DssSpellTestBase {
         lane.localOApp  = addr.addr("USDS_OFT");
         lane.remoteOApp = avalanche.addr("L2_AVALANCHE_USDS_OFT");
         lane.remotePeer = LZLaneTesting.toBytes32(lane.remoteOApp);
+        lane.owner      = pauseProxy;
         lane.sendExecutor = LzExecutorConfig({
             maxMessageSize: 10_000,
             executor: addr.addr("LZ_EXECUTOR")
@@ -1957,6 +1971,7 @@ contract DssSpellTest is DssSpellTestBase {
 
         return LZLaneTesting.reverse(
             _avalancheUsdsLane(),
+            avalanche.addr("L2_AVALANCHE_GOV_RELAY"),
             LzUlnConfig({
                 confirmations: 12,
                 requiredDVNCount: 2,
@@ -1997,6 +2012,7 @@ contract DssSpellTest is DssSpellTestBase {
         lane.localOApp  = addr.addr("SUSDS_OFT");
         lane.remoteOApp = avalanche.addr("L2_AVALANCHE_SUSDS_OFT");
         lane.remotePeer = LZLaneTesting.toBytes32(lane.remoteOApp);
+        lane.owner      = pauseProxy;
         lane.sendExecutor = LzExecutorConfig({
             maxMessageSize: 10_000,
             executor: addr.addr("LZ_EXECUTOR")
@@ -2031,6 +2047,7 @@ contract DssSpellTest is DssSpellTestBase {
 
         return LZLaneTesting.reverse(
             _avalancheSUsdsLane(),
+            avalanche.addr("L2_AVALANCHE_GOV_RELAY"),
             LzUlnConfig({
                 confirmations: 12,
                 requiredDVNCount: 2,
@@ -2078,6 +2095,7 @@ contract DssSpellTest is DssSpellTestBase {
         lane.localOApp  = avalanche.addr("L2_AVALANCHE_GOV_RECEIVER");
         lane.remoteOApp = addr.addr("LZ_GOV_SENDER");
         lane.remotePeer = LZLaneTesting.toBytes32(lane.remoteOApp);
+        lane.owner      = avalanche.addr("L2_AVALANCHE_GOV_RELAY");
         // Note: GovernanceOAppReceiver has no send config (receive-only)
         // Receive ULN config: 7 optional DVNs, threshold 4, no required DVNs
         lane.recvUln = LzUlnConfig({
