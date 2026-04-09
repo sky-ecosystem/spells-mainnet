@@ -1865,20 +1865,31 @@ contract DssSpellTest is DssSpellTestBase {
         optDVNs[6] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
 
         lane.localChain = LzChainConfig({
-            eid: 30101, endpoint: addr.addr("LZ_ENDPOINT"),
-            sendLib302: addr.addr("LZ_SEND_302"), recvLib302: address(0)
+            eid: 30101,
+            endpoint: addr.addr("LZ_ENDPOINT"),
+            sendLib302: addr.addr("LZ_SEND_302"),
+            recvLib302: address(0)
         });
         lane.remoteChain = LzChainConfig({
-            eid: 30106, endpoint: avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"),
-            sendLib302: avalanche.addr("L2_AVALANCHE_LZ_SEND_302"), recvLib302: avalanche.addr("L2_AVALANCHE_LZ_RECV_302")
+            eid: 30106,
+            endpoint: avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"),
+            sendLib302: avalanche.addr("L2_AVALANCHE_LZ_SEND_302"),
+            recvLib302: avalanche.addr("L2_AVALANCHE_LZ_RECV_302")
         });
         lane.localOApp  = addr.addr("LZ_GOV_SENDER");
         lane.remoteOApp = avalanche.addr("L2_AVALANCHE_GOV_RECEIVER");
         lane.remotePeer = LZLaneTesting.toBytes32(lane.remoteOApp);
-        lane.sendExecutor = LzExecutorConfig({ maxMessageSize: 10_000, executor: addr.addr("LZ_EXECUTOR") });
+        lane.sendExecutor = LzExecutorConfig({
+            maxMessageSize: 10_000,
+            executor: addr.addr("LZ_EXECUTOR")
+        });
         lane.sendUln = LzUlnConfig({
-            confirmations: 15, requiredDVNCount: 0, optionalDVNCount: 7, optionalDVNThreshold: 4,
-            requiredDVNs: new address[](0), optionalDVNs: optDVNs
+            confirmations: 15,
+            requiredDVNCount: 0,
+            optionalDVNCount: 7,
+            optionalDVNThreshold: 4,
+            requiredDVNs: new address[](0),
+            optionalDVNs: optDVNs
         });
     }
 
@@ -1888,25 +1899,43 @@ contract DssSpellTest is DssSpellTestBase {
         ethDVNs[1] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
 
         lane.localChain = LzChainConfig({
-            eid: 30101, endpoint: addr.addr("LZ_ENDPOINT"),
-            sendLib302: addr.addr("LZ_SEND_302"), recvLib302: addr.addr("LZ_RECV_302")
+            eid: 30101,
+            endpoint: addr.addr("LZ_ENDPOINT"),
+            sendLib302: addr.addr("LZ_SEND_302"),
+            recvLib302: addr.addr("LZ_RECV_302")
         });
         lane.remoteChain = LzChainConfig({
-            eid: 30106, endpoint: avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"),
-            sendLib302: avalanche.addr("L2_AVALANCHE_LZ_SEND_302"), recvLib302: avalanche.addr("L2_AVALANCHE_LZ_RECV_302")
+            eid: 30106,
+            endpoint: avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"),
+            sendLib302: avalanche.addr("L2_AVALANCHE_LZ_SEND_302"),
+            recvLib302: avalanche.addr("L2_AVALANCHE_LZ_RECV_302")
         });
         lane.localOApp  = addr.addr("USDS_OFT");
         lane.remoteOApp = avalanche.addr("L2_AVALANCHE_USDS_OFT");
         lane.remotePeer = LZLaneTesting.toBytes32(lane.remoteOApp);
-        lane.sendExecutor = LzExecutorConfig({ maxMessageSize: 10_000, executor: addr.addr("LZ_EXECUTOR") });
-        lane.recvExecutor = LzExecutorConfig({ maxMessageSize: 10_000, executor: avalanche.addr("L2_AVALANCHE_LZ_EXECUTOR") });
+        lane.sendExecutor = LzExecutorConfig({
+            maxMessageSize: 10_000,
+            executor: addr.addr("LZ_EXECUTOR")
+        });
+        lane.recvExecutor = LzExecutorConfig({
+            maxMessageSize: 10_000,
+            executor: avalanche.addr("L2_AVALANCHE_LZ_EXECUTOR")
+        });
         lane.sendUln = LzUlnConfig({
-            confirmations: 15, requiredDVNCount: 2, optionalDVNCount: 0, optionalDVNThreshold: 0,
-            requiredDVNs: ethDVNs, optionalDVNs: new address[](0)
+            confirmations: 15,
+            requiredDVNCount: 2,
+            optionalDVNCount: 0,
+            optionalDVNThreshold: 0,
+            requiredDVNs: ethDVNs,
+            optionalDVNs: new address[](0)
         });
         lane.recvUln = LzUlnConfig({
-            confirmations: 12, requiredDVNCount: 2, optionalDVNCount: 0, optionalDVNThreshold: 0,
-            requiredDVNs: ethDVNs, optionalDVNs: new address[](0)
+            confirmations: 12,
+            requiredDVNCount: 2,
+            optionalDVNCount: 0,
+            optionalDVNThreshold: 0,
+            requiredDVNs: ethDVNs,
+            optionalDVNs: new address[](0)
         });
         lane.enforcedOptions = LZLaneTesting.executorLzReceiveOption(130_000);
     }
@@ -1918,8 +1947,22 @@ contract DssSpellTest is DssSpellTestBase {
 
         return LZLaneTesting.reverse(
             _avalancheUsdsLane(),
-            LzUlnConfig({ confirmations: 12, requiredDVNCount: 2, optionalDVNCount: 0, optionalDVNThreshold: 0, requiredDVNs: avaxDVNs, optionalDVNs: new address[](0) }),
-            LzUlnConfig({ confirmations: 15, requiredDVNCount: 2, optionalDVNCount: 0, optionalDVNThreshold: 0, requiredDVNs: avaxDVNs, optionalDVNs: new address[](0) }),
+            LzUlnConfig({
+                confirmations: 12,
+                requiredDVNCount: 2,
+                optionalDVNCount: 0,
+                optionalDVNThreshold: 0,
+                requiredDVNs: avaxDVNs,
+                optionalDVNs: new address[](0)
+            }),
+            LzUlnConfig({
+                confirmations: 15,
+                requiredDVNCount: 2,
+                optionalDVNCount: 0,
+                optionalDVNThreshold: 0,
+                requiredDVNs: avaxDVNs,
+                optionalDVNs: new address[](0)
+            }),
             LZLaneTesting.executorLzReceiveOption(130_000)
         );
     }
@@ -1930,25 +1973,43 @@ contract DssSpellTest is DssSpellTestBase {
         ethDVNs[1] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
 
         lane.localChain = LzChainConfig({
-            eid: 30101, endpoint: addr.addr("LZ_ENDPOINT"),
-            sendLib302: addr.addr("LZ_SEND_302"), recvLib302: addr.addr("LZ_RECV_302")
+            eid: 30101,
+            endpoint: addr.addr("LZ_ENDPOINT"),
+            sendLib302: addr.addr("LZ_SEND_302"),
+            recvLib302: addr.addr("LZ_RECV_302")
         });
         lane.remoteChain = LzChainConfig({
-            eid: 30106, endpoint: avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"),
-            sendLib302: avalanche.addr("L2_AVALANCHE_LZ_SEND_302"), recvLib302: avalanche.addr("L2_AVALANCHE_LZ_RECV_302")
+            eid: 30106,
+            endpoint: avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"),
+            sendLib302: avalanche.addr("L2_AVALANCHE_LZ_SEND_302"),
+            recvLib302: avalanche.addr("L2_AVALANCHE_LZ_RECV_302")
         });
         lane.localOApp  = addr.addr("SUSDS_OFT");
         lane.remoteOApp = avalanche.addr("L2_AVALANCHE_SUSDS_OFT");
         lane.remotePeer = LZLaneTesting.toBytes32(lane.remoteOApp);
-        lane.sendExecutor = LzExecutorConfig({ maxMessageSize: 10_000, executor: addr.addr("LZ_EXECUTOR") });
-        lane.recvExecutor = LzExecutorConfig({ maxMessageSize: 10_000, executor: avalanche.addr("L2_AVALANCHE_LZ_EXECUTOR") });
+        lane.sendExecutor = LzExecutorConfig({
+            maxMessageSize: 10_000,
+            executor: addr.addr("LZ_EXECUTOR")
+        });
+        lane.recvExecutor = LzExecutorConfig({
+            maxMessageSize: 10_000,
+            executor: avalanche.addr("L2_AVALANCHE_LZ_EXECUTOR")
+        });
         lane.sendUln = LzUlnConfig({
-            confirmations: 15, requiredDVNCount: 2, optionalDVNCount: 0, optionalDVNThreshold: 0,
-            requiredDVNs: ethDVNs, optionalDVNs: new address[](0)
+            confirmations: 15,
+            requiredDVNCount: 2,
+            optionalDVNCount: 0,
+            optionalDVNThreshold: 0,
+            requiredDVNs: ethDVNs,
+            optionalDVNs: new address[](0)
         });
         lane.recvUln = LzUlnConfig({
-            confirmations: 12, requiredDVNCount: 2, optionalDVNCount: 0, optionalDVNThreshold: 0,
-            requiredDVNs: ethDVNs, optionalDVNs: new address[](0)
+            confirmations: 12,
+            requiredDVNCount: 2,
+            optionalDVNCount: 0,
+            optionalDVNThreshold: 0,
+            requiredDVNs: ethDVNs,
+            optionalDVNs: new address[](0)
         });
         lane.enforcedOptions = LZLaneTesting.executorLzReceiveOption(130_000);
     }
@@ -1960,8 +2021,22 @@ contract DssSpellTest is DssSpellTestBase {
 
         return LZLaneTesting.reverse(
             _avalancheSUsdsLane(),
-            LzUlnConfig({ confirmations: 12, requiredDVNCount: 2, optionalDVNCount: 0, optionalDVNThreshold: 0, requiredDVNs: avaxDVNs, optionalDVNs: new address[](0) }),
-            LzUlnConfig({ confirmations: 15, requiredDVNCount: 2, optionalDVNCount: 0, optionalDVNThreshold: 0, requiredDVNs: avaxDVNs, optionalDVNs: new address[](0) }),
+            LzUlnConfig({
+                confirmations: 12,
+                requiredDVNCount: 2,
+                optionalDVNCount: 0,
+                optionalDVNThreshold: 0,
+                requiredDVNs: avaxDVNs,
+                optionalDVNs: new address[](0)
+            }),
+            LzUlnConfig({
+                confirmations: 15,
+                requiredDVNCount: 2,
+                optionalDVNCount: 0,
+                optionalDVNThreshold: 0,
+                requiredDVNs: avaxDVNs,
+                optionalDVNs: new address[](0)
+            }),
             LZLaneTesting.executorLzReceiveOption(130_000)
         );
     }
@@ -1979,12 +2054,16 @@ contract DssSpellTest is DssSpellTestBase {
         avaxOptDVNs[6] = 0xE94aE34DfCC87A61836938641444080B98402c75; // P2P
 
         lane.localChain = LzChainConfig({
-            eid: 30106, endpoint: avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"),
-            sendLib302: avalanche.addr("L2_AVALANCHE_LZ_SEND_302"), recvLib302: avalanche.addr("L2_AVALANCHE_LZ_RECV_302")
+            eid: 30106,
+            endpoint: avalanche.addr("L2_AVALANCHE_LZ_ENDPOINT"),
+            sendLib302: avalanche.addr("L2_AVALANCHE_LZ_SEND_302"),
+            recvLib302: avalanche.addr("L2_AVALANCHE_LZ_RECV_302")
         });
         lane.remoteChain = LzChainConfig({
-            eid: 30101, endpoint: addr.addr("LZ_ENDPOINT"),
-            sendLib302: addr.addr("LZ_SEND_302"), recvLib302: address(0)
+            eid: 30101,
+            endpoint: addr.addr("LZ_ENDPOINT"),
+            sendLib302: addr.addr("LZ_SEND_302"),
+            recvLib302: address(0)
         });
         lane.localOApp  = avalanche.addr("L2_AVALANCHE_GOV_RECEIVER");
         lane.remoteOApp = addr.addr("LZ_GOV_SENDER");
@@ -1992,8 +2071,12 @@ contract DssSpellTest is DssSpellTestBase {
         // Note: GovernanceOAppReceiver has no send config (receive-only)
         // Receive ULN config: 7 optional DVNs, threshold 4, no required DVNs
         lane.recvUln = LzUlnConfig({
-            confirmations: 15, requiredDVNCount: 0, optionalDVNCount: 7, optionalDVNThreshold: 4,
-            requiredDVNs: new address[](0), optionalDVNs: avaxOptDVNs
+            confirmations: 15,
+            requiredDVNCount: 0,
+            optionalDVNCount: 7,
+            optionalDVNThreshold: 4,
+            requiredDVNs: new address[](0),
+            optionalDVNs: avaxOptDVNs
         });
     }
 }
