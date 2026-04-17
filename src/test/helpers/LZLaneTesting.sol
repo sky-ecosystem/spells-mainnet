@@ -265,6 +265,73 @@ library LZLaneTesting {
         return abi.encodePacked(TYPE_3, WORKER_ID, optionLength, OPTION_TYPE, _gas, _value);
     }
 
+    // --- Lane builders ---
+    // These factories encapsulate the repetitive LzLaneConfig struct boilerplate spell tests requires
+
+    /// @notice Build a bidirectional OFT lane with a single required-DVN set shared by send and receive.
+    /// @dev    Both sendUln and recvUln reference the source-chain's DVN addresses
+    ///         the confirmations are configurable per direction.
+    function buildOftLane(
+        address                 owner,
+        uint32                  remoteEid,
+        address                 remoteOApp,
+        LzExecutorConfig memory sendExecutor,
+        address[] memory        requiredDVNs,
+        uint64                  sendConfirmations,
+        uint64                  recvConfirmations,
+        uint128                 enforcedGas
+    ) internal pure returns (LzLaneConfig memory lane) {
+        lane.owner        = owner;
+        lane.remoteEid    = remoteEid;
+        lane.remoteOApp   = remoteOApp;
+        lane.sendExecutor = sendExecutor;
+        lane.sendUln = LzUlnConfig({
+            confirmations:        sendConfirmations,
+            requiredDVNCount:     uint8(requiredDVNs.length),
+            optionalDVNCount:     0,
+            optionalDVNThreshold: 0,
+            requiredDVNs:         requiredDVNs,
+            optionalDVNs:         new address[](0)
+        });
+        lane.recvUln = LzUlnConfig({
+            confirmations:        recvConfirmations,
+            requiredDVNCount:     uint8(requiredDVNs.length),
+            optionalDVNCount:     0,
+            optionalDVNThreshold: 0,
+            requiredDVNs:         requiredDVNs,
+            optionalDVNs:         new address[](0)
+        });
+        lane.enforcedOptions = LzEnforcedOptionsConfig({
+            send:        executorLzReceiveOption(enforcedGas),
+            sendAndCall: executorLzReceiveOption(enforcedGas)
+        });
+    }
+
+    /// @notice Build a send-only GovernanceOAppSender lane.
+    /// @dev    No recvUln or enforcedOptions — GovernanceOAppSender only emits messages.
+    function buildGovSenderLane(
+        address                 owner,
+        uint32                  remoteEid,
+        address                 remoteOApp,
+        LzExecutorConfig memory sendExecutor,
+        address[] memory        optionalDVNs,
+        uint8                   optionalDVNThreshold,
+        uint64                  sendConfirmations
+    ) internal pure returns (LzLaneConfig memory lane) {
+        lane.owner        = owner;
+        lane.remoteEid    = remoteEid;
+        lane.remoteOApp   = remoteOApp;
+        lane.sendExecutor = sendExecutor;
+        lane.sendUln = LzUlnConfig({
+            confirmations:        sendConfirmations,
+            requiredDVNCount:     0,
+            optionalDVNCount:     uint8(optionalDVNs.length),
+            optionalDVNThreshold: optionalDVNThreshold,
+            requiredDVNs:         new address[](0),
+            optionalDVNs:         optionalDVNs
+        });
+    }
+
     // --- OFT send ceremony ---
 
     /// @notice Execute an OFT send: build params, quote, record logs, send, return logs.

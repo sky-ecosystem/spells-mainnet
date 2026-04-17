@@ -17,6 +17,18 @@
 pragma solidity 0.8.16;
 
 import "./DssSpell.t.base.sol";
+import {
+    GovernanceOAppSenderLike,
+    L1GovernanceRelayLike,
+    LZLaneTesting,
+    LzChainConfig,
+    LzEnforcedOptionsConfig,
+    LzExecutorConfig,
+    LzLaneConfig,
+    LzUlnConfig,
+    RateLimitConfig,
+    SkyOFTAdapterLike
+} from "./test/helpers/LZLaneTesting.sol";
 
 interface L2Spell {
     function dstDomain() external returns (bytes32);
@@ -1474,4 +1486,479 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
+
+    // --- New SkyLink Tests ---
+
+    error RateLimitExceeded();
+
+    uint32 internal constant ETH_EID    = 30101;
+    uint32 internal constant PLASMA_EID = 30383;
+
+    function testWireLzGovSenderPlasma() public {
+        LzChainConfig memory ethChain = _ethChain();
+        address[] memory dvns = new address[](7);
+        dvns[0] = 0x06559EE34D85a88317Bf0bfE307444116c631b67; // P2P
+        dvns[1] = 0x373a6E5c0C4E89E24819f00AA37ea370917AAfF4; // Deutsche Telekom
+        dvns[2] = 0x380275805876Ff19055EA900CDb2B46a94ecF20D; // Horizen
+        dvns[3] = 0x58249a2Ec05c1978bF21DF1f5eC1847e42455CF4; // Luganodes
+        dvns[4] = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b; // LayerZero Labs
+        dvns[5] = 0xa4fE5A5B9A846458a70Cd0748228aED3bF65c2cd; // Canary
+        dvns[6] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
+
+        LzExecutorConfig memory executor = LzExecutorConfig({
+            maxMessageSize: 10_000,
+            executor:       addr.addr("LZ_EXECUTOR")
+        });
+
+        LzLaneConfig memory lane = LZLaneTesting.buildGovSenderLane({
+            owner:                  pauseProxy,
+            remoteEid:              PLASMA_EID,
+            remoteOApp:             plasma.addr("L2_PLASMA_LZ_GOV_RECEIVER"),
+            sendExecutor:           executor,
+            optionalDVNs:           dvns,
+            optionalDVNThreshold:   4,
+            sendConfirmations:      15
+        });
+        address govSender = addr.addr("LZ_GOV_SENDER");
+        address govRelay  = addr.addr("LZ_GOV_RELAY");
+        bytes32 plasmaL2GovRelay = LZLaneTesting.toBytes32(plasma.addr("L2_PLASMA_LZ_GOV_RELAY"));
+
+        GovernanceOAppSenderLike govOapp = GovernanceOAppSenderLike(govSender);
+
+        // Verify pre-spell state
+        assertEq(govOapp.peers(lane.remoteEid), bytes32(0), "TestError/gov/peer-already-set");
+        assertFalse(govOapp.canCallTarget(govRelay, lane.remoteEid, plasmaL2GovRelay), "TestError/gov/can-call-target-already-set");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        LZLaneTesting.assertOwner(govSender, lane);
+        LZLaneTesting.assertDelegate(ethChain, govSender, lane);
+        LZLaneTesting.assertPeerSet(govSender, lane);
+        LZLaneTesting.assertSendLibrary(ethChain, govSender, lane);
+        LZLaneTesting.assertSendExecutor(ethChain, govSender, lane);
+        LZLaneTesting.assertSendUln(ethChain, govSender, lane);
+
+        assertTrue(govOapp.canCallTarget(govRelay, lane.remoteEid, plasmaL2GovRelay), "TestError/gov/can-call-target-not-set");
+    }
+
+    function testWireUsdsOftPlasma() public {
+        LzChainConfig memory ethChain = _ethChain();
+
+        address[] memory dvns = new address[](2);
+        dvns[0] = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b; // LayerZero Labs
+        dvns[1] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
+
+        LzExecutorConfig memory executor = LzExecutorConfig({
+            maxMessageSize: 10_000,
+            executor:       addr.addr("LZ_EXECUTOR")
+        });
+
+        LzLaneConfig memory lane = LZLaneTesting.buildOftLane({
+            owner:             pauseProxy,
+            remoteEid:         PLASMA_EID,
+            remoteOApp:        plasma.addr("L2_PLASMA_USDS_OFT"),
+            sendExecutor:      executor,
+            requiredDVNs:      dvns,
+            sendConfirmations: 15,
+            recvConfirmations: 5,
+            enforcedGas:       130_000
+        });
+        address oapp = addr.addr("USDS_OFT");
+
+        // Verify pre-spell state
+        assertEq(SkyOFTAdapterLike(oapp).peers(lane.remoteEid), bytes32(0), "TestError/usds/peer-already-set");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        LZLaneTesting.assertOwner(oapp, lane);
+        LZLaneTesting.assertDelegate(ethChain, oapp, lane);
+        LZLaneTesting.assertPeerSet(oapp, lane);
+        LZLaneTesting.assertSendLibrary(ethChain, oapp, lane);
+        LZLaneTesting.assertReceiveLibrary(ethChain, oapp, lane);
+        LZLaneTesting.assertSendExecutor(ethChain, oapp, lane);
+        LZLaneTesting.assertSendUln(ethChain, oapp, lane);
+        LZLaneTesting.assertReceiveUln(ethChain, oapp, lane);
+        LZLaneTesting.assertEnforcedOptions(oapp, lane);
+        LZLaneTesting.assertOftSanity(oapp, lane.remoteEid, address(usds), 0);
+    }
+
+    function testWireSUsdsOftPlasma() public {
+        LzChainConfig memory ethChain = _ethChain();
+
+        address[] memory dvns = new address[](2);
+        dvns[0] = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b; // LayerZero Labs
+        dvns[1] = 0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5; // Nethermind
+
+        LzExecutorConfig memory executor = LzExecutorConfig({
+            maxMessageSize: 10_000,
+            executor:       addr.addr("LZ_EXECUTOR")
+        });
+
+        LzLaneConfig memory lane = LZLaneTesting.buildOftLane({
+            owner:             pauseProxy,
+            remoteEid:         PLASMA_EID,
+            remoteOApp:        plasma.addr("L2_PLASMA_SUSDS_OFT"),
+            sendExecutor:      executor,
+            requiredDVNs:      dvns,
+            sendConfirmations: 15,
+            recvConfirmations: 5,
+            enforcedGas:       130_000
+        });
+        address oapp = addr.addr("SUSDS_OFT");
+
+        // Verify pre-spell state
+        assertEq(SkyOFTAdapterLike(oapp).peers(lane.remoteEid), bytes32(0), "TestError/susds/peer-already-set");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        LZLaneTesting.assertOwner(oapp, lane);
+        LZLaneTesting.assertDelegate(ethChain, oapp, lane);
+        LZLaneTesting.assertPeerSet(oapp, lane);
+        LZLaneTesting.assertSendLibrary(ethChain, oapp, lane);
+        LZLaneTesting.assertReceiveLibrary(ethChain, oapp, lane);
+        LZLaneTesting.assertSendExecutor(ethChain, oapp, lane);
+        LZLaneTesting.assertSendUln(ethChain, oapp, lane);
+        LZLaneTesting.assertReceiveUln(ethChain, oapp, lane);
+        LZLaneTesting.assertEnforcedOptions(oapp, lane);
+        LZLaneTesting.assertOftSanity(oapp, lane.remoteEid, address(susds), 0);
+    }
+
+    function testUsdsOftPlasmaRateLimits() public {
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        SkyOFTAdapterLike oft = SkyOFTAdapterLike(addr.addr("USDS_OFT"));
+        (, uint48 outW,, uint256 outL) = oft.outboundRateLimits(PLASMA_EID);
+        (, uint48  inW,, uint256  inL) = oft.inboundRateLimits(PLASMA_EID);
+        assertEq(outW, uint48(1 days),      "TestError/usds/outbound-window-mismatch");
+        assertEq(outL, 5_000_000 * WAD,     "TestError/usds/outbound-limit-mismatch");
+        assertEq(inW,  uint48(1 days),      "TestError/usds/inbound-window-mismatch");
+        assertEq(inL,  5_000_000 * WAD,     "TestError/usds/inbound-limit-mismatch");
+    }
+
+    function testPlasmaOftPauseUnpause() public {
+        address L2_PLASMA_OFT_PAUSER = 0xB3d26eF66F53C9546d1365F417a85B0Aa69049eE;
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        OftPauseTestCase[] memory plasmaCases = new OftPauseTestCase[](2);
+        plasmaCases[0] = OftPauseTestCase({
+            oft:    plasma.addr("L2_PLASMA_USDS_OFT"),
+            pauser: L2_PLASMA_OFT_PAUSER,
+            owner:  plasma.addr("L2_PLASMA_LZ_GOV_RELAY"),
+            label:  "plasma-usds-oft"
+        });
+        plasmaCases[1] = OftPauseTestCase({
+            oft:    plasma.addr("L2_PLASMA_SUSDS_OFT"),
+            pauser: L2_PLASMA_OFT_PAUSER,
+            owner:  plasma.addr("L2_PLASMA_LZ_GOV_RELAY"),
+            label:  "plasma-susds-oft"
+        });
+
+        vm.createSelectFork(vm.envString("PLASMA_RPC_URL"));
+        for (uint256 i = 0; i < plasmaCases.length; i++) {
+            _assertPauseUnpause(plasmaCases[i]);
+        }
+    }
+
+    function testGovernanceRelayPlasmaE2E() public {
+        LzChainConfig memory ethChain    = _ethChain();
+        LzChainConfig memory plasmaChain = _plasmaChain();
+        address govSender         = addr.addr("LZ_GOV_SENDER");
+        address plasmaL2GovRelay  = plasma.addr("L2_PLASMA_LZ_GOV_RELAY");
+        address plasmaGovReceiver = plasma.addr("L2_PLASMA_LZ_GOV_RECEIVER");
+        address plasmaUsdsOft     = plasma.addr("L2_PLASMA_USDS_OFT");
+        uint256 ethFork = vm.activeFork();
+
+        // Deploy a spell on Plasma to relay a delegatecall to
+        uint256 plasmaFork = vm.createSelectFork(vm.envString("PLASMA_RPC_URL"));
+        address plasmaSpell = address(new PlasmaSetRateLimitsSpell());
+
+        vm.selectFork(ethFork);
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // Build governance payload and send
+        Vm.Log[] memory logs;
+        {
+            RateLimitConfig[] memory inbound = new RateLimitConfig[](1);
+            inbound[0] = RateLimitConfig({
+                eid:    ethChain.eid,
+                window: uint48(1 days),
+                limit:  10_000_000 * WAD
+            });
+            RateLimitConfig[] memory outbound = new RateLimitConfig[](1);
+            outbound[0] = RateLimitConfig({
+                eid:    ethChain.eid,
+                window: uint48(1 days),
+                limit:  10_000_000 * WAD
+            });
+            bytes memory targetData = abi.encodeWithSelector(
+                PlasmaSetRateLimitsSpell.execute.selector, plasmaUsdsOft, inbound, outbound
+            );
+
+            vm.deal(pauseProxy, 10 ether);
+            vm.startPrank(pauseProxy);
+
+            vm.recordLogs();
+            L1GovernanceRelayLike(addr.addr("LZ_GOV_RELAY")).relayEVM{value: 1 ether}(
+                plasmaChain.eid,
+                plasmaL2GovRelay,
+                plasmaSpell,
+                targetData,
+                LZLaneTesting.executorLzReceiveOption(200_000),
+                L1GovernanceRelayLike.MessagingFee({
+                    nativeFee:  1 ether,
+                    lzTokenFee: 0
+                }),
+                address(0xdead)
+            );
+            vm.stopPrank();
+            logs = vm.getRecordedLogs();
+        }
+
+        // Relay to Plasma and verify state
+        LZLaneTesting.relayToFork(logs, ethChain, plasmaChain, govSender, plasmaGovReceiver, plasmaFork);
+        vm.selectFork(plasmaFork);
+
+        (, uint48 outW,, uint256 outL) = SkyOFTAdapterLike(plasmaUsdsOft).outboundRateLimits(ethChain.eid);
+        (, uint48  inW,, uint256  inL) = SkyOFTAdapterLike(plasmaUsdsOft).inboundRateLimits(ethChain.eid);
+        assertEq(outW, uint48(1 days),      "TestError/gov/outbound-window-not-set");
+        assertEq(outL, 10_000_000 * WAD,    "TestError/gov/outbound-limit-not-set");
+        assertEq(inW,  uint48(1 days),      "TestError/gov/inbound-window-not-set");
+        assertEq(inL,  10_000_000 * WAD,    "TestError/gov/inbound-limit-not-set");
+    }
+
+    function testUsdsOftPlasmaE2E() public {
+        LzChainConfig memory ethChain    = _ethChain();
+        LzChainConfig memory plasmaChain = _plasmaChain();
+        address oapp       = addr.addr("USDS_OFT");
+        address remoteOapp = plasma.addr("L2_PLASMA_USDS_OFT");
+        address plasmaUsds = plasma.addr("L2_PLASMA_USDS");
+        address recipient  = makeAddr("plasma-recipient");
+        uint256 ethFork = vm.activeFork();
+
+        // Capture Plasma supply before
+        uint256 plasmaFork = vm.createSelectFork(vm.envString("PLASMA_RPC_URL"));
+        uint256 plasmaSupplyBefore = GemAbstract(plasmaUsds).totalSupply();
+        vm.selectFork(ethFork);
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        uint256 sendAmount = 5 * WAD;
+        uint256 ethSupplyBefore = usds.totalSupply();
+        GodMode.setBalance(address(usds), address(this), sendAmount);
+        GemAbstract(address(usds)).approve(oapp, sendAmount);
+        vm.deal(address(this), 10 ether);
+
+        // Forward leg: Ethereum → Plasma
+        {
+            Vm.Log[] memory forwardLogs = LZLaneTesting.sendOft(SkyOFTAdapterLike(oapp), plasmaChain.eid, recipient, sendAmount, address(this));
+            assertEq(usds.balanceOf(address(this)), 0, "TestError/usds/e2e-eth-sender-balance-not-zero-after-send");
+            assertEq(usds.totalSupply(), ethSupplyBefore, "TestError/usds/e2e-eth-supply-changed-after-send");
+            LZLaneTesting.relayToFork(forwardLogs, ethChain, plasmaChain, oapp, remoteOapp, plasmaFork);
+        }
+        vm.selectFork(plasmaFork);
+
+        assertEq(GemAbstract(plasmaUsds).balanceOf(recipient), sendAmount, "TestError/usds/e2e-plasma-not-received");
+        assertEq(GemAbstract(plasmaUsds).totalSupply(), plasmaSupplyBefore + sendAmount, "TestError/usds/e2e-plasma-not-minted");
+
+        // Return leg: Plasma → Ethereum
+        {
+            vm.startPrank(recipient);
+            GemAbstract(plasmaUsds).approve(remoteOapp, sendAmount);
+            vm.deal(recipient, 100 ether);
+            Vm.Log[] memory returnLogs = LZLaneTesting.sendOft(SkyOFTAdapterLike(remoteOapp), ethChain.eid, address(this), sendAmount, recipient);
+            vm.stopPrank();
+            LZLaneTesting.relayToFork(returnLogs, plasmaChain, ethChain, remoteOapp, oapp, ethFork);
+        }
+        vm.selectFork(ethFork);
+
+        assertEq(usds.totalSupply(), ethSupplyBefore, "TestError/usds/e2e-eth-supply-changed-after-roundtrip");
+        assertEq(usds.balanceOf(address(this)), sendAmount, "TestError/usds/e2e-eth-not-unlocked");
+
+        vm.selectFork(plasmaFork);
+        assertEq(GemAbstract(plasmaUsds).balanceOf(recipient), 0, "TestError/usds/e2e-plasma-not-burned");
+        assertEq(GemAbstract(plasmaUsds).totalSupply(), plasmaSupplyBefore, "TestError/usds/e2e-plasma-supply-not-restored");
+    }
+
+    function testSUsdsOftPlasmaRateLimitBlocked() public {
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        address oapp = addr.addr("SUSDS_OFT");
+        SkyOFTAdapterLike oft = SkyOFTAdapterLike(oapp);
+        address susdsToken = oft.token();
+        uint256 sendAmount = 5 * WAD;
+        GodMode.setBalance(susdsToken, address(this), sendAmount);
+        GemAbstract(susdsToken).approve(oapp, sendAmount);
+        vm.deal(address(this), 10 ether);
+
+        SkyOFTAdapterLike.SendParam memory sendParams = SkyOFTAdapterLike.SendParam({
+            dstEid:       PLASMA_EID,
+            to:           LZLaneTesting.toBytes32(address(this)),
+            amountLD:     sendAmount,
+            minAmountLD:  sendAmount,
+            extraOptions: bytes(""),
+            composeMsg:   bytes(""),
+            oftCmd:       bytes("")
+        });
+
+        SkyOFTAdapterLike.MessagingFee memory msgFee = oft.quoteSend(sendParams, false);
+
+        vm.expectRevert(RateLimitExceeded.selector);
+        oft.send{value: msgFee.nativeFee}(sendParams, msgFee, payable(address(this)));
+    }
+
+    function testSUsdsOftPlasmaE2E() public {
+        LzChainConfig memory ethChain    = _ethChain();
+        LzChainConfig memory plasmaChain = _plasmaChain();
+        address oapp        = addr.addr("SUSDS_OFT");
+        address remoteOapp  = plasma.addr("L2_PLASMA_SUSDS_OFT");
+        address plasmaSusds = plasma.addr("L2_PLASMA_SUSDS");
+        address recipient   = makeAddr("plasma-susds-recipient");
+        uint256 ethFork = vm.activeFork();
+        uint256 plasmaFork = vm.createFork(vm.envString("PLASMA_RPC_URL"));
+
+        // Mock rate limits on Plasma by pranking as L2_PLASMA_LZ_GOV_RELAY and capture supply before
+        uint256 plasmaSupplyBefore;
+        {
+            address plasmaGovRelay = plasma.addr("L2_PLASMA_LZ_GOV_RELAY");
+            vm.selectFork(plasmaFork);
+            plasmaSupplyBefore = GemAbstract(plasmaSusds).totalSupply();
+            RateLimitConfig[] memory inbound = new RateLimitConfig[](1);
+            inbound[0] = RateLimitConfig({
+                eid:    ETH_EID,
+                window: uint48(1 days),
+                limit:  5_000_000 * WAD
+            });
+            RateLimitConfig[] memory outbound = new RateLimitConfig[](1);
+            outbound[0] = RateLimitConfig({
+                eid:    ETH_EID,
+                window: uint48(1 days),
+                limit:  5_000_000 * WAD
+            });
+            vm.prank(plasmaGovRelay);
+            SkyOFTAdapterLike(remoteOapp).setRateLimits(inbound, outbound);
+        }
+        vm.selectFork(ethFork);
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // Mock rate limits on Ethereum by pranking as pauseProxy
+        {
+            RateLimitConfig[] memory inbound = new RateLimitConfig[](1);
+            inbound[0] = RateLimitConfig({
+                eid:    PLASMA_EID,
+                window: uint48(1 days),
+                limit:  5_000_000 * WAD
+            });
+            RateLimitConfig[] memory outbound = new RateLimitConfig[](1);
+            outbound[0] = RateLimitConfig({
+                eid:    PLASMA_EID,
+                window: uint48(1 days),
+                limit:  5_000_000 * WAD
+            });
+            vm.prank(pauseProxy);
+            SkyOFTAdapterLike(oapp).setRateLimits(inbound, outbound);
+        }
+
+        address susdsToken = SkyOFTAdapterLike(oapp).token();
+        uint256 sendAmount = 5 * WAD;
+        uint256 ethSupplyBefore = GemAbstract(susdsToken).totalSupply();
+        GodMode.setBalance(susdsToken, address(this), sendAmount);
+        GemAbstract(susdsToken).approve(oapp, sendAmount);
+        vm.deal(address(this), 10 ether);
+
+        // Forward leg: Ethereum → Plasma
+        {
+            Vm.Log[] memory forwardLogs = LZLaneTesting.sendOft(SkyOFTAdapterLike(oapp), plasmaChain.eid, recipient, sendAmount, address(this));
+            assertEq(GemAbstract(susdsToken).balanceOf(address(this)), 0, "TestError/susds/e2e-eth-sender-balance-not-zero-after-send");
+            assertEq(GemAbstract(susdsToken).totalSupply(), ethSupplyBefore, "TestError/susds/e2e-eth-supply-changed-after-send");
+            LZLaneTesting.relayToFork(forwardLogs, ethChain, plasmaChain, oapp, remoteOapp, plasmaFork);
+        }
+        vm.selectFork(plasmaFork);
+
+        assertEq(GemAbstract(plasmaSusds).balanceOf(recipient), sendAmount, "TestError/susds/e2e-plasma-not-received");
+        assertEq(GemAbstract(plasmaSusds).totalSupply(), plasmaSupplyBefore + sendAmount, "TestError/susds/e2e-plasma-not-minted");
+
+        // Return leg: Plasma → Ethereum
+        {
+            vm.startPrank(recipient);
+            GemAbstract(plasmaSusds).approve(remoteOapp, sendAmount);
+            vm.deal(recipient, 100 ether);
+            Vm.Log[] memory returnLogs = LZLaneTesting.sendOft(SkyOFTAdapterLike(remoteOapp), ethChain.eid, address(this), sendAmount, recipient);
+            vm.stopPrank();
+            LZLaneTesting.relayToFork(returnLogs, plasmaChain, ethChain, remoteOapp, oapp, ethFork);
+        }
+        vm.selectFork(ethFork);
+
+        assertEq(GemAbstract(susdsToken).totalSupply(), ethSupplyBefore, "TestError/susds/e2e-eth-supply-changed-after-roundtrip");
+        assertEq(GemAbstract(susdsToken).balanceOf(address(this)), sendAmount, "TestError/susds/e2e-eth-not-unlocked");
+
+        vm.selectFork(plasmaFork);
+        assertEq(GemAbstract(plasmaSusds).balanceOf(recipient), 0, "TestError/susds/e2e-plasma-not-burned");
+        assertEq(GemAbstract(plasmaSusds).totalSupply(), plasmaSupplyBefore, "TestError/susds/e2e-plasma-supply-not-restored");
+    }
+
+    // --- New SkyLink Tests Helpers ---
+    function _ethChain() internal view returns (LzChainConfig memory) {
+        return LzChainConfig({
+            eid:        ETH_EID,
+            endpoint:   addr.addr("LZ_ENDPOINT"),
+            sendLib302: addr.addr("LZ_SEND_302"),
+            recvLib302: addr.addr("LZ_RECV_302")
+        });
+    }
+
+    function _plasmaChain() internal view returns (LzChainConfig memory) {
+        return LzChainConfig({
+            eid:        PLASMA_EID,
+            endpoint:   plasma.addr("L2_PLASMA_LZ_ENDPOINT"),
+            sendLib302: plasma.addr("L2_PLASMA_LZ_SEND_302"),
+            recvLib302: plasma.addr("L2_PLASMA_LZ_RECV_302")
+        });
+    }
+
+    struct OftPauseTestCase {
+        address oft;
+        address pauser;
+        address owner;
+        string  label;
+    }
+
+    function _assertPauseUnpause(OftPauseTestCase memory tc) internal {
+        SkyOFTAdapterLike oft = SkyOFTAdapterLike(tc.oft);
+        assertFalse(oft.paused(), string.concat("TestError/", tc.label, "/already-paused"));
+
+        vm.prank(tc.pauser);
+        oft.pause();
+        assertTrue(oft.paused(), string.concat("TestError/", tc.label, "/not-paused"));
+
+        vm.prank(tc.owner);
+        oft.unpause();
+        assertFalse(oft.paused(), string.concat("TestError/", tc.label, "/not-unpaused"));
+    }
+}
+
+/// @notice Minimal spell for testing governance relay on Plasma.
+contract PlasmaSetRateLimitsSpell {
+    function execute(address oft, RateLimitConfig[] calldata inbound, RateLimitConfig[] calldata outbound) external {
+        SkyOFTAdapterLike(oft).setRateLimits(inbound, outbound);
+    }
 }
