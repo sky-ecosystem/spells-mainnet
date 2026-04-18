@@ -25,3 +25,4 @@ jobs:
         env:
           ETH_RPC_URL: ${{ secrets.ETH_RPC_URL }}
           AVAX_RPC_URL: ${{ secrets.AVAX_RPC_URL }}
+          PLASMA_RPC_URL: ${{ secrets.PLASMA_RPC_URL }}
