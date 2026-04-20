@@ -1543,7 +1543,7 @@ contract DssSpellTest is DssSpellTestBase {
     uint32 internal constant ETH_EID    = 30101;
     uint32 internal constant PLASMA_EID = 30383;
 
-    function testWireLzGovSenderPlasma() public skipped {
+    function testWireLzGovSenderPlasma() public {
         LzChainConfig memory ethChain = _ethChain();
         address[] memory dvns = new address[](7);
         dvns[0] = 0x06559EE34D85a88317Bf0bfE307444116c631b67; // P2P
@@ -1592,7 +1592,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertTrue(govOapp.canCallTarget(govRelay, lane.remoteEid, plasmaL2GovRelay), "TestError/gov/can-call-target-not-set");
     }
 
-    function testWireUsdsOftPlasma() public skipped {
+    function testWireUsdsOftPlasma() public {
         LzChainConfig memory ethChain = _ethChain();
 
         address[] memory dvns = new address[](2);
@@ -1616,6 +1616,10 @@ contract DssSpellTest is DssSpellTestBase {
         });
         address oapp = addr.addr("USDS_OFT");
 
+        // TODO: Remove or update this after deciding how to handle paused state for OFTs.
+        vm.prank(address(pauseProxy));
+        SkyOFTAdapterLike(oapp).unpause();
+
         // Verify pre-spell state
         assertEq(SkyOFTAdapterLike(oapp).peers(lane.remoteEid), bytes32(0), "TestError/usds/peer-already-set");
 
@@ -1635,7 +1639,7 @@ contract DssSpellTest is DssSpellTestBase {
         LZLaneTesting.assertOftSanity(oapp, lane.remoteEid, address(usds), 0);
     }
 
-    function testWireSUsdsOftPlasma() public skipped {
+    function testWireSUsdsOftPlasma() public {
         LzChainConfig memory ethChain = _ethChain();
 
         address[] memory dvns = new address[](2);
@@ -1659,6 +1663,10 @@ contract DssSpellTest is DssSpellTestBase {
         });
         address oapp = addr.addr("SUSDS_OFT");
 
+        // TODO: Remove or update this after deciding how to handle paused state for OFTs.
+        vm.prank(address(pauseProxy));
+        SkyOFTAdapterLike(oapp).unpause();
+
         // Verify pre-spell state
         assertEq(SkyOFTAdapterLike(oapp).peers(lane.remoteEid), bytes32(0), "TestError/susds/peer-already-set");
 
@@ -1678,7 +1686,7 @@ contract DssSpellTest is DssSpellTestBase {
         LZLaneTesting.assertOftSanity(oapp, lane.remoteEid, address(susds), 0);
     }
 
-    function testUsdsOftPlasmaRateLimits() public skipped {
+    function testUsdsOftPlasmaRateLimits() public {
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
@@ -1692,7 +1700,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(inL,  5_000_000 * WAD,     "TestError/usds/inbound-limit-mismatch");
     }
 
-    function testPlasmaOftPauseUnpause() public skipped {
+    function testPlasmaOftPauseUnpause() public {
         address L2_PLASMA_OFT_PAUSER = 0xB3d26eF66F53C9546d1365F417a85B0Aa69049eE;
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
@@ -1718,7 +1726,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testGovernanceRelayPlasmaE2E() public skipped {
+    function testGovernanceRelayPlasmaE2E() public {
         LzChainConfig memory ethChain    = _ethChain();
         LzChainConfig memory plasmaChain = _plasmaChain();
         address govSender         = addr.addr("LZ_GOV_SENDER");
@@ -1788,7 +1796,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(inL,  10_000_000 * WAD,    "TestError/gov/inbound-limit-not-set");
     }
 
-    function testUsdsOftPlasmaE2E() public skipped {
+    function testUsdsOftPlasmaE2E() public {
         LzChainConfig memory ethChain    = _ethChain();
         LzChainConfig memory plasmaChain = _plasmaChain();
         address oapp       = addr.addr("USDS_OFT");
@@ -1796,6 +1804,10 @@ contract DssSpellTest is DssSpellTestBase {
         address plasmaUsds = plasma.addr("L2_PLASMA_USDS");
         address recipient  = makeAddr("plasma-recipient");
         uint256 ethFork = vm.activeFork();
+
+        // TODO: Remove or update this after deciding how to handle paused state for OFTs.
+        vm.prank(address(pauseProxy));
+        SkyOFTAdapterLike(oapp).unpause();
 
         // Capture Plasma supply before
         uint256 plasmaFork = vm.createSelectFork(vm.envString("PLASMA_RPC_URL"));
@@ -1843,7 +1855,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(GemAbstract(plasmaUsds).totalSupply(), plasmaSupplyBefore, "TestError/usds/e2e-plasma-supply-not-restored");
     }
 
-    function testSUsdsOftPlasmaRateLimitBlocked() public skipped {
+    function testSUsdsOftPlasmaRateLimitBlocked() public {
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
@@ -1855,6 +1867,10 @@ contract DssSpellTest is DssSpellTestBase {
         GodMode.setBalance(susdsToken, address(this), sendAmount);
         GemAbstract(susdsToken).approve(oapp, sendAmount);
         vm.deal(address(this), 10 ether);
+
+        // TODO: Remove or update this after deciding how to handle paused state for OFTs.
+        vm.prank(address(pauseProxy));
+        oft.unpause();
 
         SkyOFTAdapterLike.SendParam memory sendParams = SkyOFTAdapterLike.SendParam({
             dstEid:       PLASMA_EID,
@@ -1872,7 +1888,7 @@ contract DssSpellTest is DssSpellTestBase {
         oft.send{value: msgFee.nativeFee}(sendParams, msgFee, payable(address(this)));
     }
 
-    function testSUsdsOftPlasmaE2E() public skipped {
+    function testSUsdsOftPlasmaE2E() public {
         LzChainConfig memory ethChain    = _ethChain();
         LzChainConfig memory plasmaChain = _plasmaChain();
         address oapp        = addr.addr("SUSDS_OFT");
@@ -1881,6 +1897,10 @@ contract DssSpellTest is DssSpellTestBase {
         address recipient   = makeAddr("plasma-susds-recipient");
         uint256 ethFork = vm.activeFork();
         uint256 plasmaFork = vm.createFork(vm.envString("PLASMA_RPC_URL"));
+
+        // TODO: Remove or update this after deciding how to handle paused state for OFTs.
+        vm.prank(address(pauseProxy));
+        SkyOFTAdapterLike(oapp).unpause();
 
         // Mock rate limits on Plasma by pranking as L2_PLASMA_LZ_GOV_RELAY and capture supply before
         uint256 plasmaSupplyBefore;
