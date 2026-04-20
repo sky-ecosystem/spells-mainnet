@@ -778,7 +778,7 @@ contract DssSpellAction is DssAction {
         // Forum: https://forum.skyeco.com/t/proposed-changes-to-pattern-for-upcoming-spell/27835
         // Poll: https://vote.sky.money/polling/QmVAKhR6
 
-        // Whitelist Pattern spell with address 0x31831ae3c13f72afcccf0aaf49b6f9319ed9c4c0 and codehash 0x1478866625ae91e3ca50fa4ff871f5721862e24b9428f15f49b093cc3305587b in PATTERN_STARGUARD, direct execution: No
+        // Whitelist Pattern spell with address 0x31831aE3C13f72afcCcf0aAF49b6f9319ed9C4C0 and codehash 0x1478866625ae91e3ca50fa4ff871f5721862e24b9428f15f49b093cc3305587b in PATTERN_STARGUARD, direct execution: No
         StarGuardLike(PATTERN_STARGUARD).plot(PATTERN_SPELL, PATTERN_SPELL_HASH);
     }
 
