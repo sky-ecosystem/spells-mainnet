@@ -150,7 +150,7 @@ contract DssSpellAction is DssAction {
             // dist: 0x675671A8756dDb69F7254AFB030865388Ef699Ee
             dist: REWARDS_DIST_LSSKY_SKY,
             // vestTot: 53,960,949 SKY
-            vestTot: 192_110_322 * WAD,
+            vestTot: 53_960_949 * WAD,
             // vestBgn: block.timestamp
             vestBgn: block.timestamp,
             // vestTau: 90 days

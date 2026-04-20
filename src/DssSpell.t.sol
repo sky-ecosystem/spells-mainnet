@@ -721,7 +721,7 @@ contract DssSpellTest is DssSpellTestBase {
             tau: 90 days,
             mgr: address(0),
             res: 1,
-            tot: 192_110_322 * WAD,
+            tot: 53_960_949 * WAD,
             rxd: 0 // Amount already claimed
         });
 
