@@ -89,7 +89,6 @@ interface SkyOFTAdapterLike {
     function setRateLimits(RateLimitConfig[] memory _rateLimitConfigsInbound, RateLimitConfig[] memory _rateLimitConfigsOutbound) external;
 }
 
-
 contract DssSpellAction is DssAction {
     // Provides a descriptive tag for bot consumption
     // This should be modified weekly to provide a summary of the actions
@@ -129,7 +128,6 @@ contract DssSpellAction is DssAction {
     address internal immutable DAI_USDS                 = DssExecLib.getChangelogAddress("DAI_USDS");
     address internal immutable DAI                      = DssExecLib.dai();
     address internal immutable SKYBASE_SUBPROXY         = DssExecLib.getChangelogAddress("SKYBASE_SUBPROXY");
-    address internal immutable PATTERN_SUBPROXY         = DssExecLib.getChangelogAddress("PATTERN_SUBPROXY");
     address internal immutable SPARK_SUBPROXY           = DssExecLib.getChangelogAddress("SPARK_SUBPROXY");
     address internal immutable GROVE_SUBPROXY           = DssExecLib.getChangelogAddress("GROVE_SUBPROXY");
     address internal immutable KEEL_SUBPROXY            = DssExecLib.getChangelogAddress("KEEL_SUBPROXY");
