@@ -29,7 +29,6 @@ import "./test/addresses_unichain.sol";
 import "./test/addresses_optimism.sol";
 import "./test/addresses_arbitrum.sol";
 import "./test/addresses_avalanche.sol";
-import "./test/addresses_plasma.sol";
 import "./test/addresses_deployers.sol";
 import "./test/addresses_wallets.sol";
 import "./test/config.sol";
@@ -652,7 +651,6 @@ contract DssSpellTestBase is Config, DssTest {
     OptimismAddresses optimism      = new OptimismAddresses();
     ArbitrumAddresses arbitrum      = new ArbitrumAddresses();
     AvalancheAddresses avalanche    = new AvalancheAddresses();
-    PlasmaAddresses plasma          = new PlasmaAddresses();
     Deployers deployers             = new Deployers();
     Wallets wallets                 = new Wallets();
 
@@ -954,7 +952,6 @@ contract DssSpellTestBase is Config, DssTest {
             vm.makePersistent(address(optimism));
             vm.makePersistent(address(arbitrum));
             vm.makePersistent(address(avalanche));
-            vm.makePersistent(address(plasma));
             vm.makePersistent(address(deployers));
             vm.makePersistent(address(wallets));
             vm.rollFork(spellValues.deployed_spell_block);
