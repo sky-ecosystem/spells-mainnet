@@ -130,8 +130,8 @@ contract DssSpellAction is DssAction {
     uint8 constant internal LZ_OPTION_TYPE_LZRECEIVE = 1;
 
     function actions() public override {
-        // ---------- (Produced based on draft scope as of 2026-04-16) Launch Plasma SkyLink ----------
-        // Forum: TODO
+        // ---------- Launch Plasma SkyLink ----------
+        // Forum: https://forum.skyeco.com/t/technical-scope-of-the-new-skylink-bridge-to-plasma/27850
 
         // Wire LZ_GOV_SENDER on Ethereum Mainnet with Plasma Mainnet
         // Note: This is only a subheading, actual instructions follow below.
@@ -190,7 +190,7 @@ contract DssSpellAction is DssAction {
         govOappOptionalDVNs[5] = CANARY;
         govOappOptionalDVNs[6] = NETHERMIND;
 
-        // Note: create send params for ULN config
+        // Note: create send params ULN config
         govOappSendParams[1] = EndpointV2Like.SetConfigParam({
             // uint32 eid being 30383
             eid: PLASMA_EID,
@@ -378,8 +378,7 @@ contract DssSpellAction is DssAction {
         // Note: dynamic array config is created before calling function and comment order has been changed to accommodate to this
 
         // EnforcedOptionParam[] with two items:
-        SkyOFTAdapterLike.EnforcedOptionParam[] memory usdsOftEnforcedOptions =
-            new SkyOFTAdapterLike.EnforcedOptionParam[](2);
+        SkyOFTAdapterLike.EnforcedOptionParam[] memory usdsOftEnforcedOptions = new SkyOFTAdapterLike.EnforcedOptionParam[](2);
 
         // SendOption
         usdsOftEnforcedOptions[0] = SkyOFTAdapterLike.EnforcedOptionParam({
@@ -396,7 +395,7 @@ contract DssSpellAction is DssAction {
 
         // SendAndCallOption
         usdsOftEnforcedOptions[1] = SkyOFTAdapterLike.EnforcedOptionParam({
-            // uint32 eid being 30383 (Plasma Mainnet Eid from the docs)
+            // uint32 eid being 30383
             eid: PLASMA_EID,
             // uint16 msgType being 2 (Meaning SEND_AND_CALL)
             msgType: 2,
@@ -571,7 +570,7 @@ contract DssSpellAction is DssAction {
         EndpointV2Like(ETH_LZ_ENDPOINT).setConfig(
             // address _oapp being SUSDS_OFT (0x85A3FE4DA2a6cB98A5bdF62458B0dB8471B9f0f1) from chainlog
             SUSDS_OFT,
-            // address _lib being 0xc02Ab410f0734EFa3F14628780e6e695156024C2
+            // address _lib being 0xc02Ab410f0734EFa3F14628780e6e695156024C2 (ReceiveUln302 on Ethereum)
             ETH_LZ_RECV_302,
             // Note: SetConfigParam array created above
             susdOftReceiveParams
@@ -581,12 +580,11 @@ contract DssSpellAction is DssAction {
         // Note: dynamic array config is created before calling function and comment order has been changed to accommodate to this
 
         // EnforcedOptionParam[] with two items:
-        SkyOFTAdapterLike.EnforcedOptionParam[] memory susdOftEnforcedOptions =
-            new SkyOFTAdapterLike.EnforcedOptionParam[](2);
+        SkyOFTAdapterLike.EnforcedOptionParam[] memory susdOftEnforcedOptions = new SkyOFTAdapterLike.EnforcedOptionParam[](2);
 
         // SendOption
         susdOftEnforcedOptions[0] = SkyOFTAdapterLike.EnforcedOptionParam({
-            // uint32 eid being 30383 (Plasma Mainnet Eid from the docs)
+            // uint32 eid being 30383
             eid: PLASMA_EID,
             // uint16 msgType being 1 (Meaning SEND)
             msgType: 1,
@@ -599,7 +597,7 @@ contract DssSpellAction is DssAction {
 
         // SendAndCallOption
         susdOftEnforcedOptions[1] = SkyOFTAdapterLike.EnforcedOptionParam({
-            // uint32 eid being 30383 (Plasma Mainnet Eid from the docs)
+            // uint32 eid being 30383
             eid: PLASMA_EID,
             // uint16 msgType being 2 (Meaning SEND_AND_CALL)
             msgType: 2,
@@ -615,10 +613,42 @@ contract DssSpellAction is DssAction {
         SkyOFTAdapterLike(SUSDS_OFT).setEnforcedOptions(susdOftEnforcedOptions);
 
         // ---------- Monthly Settlement Cycle for March ----------
-        // Forum: TODO
+        // Forum: https://forum.skyeco.com/t/msc-7-settlement-summary-march-2026/27844
+        // Atlas: https://sky-atlas.io/#6f8d5065-d6ff-4add-9a28-eadeffa7ed1a
+
+        // Mint 7,662,339 USDS debt in ALLOCATOR-SPARK-A and transfer the amount to the surplus buffer.
+
+        // Send 1,725,726 USDS from the surplus buffer to the SPARK_SUBPROXY
+
+        // Mint 6,290,684 USDS debt in ALLOCATOR-BLOOM-A and transfer the amount to the surplus buffer.
+
+        // Send 138,412 USDS from the surplus buffer to the GROVE_SUBPROXY
+
+        // Send 30,241 USDS from the surplus buffer to the KEEL_SUBPROXY
+
+        // Mint 2,075,648 USDS debt in ALLOCATOR-OBEX-A and transfer the amount to the surplus buffer.
+
+        // Send 69,793 USDS from the surplus buffer to the OBEX_SUBPROXY
+
+        // Send 225,299 USDS from the surplus buffer to the SKYBASE_SUBPROXY
+
+        // Transfer 678,176 USDS from the Surplus Buffer to the Core Council Buffer (0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364)
+
+        // Transfer 33,908 USDS from the Surplus Buffer to the Aligned Delegates Buffer (0x37FC5d447c8c54326C62b697f674c93eaD2A93A3)
 
         // ---------- Staking Rewards Update ----------
-        // Forum: TODO
+        // Forum: https://forum.skyeco.com/t/lssky-to-sky-rewards-sky-rewards-for-sky-stakers-normalization-configuration/27721/14
+        // Atlas: https://sky-atlas.io/#7da0cd7a-238f-400f-89a7-a419ed25ce37
+
+        // Update LSSKY->SKY Farm vest by calling `TreasuryFundedFarmingInit.updateFarmVest()` with params:
+
+        // dist: 0x675671A8756dDb69F7254AFB030865388Ef699Ee
+
+        // vestTot: 53,960,949 SKY
+
+        // vestBgn: block.timestamp
+
+        // vestTau: 90 days
 
         // ---------- ALLOCATOR-BLOOM-A DC-IAM Parameter Update ----------
         // Forum: https://forum.skyeco.com/t/april-23-2026-proposed-changes-to-grove-for-upcoming-spell/27829
@@ -648,13 +678,24 @@ contract DssSpellAction is DssAction {
         // Atlas: https://sky-atlas.io/#fcd868db-4a91-4ee0-baf5-1ebd40fc651e
 
         // ---------- Spark Proxy Spell ----------
-        // Forum: TODO
+        // Forum: https://forum.skyeco.com/t/april-23-2026-proposed-changes-to-spark-for-upcoming-spell/27831
+        // Atlas: https://sky-atlas.io/#6029a425-ad81-46c5-866d-94e2ff663873
+        // Atlas: https://sky-atlas.io/#ea73f176-0b94-4e93-b1ee-ca498ac5a6c6
+        // Atlas: https://sky-atlas.io/#b69158da-476a-4d4b-b7ef-2f8b96b73d23
+
+        // Whitelist Spark spell with address 0x160158d029697FEa486dF8968f3Be17a706dF0F0 and codehash 0x96a0d4068774d80f3790f489aa1bbd37e45d6a019161743ad00eaf61e26466b6 in SPARK_STARGUARD, direct execution: No
 
         // ---------- Grove Proxy Spell ----------
-        // Forum: TODO
+        // Forum: https://forum.skyeco.com/t/april-23-2026-proposed-changes-to-grove-for-upcoming-spell/27829
+        // Poll: https://vote.sky.money/polling/QmVAKhR6
+
+        // Whitelist Grove spell with address 0x76Ba24676e1055D3E6b160086f0bc9BaffF76929 and codehash 0x43fa1611223445715e33c2ad7baf836cb4c8a00a0ede6fff428b742baefa12c6 in GROVE_STARGUARD, direct execution: No
 
         // ---------- Pattern Proxy Spell ----------
-        // Forum: TODO
+        // Forum: https://forum.skyeco.com/t/proposed-changes-to-pattern-for-upcoming-spell/27835
+        // Poll: https://vote.sky.money/polling/QmVAKhR6
+
+        // Whitelist Pattern spell with address 0x31831ae3c13f72afcccf0aaf49b6f9319ed9c4c0 and codehash 0x1478866625ae91e3ca50fa4ff871f5721862e24b9428f15f49b093cc3305587b in PATTERN_STARGUARD, direct execution: No
     }
 
     // ---------- Helper Functions ----------
