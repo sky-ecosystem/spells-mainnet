@@ -625,5 +625,6 @@ contract Addresses {
         addr["LZ_EXECUTOR"]                      = 0x173272739Bd7Aa6e4e214714048a9fE699453059;
         addr["SUSDS_OFT"]                        = 0x85A3FE4DA2a6cB98A5bdF62458B0dB8471B9f0f1;
         addr["OFT_PAUSER"]                       = 0x38d1114b4cE3e079CC0f627df6aC2776B5887776;
+        addr["PATTERN_ALM_PROXY"]                = 0xbA43325E91C79E500486a23E953ab3d8C46f169F;
     }
 }

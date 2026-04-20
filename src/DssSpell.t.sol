@@ -716,16 +716,16 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public skipped { // add the `skipped` modifier to skip
+    function testVestSky() public { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
-        uint256 AUG_29_2026_14_00_23 = 1788012023;
+        uint256 JUL_12_2026_14_10_47 = 1783865447;
 
         uint256 spellCastTime = _getSpellCastTime();
 
         // Build expected new stream
         NewVestStream[] memory newStreams = new NewVestStream[](1);
         newStreams[0] = NewVestStream({
-            id:  11,
+            id:  12,
             usr: addr.addr("REWARDS_DIST_LSSKY_SKY"),
             bgn: spellCastTime,
             clf: spellCastTime,
@@ -740,8 +740,8 @@ contract DssSpellTest is DssSpellTestBase {
         // For each yanked stream, provide Stream object and initialize the array with the current number of yanked streams
         YankedVestStream[] memory yankedStreams = new YankedVestStream[](1);
         yankedStreams[0] = YankedVestStream({
-            id:  10,
-            fin: AUG_29_2026_14_00_23,
+            id:  11,
+            fin: JUL_12_2026_14_10_47,
             end: spellCastTime
         });
 
@@ -807,11 +807,11 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestedRewardsDist() public skipped {
+    function testVestedRewardsDist() public {
         address rewardsDist = addr.addr("REWARDS_DIST_LSSKY_SKY");
         address stakingRewards = addr.addr("REWARDS_LSSKY_SKY");
         VestAbstract vest = VestAbstract(addr.addr("MCD_VEST_SKY_TREASURY"));
-        uint256 expectedVestId = 10;
+        uint256 expectedVestId = 11;
 
         uint256 vestId = VestedRewardsDistributionLike(rewardsDist).vestId();
         assertEq(vestId, expectedVestId, "TestError/rewards-dist-lssky-sky-invalid-vest-id-before");
@@ -830,7 +830,7 @@ contract DssSpellTest is DssSpellTestBase {
 
         // Check newly set vestId if updated
         vestId = VestedRewardsDistributionLike(rewardsDist).vestId();
-        assertEq(vestId, 11, "TestError/rewards-dist-lssky-sky-invalid-vest-id-after");
+        assertEq(vestId, 12, "TestError/rewards-dist-lssky-sky-invalid-vest-id-after");
 
         assertEq(StakingRewardsLike(stakingRewards).lastUpdateTime(), block.timestamp, "TestError/rewards-lssky-sky-invalid-last-update-time");
     }
@@ -853,7 +853,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public skipped { // add the `skipped` modifier to skip
+    function testPayments() public { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -863,15 +863,21 @@ contract DssSpellTest is DssSpellTestBase {
         //    the destination address,
         //    the amount to be paid
         // Initialize the array with the number of payees
-        Payee[1] memory payees = [
-            Payee(address(usds), addr.addr("GROVE_SUBPROXY"), 20_797_477 ether) // Note: ether is only a keyword helper
+        Payee[7] memory payees = [
+            Payee(address(usds), addr.addr("SPARK_SUBPROXY"), 1_725_726 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("GROVE_SUBPROXY"), 138_412 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("KEEL_SUBPROXY"), 30_241 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("OBEX_SUBPROXY"), 69_793 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("SKYBASE_SUBPROXY"), 225_299 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG"), 678_176 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CORE_COUNCIL_DELEGATE_MULTISIG"), 33_908 ether) // Note: ether is only a keyword helper
         ];
 
         // Fill the total values from exec sheet
         PaymentAmounts memory expectedTotalPayments = PaymentAmounts({
             dai:           0 ether, // Note: ether is only a keyword helper
             mkr:           0 ether, // Note: ether is only a keyword helper
-            usds: 20_797_477 ether, // Note: ether is only a keyword helper
+            usds: 2_901_555 ether, // Note: ether is only a keyword helper
             sky:           0 ether  // Note: ether is only a keyword helper
         });
 
@@ -1308,18 +1314,18 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 
-    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
+    function testMonthlySettlementCycleInflows() public { // add the `skipped` modifier to skip
         address ALLOCATOR_SPARK_A_VAULT = addr.addr("ALLOCATOR_SPARK_A_VAULT");
         address ALLOCATOR_BLOOM_A_VAULT = addr.addr("ALLOCATOR_BLOOM_A_VAULT");
         address ALLOCATOR_OBEX_A_VAULT = addr.addr("ALLOCATOR_OBEX_A_VAULT");
 
         AllocatorPayment[3] memory payments = [
-            AllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 7_746_811 * WAD),
-            AllocatorPayment(ALLOCATOR_OBEX_A_VAULT, 1_948_422 * WAD),
-            AllocatorPayment(ALLOCATOR_BLOOM_A_VAULT, 6_346_829 * WAD)
+            AllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 7_662_339 * WAD),
+            AllocatorPayment(ALLOCATOR_BLOOM_A_VAULT, 6_290_684 * WAD),
+            AllocatorPayment(ALLOCATOR_OBEX_A_VAULT, 2_075_648 * WAD)
         ];
 
-        uint256 expectedTotalAmount = 16_042_062 * WAD;
+        uint256 expectedTotalAmount = 16_028_671 * WAD;
 
         MscIlkValues[] memory expectedValues = new MscIlkValues[](payments.length);
         uint256 totalDtab = 0;
@@ -1352,7 +1358,6 @@ contract DssSpellTest is DssSpellTestBase {
 
         vm.revertToStateAndDelete(before);
 
-
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
@@ -1368,18 +1373,24 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
-        PrimeAgentSpell[2] memory primeAgentSpells = [
+    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
+        PrimeAgentSpell[3] memory primeAgentSpells = [
             PrimeAgentSpell({
                 starGuardKey: "SPARK_STARGUARD",                                              // Insert Prime Agent StarGuards Chainlog key
-                addr: 0xFa5fc020311fCC1A467FEC5886640c7dD746deAa,                             // Insert Prime Agent spell address
-                codehash: 0x2572a97846f7a6f9f159a9a69c2707cfa4186c061de2a0ec59e7a0d46473c74c, // Insert Prime Agent spell codehash
+                addr: 0x160158d029697FEa486dF8968f3Be17a706dF0F0,                             // Insert Prime Agent spell address
+                codehash: 0x96a0d4068774d80f3790f489aa1bbd37e45d6a019161743ad00eaf61e26466b6, // Insert Prime Agent spell codehash
                 directExecutionEnabled: false                                                 // Set to true if the Prime Agent spell is executed directly from core spell
             }),
             PrimeAgentSpell({
                 starGuardKey: "GROVE_STARGUARD",
-                addr: 0x679eD4739c71300f7d78102AE5eE17EF8b8b2162,
-                codehash: 0x4fa1f743b3d6d2855390724459129186dd684e1c07d59f88925f0059ba1e6c84,
+                addr: 0x76Ba24676e1055D3E6b160086f0bc9BaffF76929,
+                codehash: 0x43fa1611223445715e33c2ad7baf836cb4c8a00a0ede6fff428b742baefa12c6,
+                directExecutionEnabled: false
+            }),
+            PrimeAgentSpell({
+                starGuardKey: "PATTERN_STARGUARD",
+                addr: 0x31831aE3C13f72afcCcf0aAF49b6f9319ed9C4C0,
+                codehash: 0x1478866625ae91e3ca50fa4ff871f5721862e24b9428f15f49b093cc3305587b,
                 directExecutionEnabled: false
             })
         ];
@@ -1487,6 +1498,44 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
+    function testWhitelistPatternALMProxy() public {
+        address almProxy = addr.addr("PATTERN_ALM_PROXY");
+        DssLitePsmLike psmUsdcA = DssLitePsmLike(addr.addr("MCD_LITE_PSM_USDC_A"));
+        GemAbstract usdc = GemAbstract(addr.addr("USDC"));
+
+        // bud is 0 before kiss
+        assertEq(psmUsdcA.bud(almProxy), 0, "TestError/MCD_LITE_PSM_USDC_A/invalid-bud");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done());
+
+        // bud is 1 after kiss
+        assertEq(psmUsdcA.bud(almProxy), 1, "TestError/MCD_LITE_PSM_USDC_A/invalid-bud");
+
+        // PATTERN can call buyGemNoFee() on MCD_LITE_PSM_USDC_A
+        uint256 daiAmount  = 1_000 * WAD;
+        uint256 usdcAmount = 1_000 * 10**6;
+
+        // fund proxy
+        deal(address(dai), almProxy, daiAmount);
+        vm.startPrank(almProxy);
+
+        // buy gem with no fee
+        dai.approve(address(psmUsdcA), daiAmount);
+        psmUsdcA.buyGemNoFee(almProxy, usdcAmount);
+        assertEq(usdc.balanceOf(almProxy), usdcAmount);
+        assertEq(dai.balanceOf(almProxy), 0);
+
+        // now sell it back with no fee
+        usdc.approve(address(psmUsdcA), usdcAmount);
+        psmUsdcA.sellGemNoFee(almProxy, usdcAmount);
+        assertEq(usdc.balanceOf(almProxy), 0);
+        assertEq(dai.balanceOf(almProxy), daiAmount);
+
+        vm.stopPrank();
+    }
+
     // --- New SkyLink Tests ---
 
     error RateLimitExceeded();
@@ -1494,7 +1543,7 @@ contract DssSpellTest is DssSpellTestBase {
     uint32 internal constant ETH_EID    = 30101;
     uint32 internal constant PLASMA_EID = 30383;
 
-    function testWireLzGovSenderPlasma() public {
+    function testWireLzGovSenderPlasma() public skipped {
         LzChainConfig memory ethChain = _ethChain();
         address[] memory dvns = new address[](7);
         dvns[0] = 0x06559EE34D85a88317Bf0bfE307444116c631b67; // P2P
@@ -1543,7 +1592,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertTrue(govOapp.canCallTarget(govRelay, lane.remoteEid, plasmaL2GovRelay), "TestError/gov/can-call-target-not-set");
     }
 
-    function testWireUsdsOftPlasma() public {
+    function testWireUsdsOftPlasma() public skipped {
         LzChainConfig memory ethChain = _ethChain();
 
         address[] memory dvns = new address[](2);
@@ -1586,7 +1635,7 @@ contract DssSpellTest is DssSpellTestBase {
         LZLaneTesting.assertOftSanity(oapp, lane.remoteEid, address(usds), 0);
     }
 
-    function testWireSUsdsOftPlasma() public {
+    function testWireSUsdsOftPlasma() public skipped {
         LzChainConfig memory ethChain = _ethChain();
 
         address[] memory dvns = new address[](2);
@@ -1629,7 +1678,7 @@ contract DssSpellTest is DssSpellTestBase {
         LZLaneTesting.assertOftSanity(oapp, lane.remoteEid, address(susds), 0);
     }
 
-    function testUsdsOftPlasmaRateLimits() public {
+    function testUsdsOftPlasmaRateLimits() public skipped {
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
@@ -1643,7 +1692,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(inL,  5_000_000 * WAD,     "TestError/usds/inbound-limit-mismatch");
     }
 
-    function testPlasmaOftPauseUnpause() public {
+    function testPlasmaOftPauseUnpause() public skipped {
         address L2_PLASMA_OFT_PAUSER = 0xB3d26eF66F53C9546d1365F417a85B0Aa69049eE;
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
@@ -1669,7 +1718,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testGovernanceRelayPlasmaE2E() public {
+    function testGovernanceRelayPlasmaE2E() public skipped {
         LzChainConfig memory ethChain    = _ethChain();
         LzChainConfig memory plasmaChain = _plasmaChain();
         address govSender         = addr.addr("LZ_GOV_SENDER");
@@ -1739,7 +1788,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(inL,  10_000_000 * WAD,    "TestError/gov/inbound-limit-not-set");
     }
 
-    function testUsdsOftPlasmaE2E() public {
+    function testUsdsOftPlasmaE2E() public skipped {
         LzChainConfig memory ethChain    = _ethChain();
         LzChainConfig memory plasmaChain = _plasmaChain();
         address oapp       = addr.addr("USDS_OFT");
@@ -1794,7 +1843,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(GemAbstract(plasmaUsds).totalSupply(), plasmaSupplyBefore, "TestError/usds/e2e-plasma-supply-not-restored");
     }
 
-    function testSUsdsOftPlasmaRateLimitBlocked() public {
+    function testSUsdsOftPlasmaRateLimitBlocked() public skipped {
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
@@ -1823,7 +1872,7 @@ contract DssSpellTest is DssSpellTestBase {
         oft.send{value: msgFee.nativeFee}(sendParams, msgFee, payable(address(this)));
     }
 
-    function testSUsdsOftPlasmaE2E() public {
+    function testSUsdsOftPlasmaE2E() public skipped {
         LzChainConfig memory ethChain    = _ethChain();
         LzChainConfig memory plasmaChain = _plasmaChain();
         address oapp        = addr.addr("SUSDS_OFT");

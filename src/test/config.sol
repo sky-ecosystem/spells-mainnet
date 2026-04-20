@@ -1089,7 +1089,7 @@ contract Config {
         afterSpell.collaterals["ALLOCATOR-BLOOM-A"] = CollateralValues({
             um:           UpdateMethod.AUTOLINE,
             aL_line:      5_000_000_000,
-            aL_gap:       250_000_000,
+            aL_gap:       500_000_000,
             aL_ttl:       24 hours,
             line:         0,
             dust:         0,
@@ -1146,8 +1146,8 @@ contract Config {
         });
         afterSpell.collaterals["ALLOCATOR-PATTERN-A"] = CollateralValues({
             um:           UpdateMethod.AUTOLINE,
-            aL_line:      10_000_000,
-            aL_gap:       10_000_000,
+            aL_line:      2_500_000_000,
+            aL_gap:       50_000_000,
             aL_ttl:       86_400,
             line:         0,
             dust:         0,
