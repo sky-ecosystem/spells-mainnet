@@ -22,7 +22,7 @@ import { JugAbstract } from "dss-interfaces/dss/JugAbstract.sol";
 import { VatAbstract } from "dss-interfaces/dss/VatAbstract.sol";
 import { GemAbstract } from "dss-interfaces/ERC/GemAbstract.sol";
 // Note: Code matches audited code (https://reports.chainsecurity.com/Sky/ChainSecurity_Sky_EndgameToolkit_Audit.pdf)
-import {TreasuryFundedFarmingInit, FarmingUpdateVestParams} from "./dependencies/endgame-toolkit/treasury-funded-farms/TreasuryFundedFarmingInit.sol";
+import { TreasuryFundedFarmingInit, FarmingUpdateVestParams } from "./dependencies/endgame-toolkit/treasury-funded-farms/TreasuryFundedFarmingInit.sol";
 
 interface AllocatorVaultLike {
     function ilk() external view returns (bytes32);
@@ -190,9 +190,6 @@ contract DssSpellAction is DssAction {
 
         // Whitelist Pattern ALMProxy at 0xbA43325E91C79E500486a23E953ab3d8C46f169F on the LitePSM
         DssLitePsmLike(MCD_LITE_PSM_USDC_A).kiss(PATTERN_ALM_PROXY);
-
-        // ---------- Safe Harbor Update ----------
-        // Atlas: https://sky-atlas.io/#fcd868db-4a91-4ee0-baf5-1ebd40fc651e
 
         // ---------- Spark Proxy Spell ----------
         // Forum: https://forum.skyeco.com/t/april-23-2026-proposed-changes-to-spark-for-upcoming-spell/27831
