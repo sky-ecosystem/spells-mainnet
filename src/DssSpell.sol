@@ -109,7 +109,7 @@ contract DssSpellAction is DssAction {
 
         // ---------- Monthly Settlement Cycle for March ----------
         // Forum: https://forum.skyeco.com/t/msc-7-settlement-summary-march-2026/27844
-        // Atlas: https://sky-atlas.io/#6f8d5065-d6ff-4add-9a28-eadeffa7ed1a
+        // Atlas: https://sky-atlas.io/#A.2.4
 
         // Mint 7,662,339 USDS debt in ALLOCATOR-SPARK-A and transfer the amount to the surplus buffer.
         _takeAllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 7_662_339 * WAD);
@@ -143,7 +143,8 @@ contract DssSpellAction is DssAction {
 
         // ---------- Staking Rewards Update ----------
         // Forum: https://forum.skyeco.com/t/lssky-to-sky-rewards-sky-rewards-for-sky-stakers-normalization-configuration/27721/14
-        // Atlas: https://sky-atlas.io/#7da0cd7a-238f-400f-89a7-a419ed25ce37
+        // Atlas: https://sky-atlas.io/#293e4c9f-1e26-4d4b-b769-650a02eca8b8
+        // Forum: https://forum.skyeco.com/t/lssky-to-sky-rewards-sky-rewards-for-sky-stakers-normalization-configuration/27721/15
 
         // Update LSSKY->SKY Farm vest by calling `TreasuryFundedFarmingInit.updateFarmVest()` with params:
         TreasuryFundedFarmingInit.updateFarmVest(FarmingUpdateVestParams({
@@ -158,8 +159,8 @@ contract DssSpellAction is DssAction {
         }));
 
         // ---------- ALLOCATOR-BLOOM-A DC-IAM Parameter Update ----------
-        // Forum: https://forum.skyeco.com/t/april-23-2026-proposed-changes-to-grove-for-upcoming-spell/27829
-        // Atlas: https://sky-atlas.io/#41a1ae38-4f5c-468f-b6ba-47e16ecc5aec
+        // Forum: https://forum.skyeco.com/t/atlas-edit-weekly-cycle-proposal-week-of-2026-04-20/27851
+        // Poll: https://vote.sky.money/polling/QmNXSS7H
 
         // Increase ALLOCATOR-BLOOM-A gap by 250 million USDS from 250 million USDS to 500 million USDS
         // Leave other parameters at current values (line 5 billion USDS, ttl 24 hours)
@@ -171,8 +172,8 @@ contract DssSpellAction is DssAction {
         });
 
         // ---------- ALLOCATOR-PATTERN-A DC-IAM Parameters Update ----------
-        // Forum: https://forum.skyeco.com/t/sky-core-increase-allocator-pattern-a-parameters/27842
-        // Atlas: https://sky-atlas.io/#41a1ae38-4f5c-468f-b6ba-47e16ecc5aec
+        // Forum: https://forum.skyeco.com/t/atlas-edit-weekly-cycle-proposal-week-of-2026-04-20/27851
+        // Poll: https://vote.sky.money/polling/QmNXSS7H
 
         // Increase ALLOCATOR-PATTERN-A gap by 40 million USDS from 10 million USDS to 50 million USDS
         // Increase ALLOCATOR-PATTERN-A line by 2.49 billion USDS from 10 million USDS to 2.5 billion USDS
@@ -185,8 +186,8 @@ contract DssSpellAction is DssAction {
         });
 
         // ---------- Whitelist Pattern ALMProxy on the LitePSM ----------
-        // Forum: https://forum.skyeco.com/t/proposed-changes-to-pattern-for-upcoming-spell/27835
-        // Poll: https://vote.sky.money/polling/QmVAKhR6
+        // Forum: https://forum.skyeco.com/t/atlas-edit-weekly-cycle-proposal-week-of-2026-04-20/27851
+        // Poll: https://vote.sky.money/polling/QmNXSS7H
 
         // Whitelist Pattern ALMProxy at 0xbA43325E91C79E500486a23E953ab3d8C46f169F on the LitePSM
         DssLitePsmLike(MCD_LITE_PSM_USDC_A).kiss(PATTERN_ALM_PROXY);
