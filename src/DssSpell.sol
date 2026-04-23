@@ -90,8 +90,8 @@ contract DssSpellAction is DssAction {
     address internal constant  PATTERN_ALM_PROXY        = 0xbA43325E91C79E500486a23E953ab3d8C46f169F;
 
     // ---------- Wallets ----------
-    address internal constant CORE_COUNCIL_BUDGET_MULTISIG   = 0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364;
     address internal constant CORE_COUNCIL_DELEGATE_MULTISIG = 0x37FC5d447c8c54326C62b697f674c93eaD2A93A3;
+    address internal constant CORE_COUNCIL_BUDGET_MULTISIG   = 0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364;
 
     // ---------- Spark Spell ----------
     address internal constant SPARK_SPELL = 0x160158d029697FEa486dF8968f3Be17a706dF0F0;
