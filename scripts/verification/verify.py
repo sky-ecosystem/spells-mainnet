@@ -65,8 +65,15 @@ def build_forge_cmd(
         str(delay),
     ]
 
-    if verifier == "etherscan" and etherscan_api_key:
-        cmd.extend(["--etherscan-api-key", etherscan_api_key])
+    if verifier == "etherscan":
+        # Skip Forge's client-side preflight `getabi` check so we always
+        # submit. Belt-and-suspenders against false-positive preflight
+        # results; Etherscan's server-side "already verified" rejection is
+        # what actually decides whether a duplicate submission lands, and
+        # that is unconditional once the contract is verified.
+        cmd.append("--skip-is-verified-check")
+        if etherscan_api_key:
+            cmd.extend(["--etherscan-api-key", etherscan_api_key])
 
     return cmd
 
@@ -153,21 +160,12 @@ def verify_contract_with_verifiers(
     attempted = 0
     successes = 0
 
-    # Sourcify (works without API key); blockscout pulls from it
-    if chain_id == "1":
-        attempted += 1
-        if verify_once_on(
-            verifier="sourcify",
-            address=contract_address,
-            contract_name=contract_name,
-            retries=retries,
-            delay=delay,
-        ):
-            successes += 1
-    else:
-        print(f"Sourcify not configured for CHAIN_ID {chain_id}, skipping.")
-
-    # Etherscan (requires API key)
+    # Etherscan must run BEFORE Sourcify. Sourcify submits Solidity Standard
+    # JSON Input and Etherscan auto-imports verified sources from Sourcify
+    # within seconds. If Sourcify ran first, Forge's later Etherscan
+    # submission would hit Etherscan's server-side "already verified"
+    # rejection and the stored source would stay as the Sourcify-shaped
+    # multi-file blob (no client-side recovery once that happens).
     if chain_id == "1" and etherscan_api_key:
         attempted += 1
         if verify_once_on(
@@ -181,6 +179,20 @@ def verify_contract_with_verifiers(
             successes += 1
     elif chain_id == "1":
         print("ETHERSCAN_API_KEY not set; skipping Etherscan.")
+
+    # Sourcify (works without API key); blockscout pulls from it.
+    if chain_id == "1":
+        attempted += 1
+        if verify_once_on(
+            verifier="sourcify",
+            address=contract_address,
+            contract_name=contract_name,
+            retries=retries,
+            delay=delay,
+        ):
+            successes += 1
+    else:
+        print(f"Sourcify not configured for CHAIN_ID {chain_id}, skipping.")
 
     if successes == 0:
         return False
