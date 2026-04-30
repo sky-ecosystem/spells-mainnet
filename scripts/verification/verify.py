@@ -66,11 +66,6 @@ def build_forge_cmd(
     ]
 
     if verifier == "etherscan":
-        # Skip Forge's client-side preflight `getabi` check so we always
-        # submit. Belt-and-suspenders against false-positive preflight
-        # results; Etherscan's server-side "already verified" rejection is
-        # what actually decides whether a duplicate submission lands, and
-        # that is unconditional once the contract is verified.
         cmd.append("--skip-is-verified-check")
         if etherscan_api_key:
             cmd.extend(["--etherscan-api-key", etherscan_api_key])
@@ -160,12 +155,7 @@ def verify_contract_with_verifiers(
     attempted = 0
     successes = 0
 
-    # Etherscan must run BEFORE Sourcify. Sourcify submits Solidity Standard
-    # JSON Input and Etherscan auto-imports verified sources from Sourcify
-    # within seconds. If Sourcify ran first, Forge's later Etherscan
-    # submission would hit Etherscan's server-side "already verified"
-    # rejection and the stored source would stay as the Sourcify-shaped
-    # multi-file blob (no client-side recovery once that happens).
+    # Etherscan must run BEFORE Sourcify
     if chain_id == "1" and etherscan_api_key:
         attempted += 1
         if verify_once_on(
