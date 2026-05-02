@@ -89,16 +89,16 @@ contract DssSpellAction is DssAction {
     address internal immutable LZ_GOV_RELAY  = DssExecLib.getChangelogAddress("LZ_GOV_RELAY");
 
     // ---------- LayerZero Solana Bridge ----------
-    // Solana Mainnet EID.
     uint32  internal constant SOLANA_EID = 30168;
+    uint32  internal constant AVALANCHE_EID = 30106;
     uint256 internal constant MAX_LZ_GOV_BRIDGE_NATIVE_FEE = 0.01 ether;
 
-    // Solana OFT program ID SKYTAiJRkgexqQqFoqhXdCANyfziwrVrzjhBaCzdbKW encoded as bytes32.
+    // Note: Solana OFT program ID SKYTAiJRkgexqQqFoqhXdCANyfziwrVrzjhBaCzdbKW encoded as bytes32.
     bytes32 internal constant SOLANA_OFT_PROGRAM = 0x067c7c6c60ba7f1aec14059100df74d6da07e7d31da5dd756c6308f02e661649;
 
-    // LayerZero Type 3 options:
-    // optionsType: 3, workerId: 1 (Executor), optionSize: 33, optionType: 1 (LZRECEIVE),
-    // gas: 4_000_000, value: 4_000_000.
+    // Note: LayerZero Type 3 options:
+    //  - optionsType: 3, workerId: 1 (Executor), optionSize: 33 (optionType + gas + value), optionType: 1 (LZRECEIVE),
+    //  - gas: 4_000_000, value: 4_000_000.
     bytes internal constant LZ_GOV_BRIDGE_EXTRA_OPTIONS =
         hex"000301002101000000000000000000000000003d0900000000000000000000000000003d0900";
 
@@ -212,7 +212,7 @@ contract DssSpellAction is DssAction {
         // bytes extraOptions being LayerZero Type 3 options encoded via abi.encodePacked as 0x000301002101000000000000000000000000003d0900000000000000000000000000003d0900:
         // uint16 optionsType being 3
         // uint8 workerId being 1 (Executor)
-        // uint16 optionSize being 33
+        // uint16 optionSize being 33 (1 byte for optionType + 16 bytes for _gas + 16 bytes for _value)
         // uint8 optionType being 1 (LZRECEIVE)
         // uint128 _gas being 4_000_000
         // uint128 _value being 4_000_000
@@ -234,7 +234,7 @@ contract DssSpellAction is DssAction {
         // bytes extraOptions being LayerZero Type 3 options encoded via abi.encodePacked as 0x000301002101000000000000000000000000003d0900000000000000000000000000003d0900:
         // uint16 optionsType being 3
         // uint8 workerId being 1 (Executor)
-        // uint16 optionSize being 33
+        // uint16 optionSize being 33 (1 byte for optionType + 16 bytes for _gas + 16 bytes for _value)
         // uint8 optionType being 1 (LZRECEIVE)
         // uint128 _gas being 4_000_000
         // uint128 _value being 4_000_000
@@ -256,7 +256,7 @@ contract DssSpellAction is DssAction {
         // bytes extraOptions being LayerZero Type 3 options encoded via abi.encodePacked as 0x000301002101000000000000000000000000003d0900000000000000000000000000003d0900:
         // uint16 optionsType being 3
         // uint8 workerId being 1 (Executor)
-        // uint16 optionSize being 33
+        // uint16 optionSize being 33 (1 byte for optionType + 16 bytes for _gas + 16 bytes for _value)
         // uint8 optionType being 1 (LZRECEIVE)
         // uint128 _gas being 4_000_000
         // uint128 _value being 4_000_000
@@ -264,6 +264,27 @@ contract DssSpellAction is DssAction {
         // address refundAddress being 0x2beBFe397D497b66cB14461cB6ee467b4C3B7D61 (LZ_GOV_RELAY from chainlog)
         // msg.value being 0, with LZ_GOV_RELAY paying fee.nativeFee from its pre-funded ETH balance
         L1GovernanceRelayLike(LZ_GOV_RELAY).relayRaw(outboundRateLimitParams, outboundRateLimitFee, LZ_GOV_RELAY);
+
+        // Note: comments in the RateLimitConfig definitions are next to the setRateLimits call.
+        RateLimitConfig[] memory avalancheInboundRateLimits = new RateLimitConfig[](0);
+
+        RateLimitConfig[] memory avalancheOutboundRateLimits = new RateLimitConfig[](1);
+        avalancheOutboundRateLimits[0] = RateLimitConfig({
+            eid: AVALANCHE_EID,
+            window: 1 days,
+            limit: 0
+        });
+
+        // TODO: update once the exec sheet is filled
+        // Disable Ethereum -> Avalanche USDS flow
+        // Call USDS_OFT.setRateLimits with:
+        // USDS_OFT being 0x1e1D42781FC170EF9da004Fb735f56F0276d01B8 from chainlog
+        // RateLimitConfig[] _rateLimitConfigsInbound being an empty array
+        // RateLimitConfig[] _rateLimitConfigsOutbound being an array with one item:
+        // uint32 eid being 30106 (Avalanche Mainnet Eid)
+        // uint48 window being 86,400 (1 day)
+        // uint256 limit being 0
+        SkyOFTAdapterLike(USDS_OFT).setRateLimits(avalancheInboundRateLimits, avalancheOutboundRateLimits);
 
         // ---------- Additional Executive Sheet Actions ----------
         // TODO

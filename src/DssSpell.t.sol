@@ -64,6 +64,7 @@ interface SolanaL1GovernanceRelayLike {
 }
 
 interface SolanaSkyOFTAdapterLike {
+    function getAmountCanBeSent(uint32 dstEid) external view returns (uint256 amountInFlight, uint256 amountCanBeSent);
     function inboundRateLimits(uint32 dstEid) external view returns (uint128 lastUpdated, uint48 window, uint256 amountInFlight, uint256 limit);
     function outboundRateLimits(uint32 srcEid) external view returns (uint128 lastUpdated, uint48 window, uint256 amountInFlight, uint256 limit);
     function paused() external view returns (bool);
@@ -1517,6 +1518,7 @@ contract DssSpellTest is DssSpellTestBase {
     // SPELL-SPECIFIC TESTS GO BELOW
 
     uint32  internal constant SOLANA_EID = 30168;
+    uint32  internal constant AVALANCHE_EID = 30106;
     uint256 internal constant MAX_LZ_GOV_BRIDGE_NATIVE_FEE = 0.01 ether;
 
     bytes32 internal constant SOLANA_OFT_PROGRAM = 0x067c7c6c60ba7f1aec14059100df74d6da07e7d31da5dd756c6308f02e661649;
@@ -1671,4 +1673,23 @@ contract DssSpellTest is DssSpellTestBase {
         spell.cast();
     }
 
+    function testEthereumToAvalancheUsdsFlowDisabled() public {
+        SolanaSkyOFTAdapterLike usdsOft = SolanaSkyOFTAdapterLike(addr.addr("USDS_OFT"));
+
+        ( , , , uint256 avalancheOutboundLimit) = usdsOft.outboundRateLimits(AVALANCHE_EID);
+        ( , uint256 avalancheAmountCanBeSent) = usdsOft.getAmountCanBeSent(AVALANCHE_EID);
+
+        assertGt(avalancheOutboundLimit, 0, "AvalancheUSDS/non-positive-outbound-limit-before-spell");
+        assertGt(avalancheAmountCanBeSent, 0, "AvalancheUSDS/non-positive-amount-can-be-sent-before-spell");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        ( , , , uint256 avalancheOutboundLimitAfter) = usdsOft.outboundRateLimits(AVALANCHE_EID);
+        ( , uint256 avalancheAmountCanBeSentAfter) = usdsOft.getAmountCanBeSent(AVALANCHE_EID);
+
+        assertEq(avalancheOutboundLimitAfter, 0, "AvalancheUSDS/invalid-outbound-limit-after-spell");
+        assertEq(avalancheAmountCanBeSentAfter, 0, "AvalancheUSDS/invalid-amount-can-be-sent-after-spell");
+    }
 }
