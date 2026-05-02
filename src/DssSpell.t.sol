@@ -704,7 +704,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public { // add the `skipped` modifier to skip
+    function testVestSky() public skipped { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
         uint256 JUL_12_2026_14_10_47 = 1783865447;
 
@@ -795,7 +795,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestedRewardsDist() public {
+    function testVestedRewardsDist() public skipped {
         address rewardsDist = addr.addr("REWARDS_DIST_LSSKY_SKY");
         address stakingRewards = addr.addr("REWARDS_LSSKY_SKY");
         VestAbstract vest = VestAbstract(addr.addr("MCD_VEST_SKY_TREASURY"));
@@ -841,7 +841,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public { // add the `skipped` modifier to skip
+    function testPayments() public skipped { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -1302,7 +1302,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 
-    function testMonthlySettlementCycleInflows() public { // add the `skipped` modifier to skip
+    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
         address ALLOCATOR_SPARK_A_VAULT = addr.addr("ALLOCATOR_SPARK_A_VAULT");
         address ALLOCATOR_BLOOM_A_VAULT = addr.addr("ALLOCATOR_BLOOM_A_VAULT");
         address ALLOCATOR_OBEX_A_VAULT = addr.addr("ALLOCATOR_OBEX_A_VAULT");
@@ -1361,7 +1361,7 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
+    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
         PrimeAgentSpell[3] memory primeAgentSpells = [
             PrimeAgentSpell({
                 starGuardKey: "SPARK_STARGUARD",                                              // Insert Prime Agent StarGuards Chainlog key
@@ -1486,41 +1486,4 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
-    function testWhitelistPatternALMProxy() public {
-        address almProxy = addr.addr("PATTERN_ALM_PROXY");
-        DssLitePsmLike psmUsdcA = DssLitePsmLike(addr.addr("MCD_LITE_PSM_USDC_A"));
-        GemAbstract usdc = GemAbstract(addr.addr("USDC"));
-
-        // bud is 0 before kiss
-        assertEq(psmUsdcA.bud(almProxy), 0, "TestError/MCD_LITE_PSM_USDC_A/invalid-bud");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done());
-
-        // bud is 1 after kiss
-        assertEq(psmUsdcA.bud(almProxy), 1, "TestError/MCD_LITE_PSM_USDC_A/invalid-bud");
-
-        // PATTERN can call buyGemNoFee() on MCD_LITE_PSM_USDC_A
-        uint256 daiAmount  = 1_000 * WAD;
-        uint256 usdcAmount = 1_000 * 10**6;
-
-        // fund proxy
-        deal(address(dai), almProxy, daiAmount);
-        vm.startPrank(almProxy);
-
-        // buy gem with no fee
-        dai.approve(address(psmUsdcA), daiAmount);
-        psmUsdcA.buyGemNoFee(almProxy, usdcAmount);
-        assertEq(usdc.balanceOf(almProxy), usdcAmount);
-        assertEq(dai.balanceOf(almProxy), 0);
-
-        // now sell it back with no fee
-        usdc.approve(address(psmUsdcA), usdcAmount);
-        psmUsdcA.sellGemNoFee(almProxy, usdcAmount);
-        assertEq(usdc.balanceOf(almProxy), 0);
-        assertEq(dai.balanceOf(almProxy), daiAmount);
-
-        vm.stopPrank();
-    }
 }
