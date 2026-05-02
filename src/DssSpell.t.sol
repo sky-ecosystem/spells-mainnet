@@ -40,6 +40,36 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
+struct SolanaTxParams {
+    uint32 dstEid;
+    bytes32 dstTarget;
+    bytes dstCallData;
+    bytes extraOptions;
+}
+
+struct SolanaMessagingFee {
+    uint256 nativeFee;
+    uint256 lzTokenFee;
+}
+
+interface SolanaGovernanceOAppSenderLike {
+    function canCallTarget(address _srcSender, uint32 _dstEid, bytes32 _dstTarget) external view returns (bool);
+    function quoteTx(SolanaTxParams memory txParams, bool payInLzToken) external view returns (SolanaMessagingFee memory);
+}
+
+interface SolanaL1GovernanceRelayLike {
+    function l1Oapp() external view returns (address);
+    function relayRaw(SolanaTxParams calldata txParams, SolanaMessagingFee calldata fee, address refundAddress) external payable;
+    function wards(address usr) external view returns (uint256);
+}
+
+interface SolanaSkyOFTAdapterLike {
+    function inboundRateLimits(uint32 dstEid) external view returns (uint128 lastUpdated, uint48 window, uint256 amountInFlight, uint256 limit);
+    function outboundRateLimits(uint32 srcEid) external view returns (uint128 lastUpdated, uint48 window, uint256 amountInFlight, uint256 limit);
+    function paused() external view returns (bool);
+    function rateLimitAccountingType() external view returns (uint8);
+}
+
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -1485,5 +1515,160 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
+
+    uint32  internal constant SOLANA_EID = 30168;
+    uint256 internal constant MAX_LZ_GOV_BRIDGE_NATIVE_FEE = 0.01 ether;
+
+    bytes32 internal constant SOLANA_OFT_PROGRAM = 0x067c7c6c60ba7f1aec14059100df74d6da07e7d31da5dd756c6308f02e661649;
+
+    bytes internal constant LZ_GOV_BRIDGE_EXTRA_OPTIONS =
+        hex"000301002101000000000000000000000000003d0900000000000000000000000000003d0900";
+
+    bytes internal constant UNPAUSE_SOLANA_OFT_DST_CALL_DATA =
+        hex"00026370695f617574686f726974790000000000000000000000000000000000000001009825dc0cbeaf22836931c00cb891592f0a96d0dc6a65a4c67992b01e0db8d12200013f209a0238674f2d00";
+
+    bytes internal constant SET_SOLANA_INBOUND_RATE_LIMIT_DST_CALL_DATA =
+        hex"00046370695f617574686f72697479000000000000000000000000000000000000000101b15b6cea974229517bec70478d3f574b4010444df812d75f6ca722fc0fa3256800019825dc0cbeaf22836931c00cb891592f0a96d0dc6a65a4c67992b01e0db8d1220000000000000000000000000000000000000000000000000000000000000000000000004fbba8398b8c5d2f95750000040101220873030000000001005039278c0400000100";
+
+    bytes internal constant SET_SOLANA_OUTBOUND_RATE_LIMIT_DST_CALL_DATA =
+        hex"00046370695f617574686f72697479000000000000000000000000000000000000000101b15b6cea974229517bec70478d3f574b4010444df812d75f6ca722fc0fa3256800019825dc0cbeaf22836931c00cb891592f0a96d0dc6a65a4c67992b01e0db8d1220000000000000000000000000000000000000000000000000000000000000000000000004fbba8398b8c5d2f95750000030101220873030000000001005039278c0400000100";
+
+    function _afterSetUp() internal override {
+        vm.deal(addr.addr("LZ_GOV_RELAY"), MAX_LZ_GOV_BRIDGE_NATIVE_FEE);
+    }
+
+    function testSolanaGovTxFees() public view {
+        SolanaGovernanceOAppSenderLike lzGovSender = SolanaGovernanceOAppSenderLike(addr.addr("LZ_GOV_SENDER"));
+
+        SolanaMessagingFee memory unpauseFee = lzGovSender.quoteTx(SolanaTxParams({
+            dstEid: SOLANA_EID,
+            dstTarget: SOLANA_OFT_PROGRAM,
+            dstCallData: UNPAUSE_SOLANA_OFT_DST_CALL_DATA,
+            extraOptions: LZ_GOV_BRIDGE_EXTRA_OPTIONS
+        }), false);
+        SolanaMessagingFee memory inboundRateLimitFee = lzGovSender.quoteTx(SolanaTxParams({
+            dstEid: SOLANA_EID,
+            dstTarget: SOLANA_OFT_PROGRAM,
+            dstCallData: SET_SOLANA_INBOUND_RATE_LIMIT_DST_CALL_DATA,
+            extraOptions: LZ_GOV_BRIDGE_EXTRA_OPTIONS
+        }), false);
+        SolanaMessagingFee memory outboundRateLimitFee = lzGovSender.quoteTx(SolanaTxParams({
+            dstEid: SOLANA_EID,
+            dstTarget: SOLANA_OFT_PROGRAM,
+            dstCallData: SET_SOLANA_OUTBOUND_RATE_LIMIT_DST_CALL_DATA,
+            extraOptions: LZ_GOV_BRIDGE_EXTRA_OPTIONS
+        }), false);
+
+        assertEq(unpauseFee.lzTokenFee, 0, "SolanaBridge/unpause-nonzero-lz-token-fee");
+        assertEq(inboundRateLimitFee.lzTokenFee, 0, "SolanaBridge/inbound-nonzero-lz-token-fee");
+        assertEq(outboundRateLimitFee.lzTokenFee, 0, "SolanaBridge/outbound-nonzero-lz-token-fee");
+        assertGt(unpauseFee.nativeFee, 0, "SolanaBridge/unpause-zero-native-fee");
+        assertGt(inboundRateLimitFee.nativeFee, 0, "SolanaBridge/inbound-zero-native-fee");
+        assertGt(outboundRateLimitFee.nativeFee, 0, "SolanaBridge/outbound-zero-native-fee");
+
+        assertLe(
+            unpauseFee.nativeFee + inboundRateLimitFee.nativeFee + outboundRateLimitFee.nativeFee,
+            MAX_LZ_GOV_BRIDGE_NATIVE_FEE,
+            "SolanaBridge/native-fee-too-high"
+        );
+    }
+
+    function testSolanaBridgeUnpause() public {
+        SolanaSkyOFTAdapterLike usdsOft = SolanaSkyOFTAdapterLike(addr.addr("USDS_OFT"));
+        SolanaGovernanceOAppSenderLike lzGovSender = SolanaGovernanceOAppSenderLike(addr.addr("LZ_GOV_SENDER"));
+
+        // Pre-state checks
+        {
+            SolanaL1GovernanceRelayLike lzGovRelay = SolanaL1GovernanceRelayLike(addr.addr("LZ_GOV_RELAY"));
+
+            assertEq(lzGovRelay.l1Oapp(), addr.addr("LZ_GOV_SENDER"), "SolanaBridge/l1-oapp-mismatch");
+            assertEq(lzGovRelay.wards(addr.addr("MCD_PAUSE_PROXY")), 1, "SolanaBridge/pause-proxy-not-ward");
+            assertFalse(
+                lzGovSender.canCallTarget(addr.addr("LZ_GOV_RELAY"), SOLANA_EID, SOLANA_OFT_PROGRAM),
+                "SolanaBridge/can-call-target-enabled-before-spell"
+            );
+            assertTrue(usdsOft.paused(), "SolanaBridge/usds-oft-not-paused");
+            assertEq(usdsOft.rateLimitAccountingType(), 0, "SolanaBridge/invalid-accounting-type");
+
+            ( , uint48 inboundWindow, , uint256 inboundLimit) = usdsOft.inboundRateLimits(SOLANA_EID);
+            ( , uint48 outboundWindow, , uint256 outboundLimit) = usdsOft.outboundRateLimits(SOLANA_EID);
+
+            assertEq(inboundWindow, 1 days, "SolanaBridge/invalid-inbound-window-before-spell");
+            assertEq(outboundWindow, 1 days, "SolanaBridge/invalid-outbound-window-before-spell");
+            assertEq(inboundLimit, 10_000_000 * WAD, "SolanaBridge/invalid-inbound-limit-before-spell");
+            assertEq(outboundLimit, 10_000_000 * WAD, "SolanaBridge/invalid-outbound-limit-before-spell");
+        }
+
+        // Solana message checks
+        {
+            SolanaTxParams memory unpauseParams = SolanaTxParams({
+                dstEid: SOLANA_EID,
+                dstTarget: SOLANA_OFT_PROGRAM,
+                dstCallData: UNPAUSE_SOLANA_OFT_DST_CALL_DATA,
+                extraOptions: LZ_GOV_BRIDGE_EXTRA_OPTIONS
+            });
+            SolanaTxParams memory inboundRateLimitParams = SolanaTxParams({
+                dstEid: SOLANA_EID,
+                dstTarget: SOLANA_OFT_PROGRAM,
+                dstCallData: SET_SOLANA_INBOUND_RATE_LIMIT_DST_CALL_DATA,
+                extraOptions: LZ_GOV_BRIDGE_EXTRA_OPTIONS
+            });
+            SolanaTxParams memory outboundRateLimitParams = SolanaTxParams({
+                dstEid: SOLANA_EID,
+                dstTarget: SOLANA_OFT_PROGRAM,
+                dstCallData: SET_SOLANA_OUTBOUND_RATE_LIMIT_DST_CALL_DATA,
+                extraOptions: LZ_GOV_BRIDGE_EXTRA_OPTIONS
+            });
+
+            SolanaMessagingFee memory unpauseFee = lzGovSender.quoteTx(unpauseParams, false);
+            SolanaMessagingFee memory inboundRateLimitFee = lzGovSender.quoteTx(inboundRateLimitParams, false);
+            SolanaMessagingFee memory outboundRateLimitFee = lzGovSender.quoteTx(outboundRateLimitParams, false);
+
+            vm.expectCall(
+                addr.addr("LZ_GOV_RELAY"),
+                abi.encodeCall(SolanaL1GovernanceRelayLike.relayRaw, (unpauseParams, unpauseFee, addr.addr("LZ_GOV_RELAY")))
+            );
+            vm.expectCall(
+                addr.addr("LZ_GOV_RELAY"),
+                abi.encodeCall(SolanaL1GovernanceRelayLike.relayRaw, (inboundRateLimitParams, inboundRateLimitFee, addr.addr("LZ_GOV_RELAY")))
+            );
+            vm.expectCall(
+                addr.addr("LZ_GOV_RELAY"),
+                abi.encodeCall(SolanaL1GovernanceRelayLike.relayRaw, (outboundRateLimitParams, outboundRateLimitFee, addr.addr("LZ_GOV_RELAY")))
+            );
+        }
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // Post-state checks
+        {
+            assertTrue(
+                lzGovSender.canCallTarget(addr.addr("LZ_GOV_RELAY"), SOLANA_EID, SOLANA_OFT_PROGRAM),
+                "SolanaBridge/can-call-target-not-enabled"
+            );
+            assertFalse(usdsOft.paused(), "SolanaBridge/usds-oft-still-paused");
+
+            ( , uint48 inboundWindowAfter, , uint256 inboundLimitAfter) = usdsOft.inboundRateLimits(SOLANA_EID);
+            ( , uint48 outboundWindowAfter, , uint256 outboundLimitAfter) = usdsOft.outboundRateLimits(SOLANA_EID);
+
+            assertEq(inboundWindowAfter, 1 days, "SolanaBridge/invalid-inbound-window-after-spell");
+            assertEq(outboundWindowAfter, 1 days, "SolanaBridge/invalid-outbound-window-after-spell");
+            assertEq(inboundLimitAfter, 5_000_000 * WAD, "SolanaBridge/invalid-inbound-limit-after-spell");
+            assertEq(outboundLimitAfter, 5_000_000 * WAD, "SolanaBridge/invalid-outbound-limit-after-spell");
+        }
+    }
+
+    function testSolanaBridgeUnpauseRevertsWhenRelayUnfunded() public {
+        vm.deal(addr.addr("LZ_GOV_RELAY"), 0);
+
+        _vote(address(spell));
+        spell.schedule();
+        vm.warp(spell.nextCastTime());
+
+        vm.expectRevert();
+        spell.cast();
+    }
 
 }
