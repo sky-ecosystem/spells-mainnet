@@ -1517,6 +1517,12 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
+    // FIXME: required because LZ_GOV_RELAY is expected to be pre-funded for a successfull execution.
+    // Ideally this should be removed once the first funding is done, so it actually fails if there are not enough funds in the contract.
+    function _afterSetUp() internal override {
+        vm.deal(addr.addr("LZ_GOV_RELAY"), MAX_LZ_GOV_BRIDGE_NATIVE_FEE);
+    }
+
     uint32  internal constant SOLANA_EID = 30168;
     uint32  internal constant AVALANCHE_EID = 30106;
     uint256 internal constant MAX_LZ_GOV_BRIDGE_NATIVE_FEE = 0.001 ether;
@@ -1534,10 +1540,6 @@ contract DssSpellTest is DssSpellTestBase {
 
     bytes internal constant SET_SOLANA_OUTBOUND_RATE_LIMIT_DST_CALL_DATA =
         hex"00046370695f617574686f72697479000000000000000000000000000000000000000101b15b6cea974229517bec70478d3f574b4010444df812d75f6ca722fc0fa3256800019825dc0cbeaf22836931c00cb891592f0a96d0dc6a65a4c67992b01e0db8d1220000000000000000000000000000000000000000000000000000000000000000000000004fbba8398b8c5d2f95750000030101220873030000000001005039278c0400000100";
-
-    function _afterSetUp() internal override {
-        vm.deal(addr.addr("LZ_GOV_RELAY"), MAX_LZ_GOV_BRIDGE_NATIVE_FEE);
-    }
 
     function testSolanaGovTxFees() public view {
         SolanaGovernanceOAppSenderLike lzGovSender = SolanaGovernanceOAppSenderLike(addr.addr("LZ_GOV_SENDER"));
