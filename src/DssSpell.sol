@@ -93,6 +93,8 @@ contract DssSpellAction is DssAction {
     address internal immutable LZ_GOV_RELAY           = DssExecLib.getChangelogAddress("LZ_GOV_RELAY");
     address internal immutable MCD_PAUSE              = DssExecLib.getChangelogAddress("MCD_PAUSE");
     address internal immutable REWARDS_DIST_LSSKY_SKY = DssExecLib.getChangelogAddress("REWARDS_DIST_LSSKY_SKY");
+    address internal immutable SPARK_STARGUARD        = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
+    address internal immutable GROVE_STARGUARD        = DssExecLib.getChangelogAddress("GROVE_STARGUARD");
 
     // ---------- LayerZero Solana Bridge ----------
     uint32  internal constant SOLANA_EID = 30168;
@@ -116,6 +118,15 @@ contract DssSpellAction is DssAction {
 
     bytes internal constant SET_SOLANA_OUTBOUND_RATE_LIMIT_DST_CALL_DATA =
         hex"00046370695f617574686f72697479000000000000000000000000000000000000000101b15b6cea974229517bec70478d3f574b4010444df812d75f6ca722fc0fa3256800019825dc0cbeaf22836931c00cb891592f0a96d0dc6a65a4c67992b01e0db8d1220000000000000000000000000000000000000000000000000000000000000000000000004fbba8398b8c5d2f95750000030101220873030000000001005039278c0400000100";
+
+    // ---------- Spark Proxy Spell ----------
+    // TODO: Spark will update this
+    address internal constant SPARK_SPELL      = 0xEB98fEA67472F40a3dEDf9c6eEd70FB7b14A091d;
+    bytes32 internal constant SPARK_SPELL_HASH = 0x1fddaf310905c804e27da6467bb9d7ba015b60c90a0392b6413e1fb3da676938;
+
+    // ---------- Grove Proxy Spell ----------
+    address internal constant GROVE_SPELL      = 0x8EF80aBDa108a23eA01C8A3D1F5C8B49DD2008e8;
+    bytes32 internal constant GROVE_SPELL_HASH = 0x9e8672cc4807d1acac2c63390b2afad3248c109aa4252f4dc5e81a0c95624de7;
 
     function actions() public override {
 
@@ -344,6 +355,28 @@ contract DssSpellAction is DssAction {
             // vestTau: 90 days
             vestTau: 90 days
         }));
+
+        // ---------- Spark Proxy Spell ----------
+        // Forum: https://forum.skyeco.com/t/may-7-2026-proposed-changes-to-spark-for-upcoming-spell/27870
+        // Atlas: https://sky-atlas.io/#6029a425-ad81-46c5-866d-94e2ff663873
+        // Atlas: https://sky-atlas.io/#6a4870fa-73f1-4d49-b7ee-d531fb59a971
+        // Atlas: https://sky-atlas.io/#b69158da-476a-4d4b-b7ef-2f8b96b73d23
+        // Atlas: https://sky-atlas.io/#ea73f176-0b94-4e93-b1ee-ca498ac5a6c6
+        // Poll: https://snapshot.org/#/s:sparkfi.eth/proposal/0x2912831b683f5461d7bb4a5702c63ff8d2a4ff93d4422ce0cca0ef29f4a3509c
+        // Poll: https://snapshot.org/#/s:sparkfi.eth/proposal/0x710eb6996204b3df1eedd19d2f8bea9d0d69cdfa85a31c514527d9c212686348
+        // Poll: https://snapshot.org/#/s:sparkfi.eth/proposal/0x7909f554a2f33155e234788382927f9af0d4dd5a4808349bc0ff57c2ab8b5ce0
+        // Poll: https://snapshot.org/#/s:sparkfi.eth/proposal/0xa72495fc832baced4d2285928e2ca6ff906d7ff88c4dceaaa2d8c4aa6bdfdbdc
+
+        // Whitelist Spark spell with address 0xEB98fEA67472F40a3dEDf9c6eEd70FB7b14A091d and codehash 0x1fddaf310905c804e27da6467bb9d7ba015b60c90a0392b6413e1fb3da676938 in SPARK_STARGUARD, direct execution: No
+        StarGuardLike(SPARK_STARGUARD).plot(SPARK_SPELL, SPARK_SPELL_HASH);
+
+        // ---------- Grove Proxy Spell ----------
+        // Forum: https://forum.skyeco.com/t/may-7-2026-proposed-changes-to-grove-for-upcoming-spell/27858
+        // Poll: https://vote.sky.money/polling/QmToMBbA
+
+        // Whitelist Grove spell with address 0x8EF80aBDa108a23eA01C8A3D1F5C8B49DD2008e8 and codehash 0x9e8672cc4807d1acac2c63390b2afad3248c109aa4252f4dc5e81a0c95624de7 in GROVE_STARGUARD, direct execution: No
+        StarGuardLike(GROVE_STARGUARD).plot(GROVE_SPELL, GROVE_SPELL_HASH);
+
         // ---------- Additional Executive Sheet Actions ----------
         // TODO
     }

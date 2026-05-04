@@ -1394,24 +1394,18 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
-        PrimeAgentSpell[3] memory primeAgentSpells = [
+    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
+        PrimeAgentSpell[2] memory primeAgentSpells = [
             PrimeAgentSpell({
                 starGuardKey: "SPARK_STARGUARD",                                              // Insert Prime Agent StarGuards Chainlog key
-                addr: 0x160158d029697FEa486dF8968f3Be17a706dF0F0,                             // Insert Prime Agent spell address
-                codehash: 0x96a0d4068774d80f3790f489aa1bbd37e45d6a019161743ad00eaf61e26466b6, // Insert Prime Agent spell codehash
+                addr: 0xEB98fEA67472F40a3dEDf9c6eEd70FB7b14A091d,                             // Insert Prime Agent spell address
+                codehash: 0x1fddaf310905c804e27da6467bb9d7ba015b60c90a0392b6413e1fb3da676938, // Insert Prime Agent spell codehash
                 directExecutionEnabled: false                                                 // Set to true if the Prime Agent spell is executed directly from core spell
             }),
             PrimeAgentSpell({
                 starGuardKey: "GROVE_STARGUARD",
-                addr: 0x76Ba24676e1055D3E6b160086f0bc9BaffF76929,
-                codehash: 0x43fa1611223445715e33c2ad7baf836cb4c8a00a0ede6fff428b742baefa12c6,
-                directExecutionEnabled: false
-            }),
-            PrimeAgentSpell({
-                starGuardKey: "PATTERN_STARGUARD",
-                addr: 0x31831aE3C13f72afcCcf0aAF49b6f9319ed9C4C0,
-                codehash: 0x1478866625ae91e3ca50fa4ff871f5721862e24b9428f15f49b093cc3305587b,
+                addr: 0x8EF80aBDa108a23eA01C8A3D1F5C8B49DD2008e8,
+                codehash: 0x9e8672cc4807d1acac2c63390b2afad3248c109aa4252f4dc5e81a0c95624de7,
                 directExecutionEnabled: false
             })
         ];
