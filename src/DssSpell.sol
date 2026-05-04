@@ -39,10 +39,6 @@ struct MessagingFee {
     uint256 lzTokenFee;
 }
 
-interface StarGuardLike {
-    function plot(address addr_, bytes32 tag_) external;
-}
-
 interface SkyOFTAdapterLike {
     function setRateLimits(RateLimitConfig[] calldata _rateLimitConfigsInbound, RateLimitConfig[] calldata _rateLimitConfigsOutbound) external;
     function unpause() external;
@@ -55,6 +51,14 @@ interface GovernanceOAppSenderLike {
 
 interface L1GovernanceRelayLike {
     function relayRaw(TxParams calldata txParams, MessagingFee calldata fee, address refundAddress) external payable;
+}
+
+interface PauseLike {
+    function setDelay(uint256) external;
+}
+
+interface StarGuardLike {
+    function plot(address addr_, bytes32 tag_) external;
 }
 
 contract DssSpellAction is DssAction {
@@ -87,6 +91,7 @@ contract DssSpellAction is DssAction {
     address internal immutable USDS_OFT      = DssExecLib.getChangelogAddress("USDS_OFT");
     address internal immutable LZ_GOV_SENDER = DssExecLib.getChangelogAddress("LZ_GOV_SENDER");
     address internal immutable LZ_GOV_RELAY  = DssExecLib.getChangelogAddress("LZ_GOV_RELAY");
+    address internal immutable MCD_PAUSE              = DssExecLib.getChangelogAddress("MCD_PAUSE");
 
     // ---------- LayerZero Solana Bridge ----------
     uint32  internal constant SOLANA_EID = 30168;
@@ -284,6 +289,13 @@ contract DssSpellAction is DssAction {
         // uint48 window being 86,400 (1 day)
         // uint256 limit being 0
         SkyOFTAdapterLike(USDS_OFT).setRateLimits(avalancheInboundRateLimits, avalancheOutboundRateLimits);
+
+        // ---------- Increase GSM Pause Delay  ----------
+        // Forum: https://forum.skyeco.com/t/atlas-edit-weekly-cycle-proposal-week-of-2026-04-27/27864
+        // Poll: https://vote.sky.money/polling/QmToMBbA
+
+        // Increase GSM Pause Delay by 24 hours from 24 hours to 48 hours
+        PauseLike(MCD_PAUSE).setDelay(48 hours);
 
         // ---------- Additional Executive Sheet Actions ----------
         // TODO
