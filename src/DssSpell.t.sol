@@ -1517,12 +1517,6 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
-    // FIXME: required because LZ_GOV_RELAY is expected to be pre-funded for a successfull execution.
-    // Ideally this should be removed once the first funding is done, so it actually fails if there are not enough funds in the contract.
-    function _afterSetUp() internal override {
-        vm.deal(addr.addr("LZ_GOV_RELAY"), MAX_LZ_GOV_BRIDGE_NATIVE_FEE);
-    }
-
     uint32  internal constant SOLANA_EID = 30168;
     uint32  internal constant AVALANCHE_EID = 30106;
     uint256 internal constant MAX_LZ_GOV_BRIDGE_NATIVE_FEE = 0.001 ether;
