@@ -297,6 +297,37 @@ contract DssSpellAction is DssAction {
         // Increase GSM Pause Delay by 24 hours from 24 hours to 48 hours
         PauseLike(MCD_PAUSE).setDelay(48 hours);
 
+        // ---------- Monthly Settlement Cycle for April 2026 ----------
+        // Forum: https://forum.skyeco.com/t/msc-8-settlement-summary-april-2026/27888
+        // Atlas: https://sky-atlas.io/#6f8d5065-d6ff-4add-9a28-eadeffa7ed1a
+
+        // Mint 9,179,021 USDS debt in ALLOCATOR-SPARK-A and transfer the amount to the surplus buffer.
+        // TODO
+
+        // Send 1,512,762 USDS from the surplus buffer to the SPARK_SUBPROXY
+        // TODO
+
+        // Mint 9,385,986 USDS debt in ALLOCATOR-BLOOM-A and transfer the amount to the surplus buffer.
+        // TODO
+
+        // Send 241,690 USDS from the surplus buffer to the GROVE_SUBPROXY
+        // TODO
+
+        // Send 30,056 USDS from the surplus buffer to the KEEL_SUBPROXY
+        // TODO
+
+        // Mint 1,969,499 USDS debt in ALLOCATOR-OBEX-A and transfer the amount to the surplus buffer.
+        // TODO
+
+        // Send 64,862 USDS from the surplus buffer to the OBEX_SUBPROXY
+        // TODO
+
+        // Send 201,469 USDS from the surplus buffer to the SKYBASE_SUBPROXY
+        // TODO
+
+        // Transfer 3,144,308 USDS from the Surplus Buffer to the Core Council Buffer (0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364)
+        // TODO
+
         // ---------- Additional Executive Sheet Actions ----------
         // TODO
     }
