@@ -275,7 +275,6 @@ contract DssSpellAction is DssAction {
             limit: 0
         });
 
-        // TODO: update once the exec sheet is filled
         // Disable Ethereum -> Avalanche USDS flow
         // Call USDS_OFT.setRateLimits with:
         // USDS_OFT being 0x1e1D42781FC170EF9da004Fb735f56F0276d01B8 from chainlog
