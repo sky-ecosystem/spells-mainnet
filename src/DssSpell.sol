@@ -91,16 +91,16 @@ contract DssSpellAction is DssAction {
     // ---------- LayerZero Solana Bridge ----------
     uint32  internal constant SOLANA_EID = 30168;
     uint32  internal constant AVALANCHE_EID = 30106;
-    uint256 internal constant MAX_LZ_GOV_BRIDGE_NATIVE_FEE = 0.01 ether;
+    uint256 internal constant MAX_LZ_GOV_BRIDGE_NATIVE_FEE = 0.001 ether;
 
     // Note: Solana OFT program ID SKYTAiJRkgexqQqFoqhXdCANyfziwrVrzjhBaCzdbKW encoded as bytes32.
     bytes32 internal constant SOLANA_OFT_PROGRAM = 0x067c7c6c60ba7f1aec14059100df74d6da07e7d31da5dd756c6308f02e661649;
 
     // Note: LayerZero Type 3 options:
-    //  - optionsType: 3, workerId: 1 (Executor), optionSize: 33 (optionType + gas + value), optionType: 1 (LZRECEIVE),
-    //  - gas: 4_000_000, value: 4_000_000.
+    //  - optionsType: 3, workerId: 1 (Executor), optionSize: 17 (optionType + gas), optionType: 1 (LZRECEIVE),
+    //  - gas: 600_000. value is omitted by the zero-value encoding.
     bytes internal constant LZ_GOV_BRIDGE_EXTRA_OPTIONS =
-        hex"000301002101000000000000000000000000003d0900000000000000000000000000003d0900";
+        hex"000301001101000000000000000000000000000927c0";
 
     bytes internal constant UNPAUSE_SOLANA_OFT_DST_CALL_DATA =
         hex"00026370695f617574686f726974790000000000000000000000000000000000000001009825dc0cbeaf22836931c00cb891592f0a96d0dc6a65a4c67992b01e0db8d12200013f209a0238674f2d00";
@@ -209,13 +209,13 @@ contract DssSpellAction is DssAction {
         // (Solana OFT program ID encoded as bytes32)
         // bytes dstCallData being:
         // 0x00026370695f617574686f726974790000000000000000000000000000000000000001009825dc0cbeaf22836931c00cb891592f0a96d0dc6a65a4c67992b01e0db8d12200013f209a0238674f2d00
-        // bytes extraOptions being LayerZero Type 3 options encoded via abi.encodePacked as 0x000301002101000000000000000000000000003d0900000000000000000000000000003d0900:
+        // bytes extraOptions being LayerZero Type 3 options encoded via abi.encodePacked as 0x000301001101000000000000000000000000000927c0:
         // uint16 optionsType being 3
         // uint8 workerId being 1 (Executor)
-        // uint16 optionSize being 33 (1 byte for optionType + 16 bytes for _gas + 16 bytes for _value)
+        // uint16 optionSize being 17 (1 byte for optionType + 16 bytes for _gas; _value is omitted by the zero-value encoding)
         // uint8 optionType being 1 (LZRECEIVE)
-        // uint128 _gas being 4_000_000
-        // uint128 _value being 4_000_000
+        // uint128 _gas being 600_000
+        // uint128 _value being 0
         // MessagingFee fee being the result of LZ_GOV_SENDER.quoteTx(txParams, false)
         // address refundAddress being 0x2beBFe397D497b66cB14461cB6ee467b4C3B7D61 (LZ_GOV_RELAY from chainlog)
         // msg.value being 0, with LZ_GOV_RELAY paying fee.nativeFee from its pre-funded ETH balance
@@ -231,13 +231,13 @@ contract DssSpellAction is DssAction {
         // (Solana OFT program ID encoded as bytes32)
         // bytes dstCallData being:
         // 0x00046370695f617574686f72697479000000000000000000000000000000000000000101b15b6cea974229517bec70478d3f574b4010444df812d75f6ca722fc0fa3256800019825dc0cbeaf22836931c00cb891592f0a96d0dc6a65a4c67992b01e0db8d1220000000000000000000000000000000000000000000000000000000000000000000000004fbba8398b8c5d2f95750000040101220873030000000001005039278c0400000100
-        // bytes extraOptions being LayerZero Type 3 options encoded via abi.encodePacked as 0x000301002101000000000000000000000000003d0900000000000000000000000000003d0900:
+        // bytes extraOptions being LayerZero Type 3 options encoded via abi.encodePacked as 0x000301001101000000000000000000000000000927c0:
         // uint16 optionsType being 3
         // uint8 workerId being 1 (Executor)
-        // uint16 optionSize being 33 (1 byte for optionType + 16 bytes for _gas + 16 bytes for _value)
+        // uint16 optionSize being 17 (1 byte for optionType + 16 bytes for _gas; _value is omitted by the zero-value encoding)
         // uint8 optionType being 1 (LZRECEIVE)
-        // uint128 _gas being 4_000_000
-        // uint128 _value being 4_000_000
+        // uint128 _gas being 600_000
+        // uint128 _value being 0
         // MessagingFee fee being the result of LZ_GOV_SENDER.quoteTx(txParams, false)
         // address refundAddress being 0x2beBFe397D497b66cB14461cB6ee467b4C3B7D61 (LZ_GOV_RELAY from chainlog)
         // msg.value being 0, with LZ_GOV_RELAY paying fee.nativeFee from its pre-funded ETH balance
@@ -253,13 +253,13 @@ contract DssSpellAction is DssAction {
         // (Solana OFT program ID encoded as bytes32)
         // bytes dstCallData being:
         // 0x00046370695f617574686f72697479000000000000000000000000000000000000000101b15b6cea974229517bec70478d3f574b4010444df812d75f6ca722fc0fa3256800019825dc0cbeaf22836931c00cb891592f0a96d0dc6a65a4c67992b01e0db8d1220000000000000000000000000000000000000000000000000000000000000000000000004fbba8398b8c5d2f95750000030101220873030000000001005039278c0400000100
-        // bytes extraOptions being LayerZero Type 3 options encoded via abi.encodePacked as 0x000301002101000000000000000000000000003d0900000000000000000000000000003d0900:
+        // bytes extraOptions being LayerZero Type 3 options encoded via abi.encodePacked as 0x000301001101000000000000000000000000000927c0:
         // uint16 optionsType being 3
         // uint8 workerId being 1 (Executor)
-        // uint16 optionSize being 33 (1 byte for optionType + 16 bytes for _gas + 16 bytes for _value)
+        // uint16 optionSize being 17 (1 byte for optionType + 16 bytes for _gas; _value is omitted by the zero-value encoding)
         // uint8 optionType being 1 (LZRECEIVE)
-        // uint128 _gas being 4_000_000
-        // uint128 _value being 4_000_000
+        // uint128 _gas being 600_000
+        // uint128 _value being 0
         // MessagingFee fee being the result of LZ_GOV_SENDER.quoteTx(txParams, false)
         // address refundAddress being 0x2beBFe397D497b66cB14461cB6ee467b4C3B7D61 (LZ_GOV_RELAY from chainlog)
         // msg.value being 0, with LZ_GOV_RELAY paying fee.nativeFee from its pre-funded ETH balance
