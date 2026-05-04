@@ -88,10 +88,11 @@ contract DssSpellAction is DssAction {
     uint256 internal constant WAD = 10 ** 18;
 
     // ---------- Contracts ----------
-    address internal immutable USDS_OFT      = DssExecLib.getChangelogAddress("USDS_OFT");
-    address internal immutable LZ_GOV_SENDER = DssExecLib.getChangelogAddress("LZ_GOV_SENDER");
-    address internal immutable LZ_GOV_RELAY  = DssExecLib.getChangelogAddress("LZ_GOV_RELAY");
+    address internal immutable USDS_OFT               = DssExecLib.getChangelogAddress("USDS_OFT");
+    address internal immutable LZ_GOV_SENDER          = DssExecLib.getChangelogAddress("LZ_GOV_SENDER");
+    address internal immutable LZ_GOV_RELAY           = DssExecLib.getChangelogAddress("LZ_GOV_RELAY");
     address internal immutable MCD_PAUSE              = DssExecLib.getChangelogAddress("MCD_PAUSE");
+    address internal immutable REWARDS_DIST_LSSKY_SKY = DssExecLib.getChangelogAddress("REWARDS_DIST_LSSKY_SKY");
 
     // ---------- LayerZero Solana Bridge ----------
     uint32  internal constant SOLANA_EID = 30168;
@@ -328,6 +329,21 @@ contract DssSpellAction is DssAction {
         // Transfer 3,144,308 USDS from the Surplus Buffer to the Core Council Buffer (0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364)
         // TODO
 
+        // ---------- Staking Rewards Update ----------
+        // Forum: https://forum.skyeco.com/t/lssky-to-sky-rewards-sky-rewards-for-sky-stakers-normalization-configuration/27721/19
+        // Atlas: https://sky-atlas.io/#293e4c9f-1e26-4d4b-b769-650a02eca8b8
+
+        // Update LSSKY->SKY Farm vest by calling `TreasuryFundedFarmingInit.updateFarmVest()` with params:
+        TreasuryFundedFarmingInit.updateFarmVest(FarmingUpdateVestParams({
+            // dist: 0x675671A8756dDb69F7254AFB030865388Ef699Ee
+            dist: REWARDS_DIST_LSSKY_SKY,
+            // vestTot: 239,982,804 SKY
+            vestTot: 239_982_804 * WAD,
+            // vestBgn: block.timestamp
+            vestBgn: block.timestamp,
+            // vestTau: 90 days
+            vestTau: 90 days
+        }));
         // ---------- Additional Executive Sheet Actions ----------
         // TODO
     }

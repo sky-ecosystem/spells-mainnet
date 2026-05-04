@@ -735,16 +735,16 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public skipped { // add the `skipped` modifier to skip
+    function testVestSky() public { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
-        uint256 JUL_12_2026_14_10_47 = 1783865447;
+        uint256 JUL_26_2026_14_02_59 = 1785074579;
 
         uint256 spellCastTime = _getSpellCastTime();
 
         // Build expected new stream
         NewVestStream[] memory newStreams = new NewVestStream[](1);
         newStreams[0] = NewVestStream({
-            id:  12,
+            id:  13,
             usr: addr.addr("REWARDS_DIST_LSSKY_SKY"),
             bgn: spellCastTime,
             clf: spellCastTime,
@@ -752,15 +752,15 @@ contract DssSpellTest is DssSpellTestBase {
             tau: 90 days,
             mgr: address(0),
             res: 1,
-            tot: 53_960_949 * WAD,
+            tot: 239_982_804 * WAD,
             rxd: 0 // Amount already claimed
         });
 
         // For each yanked stream, provide Stream object and initialize the array with the current number of yanked streams
         YankedVestStream[] memory yankedStreams = new YankedVestStream[](1);
         yankedStreams[0] = YankedVestStream({
-            id:  11,
-            fin: JUL_12_2026_14_10_47,
+            id:  12,
+            fin: JUL_26_2026_14_02_59,
             end: spellCastTime
         });
 
@@ -826,16 +826,18 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestedRewardsDist() public skipped {
+    function testVestedRewardsDist() public {
+        uint256 expectedVestIdBefore = 12;
+        uint256 expectedVestIdAfter = 13;
+
         address rewardsDist = addr.addr("REWARDS_DIST_LSSKY_SKY");
         address stakingRewards = addr.addr("REWARDS_LSSKY_SKY");
         VestAbstract vest = VestAbstract(addr.addr("MCD_VEST_SKY_TREASURY"));
-        uint256 expectedVestId = 11;
 
-        uint256 vestId = VestedRewardsDistributionLike(rewardsDist).vestId();
-        assertEq(vestId, expectedVestId, "TestError/rewards-dist-lssky-sky-invalid-vest-id-before");
+        uint256 vestIdBefore = VestedRewardsDistributionLike(rewardsDist).vestId();
+        assertEq(vestIdBefore, expectedVestIdBefore, "TestError/rewards-dist-lssky-sky-invalid-vest-id-before");
 
-        uint256 unpaidAmount = vest.unpaid(expectedVestId);
+        uint256 unpaidAmount = vest.unpaid(expectedVestIdBefore);
         assertTrue(unpaidAmount > 0, "TestError/rewards-dist-lssky-sky-unpaid-zero-early");
 
         _checkVestedRewardsDistributionRevertEdgeCase(rewardsDist);
@@ -844,12 +846,12 @@ contract DssSpellTest is DssSpellTestBase {
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        unpaidAmount = vest.unpaid(expectedVestId);
+        unpaidAmount = vest.unpaid(expectedVestIdBefore);
         assertEq(unpaidAmount, 0, "TestError/rewards-dist-lssky-sky-unpaid-not-cleared");
 
         // Check newly set vestId if updated
-        vestId = VestedRewardsDistributionLike(rewardsDist).vestId();
-        assertEq(vestId, 12, "TestError/rewards-dist-lssky-sky-invalid-vest-id-after");
+        uint256 vestIdAfter = VestedRewardsDistributionLike(rewardsDist).vestId();
+        assertEq(vestIdAfter, expectedVestIdAfter, "TestError/rewards-dist-lssky-sky-invalid-vest-id-after");
 
         assertEq(StakingRewardsLike(stakingRewards).lastUpdateTime(), block.timestamp, "TestError/rewards-lssky-sky-invalid-last-update-time");
     }
