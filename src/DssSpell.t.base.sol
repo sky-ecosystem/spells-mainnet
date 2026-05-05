@@ -890,6 +890,12 @@ contract DssSpellTestBase is Config, DssTest {
         _;
     }
 
+    modifier withSnapshot() {
+        uint256 before = vm.snapshotState();
+        _;
+        vm.revertToStateAndDelete(before);
+    }
+
     // 10^-5 (tenth of a basis point) as a RAY
     uint256 TOLERANCE = 10 ** 22;
 
@@ -1010,14 +1016,10 @@ contract DssSpellTestBase is Config, DssTest {
      *      It MUST be called before the spell is cast, otherwise it will revert.
      * @return spellCastTime
      */
-    function _getSpellCastTime() internal returns (uint256 spellCastTime) {
-        uint256 beforeVote = vm.snapshotState();
-
+    function _getSpellCastTime() internal withSnapshot() returns (uint256 spellCastTime) {
         _vote(address(spell));
         spell.schedule();
         spellCastTime = spell.nextCastTime();
-
-        vm.revertToStateAndDelete(beforeVote);
     }
 
     function _checkSystemValues(SystemValues storage values) internal {
@@ -3101,7 +3103,7 @@ contract DssSpellTestBase is Config, DssTest {
         }
     }
 
-    function _checkNewVestStream(VestInst memory _vi, NewVestStream memory _ns) internal {
+    function _checkNewVestStream(VestInst memory _vi, NewVestStream memory _ns) internal withSnapshot() {
         assertEq(_vi.vest.usr(_ns.id), _ns.usr,           string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_ns.id), "/invalid-usr"));
         assertEq(_vi.vest.bgn(_ns.id), _ns.bgn,           string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_ns.id), "/invalid-bgn"));
         assertEq(_vi.vest.clf(_ns.id), _ns.clf,           string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_ns.id), "/invalid-clf"));
@@ -3112,29 +3114,21 @@ contract DssSpellTestBase is Config, DssTest {
         assertEq(_vi.vest.tot(_ns.id), _ns.tot,           string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_ns.id), "/invalid-tot"));
         assertEq(_vi.vest.rxd(_ns.id), _ns.rxd,           string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_ns.id), "/invalid-rxd"));
 
-        {
-            uint256 before = vm.snapshotState();
+        // Check each new stream is payable in the future
+        uint256 pbalance = _vi.gem.balanceOf(_ns.usr);
+        GodMode.setWard(address(_vi.vest), address(this), 1);
+        _vi.vest.unrestrict(_ns.id);
 
-            // Check each new stream is payable in the future
-            uint256 pbalance = _vi.gem.balanceOf(_ns.usr);
-            GodMode.setWard(address(_vi.vest), address(this), 1);
-            _vi.vest.unrestrict(_ns.id);
+        vm.warp(_ns.fin);
 
-            vm.warp(_ns.fin);
-
-            // Set balance of pauseProxy to the total amount of the stream to ensure the stream is payable
-            GodMode.setBalance(address(sky), pauseProxy, _ns.tot);
-            _vi.vest.vest(_ns.id);
-            assertEq(
-                _vi.gem.balanceOf(_ns.usr),
-                pbalance + _ns.tot - _ns.rxd,
-                string.concat("TestError/Vest/", _vi.name, ".", _uintToString(_ns.id), "/invalid-received-amount")
-            );
-
-            vm.revertToState(before);
-        }
-
-        vm.deleteStateSnapshots();
+        // Set balance of pauseProxy to the total amount of the stream to ensure the stream is payable
+        GodMode.setBalance(address(sky), pauseProxy, _ns.tot);
+        _vi.vest.vest(_ns.id);
+        assertEq(
+            _vi.gem.balanceOf(_ns.usr),
+            pbalance + _ns.tot - _ns.rxd,
+            string.concat("TestError/Vest/", _vi.name, ".", _uintToString(_ns.id), "/invalid-received-amount")
+        );
     }
 
     function _checkYankedVestStream(VestInst memory _vi, YankedVestStream memory _ys, uint256 spellCastTime) internal view {
@@ -3152,9 +3146,7 @@ contract DssSpellTestBase is Config, DssTest {
 
     function _checkVestedRewardsDistributionRevertEdgeCase(
         address vestedRewardsDistribution
-    ) internal {
-        uint256 before = vm.snapshotState();
-
+    ) internal withSnapshot() {
         _vote(address(spell));
         DssSpell(spell).schedule();
         vm.warp(DssSpell(spell).nextCastTime());
@@ -3168,8 +3160,6 @@ contract DssSpellTestBase is Config, DssTest {
         // even after `distribute()` is called before the spell in the same block
         DssSpell(spell).cast();
         vm.stopPrank();
-
-        vm.revertToStateAndDelete(before);
     }
 
     function _checkTransferrableVestAllowanceAndBalance(
@@ -4168,7 +4158,7 @@ contract DssSpellTestBase is Config, DssTest {
         address primeAgentSpell,
         bytes32 primeAgentSpellHash,
         bool directExecutionEnabled
-    ) internal {
+    ) internal withSnapshot() {
         // Sanity check with passed parameters
         {
             bytes32 deployedSpellHash = primeAgentSpell.codehash;

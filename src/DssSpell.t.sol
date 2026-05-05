@@ -1414,7 +1414,6 @@ contract DssSpellTest is DssSpellTestBase {
             })
         ];
 
-        uint256 before = vm.snapshotState();
 
         for (uint256 i = 0; i < primeAgentSpells.length; i++) {
             _testStarGuardExecution({
@@ -1423,8 +1422,6 @@ contract DssSpellTest is DssSpellTestBase {
                 primeAgentSpellHash: primeAgentSpells[i].codehash,
                 directExecutionEnabled: primeAgentSpells[i].directExecutionEnabled
             });
-
-            vm.revertToState(before);
         }
     }
 
