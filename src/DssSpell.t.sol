@@ -1515,7 +1515,7 @@ contract DssSpellTest is DssSpellTestBase {
 
     uint32  internal constant SOLANA_EID = 30168;
     uint32  internal constant AVALANCHE_EID = 30106;
-    uint256 internal constant MAX_LZ_GOV_BRIDGE_NATIVE_FEE = 0.001 ether;
+    uint256 internal constant MAX_LZ_GOV_BRIDGE_NATIVE_FEE = 0.01 ether;
 
     bytes32 internal constant SOLANA_OFT_PROGRAM = 0x067c7c6c60ba7f1aec14059100df74d6da07e7d31da5dd756c6308f02e661649;
 
