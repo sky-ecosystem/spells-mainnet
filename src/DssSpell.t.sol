@@ -40,30 +40,30 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
-struct SolanaTxParams {
+struct TxParams {
     uint32 dstEid;
     bytes32 dstTarget;
     bytes dstCallData;
     bytes extraOptions;
 }
 
-struct SolanaMessagingFee {
+struct MessagingFee {
     uint256 nativeFee;
     uint256 lzTokenFee;
 }
 
-interface SolanaGovernanceOAppSenderLike {
+interface GovernanceOAppSenderLike {
     function canCallTarget(address _srcSender, uint32 _dstEid, bytes32 _dstTarget) external view returns (bool);
-    function quoteTx(SolanaTxParams memory txParams, bool payInLzToken) external view returns (SolanaMessagingFee memory);
+    function quoteTx(TxParams memory txParams, bool payInLzToken) external view returns (MessagingFee memory);
 }
 
-interface SolanaL1GovernanceRelayLike {
+interface L1GovernanceRelayLike {
     function l1Oapp() external view returns (address);
-    function relayRaw(SolanaTxParams calldata txParams, SolanaMessagingFee calldata fee, address refundAddress) external payable;
+    function relayRaw(TxParams calldata txParams, MessagingFee calldata fee, address refundAddress) external payable;
     function wards(address usr) external view returns (uint256);
 }
 
-interface SolanaSkyOFTAdapterLike {
+interface SkyOFTAdapterLike {
     function getAmountCanBeSent(uint32 dstEid) external view returns (uint256 amountInFlight, uint256 amountCanBeSent);
     function inboundRateLimits(uint32 dstEid) external view returns (uint128 lastUpdated, uint48 window, uint256 amountInFlight, uint256 limit);
     function outboundRateLimits(uint32 srcEid) external view returns (uint128 lastUpdated, uint48 window, uint256 amountInFlight, uint256 limit);
@@ -1536,21 +1536,21 @@ contract DssSpellTest is DssSpellTestBase {
         hex"00046370695f617574686f72697479000000000000000000000000000000000000000101b15b6cea974229517bec70478d3f574b4010444df812d75f6ca722fc0fa3256800019825dc0cbeaf22836931c00cb891592f0a96d0dc6a65a4c67992b01e0db8d1220000000000000000000000000000000000000000000000000000000000000000000000004fbba8398b8c5d2f95750000030101220873030000000001005039278c0400000100";
 
     function testSolanaGovTxFees() public view {
-        SolanaGovernanceOAppSenderLike lzGovSender = SolanaGovernanceOAppSenderLike(addr.addr("LZ_GOV_SENDER"));
+        GovernanceOAppSenderLike lzGovSender = GovernanceOAppSenderLike(addr.addr("LZ_GOV_SENDER"));
 
-        SolanaMessagingFee memory unpauseFee = lzGovSender.quoteTx(SolanaTxParams({
+        MessagingFee memory unpauseFee = lzGovSender.quoteTx(TxParams({
             dstEid: SOLANA_EID,
             dstTarget: SOLANA_OFT_PROGRAM,
             dstCallData: UNPAUSE_SOLANA_OFT_DST_CALL_DATA,
             extraOptions: LZ_GOV_BRIDGE_EXTRA_OPTIONS
         }), false);
-        SolanaMessagingFee memory inboundRateLimitFee = lzGovSender.quoteTx(SolanaTxParams({
+        MessagingFee memory inboundRateLimitFee = lzGovSender.quoteTx(TxParams({
             dstEid: SOLANA_EID,
             dstTarget: SOLANA_OFT_PROGRAM,
             dstCallData: SET_SOLANA_INBOUND_RATE_LIMIT_DST_CALL_DATA,
             extraOptions: LZ_GOV_BRIDGE_EXTRA_OPTIONS
         }), false);
-        SolanaMessagingFee memory outboundRateLimitFee = lzGovSender.quoteTx(SolanaTxParams({
+        MessagingFee memory outboundRateLimitFee = lzGovSender.quoteTx(TxParams({
             dstEid: SOLANA_EID,
             dstTarget: SOLANA_OFT_PROGRAM,
             dstCallData: SET_SOLANA_OUTBOUND_RATE_LIMIT_DST_CALL_DATA,
@@ -1572,12 +1572,12 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     function testSolanaBridgeUnpause() public {
-        SolanaSkyOFTAdapterLike usdsOft = SolanaSkyOFTAdapterLike(addr.addr("USDS_OFT"));
-        SolanaGovernanceOAppSenderLike lzGovSender = SolanaGovernanceOAppSenderLike(addr.addr("LZ_GOV_SENDER"));
+        SkyOFTAdapterLike usdsOft = SkyOFTAdapterLike(addr.addr("USDS_OFT"));
+        GovernanceOAppSenderLike lzGovSender = GovernanceOAppSenderLike(addr.addr("LZ_GOV_SENDER"));
 
         // Pre-state checks
         {
-            SolanaL1GovernanceRelayLike lzGovRelay = SolanaL1GovernanceRelayLike(addr.addr("LZ_GOV_RELAY"));
+            L1GovernanceRelayLike lzGovRelay = L1GovernanceRelayLike(addr.addr("LZ_GOV_RELAY"));
 
             assertEq(lzGovRelay.l1Oapp(), addr.addr("LZ_GOV_SENDER"), "SolanaBridge/l1-oapp-mismatch");
             assertEq(lzGovRelay.wards(addr.addr("MCD_PAUSE_PROXY")), 1, "SolanaBridge/pause-proxy-not-ward");
@@ -1599,40 +1599,40 @@ contract DssSpellTest is DssSpellTestBase {
 
         // Solana message checks
         {
-            SolanaTxParams memory unpauseParams = SolanaTxParams({
+            TxParams memory unpauseParams = TxParams({
                 dstEid: SOLANA_EID,
                 dstTarget: SOLANA_OFT_PROGRAM,
                 dstCallData: UNPAUSE_SOLANA_OFT_DST_CALL_DATA,
                 extraOptions: LZ_GOV_BRIDGE_EXTRA_OPTIONS
             });
-            SolanaTxParams memory inboundRateLimitParams = SolanaTxParams({
+            TxParams memory inboundRateLimitParams = TxParams({
                 dstEid: SOLANA_EID,
                 dstTarget: SOLANA_OFT_PROGRAM,
                 dstCallData: SET_SOLANA_INBOUND_RATE_LIMIT_DST_CALL_DATA,
                 extraOptions: LZ_GOV_BRIDGE_EXTRA_OPTIONS
             });
-            SolanaTxParams memory outboundRateLimitParams = SolanaTxParams({
+            TxParams memory outboundRateLimitParams = TxParams({
                 dstEid: SOLANA_EID,
                 dstTarget: SOLANA_OFT_PROGRAM,
                 dstCallData: SET_SOLANA_OUTBOUND_RATE_LIMIT_DST_CALL_DATA,
                 extraOptions: LZ_GOV_BRIDGE_EXTRA_OPTIONS
             });
 
-            SolanaMessagingFee memory unpauseFee = lzGovSender.quoteTx(unpauseParams, false);
-            SolanaMessagingFee memory inboundRateLimitFee = lzGovSender.quoteTx(inboundRateLimitParams, false);
-            SolanaMessagingFee memory outboundRateLimitFee = lzGovSender.quoteTx(outboundRateLimitParams, false);
+            MessagingFee memory unpauseFee = lzGovSender.quoteTx(unpauseParams, false);
+            MessagingFee memory inboundRateLimitFee = lzGovSender.quoteTx(inboundRateLimitParams, false);
+            MessagingFee memory outboundRateLimitFee = lzGovSender.quoteTx(outboundRateLimitParams, false);
 
             vm.expectCall(
                 addr.addr("LZ_GOV_RELAY"),
-                abi.encodeCall(SolanaL1GovernanceRelayLike.relayRaw, (unpauseParams, unpauseFee, addr.addr("LZ_GOV_RELAY")))
+                abi.encodeCall(L1GovernanceRelayLike.relayRaw, (unpauseParams, unpauseFee, addr.addr("LZ_GOV_RELAY")))
             );
             vm.expectCall(
                 addr.addr("LZ_GOV_RELAY"),
-                abi.encodeCall(SolanaL1GovernanceRelayLike.relayRaw, (inboundRateLimitParams, inboundRateLimitFee, addr.addr("LZ_GOV_RELAY")))
+                abi.encodeCall(L1GovernanceRelayLike.relayRaw, (inboundRateLimitParams, inboundRateLimitFee, addr.addr("LZ_GOV_RELAY")))
             );
             vm.expectCall(
                 addr.addr("LZ_GOV_RELAY"),
-                abi.encodeCall(SolanaL1GovernanceRelayLike.relayRaw, (outboundRateLimitParams, outboundRateLimitFee, addr.addr("LZ_GOV_RELAY")))
+                abi.encodeCall(L1GovernanceRelayLike.relayRaw, (outboundRateLimitParams, outboundRateLimitFee, addr.addr("LZ_GOV_RELAY")))
             );
         }
 
@@ -1712,7 +1712,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     function testEthereumToAvalancheUsdsFlowDisabled() public {
-        SolanaSkyOFTAdapterLike usdsOft = SolanaSkyOFTAdapterLike(addr.addr("USDS_OFT"));
+        SkyOFTAdapterLike usdsOft = SkyOFTAdapterLike(addr.addr("USDS_OFT"));
 
         ( , , , uint256 avalancheOutboundLimit) = usdsOft.outboundRateLimits(AVALANCHE_EID);
         ( , uint256 avalancheAmountCanBeSent) = usdsOft.getAmountCanBeSent(AVALANCHE_EID);

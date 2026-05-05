@@ -96,7 +96,7 @@ contract DssSpellAction is DssAction {
     address internal immutable SPARK_STARGUARD        = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
     address internal immutable GROVE_STARGUARD        = DssExecLib.getChangelogAddress("GROVE_STARGUARD");
 
-    // ---------- LayerZero Solana Bridge ----------
+    // ---------- LayerZero Bridge ----------
     uint32  internal constant SOLANA_EID = 30168;
     uint32  internal constant AVALANCHE_EID = 30106;
     uint256 internal constant MAX_LZ_GOV_BRIDGE_NATIVE_FEE = 0.01 ether;
