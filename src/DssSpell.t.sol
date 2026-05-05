@@ -1665,6 +1665,48 @@ contract DssSpellTest is DssSpellTestBase {
         spell.cast();
     }
 
+    function testSolanaBridgeRelayOrder() public {
+        _vote(address(spell));
+        spell.schedule();
+        vm.warp(spell.nextCastTime());
+
+        vm.recordLogs();
+        spell.cast();
+
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 packetSentTopic = keccak256("PacketSent(bytes,bytes,address)");
+        uint256 packetIndex;
+
+        for (uint256 i = 0; i < entries.length; i++) {
+            if (entries[i].topics.length == 0 || entries[i].topics[0] != packetSentTopic) continue;
+
+            (bytes memory encodedPayload, , ) = abi.decode(entries[i].data, (bytes, bytes, address));
+
+            if (packetIndex == 0) {
+                assertTrue(_bytesEndsWith(encodedPayload, SET_SOLANA_INBOUND_RATE_LIMIT_DST_CALL_DATA), "SolanaBridge/invalid-first-packet");
+            } else if (packetIndex == 1) {
+                assertTrue(_bytesEndsWith(encodedPayload, SET_SOLANA_OUTBOUND_RATE_LIMIT_DST_CALL_DATA), "SolanaBridge/invalid-second-packet");
+            } else if (packetIndex == 2) {
+                assertTrue(_bytesEndsWith(encodedPayload, UNPAUSE_SOLANA_OFT_DST_CALL_DATA), "SolanaBridge/invalid-third-packet");
+            }
+
+            packetIndex++;
+        }
+
+        assertEq(packetIndex, 3, "SolanaBridge/invalid-packet-count");
+    }
+
+    function _bytesEndsWith(bytes memory data, bytes memory suffix) internal pure returns (bool) {
+        if (data.length < suffix.length) return false;
+
+        uint256 offset = data.length - suffix.length;
+        for (uint256 i = 0; i < suffix.length; i++) {
+            if (data[offset + i] != suffix[i]) return false;
+        }
+
+        return true;
+    }
+
     function testEthereumToAvalancheUsdsFlowDisabled() public {
         SolanaSkyOFTAdapterLike usdsOft = SolanaSkyOFTAdapterLike(addr.addr("USDS_OFT"));
 

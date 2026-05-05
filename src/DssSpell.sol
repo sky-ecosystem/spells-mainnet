@@ -211,34 +211,16 @@ contract DssSpellAction is DssAction {
 
         uint256 totalNativeFee = unpauseFee.nativeFee + inboundRateLimitFee.nativeFee + outboundRateLimitFee.nativeFee;
 
-        // Note: enforce that the execution upper bound for the relayRaw call is not exceeded.
+        // Set the max execution budget for bridging the Solana payloads to 0.01 ETH
         require(totalNativeFee <= MAX_LZ_GOV_BRIDGE_NATIVE_FEE, "lz-gov-bridge-fee-too-high");
         // Note: enforce that LZ_GOV_RELAY has enough ETH to pay for the relayRaw call.
         require(LZ_GOV_RELAY.balance >= totalNativeFee, "lz-gov-relay-insufficient-eth");
 
-        // Unpause Solana Sky OFT
-        // Call LZ_GOV_RELAY.relayRaw with:
-        // LZ_GOV_RELAY being 0x2beBFe397D497b66cB14461cB6ee467b4C3B7D61 from chainlog
-        // LZ_GOV_SENDER being 0x27FC1DD771817b53bE48Dc28789533BEa53C9CCA from chainlog
-        // TxParams txParams:
-        // uint32 dstEid being 30168 (Solana Mainnet Eid)
-        // bytes32 dstTarget being 0x067c7c6c60ba7f1aec14059100df74d6da07e7d31da5dd756c6308f02e661649
-        // (Solana OFT program ID encoded as bytes32)
-        // bytes dstCallData being:
-        // 0x00026370695f617574686f726974790000000000000000000000000000000000000001009825dc0cbeaf22836931c00cb891592f0a96d0dc6a65a4c67992b01e0db8d12200013f209a0238674f2d00
-        // bytes extraOptions being LayerZero Type 3 options encoded via abi.encodePacked as 0x000301001101000000000000000000000000000927c0:
-        // uint16 optionsType being 3
-        // uint8 workerId being 1 (Executor)
-        // uint16 optionSize being 17 (1 byte for optionType + 16 bytes for _gas; _value is omitted by the zero-value encoding)
-        // uint8 optionType being 1 (LZRECEIVE)
-        // uint128 _gas being 600_000
-        // uint128 _value being 0
-        // MessagingFee fee being the result of LZ_GOV_SENDER.quoteTx(txParams, false)
-        // address refundAddress being 0x2beBFe397D497b66cB14461cB6ee467b4C3B7D61 (LZ_GOV_RELAY from chainlog)
-        // msg.value being 0, with LZ_GOV_RELAY paying fee.nativeFee from its pre-funded ETH balance
-        L1GovernanceRelayLike(LZ_GOV_RELAY).relayRaw(unpauseParams, unpauseFee, LZ_GOV_RELAY);
-
         // Set Solana inbound rate limit for Ethereum -> Solana
+        // Intended parameters:
+        // refill per second: 57_870_370
+        // capacity: 5_000_000_000_000
+        // rate_limiter_type: net
         // Call LZ_GOV_RELAY.relayRaw with:
         // LZ_GOV_RELAY being 0x2beBFe397D497b66cB14461cB6ee467b4C3B7D61 from chainlog
         // LZ_GOV_SENDER being 0x27FC1DD771817b53bE48Dc28789533BEa53C9CCA from chainlog
@@ -261,6 +243,10 @@ contract DssSpellAction is DssAction {
         L1GovernanceRelayLike(LZ_GOV_RELAY).relayRaw(inboundRateLimitParams, inboundRateLimitFee, LZ_GOV_RELAY);
 
         // Set Solana outbound rate limit for Solana -> Ethereum
+        // Intended parameters:
+        // refill per second: 57_870_370
+        // capacity: 5_000_000_000_000
+        // rate_limiter_type: net
         // Call LZ_GOV_RELAY.relayRaw with:
         // LZ_GOV_RELAY being 0x2beBFe397D497b66cB14461cB6ee467b4C3B7D61 from chainlog
         // LZ_GOV_SENDER being 0x27FC1DD771817b53bE48Dc28789533BEa53C9CCA from chainlog
@@ -281,6 +267,28 @@ contract DssSpellAction is DssAction {
         // address refundAddress being 0x2beBFe397D497b66cB14461cB6ee467b4C3B7D61 (LZ_GOV_RELAY from chainlog)
         // msg.value being 0, with LZ_GOV_RELAY paying fee.nativeFee from its pre-funded ETH balance
         L1GovernanceRelayLike(LZ_GOV_RELAY).relayRaw(outboundRateLimitParams, outboundRateLimitFee, LZ_GOV_RELAY);
+
+        // Unpause Solana Sky OFT
+        // Call LZ_GOV_RELAY.relayRaw with:
+        // LZ_GOV_RELAY being 0x2beBFe397D497b66cB14461cB6ee467b4C3B7D61 from chainlog
+        // LZ_GOV_SENDER being 0x27FC1DD771817b53bE48Dc28789533BEa53C9CCA from chainlog
+        // TxParams txParams:
+        // uint32 dstEid being 30168 (Solana Mainnet Eid)
+        // bytes32 dstTarget being 0x067c7c6c60ba7f1aec14059100df74d6da07e7d31da5dd756c6308f02e661649
+        // (Solana OFT program ID encoded as bytes32)
+        // bytes dstCallData being:
+        // 0x00026370695f617574686f726974790000000000000000000000000000000000000001009825dc0cbeaf22836931c00cb891592f0a96d0dc6a65a4c67992b01e0db8d12200013f209a0238674f2d00
+        // bytes extraOptions being LayerZero Type 3 options encoded via abi.encodePacked as 0x000301001101000000000000000000000000000927c0:
+        // uint16 optionsType being 3
+        // uint8 workerId being 1 (Executor)
+        // uint16 optionSize being 17 (1 byte for optionType + 16 bytes for _gas; _value is omitted by the zero-value encoding)
+        // uint8 optionType being 1 (LZRECEIVE)
+        // uint128 _gas being 600_000
+        // uint128 _value being 0
+        // MessagingFee fee being the result of LZ_GOV_SENDER.quoteTx(txParams, false)
+        // address refundAddress being 0x2beBFe397D497b66cB14461cB6ee467b4C3B7D61 (LZ_GOV_RELAY from chainlog)
+        // msg.value being 0, with LZ_GOV_RELAY paying fee.nativeFee from its pre-funded ETH balance
+        L1GovernanceRelayLike(LZ_GOV_RELAY).relayRaw(unpauseParams, unpauseFee, LZ_GOV_RELAY);
 
         // Note: comments in the RateLimitConfig definitions are next to the setRateLimits call.
         RateLimitConfig[] memory avalancheInboundRateLimits = new RateLimitConfig[](0);
