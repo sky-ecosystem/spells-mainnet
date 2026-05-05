@@ -18,6 +18,9 @@ pragma solidity 0.8.16;
 
 import "dss-exec-lib/DssExec.sol";
 import "dss-exec-lib/DssAction.sol";
+import { JugAbstract } from "dss-interfaces/dss/JugAbstract.sol";
+import { VatAbstract } from "dss-interfaces/dss/VatAbstract.sol";
+import { GemAbstract } from "dss-interfaces/ERC/GemAbstract.sol";
 // Note: Code matches audited code (https://reports.chainsecurity.com/Sky/ChainSecurity_Sky_EndgameToolkit_Audit.pdf)
 import { TreasuryFundedFarmingInit, FarmingUpdateVestParams } from "./dependencies/endgame-toolkit/treasury-funded-farms/TreasuryFundedFarmingInit.sol";
 
@@ -57,6 +60,14 @@ interface PauseLike {
     function setDelay(uint256) external;
 }
 
+interface AllocatorVaultLike {
+    function ilk() external view returns (bytes32);
+}
+
+interface DaiUsdsLike {
+    function daiToUsds(address usr, uint256 wad) external;
+}
+
 interface StarGuardLike {
     function plot(address addr_, bytes32 tag_) external;
 }
@@ -86,15 +97,32 @@ contract DssSpellAction is DssAction {
 
     // ---------- Math ----------
     uint256 internal constant WAD = 10 ** 18;
+    uint256 internal constant RAY = 10 ** 27;
 
     // ---------- Contracts ----------
-    address internal immutable USDS_OFT               = DssExecLib.getChangelogAddress("USDS_OFT");
-    address internal immutable LZ_GOV_SENDER          = DssExecLib.getChangelogAddress("LZ_GOV_SENDER");
-    address internal immutable LZ_GOV_RELAY           = DssExecLib.getChangelogAddress("LZ_GOV_RELAY");
-    address internal immutable MCD_PAUSE              = DssExecLib.getChangelogAddress("MCD_PAUSE");
-    address internal immutable REWARDS_DIST_LSSKY_SKY = DssExecLib.getChangelogAddress("REWARDS_DIST_LSSKY_SKY");
-    address internal immutable SPARK_STARGUARD        = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
-    address internal immutable GROVE_STARGUARD        = DssExecLib.getChangelogAddress("GROVE_STARGUARD");
+    address internal immutable USDS_OFT                = DssExecLib.getChangelogAddress("USDS_OFT");
+    address internal immutable LZ_GOV_SENDER           = DssExecLib.getChangelogAddress("LZ_GOV_SENDER");
+    address internal immutable LZ_GOV_RELAY            = DssExecLib.getChangelogAddress("LZ_GOV_RELAY");
+    address internal immutable MCD_PAUSE               = DssExecLib.getChangelogAddress("MCD_PAUSE");
+    address internal immutable MCD_VAT                 = DssExecLib.vat();
+    address internal immutable MCD_VOW                 = DssExecLib.vow();
+    address internal immutable MCD_JUG                 = DssExecLib.jug();
+    address internal immutable DAI                     = DssExecLib.dai();
+    address internal immutable DAI_USDS                = DssExecLib.getChangelogAddress("DAI_USDS");
+    address internal immutable ALLOCATOR_SPARK_A_VAULT = DssExecLib.getChangelogAddress("ALLOCATOR_SPARK_A_VAULT");
+    address internal immutable ALLOCATOR_BLOOM_A_VAULT = DssExecLib.getChangelogAddress("ALLOCATOR_BLOOM_A_VAULT");
+    address internal immutable ALLOCATOR_OBEX_A_VAULT  = DssExecLib.getChangelogAddress("ALLOCATOR_OBEX_A_VAULT");
+    address internal immutable SPARK_SUBPROXY          = DssExecLib.getChangelogAddress("SPARK_SUBPROXY");
+    address internal immutable GROVE_SUBPROXY          = DssExecLib.getChangelogAddress("GROVE_SUBPROXY");
+    address internal immutable KEEL_SUBPROXY           = DssExecLib.getChangelogAddress("KEEL_SUBPROXY");
+    address internal immutable OBEX_SUBPROXY           = DssExecLib.getChangelogAddress("OBEX_SUBPROXY");
+    address internal immutable SKYBASE_SUBPROXY        = DssExecLib.getChangelogAddress("SKYBASE_SUBPROXY");
+    address internal immutable REWARDS_DIST_LSSKY_SKY  = DssExecLib.getChangelogAddress("REWARDS_DIST_LSSKY_SKY");
+    address internal immutable SPARK_STARGUARD         = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
+    address internal immutable GROVE_STARGUARD         = DssExecLib.getChangelogAddress("GROVE_STARGUARD");
+
+    // ---------- Wallets ----------
+    address internal constant CORE_COUNCIL_BUDGET_MULTISIG = 0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364;
 
     // ---------- LayerZero Bridge ----------
     uint32  internal constant SOLANA_EID = 30168;
@@ -320,31 +348,31 @@ contract DssSpellAction is DssAction {
         // Atlas: https://sky-atlas.io/#6f8d5065-d6ff-4add-9a28-eadeffa7ed1a
 
         // Mint 9,179,021 USDS debt in ALLOCATOR-SPARK-A and transfer the amount to the surplus buffer.
-        // TODO
+        _takeAllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 9_179_021 * WAD);
 
         // Send 1,512,762 USDS from the surplus buffer to the SPARK_SUBPROXY
-        // TODO
+        _transferUsds(SPARK_SUBPROXY, 1_512_762 * WAD);
 
         // Mint 9,385,986 USDS debt in ALLOCATOR-BLOOM-A and transfer the amount to the surplus buffer.
-        // TODO
+        _takeAllocatorPayment(ALLOCATOR_BLOOM_A_VAULT, 9_385_986 * WAD);
 
         // Send 241,690 USDS from the surplus buffer to the GROVE_SUBPROXY
-        // TODO
+        _transferUsds(GROVE_SUBPROXY, 241_690 * WAD);
 
         // Send 52,915 USDS from the surplus buffer to the KEEL_SUBPROXY
-        // TODO
+        _transferUsds(KEEL_SUBPROXY, 52_915 * WAD);
 
         // Mint 1,969,499 USDS debt in ALLOCATOR-OBEX-A and transfer the amount to the surplus buffer.
-        // TODO
+        _takeAllocatorPayment(ALLOCATOR_OBEX_A_VAULT, 1_969_499 * WAD);
 
         // Send 64,862 USDS from the surplus buffer to the OBEX_SUBPROXY
-        // TODO
+        _transferUsds(OBEX_SUBPROXY, 64_862 * WAD);
 
         // Send 201,469 USDS from the surplus buffer to the SKYBASE_SUBPROXY
-        // TODO
+        _transferUsds(SKYBASE_SUBPROXY, 201_469 * WAD);
 
         // Transfer 3,144,308 USDS from the Surplus Buffer to the Core Council Buffer (0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364)
-        // TODO
+        _transferUsds(CORE_COUNCIL_BUDGET_MULTISIG, 3_144_308 * WAD);
 
         // ---------- Staking Rewards Update ----------
         // Forum: https://forum.skyeco.com/t/lssky-to-sky-rewards-sky-rewards-for-sky-stakers-normalization-configuration/27721/19
@@ -373,7 +401,7 @@ contract DssSpellAction is DssAction {
         // Poll: https://snapshot.org/#/s:sparkfi.eth/proposal/0x7909f554a2f33155e234788382927f9af0d4dd5a4808349bc0ff57c2ab8b5ce0
         // Poll: https://snapshot.org/#/s:sparkfi.eth/proposal/0xa72495fc832baced4d2285928e2ca6ff906d7ff88c4dceaaa2d8c4aa6bdfdbdc
 
-        // Whitelist Spark spell with address 0xEB98fEA67472F40a3dEDf9c6eEd70FB7b14A091d and codehash 0x1fddaf310905c804e27da6467bb9d7ba015b60c90a0392b6413e1fb3da676938 in SPARK_STARGUARD, direct execution: No
+        // Whitelist Spark spell with address 0x84c5E704F7918812BA878ea7Ddbb1365876697C2 and codehash 0x8731ee32dbe70020716a1d7d6623881f52ed120f60bd4876ef39c5e25706f515 in SPARK_STARGUARD, direct execution: No
         StarGuardLike(SPARK_STARGUARD).plot(SPARK_SPELL, SPARK_SPELL_HASH);
 
         // ---------- Grove Proxy Spell ----------
@@ -383,10 +411,44 @@ contract DssSpellAction is DssAction {
         // Whitelist Grove spell with address 0x8EF80aBDa108a23eA01C8A3D1F5C8B49DD2008e8 and codehash 0x9e8672cc4807d1acac2c63390b2afad3248c109aa4252f4dc5e81a0c95624de7 in GROVE_STARGUARD, direct execution: No
         StarGuardLike(GROVE_STARGUARD).plot(GROVE_SPELL, GROVE_SPELL_HASH);
 
-        // ---------- Additional Executive Sheet Actions ----------
-        // TODO
     }
 
+    // ---------- Helper Functions ----------
+
+    /// @notice Wraps the operations required to transfer USDS from the surplus buffer.
+    /// @param usr The USDS receiver.
+    /// @param wad The USDS amount in wad precision (10 ** 18).
+    function _transferUsds(address usr, uint256 wad) internal {
+        // Note: Enforce whole units to avoid rounding errors
+        require(wad % WAD == 0, "transferUsds/non-integer-wad");
+        // Note: DssExecLib currently only supports Dai transfers from the surplus buffer.
+        DssExecLib.sendPaymentFromSurplusBuffer(address(this), wad / WAD);
+        // Note: Approve DAI_USDS for the amount sent to be able to convert it.
+        GemAbstract(DAI).approve(DAI_USDS, wad);
+        // Note: Convert Dai to USDS for `usr`.
+        DaiUsdsLike(DAI_USDS).daiToUsds(usr, wad);
+    }
+
+    /// @notice Wraps the operations required to take a payment from a Prime agent
+    /// @dev This function effectively increases the debt of the associated Allocator Vault,
+    ///      regardless if there is enough room in its debt ceiling.
+    /// @param vault The address of the allocator vault
+    /// @param wad The amount in wad precision (10 ** 18)
+    function _takeAllocatorPayment(address vault, uint256 wad) internal {
+        require(wad > 0, "takeAllocatorPayment/zero-amount");
+        bytes32 ilk = AllocatorVaultLike(vault).ilk();
+        uint256 rate = JugAbstract(MCD_JUG).drip(ilk);
+        require(rate > 0, "takeAllocatorPayment/jug-ilk-not-initialized");
+        // Note: divup - rounds up in favor of Core.
+        uint256 dart = ((wad * RAY - 1) / rate) + 1;
+        require(dart <= uint256(type(int256).max), "takeAllocatorPayment/dart-too-large");
+        // Note: Take the amount needed, but keep it in the Vow.
+        //       This basically generates both sin[vow] and dai[vow] at the same time.
+        VatAbstract(MCD_VAT).suck(MCD_VOW, MCD_VOW, dart * rate);
+        // Note: Increase the outstanding debt of the vault, while reducing sin[vow], canceling out the sin generated by vat.suck.
+        //       The net effect is that dai[vow] and urn[vault].art increase.
+        VatAbstract(MCD_VAT).grab(ilk, vault, address(0), MCD_VOW, 0, int256(dart));
+    }
 }
 
 contract DssSpell is DssExec {

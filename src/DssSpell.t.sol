@@ -874,7 +874,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public skipped { // add the `skipped` modifier to skip
+    function testPayments() public { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -884,21 +884,20 @@ contract DssSpellTest is DssSpellTestBase {
         //    the destination address,
         //    the amount to be paid
         // Initialize the array with the number of payees
-        Payee[7] memory payees = [
-            Payee(address(usds), addr.addr("SPARK_SUBPROXY"), 1_725_726 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("GROVE_SUBPROXY"), 138_412 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("KEEL_SUBPROXY"), 30_241 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("OBEX_SUBPROXY"), 69_793 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("SKYBASE_SUBPROXY"), 225_299 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG"), 678_176 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("CORE_COUNCIL_DELEGATE_MULTISIG"), 33_908 ether) // Note: ether is only a keyword helper
+        Payee[6] memory payees = [
+            Payee(address(usds), addr.addr("SPARK_SUBPROXY"),                  1_512_762 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("GROVE_SUBPROXY"),                    241_690 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("KEEL_SUBPROXY"),                      52_915 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("OBEX_SUBPROXY"),                      64_862 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("SKYBASE_SUBPROXY"),                  201_469 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG"), 3_144_308 ether) // Note: ether is only a keyword helper
         ];
 
         // Fill the total values from exec sheet
         PaymentAmounts memory expectedTotalPayments = PaymentAmounts({
             dai:           0 ether, // Note: ether is only a keyword helper
             mkr:           0 ether, // Note: ether is only a keyword helper
-            usds: 2_901_555 ether, // Note: ether is only a keyword helper
+            usds: 5_218_006 ether, // Note: ether is only a keyword helper
             sky:           0 ether  // Note: ether is only a keyword helper
         });
 
@@ -1335,18 +1334,18 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 
-    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
+    function testMonthlySettlementCycleInflows() public { // add the `skipped` modifier to skip
         address ALLOCATOR_SPARK_A_VAULT = addr.addr("ALLOCATOR_SPARK_A_VAULT");
         address ALLOCATOR_BLOOM_A_VAULT = addr.addr("ALLOCATOR_BLOOM_A_VAULT");
         address ALLOCATOR_OBEX_A_VAULT = addr.addr("ALLOCATOR_OBEX_A_VAULT");
 
         AllocatorPayment[3] memory payments = [
-            AllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 7_662_339 * WAD),
-            AllocatorPayment(ALLOCATOR_BLOOM_A_VAULT, 6_290_684 * WAD),
-            AllocatorPayment(ALLOCATOR_OBEX_A_VAULT, 2_075_648 * WAD)
+            AllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 9_179_021 * WAD),
+            AllocatorPayment(ALLOCATOR_BLOOM_A_VAULT, 9_385_986 * WAD),
+            AllocatorPayment(ALLOCATOR_OBEX_A_VAULT,  1_969_499 * WAD)
         ];
 
-        uint256 expectedTotalAmount = 16_028_671 * WAD;
+        uint256 expectedTotalAmount = 20_534_506 * WAD;
 
         MscIlkValues[] memory expectedValues = new MscIlkValues[](payments.length);
         uint256 totalDtab = 0;
