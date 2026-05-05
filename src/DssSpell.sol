@@ -121,8 +121,8 @@ contract DssSpellAction is DssAction {
 
     // ---------- Spark Proxy Spell ----------
     // TODO: Spark will update this
-    address internal constant SPARK_SPELL      = 0xEB98fEA67472F40a3dEDf9c6eEd70FB7b14A091d;
-    bytes32 internal constant SPARK_SPELL_HASH = 0x1fddaf310905c804e27da6467bb9d7ba015b60c90a0392b6413e1fb3da676938;
+    address internal constant SPARK_SPELL      = 0x84c5E704F7918812BA878ea7Ddbb1365876697C2;
+    bytes32 internal constant SPARK_SPELL_HASH = 0x8731ee32dbe70020716a1d7d6623881f52ed120f60bd4876ef39c5e25706f515;
 
     // ---------- Grove Proxy Spell ----------
     address internal constant GROVE_SPELL      = 0x8EF80aBDa108a23eA01C8A3D1F5C8B49DD2008e8;

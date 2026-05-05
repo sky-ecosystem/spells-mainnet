@@ -1397,10 +1397,14 @@ contract DssSpellTest is DssSpellTestBase {
     function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
         PrimeAgentSpell[2] memory primeAgentSpells = [
             PrimeAgentSpell({
-                starGuardKey: "SPARK_STARGUARD",                                              // Insert Prime Agent StarGuards Chainlog key
-                addr: 0xEB98fEA67472F40a3dEDf9c6eEd70FB7b14A091d,                             // Insert Prime Agent spell address
-                codehash: 0x1fddaf310905c804e27da6467bb9d7ba015b60c90a0392b6413e1fb3da676938, // Insert Prime Agent spell codehash
-                directExecutionEnabled: false                                                 // Set to true if the Prime Agent spell is executed directly from core spell
+                // Insert Prime Agent StarGuards Chainlog key
+                starGuardKey: "SPARK_STARGUARD",
+                // Insert Prime Agent spell address
+                addr: 0x84c5E704F7918812BA878ea7Ddbb1365876697C2,
+                // Insert Prime Agent spell codehash
+                codehash: 0x8731ee32dbe70020716a1d7d6623881f52ed120f60bd4876ef39c5e25706f515,
+                // Set to true if the Prime Agent spell is executed directly from core spell
+                directExecutionEnabled: false
             }),
             PrimeAgentSpell({
                 starGuardKey: "GROVE_STARGUARD",
