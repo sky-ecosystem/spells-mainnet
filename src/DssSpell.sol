@@ -332,7 +332,7 @@ contract DssSpellAction is DssAction {
         // Send 241,690 USDS from the surplus buffer to the GROVE_SUBPROXY
         // TODO
 
-        // Send 30,056 USDS from the surplus buffer to the KEEL_SUBPROXY
+        // Send 52,915 USDS from the surplus buffer to the KEEL_SUBPROXY
         // TODO
 
         // Mint 1,969,499 USDS debt in ALLOCATOR-OBEX-A and transfer the amount to the surplus buffer.
