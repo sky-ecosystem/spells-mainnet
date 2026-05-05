@@ -130,8 +130,7 @@ contract DssSpellAction is DssAction {
     function actions() public override {
 
         // ---------- Unpause Solana SkyLink Bridge ----------
-        // Forum: TODO
-        // Atlas: TODO
+        // Forum: https://forum.skyeco.com/t/technical-scope-unpausing-the-layerzero-solana-bridge/27894
 
         // Note: comments in the RateLimitConfig definitions are next to the setRateLimits call.
         RateLimitConfig[] memory inboundRateLimits = new RateLimitConfig[](1);
