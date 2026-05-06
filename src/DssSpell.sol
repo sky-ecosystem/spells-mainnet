@@ -239,6 +239,7 @@ contract DssSpellAction is DssAction {
 
         // Set the max execution budget for bridging the Solana payloads to 0.01 ETH
         require(totalNativeFee <= MAX_LZ_GOV_BRIDGE_NATIVE_FEE, "lz-gov-bridge-fee-too-high");
+
         // Note: enforce that LZ_GOV_RELAY has enough ETH to pay for the relayRaw call.
         require(LZ_GOV_RELAY.balance >= totalNativeFee, "lz-gov-relay-insufficient-eth");
 
