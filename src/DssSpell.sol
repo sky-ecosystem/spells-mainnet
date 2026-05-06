@@ -199,7 +199,7 @@ contract DssSpellAction is DssAction {
         // address _srcSender being 0x2beBFe397D497b66cB14461cB6ee467b4C3B7D61 (LZ_GOV_RELAY from chainlog)
         // uint32 _dstEid being 30168 (Solana Mainnet Eid)
         // bytes32 _dstTarget being 0x067c7c6c60ba7f1aec14059100df74d6da07e7d31da5dd756c6308f02e661649
-        // (Solana OFT program ID SKYTAiJRkgexqQqFoqhXdCANyfziwrVrzjhBaCzdbKW encoded as bytes32
+        // (Solana OFT program ID SKYTAiJRkgexqQqFoqhXdCANyfziwrVrzjhBaCzdbKW encoded as bytes32)
         // bool _canCall being true
         GovernanceOAppSenderLike(LZ_GOV_SENDER).setCanCallTarget(LZ_GOV_RELAY, SOLANA_EID, SOLANA_OFT_PROGRAM, true);
 
