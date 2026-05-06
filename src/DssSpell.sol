@@ -336,7 +336,7 @@ contract DssSpellAction is DssAction {
         // uint256 limit being 0
         SkyOFTAdapterLike(USDS_OFT).setRateLimits(avalancheInboundRateLimits, avalancheOutboundRateLimits);
 
-        // ---------- Increase GSM Pause Delay  ----------
+        // ---------- Increase GSM Pause Delay ----------
         // Forum: https://forum.skyeco.com/t/atlas-edit-weekly-cycle-proposal-week-of-2026-04-27/27864
         // Poll: https://vote.sky.money/polling/QmToMBbA
 

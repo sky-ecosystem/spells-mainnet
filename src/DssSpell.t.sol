@@ -52,6 +52,27 @@ struct MessagingFee {
     uint256 lzTokenFee;
 }
 
+struct MessagingReceipt {
+    bytes32 guid;
+    uint64 nonce;
+    MessagingFee fee;
+}
+
+struct OFTReceipt {
+    uint256 amountSentLD;
+    uint256 amountReceivedLD;
+}
+
+struct SendParam {
+    uint32 dstEid;
+    bytes32 to;
+    uint256 amountLD;
+    uint256 minAmountLD;
+    bytes extraOptions;
+    bytes composeMsg;
+    bytes oftCmd;
+}
+
 interface GovernanceOAppSenderLike {
     function canCallTarget(address _srcSender, uint32 _dstEid, bytes32 _dstTarget) external view returns (bool);
     function quoteTx(TxParams memory txParams, bool payInLzToken) external view returns (MessagingFee memory);
@@ -68,8 +89,13 @@ interface SkyOFTAdapterLike {
     function inboundRateLimits(uint32 dstEid) external view returns (uint128 lastUpdated, uint48 window, uint256 amountInFlight, uint256 limit);
     function outboundRateLimits(uint32 srcEid) external view returns (uint128 lastUpdated, uint48 window, uint256 amountInFlight, uint256 limit);
     function paused() external view returns (bool);
+    function quoteSend(SendParam memory _sendParam, bool _payInLzToken) external view returns (MessagingFee memory msgFee);
     function rateLimitAccountingType() external view returns (uint8);
+    function send(SendParam memory _sendParam, MessagingFee memory _fee, address _refundAddress)
+        external payable returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt);
 }
+
+error RateLimitExceeded();
 
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
@@ -1560,10 +1586,17 @@ contract DssSpellTest is DssSpellTestBase {
         assertGt(inboundRateLimitFee.nativeFee, 0, "SolanaBridge/inbound-zero-native-fee");
         assertGt(outboundRateLimitFee.nativeFee, 0, "SolanaBridge/outbound-zero-native-fee");
 
+        uint256 totalNativeFee = unpauseFee.nativeFee + inboundRateLimitFee.nativeFee + outboundRateLimitFee.nativeFee;
+
         assertLe(
-            unpauseFee.nativeFee + inboundRateLimitFee.nativeFee + outboundRateLimitFee.nativeFee,
+            totalNativeFee,
             MAX_LZ_GOV_BRIDGE_NATIVE_FEE,
             "SolanaBridge/native-fee-too-high"
+        );
+        assertGt(
+            addr.addr("LZ_GOV_RELAY").balance,
+            totalNativeFee,
+            "SolanaBridge/relay-balance-not-greater-than-native-fee"
         );
     }
 
@@ -1592,6 +1625,23 @@ contract DssSpellTest is DssSpellTestBase {
             assertEq(inboundLimit, 10_000_000 * WAD, "SolanaBridge/invalid-inbound-limit-before-spell");
             assertEq(outboundLimit, 10_000_000 * WAD, "SolanaBridge/invalid-outbound-limit-before-spell");
         }
+
+        SendParam memory sendParams = SendParam({
+            dstEid: SOLANA_EID,
+            to: bytes32("SolanaAddress"),
+            amountLD: 5 * WAD,
+            minAmountLD: 5 * WAD,
+            extraOptions: bytes(""),
+            composeMsg: bytes(""),
+            oftCmd: bytes("")
+        });
+        GodMode.setBalance(address(usds), address(this), 10 * WAD);
+        usds.approve(addr.addr("USDS_OFT"), 10 * WAD);
+        vm.deal(address(this), 10 ether);
+
+        // Send reverts before the spell is cast
+        vm.expectRevert();
+        usdsOft.send(sendParams, MessagingFee({ nativeFee: 0, lzTokenFee: 0 }), address(this));
 
         // Solana message checks
         {
@@ -1652,6 +1702,16 @@ contract DssSpellTest is DssSpellTestBase {
             assertEq(inboundLimitAfter, 5_000_000 * WAD, "SolanaBridge/invalid-inbound-limit-after-spell");
             assertEq(outboundLimitAfter, 5_000_000 * WAD, "SolanaBridge/invalid-outbound-limit-after-spell");
         }
+
+        // Send succeeds after spell is cast
+        uint256 usdsBalanceBeforeSend = usds.balanceOf(address(this));
+        MessagingFee memory sendFee = usdsOft.quoteSend(sendParams, false);
+        usdsOft.send{value: sendFee.nativeFee}(sendParams, sendFee, address(this));
+        assertEq(
+            usds.balanceOf(address(this)),
+            usdsBalanceBeforeSend - sendParams.amountLD,
+            "SolanaBridge/oft-send-did-not-work-after-spell"
+        );
     }
 
     function testSolanaBridgeUnpauseRevertsWhenRelayUnfunded() public {
@@ -1725,5 +1785,23 @@ contract DssSpellTest is DssSpellTestBase {
 
         assertEq(avalancheOutboundLimitAfter, 0, "AvalancheUSDS/invalid-outbound-limit-after-spell");
         assertEq(avalancheAmountCanBeSentAfter, 0, "AvalancheUSDS/invalid-amount-can-be-sent-after-spell");
+
+        SendParam memory sendParams = SendParam({
+            dstEid: AVALANCHE_EID,
+            to: bytes32(uint256(uint160(address(this)))),
+            amountLD: 5 * WAD,
+            minAmountLD: 5 * WAD,
+            extraOptions: bytes(""),
+            composeMsg: bytes(""),
+            oftCmd: bytes("")
+        });
+        GodMode.setBalance(address(usds), address(this), 10 * WAD);
+        usds.approve(addr.addr("USDS_OFT"), 10 * WAD);
+        vm.deal(address(this), 10 ether);
+
+        MessagingFee memory sendFee = usdsOft.quoteSend(sendParams, false);
+
+        vm.expectRevert(RateLimitExceeded.selector);
+        usdsOft.send{value: sendFee.nativeFee}(sendParams, sendFee, address(this));
     }
 }
