@@ -49,7 +49,7 @@ interface SkyOFTAdapterLike {
 
 interface GovernanceOAppSenderLike {
     function setCanCallTarget(address _srcSender, uint32 _dstEid, bytes32 _dstTarget, bool _canCall) external;
-    function quoteTx(TxParams calldata txParams, bool payInLzToken) external view returns (MessagingFee memory);
+    function quoteTx(TxParams calldata _params, bool _payInLzToken) external view returns (MessagingFee memory fee);
 }
 
 interface L1GovernanceRelayLike {
