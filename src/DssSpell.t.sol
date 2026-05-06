@@ -1639,9 +1639,22 @@ contract DssSpellTest is DssSpellTestBase {
         usds.approve(addr.addr("USDS_OFT"), 10 * WAD);
         vm.deal(address(this), 10 ether);
 
+        MessagingFee memory sendFee;
+        {
+            uint256 beforeQuote = vm.snapshotState();
+
+            _vote(address(spell));
+            _scheduleWaitAndCast(address(spell));
+            assertTrue(spell.done(), "TestError/spell-not-done");
+
+            sendFee = usdsOft.quoteSend(sendParams, false);
+
+            vm.revertToStateAndDelete(beforeQuote);
+        }
+
         // Send reverts before the spell is cast
         vm.expectRevert();
-        usdsOft.send(sendParams, MessagingFee({ nativeFee: 0, lzTokenFee: 0 }), address(this));
+        usdsOft.send{value: sendFee.nativeFee}(sendParams, sendFee, address(this));
 
         // Solana message checks
         {
@@ -1705,7 +1718,6 @@ contract DssSpellTest is DssSpellTestBase {
 
         // Send succeeds after spell is cast
         uint256 usdsBalanceBeforeSend = usds.balanceOf(address(this));
-        MessagingFee memory sendFee = usdsOft.quoteSend(sendParams, false);
         usdsOft.send{value: sendFee.nativeFee}(sendParams, sendFee, address(this));
         assertEq(
             usds.balanceOf(address(this)),
