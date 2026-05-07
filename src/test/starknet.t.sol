@@ -102,7 +102,7 @@ contract StarknetTests is DssSpellTestBase, ConfigStarknet {
         setStarknetValues();
     }
 
-    function testStarknet() public skipped {
+    function testStarknet() public {
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
@@ -115,7 +115,7 @@ contract StarknetTests is DssSpellTestBase, ConfigStarknet {
         _checkStarknetCore();
     }
 
-    function testStarknetSpell() public skipped {
+    function testStarknetSpell() public {
 
         if (starknetValues.l2_spell != bytes32(0)) {
             // Ensure the Pause Proxy has some ETH for the Starknet Spell
