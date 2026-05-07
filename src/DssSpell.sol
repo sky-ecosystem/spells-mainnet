@@ -377,7 +377,7 @@ contract DssSpellAction is DssAction {
 
         // ---------- Staking Rewards Update ----------
         // Forum: https://forum.skyeco.com/t/lssky-to-sky-rewards-sky-rewards-for-sky-stakers-normalization-configuration/27721/19
-        // Atlas: https://sky-atlas.io/#293e4c9f-1e26-4d4b-b769-650a02eca8b8
+        // Atlas: https://sky-atlas.io/#a98a1bfe-5713-43f5-a8bd-83c5808900b8
 
         // Update LSSKY->SKY Farm vest by calling `TreasuryFundedFarmingInit.updateFarmVest()` with params:
         TreasuryFundedFarmingInit.updateFarmVest(FarmingUpdateVestParams({
@@ -397,7 +397,6 @@ contract DssSpellAction is DssAction {
         // Atlas: https://sky-atlas.io/#6a4870fa-73f1-4d49-b7ee-d531fb59a971
         // Atlas: https://sky-atlas.io/#b69158da-476a-4d4b-b7ef-2f8b96b73d23
         // Atlas: https://sky-atlas.io/#ea73f176-0b94-4e93-b1ee-ca498ac5a6c6
-        // Poll: https://snapshot.org/#/s:sparkfi.eth/proposal/0x2912831b683f5461d7bb4a5702c63ff8d2a4ff93d4422ce0cca0ef29f4a3509c
         // Poll: https://snapshot.org/#/s:sparkfi.eth/proposal/0x710eb6996204b3df1eedd19d2f8bea9d0d69cdfa85a31c514527d9c212686348
         // Poll: https://snapshot.org/#/s:sparkfi.eth/proposal/0x7909f554a2f33155e234788382927f9af0d4dd5a4808349bc0ff57c2ab8b5ce0
         // Poll: https://snapshot.org/#/s:sparkfi.eth/proposal/0xa72495fc832baced4d2285928e2ca6ff906d7ff88c4dceaaa2d8c4aa6bdfdbdc
