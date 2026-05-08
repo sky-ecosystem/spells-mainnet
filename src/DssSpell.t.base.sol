@@ -28,6 +28,7 @@ import "./test/addresses_base.sol";
 import "./test/addresses_unichain.sol";
 import "./test/addresses_optimism.sol";
 import "./test/addresses_arbitrum.sol";
+import "./test/addresses_avalanche.sol";
 import "./test/addresses_deployers.sol";
 import "./test/addresses_wallets.sol";
 import "./test/config.sol";
@@ -606,70 +607,108 @@ interface ArbL2GovernanceRelayLike {
     function relay(address target, bytes calldata targetData) external;
 }
 
+interface SafeHarborAgreementLike {
+    struct Account {
+        string accountAddress;
+        uint8 ChildContractScope;
+    }
+
+    struct AgreementDetails {
+        string protocolName;
+        Contact[] contactDetails;
+        Chain[] chains;
+        BountyTerms bountyTerms;
+        string agreementURI;
+    }
+
+    struct BountyTerms {
+        uint256 bountyPercentage;
+        uint256 bountyCapUSD;
+        bool retainable;
+        uint8 identity;
+        string diligenceRequirements;
+        uint256 aggregateBountyCapUSD;
+    }
+
+    struct Chain {
+        string assetRecoveryAddress;
+        Account[] accounts;
+        string caip2ChainId;
+    }
+
+    struct Contact {
+        string name;
+        string contact;
+    }
+
+    function getDetails() external view returns (AgreementDetails memory _details);
+}
+
 contract DssSpellTestBase is Config, DssTest {
     using stdStorage for StdStorage;
 
-    Rates                 rates = new Rates();
-    Addresses              addr = new Addresses();
-    BaseAddresses          base = new BaseAddresses();
-    UnichainAddresses  unichain = new UnichainAddresses();
-    OptimismAddresses  optimism = new OptimismAddresses();
-    ArbitrumAddresses  arbitrum = new ArbitrumAddresses();
-    Deployers         deployers = new Deployers();
-    Wallets             wallets = new Wallets();
+    Rates rates                     = new Rates();
+    Addresses addr                  = new Addresses();
+    BaseAddresses base              = new BaseAddresses();
+    UnichainAddresses unichain      = new UnichainAddresses();
+    OptimismAddresses optimism      = new OptimismAddresses();
+    ArbitrumAddresses arbitrum      = new ArbitrumAddresses();
+    AvalancheAddresses avalanche    = new AvalancheAddresses();
+    Deployers deployers             = new Deployers();
+    Wallets wallets                 = new Wallets();
 
     // ADDRESSES
-    ChainlogAbstract            chainLog = ChainlogAbstract(   addr.addr("CHANGELOG"));
-    DSPauseAbstract                pause = DSPauseAbstract(    addr.addr("MCD_PAUSE"));
-    address                   pauseProxy =                     addr.addr("MCD_PAUSE_PROXY");
-    DSChiefAbstract          chiefLegacy = DSChiefAbstract(    addr.addr("MCD_ADM_LEGACY"));
-    ChiefLike                      chief = ChiefLike(          addr.addr("MCD_ADM"));
-    VatAbstract                      vat = VatAbstract(        addr.addr("MCD_VAT"));
-    VowAbstract                      vow = VowAbstract(        addr.addr("MCD_VOW"));
-    DogAbstract                      dog = DogAbstract(        addr.addr("MCD_DOG"));
-    PotAbstract                      pot = PotAbstract(        addr.addr("MCD_POT"));
-    JugAbstract                      jug = JugAbstract(        addr.addr("MCD_JUG"));
-    SpotAbstract                 spotter = SpotAbstract(       addr.addr("MCD_SPOT"));
-    DaiAbstract                      dai = DaiAbstract(        addr.addr("MCD_DAI"));
-    DaiJoinAbstract              daiJoin = DaiJoinAbstract(    addr.addr("MCD_JOIN_DAI"));
-    GemAbstract                     usds = GemAbstract(        addr.addr("USDS"));
-    SUsdsLike                      susds = SUsdsLike(          addr.addr("SUSDS"));
-    UsdsJoinLike                usdsJoin = UsdsJoinLike(       addr.addr("USDS_JOIN"));
-    DSTokenAbstract                  gov = DSTokenAbstract(    addr.addr("MCD_GOV"));
-    DSTokenAbstract                  mkr = DSTokenAbstract(    addr.addr("MKR"));
-    GemAbstract                      sky = GemAbstract(        addr.addr("SKY"));
-    GemAbstract                      spk = GemAbstract(        addr.addr("SPK"));
-    MkrSkyLike                    mkrSky = MkrSkyLike(         addr.addr("MKR_SKY"));
-    EndAbstract                      end = EndAbstract(        addr.addr("MCD_END"));
-    ESMAbstract                      esm = ESMAbstract(        addr.addr("MCD_ESM"));
-    CureAbstract                    cure = CureAbstract(       addr.addr("MCD_CURE"));
-    IlkRegistryAbstract              reg = IlkRegistryAbstract(addr.addr("ILK_REGISTRY"));
-    SplitLike                      split = SplitLike(          addr.addr("MCD_SPLIT"));
-    KickerLike                      kick = KickerLike(         addr.addr("MCD_KICK"));
-    FlapUniV2Like                   flap = FlapUniV2Like(      addr.addr("MCD_FLAP"));
-    CropperLike                  cropper = CropperLike(        addr.addr("MCD_CROPPER"));
+    ChainlogAbstract chainLog               = ChainlogAbstract(addr.addr("CHANGELOG"));
+    DSPauseAbstract pause                   = DSPauseAbstract(addr.addr("MCD_PAUSE"));
+    address pauseProxy                      = addr.addr("MCD_PAUSE_PROXY");
+    DSChiefAbstract chiefLegacy             = DSChiefAbstract(addr.addr("MCD_ADM_LEGACY"));
+    ChiefLike chief                         = ChiefLike(addr.addr("MCD_ADM"));
+    VatAbstract vat                         = VatAbstract(addr.addr("MCD_VAT"));
+    VowAbstract vow                         = VowAbstract(addr.addr("MCD_VOW"));
+    DogAbstract dog                         = DogAbstract(addr.addr("MCD_DOG"));
+    PotAbstract pot                         = PotAbstract(addr.addr("MCD_POT"));
+    JugAbstract jug                         = JugAbstract(addr.addr("MCD_JUG"));
+    SpotAbstract spotter                    = SpotAbstract(addr.addr("MCD_SPOT"));
+    DaiAbstract dai                         = DaiAbstract(addr.addr("MCD_DAI"));
+    DaiJoinAbstract daiJoin                 = DaiJoinAbstract(addr.addr("MCD_JOIN_DAI"));
+    GemAbstract usds                        = GemAbstract(addr.addr("USDS"));
+    SUsdsLike susds                         = SUsdsLike(addr.addr("SUSDS"));
+    UsdsJoinLike usdsJoin                   = UsdsJoinLike(addr.addr("USDS_JOIN"));
+    DSTokenAbstract gov                     = DSTokenAbstract(addr.addr("MCD_GOV"));
+    DSTokenAbstract mkr                     = DSTokenAbstract(addr.addr("MKR"));
+    GemAbstract sky                         = GemAbstract(addr.addr("SKY"));
+    GemAbstract spk                         = GemAbstract(addr.addr("SPK"));
+    MkrSkyLike mkrSky                       = MkrSkyLike(addr.addr("MKR_SKY"));
+    EndAbstract end                         = EndAbstract(addr.addr("MCD_END"));
+    ESMAbstract esm                         = ESMAbstract(addr.addr("MCD_ESM"));
+    CureAbstract cure                       = CureAbstract(addr.addr("MCD_CURE"));
+    IlkRegistryAbstract reg                 = IlkRegistryAbstract(addr.addr("ILK_REGISTRY"));
+    SplitLike split                         = SplitLike(addr.addr("MCD_SPLIT"));
+    KickerLike kick                         = KickerLike(addr.addr("MCD_KICK"));
+    FlapUniV2Like flap                      = FlapUniV2Like(addr.addr("MCD_FLAP"));
+    CropperLike cropper                     = CropperLike(addr.addr("MCD_CROPPER"));
 
-    OsmMomAbstract                osmMom = OsmMomAbstract(     addr.addr("OSM_MOM"));
-    ClipperMomAbstract           clipMom = ClipperMomAbstract( addr.addr("CLIPPER_MOM"));
-    AuthorityLike                 d3mMom = AuthorityLike(      addr.addr("DIRECT_MOM"));
-    AuthorityLike                lineMom = AuthorityLike(      addr.addr("LINE_MOM"));
-    AuthorityLike             litePsmMom = AuthorityLike(      addr.addr("LITE_PSM_MOM"));
-    AuthorityLike              stusdsMom = AuthorityLike(      addr.addr("STUSDS_MOM"));
-    SplitterMomLike          splitterMom = SplitterMomLike(    addr.addr("SPLITTER_MOM"));
-    DssAutoLineAbstract         autoLine = DssAutoLineAbstract(addr.addr("MCD_IAM_AUTO_LINE"));
-    LerpFactoryAbstract      lerpFactory = LerpFactoryAbstract(addr.addr("LERP_FAB"));
-    VestAbstract                 vestDai = VestAbstract(       addr.addr("MCD_VEST_DAI"));
-    VestAbstract                vestUsds = VestAbstract(       addr.addr("MCD_VEST_USDS"));
-    VestAbstract                 vestMkr = VestAbstract(       addr.addr("MCD_VEST_MKR_TREASURY"));
-    VestAbstract                 vestSky = VestAbstract(       addr.addr("MCD_VEST_SKY_TREASURY"));
-    VestAbstract                 vestSpk = VestAbstract(       addr.addr("MCD_VEST_SPK_TREASURY"));
-    VestAbstract             vestSkyMint = VestAbstract(       addr.addr("MCD_VEST_SKY"));
-    RwaLiquidationLike liquidationOracle = RwaLiquidationLike( addr.addr("MIP21_LIQUIDATION_ORACLE"));
-    SPBEAMLike                    spbeam = SPBEAMLike(         addr.addr("MCD_SPBEAM"));
-    SPBEAMMomLike              spbeamMom = SPBEAMMomLike(      addr.addr("SPBEAM_MOM"));
-    address          voteDelegateFactory =                     addr.addr("VOTE_DELEGATE_FACTORY");
-    StusdsRateSetterLike      rateSetter = StusdsRateSetterLike(addr.addr("STUSDS_RATE_SETTER"));
-    StusdsLike                    stusds = StusdsLike(         addr.addr("STUSDS"));
+    OsmMomAbstract osmMom                   = OsmMomAbstract(addr.addr("OSM_MOM"));
+    ClipperMomAbstract clipMom              = ClipperMomAbstract(addr.addr("CLIPPER_MOM"));
+    AuthorityLike d3mMom                    = AuthorityLike(addr.addr("DIRECT_MOM"));
+    AuthorityLike lineMom                   = AuthorityLike(addr.addr("LINE_MOM"));
+    AuthorityLike litePsmMom                = AuthorityLike(addr.addr("LITE_PSM_MOM"));
+    AuthorityLike stusdsMom                 = AuthorityLike(addr.addr("STUSDS_MOM"));
+    SplitterMomLike splitterMom             = SplitterMomLike(addr.addr("SPLITTER_MOM"));
+    DssAutoLineAbstract autoLine            = DssAutoLineAbstract(addr.addr("MCD_IAM_AUTO_LINE"));
+    LerpFactoryAbstract lerpFactory         = LerpFactoryAbstract(addr.addr("LERP_FAB"));
+    VestAbstract vestDai                    = VestAbstract(addr.addr("MCD_VEST_DAI"));
+    VestAbstract vestUsds                   = VestAbstract(addr.addr("MCD_VEST_USDS"));
+    VestAbstract vestMkr                    = VestAbstract(addr.addr("MCD_VEST_MKR_TREASURY"));
+    VestAbstract vestSky                    = VestAbstract(addr.addr("MCD_VEST_SKY_TREASURY"));
+    VestAbstract vestSpk                    = VestAbstract(addr.addr("MCD_VEST_SPK_TREASURY"));
+    VestAbstract vestSkyMint                = VestAbstract(addr.addr("MCD_VEST_SKY"));
+    RwaLiquidationLike liquidationOracle    = RwaLiquidationLike(addr.addr("MIP21_LIQUIDATION_ORACLE"));
+    SPBEAMLike spbeam                       = SPBEAMLike(addr.addr("MCD_SPBEAM"));
+    SPBEAMMomLike spbeamMom                 = SPBEAMMomLike(addr.addr("SPBEAM_MOM"));
+    address voteDelegateFactory             = addr.addr("VOTE_DELEGATE_FACTORY");
+    StusdsRateSetterLike rateSetter         = StusdsRateSetterLike(addr.addr("STUSDS_RATE_SETTER"));
+    StusdsLike stusds                       = StusdsLike(addr.addr("STUSDS"));
 
     DssSpell spell;
 
@@ -854,6 +893,12 @@ contract DssSpellTestBase is Config, DssTest {
         _;
     }
 
+    modifier withSnapshot() {
+        uint256 before = vm.snapshotState();
+        _;
+        vm.revertToStateAndDelete(before);
+    }
+
     // 10^-5 (tenth of a basis point) as a RAY
     uint256 TOLERANCE = 10 ** 22;
 
@@ -915,6 +960,7 @@ contract DssSpellTestBase is Config, DssTest {
             vm.makePersistent(address(unichain));
             vm.makePersistent(address(optimism));
             vm.makePersistent(address(arbitrum));
+            vm.makePersistent(address(avalanche));
             vm.makePersistent(address(deployers));
             vm.makePersistent(address(wallets));
             vm.rollFork(spellValues.deployed_spell_block);
@@ -973,14 +1019,10 @@ contract DssSpellTestBase is Config, DssTest {
      *      It MUST be called before the spell is cast, otherwise it will revert.
      * @return spellCastTime
      */
-    function _getSpellCastTime() internal returns (uint256 spellCastTime) {
-        uint256 beforeVote = vm.snapshotState();
-
+    function _getSpellCastTime() internal withSnapshot() returns (uint256 spellCastTime) {
         _vote(address(spell));
         spell.schedule();
         spellCastTime = spell.nextCastTime();
-
-        vm.revertToStateAndDelete(beforeVote);
     }
 
     function _checkSystemValues(SystemValues storage values) internal {
@@ -3064,7 +3106,7 @@ contract DssSpellTestBase is Config, DssTest {
         }
     }
 
-    function _checkNewVestStream(VestInst memory _vi, NewVestStream memory _ns) internal {
+    function _checkNewVestStream(VestInst memory _vi, NewVestStream memory _ns) internal withSnapshot() {
         assertEq(_vi.vest.usr(_ns.id), _ns.usr,           string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_ns.id), "/invalid-usr"));
         assertEq(_vi.vest.bgn(_ns.id), _ns.bgn,           string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_ns.id), "/invalid-bgn"));
         assertEq(_vi.vest.clf(_ns.id), _ns.clf,           string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_ns.id), "/invalid-clf"));
@@ -3075,29 +3117,21 @@ contract DssSpellTestBase is Config, DssTest {
         assertEq(_vi.vest.tot(_ns.id), _ns.tot,           string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_ns.id), "/invalid-tot"));
         assertEq(_vi.vest.rxd(_ns.id), _ns.rxd,           string.concat("TestError/Vest/", _vi.name, "/", _uintToString(_ns.id), "/invalid-rxd"));
 
-        {
-            uint256 before = vm.snapshotState();
+        // Check each new stream is payable in the future
+        uint256 pbalance = _vi.gem.balanceOf(_ns.usr);
+        GodMode.setWard(address(_vi.vest), address(this), 1);
+        _vi.vest.unrestrict(_ns.id);
 
-            // Check each new stream is payable in the future
-            uint256 pbalance = _vi.gem.balanceOf(_ns.usr);
-            GodMode.setWard(address(_vi.vest), address(this), 1);
-            _vi.vest.unrestrict(_ns.id);
+        vm.warp(_ns.fin);
 
-            vm.warp(_ns.fin);
-
-            // Set balance of pauseProxy to the total amount of the stream to ensure the stream is payable
-            GodMode.setBalance(address(sky), pauseProxy, _ns.tot);
-            _vi.vest.vest(_ns.id);
-            assertEq(
-                _vi.gem.balanceOf(_ns.usr),
-                pbalance + _ns.tot - _ns.rxd,
-                string.concat("TestError/Vest/", _vi.name, ".", _uintToString(_ns.id), "/invalid-received-amount")
-            );
-
-            vm.revertToState(before);
-        }
-
-        vm.deleteStateSnapshots();
+        // Set balance of pauseProxy to the total amount of the stream to ensure the stream is payable
+        GodMode.setBalance(address(sky), pauseProxy, _ns.tot);
+        _vi.vest.vest(_ns.id);
+        assertEq(
+            _vi.gem.balanceOf(_ns.usr),
+            pbalance + _ns.tot - _ns.rxd,
+            string.concat("TestError/Vest/", _vi.name, ".", _uintToString(_ns.id), "/invalid-received-amount")
+        );
     }
 
     function _checkYankedVestStream(VestInst memory _vi, YankedVestStream memory _ys, uint256 spellCastTime) internal view {
@@ -3115,9 +3149,7 @@ contract DssSpellTestBase is Config, DssTest {
 
     function _checkVestedRewardsDistributionRevertEdgeCase(
         address vestedRewardsDistribution
-    ) internal {
-        uint256 before = vm.snapshotState();
-
+    ) internal withSnapshot() {
         _vote(address(spell));
         DssSpell(spell).schedule();
         vm.warp(DssSpell(spell).nextCastTime());
@@ -3131,8 +3163,6 @@ contract DssSpellTestBase is Config, DssTest {
         // even after `distribute()` is called before the spell in the same block
         DssSpell(spell).cast();
         vm.stopPrank();
-
-        vm.revertToStateAndDelete(before);
     }
 
     function _checkTransferrableVestAllowanceAndBalance(
@@ -4131,7 +4161,7 @@ contract DssSpellTestBase is Config, DssTest {
         address primeAgentSpell,
         bytes32 primeAgentSpellHash,
         bool directExecutionEnabled
-    ) internal {
+    ) internal withSnapshot() {
         // Sanity check with passed parameters
         {
             bytes32 deployedSpellHash = primeAgentSpell.codehash;
@@ -4331,6 +4361,37 @@ contract DssSpellTestBase is Config, DssTest {
         }
 
         vm.revertToStateAndDelete(beforeCast);
+    }
+
+    function _compareStrings(string memory a, string memory b) internal pure returns (bool) {
+        return keccak256(abi.encodePacked(a)) == keccak256(abi.encodePacked(b));
+    }
+
+    function _findChain(SafeHarborAgreementLike.AgreementDetails memory details, string memory caip2ChainId) internal pure returns (SafeHarborAgreementLike.Chain memory) {
+        for (uint256 i = 0; i < details.chains.length; i++) {
+            if (_compareStrings(details.chains[i].caip2ChainId, caip2ChainId)) {
+                return details.chains[i];
+            }
+        }
+        revert("_findChain/chain-not-found");
+    }
+
+    function _accountExistsInChain(SafeHarborAgreementLike.Chain memory chain, string memory accountAddress) internal pure returns (bool) {
+        for (uint256 i = 0; i < chain.accounts.length; i++) {
+            if (_compareStrings(chain.accounts[i].accountAddress, accountAddress)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function _findAccountInChain(SafeHarborAgreementLike.Chain memory chain, string memory accountAddress) internal pure returns (SafeHarborAgreementLike.Account memory) {
+        for (uint256 i = 0; i < chain.accounts.length; i++) {
+            if (_compareStrings(chain.accounts[i].accountAddress, accountAddress)) {
+                return chain.accounts[i];
+            }
+        }
+        revert("_findAccountInChain/account-not-found");
     }
 }
 

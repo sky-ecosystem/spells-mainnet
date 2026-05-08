@@ -3,15 +3,15 @@
 Safeharbor registry is a contract that allows protocols to identify addresses that are entitled to have funds recovered by a white hat during an attack.
 
 - Read more about the SafeHarbor [here](https://github.com/security-alliance/safe-harbor)
-- The full contracts for the registry can be found [here](https://github.com/security-alliance/safe-harbor/tree/main/registry-contracts/src/v2)
+- The full contracts for the registry can be found [here](https://github.com/PatrickAlphaC/safe-harbor/tree/0b0abb8b627eff87e2f7b52bf8ec484cd6ce0e32/registry-contracts/src)
 
 # Initial Deployment
 
 Before adoption, a single-time deploy and configuration needs to happen so Sky protocol can safely include changes to the scope within spells. The deployment will happen with the following steps:
 
-1. **EOA AgreementV2 deployment**
+1. **EOA Agreement deployment**
 
-   - Anyone can deploy an instance of the `AgreementV2` contract through its factory
+   - Anyone can deploy an instance of the `Agreement` contract through its factory
    - Since the initial configuration is too big to safely fit within a spell execution, the first step will be done through an EOA
 
 2. **Initial chain configuration**
@@ -21,7 +21,7 @@ Before adoption, a single-time deploy and configuration needs to happen so Sky p
 
 3. **Ownership transfer to DSPause**
 
-   - After the initial setup is done, the EOA will fully transfer the ownership of the `AgreementV2` contract to the PauseProxy
+   - After the initial setup is done, the EOA will fully transfer the ownership of the `Agreement` contract to the PauseProxy
    - This enables the PauseProxy to modify the scope in the future
 
 4. **Adoption**
@@ -77,7 +77,7 @@ This will output a solidity snippet that contains the encoded calldatas calling 
 npm run inspect
 ```
 
-Returns a JSON object containing the individual updates and the solidity snippet. 
+Returns a JSON object containing the individual updates and the solidity snippet.
 
 In order to obtain machine-readable JSON output of the script, use the following command:
 
