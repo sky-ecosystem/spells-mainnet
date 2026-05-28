@@ -40,63 +40,6 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
-struct TxParams {
-    uint32 dstEid;
-    bytes32 dstTarget;
-    bytes dstCallData;
-    bytes extraOptions;
-}
-
-struct MessagingFee {
-    uint256 nativeFee;
-    uint256 lzTokenFee;
-}
-
-struct MessagingReceipt {
-    bytes32 guid;
-    uint64 nonce;
-    MessagingFee fee;
-}
-
-struct OFTReceipt {
-    uint256 amountSentLD;
-    uint256 amountReceivedLD;
-}
-
-struct SendParam {
-    uint32 dstEid;
-    bytes32 to;
-    uint256 amountLD;
-    uint256 minAmountLD;
-    bytes extraOptions;
-    bytes composeMsg;
-    bytes oftCmd;
-}
-
-interface GovernanceOAppSenderLike {
-    function canCallTarget(address _srcSender, uint32 _dstEid, bytes32 _dstTarget) external view returns (bool);
-    function quoteTx(TxParams calldata _params, bool _payInLzToken) external view returns (MessagingFee memory fee);
-}
-
-interface L1GovernanceRelayLike {
-    function l1Oapp() external view returns (address);
-    function relayRaw(TxParams calldata txParams, MessagingFee calldata fee, address refundAddress) external payable;
-    function wards(address usr) external view returns (uint256);
-}
-
-interface SkyOFTAdapterLike {
-    function getAmountCanBeSent(uint32 dstEid) external view returns (uint256 amountInFlight, uint256 amountCanBeSent);
-    function inboundRateLimits(uint32 dstEid) external view returns (uint128 lastUpdated, uint48 window, uint256 amountInFlight, uint256 limit);
-    function outboundRateLimits(uint32 srcEid) external view returns (uint128 lastUpdated, uint48 window, uint256 amountInFlight, uint256 limit);
-    function paused() external view returns (bool);
-    function quoteSend(SendParam memory _sendParam, bool _payInLzToken) external view returns (MessagingFee memory msgFee);
-    function rateLimitAccountingType() external view returns (uint8);
-    function send(SendParam memory _sendParam, MessagingFee memory _fee, address _refundAddress)
-        external payable returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt);
-}
-
-error RateLimitExceeded();
-
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -761,7 +704,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public { // add the `skipped` modifier to skip
+    function testVestSky() public skipped { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
         uint256 JUL_26_2026_14_02_59 = 1785074579;
 
@@ -852,7 +795,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestedRewardsDist() public {
+    function testVestedRewardsDist() public skipped {
         uint256 expectedVestIdBefore = 12;
         uint256 expectedVestIdAfter = 13;
 
@@ -900,7 +843,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public { // add the `skipped` modifier to skip
+    function testPayments() public skipped { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -1360,7 +1303,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 
-    function testMonthlySettlementCycleInflows() public { // add the `skipped` modifier to skip
+    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
         address ALLOCATOR_SPARK_A_VAULT = addr.addr("ALLOCATOR_SPARK_A_VAULT");
         address ALLOCATOR_BLOOM_A_VAULT = addr.addr("ALLOCATOR_BLOOM_A_VAULT");
         address ALLOCATOR_OBEX_A_VAULT = addr.addr("ALLOCATOR_OBEX_A_VAULT");
@@ -1419,7 +1362,7 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
+    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
         PrimeAgentSpell[2] memory primeAgentSpells = [
             PrimeAgentSpell({
                 // Insert Prime Agent StarGuards Chainlog key
@@ -1539,281 +1482,4 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
-    uint32  internal constant SOLANA_EID = 30168;
-    uint32  internal constant AVALANCHE_EID = 30106;
-    uint256 internal constant MAX_LZ_GOV_BRIDGE_NATIVE_FEE = 0.01 ether;
-
-    bytes32 internal constant SOLANA_OFT_PROGRAM = 0x067c7c6c60ba7f1aec14059100df74d6da07e7d31da5dd756c6308f02e661649;
-
-    bytes internal constant LZ_GOV_BRIDGE_EXTRA_OPTIONS =
-        hex"000301001101000000000000000000000000000927c0";
-
-    bytes internal constant UNPAUSE_SOLANA_OFT_DST_CALL_DATA =
-        hex"00026370695f617574686f726974790000000000000000000000000000000000000001009825dc0cbeaf22836931c00cb891592f0a96d0dc6a65a4c67992b01e0db8d12200013f209a0238674f2d00";
-
-    bytes internal constant SET_SOLANA_INBOUND_RATE_LIMIT_DST_CALL_DATA =
-        hex"00046370695f617574686f72697479000000000000000000000000000000000000000101b15b6cea974229517bec70478d3f574b4010444df812d75f6ca722fc0fa3256800019825dc0cbeaf22836931c00cb891592f0a96d0dc6a65a4c67992b01e0db8d1220000000000000000000000000000000000000000000000000000000000000000000000004fbba8398b8c5d2f95750000040101220873030000000001005039278c0400000100";
-
-    bytes internal constant SET_SOLANA_OUTBOUND_RATE_LIMIT_DST_CALL_DATA =
-        hex"00046370695f617574686f72697479000000000000000000000000000000000000000101b15b6cea974229517bec70478d3f574b4010444df812d75f6ca722fc0fa3256800019825dc0cbeaf22836931c00cb891592f0a96d0dc6a65a4c67992b01e0db8d1220000000000000000000000000000000000000000000000000000000000000000000000004fbba8398b8c5d2f95750000030101220873030000000001005039278c0400000100";
-
-    function testSolanaGovTxFees() public view {
-        GovernanceOAppSenderLike lzGovSender = GovernanceOAppSenderLike(addr.addr("LZ_GOV_SENDER"));
-
-        MessagingFee memory unpauseFee = lzGovSender.quoteTx(TxParams({
-            dstEid: SOLANA_EID,
-            dstTarget: SOLANA_OFT_PROGRAM,
-            dstCallData: UNPAUSE_SOLANA_OFT_DST_CALL_DATA,
-            extraOptions: LZ_GOV_BRIDGE_EXTRA_OPTIONS
-        }), false);
-        MessagingFee memory inboundRateLimitFee = lzGovSender.quoteTx(TxParams({
-            dstEid: SOLANA_EID,
-            dstTarget: SOLANA_OFT_PROGRAM,
-            dstCallData: SET_SOLANA_INBOUND_RATE_LIMIT_DST_CALL_DATA,
-            extraOptions: LZ_GOV_BRIDGE_EXTRA_OPTIONS
-        }), false);
-        MessagingFee memory outboundRateLimitFee = lzGovSender.quoteTx(TxParams({
-            dstEid: SOLANA_EID,
-            dstTarget: SOLANA_OFT_PROGRAM,
-            dstCallData: SET_SOLANA_OUTBOUND_RATE_LIMIT_DST_CALL_DATA,
-            extraOptions: LZ_GOV_BRIDGE_EXTRA_OPTIONS
-        }), false);
-
-        assertEq(unpauseFee.lzTokenFee, 0, "SolanaBridge/unpause-nonzero-lz-token-fee");
-        assertEq(inboundRateLimitFee.lzTokenFee, 0, "SolanaBridge/inbound-nonzero-lz-token-fee");
-        assertEq(outboundRateLimitFee.lzTokenFee, 0, "SolanaBridge/outbound-nonzero-lz-token-fee");
-        assertGt(unpauseFee.nativeFee, 0, "SolanaBridge/unpause-zero-native-fee");
-        assertGt(inboundRateLimitFee.nativeFee, 0, "SolanaBridge/inbound-zero-native-fee");
-        assertGt(outboundRateLimitFee.nativeFee, 0, "SolanaBridge/outbound-zero-native-fee");
-
-        uint256 totalNativeFee = unpauseFee.nativeFee + inboundRateLimitFee.nativeFee + outboundRateLimitFee.nativeFee;
-
-        assertLe(
-            totalNativeFee,
-            MAX_LZ_GOV_BRIDGE_NATIVE_FEE,
-            "SolanaBridge/native-fee-too-high"
-        );
-        assertGt(
-            addr.addr("LZ_GOV_RELAY").balance,
-            totalNativeFee,
-            "SolanaBridge/relay-balance-not-greater-than-native-fee"
-        );
-    }
-
-    function testSolanaBridgeUnpause() public {
-        SkyOFTAdapterLike usdsOft = SkyOFTAdapterLike(addr.addr("USDS_OFT"));
-        GovernanceOAppSenderLike lzGovSender = GovernanceOAppSenderLike(addr.addr("LZ_GOV_SENDER"));
-
-        // Pre-state checks
-        {
-            L1GovernanceRelayLike lzGovRelay = L1GovernanceRelayLike(addr.addr("LZ_GOV_RELAY"));
-
-            assertEq(lzGovRelay.l1Oapp(), addr.addr("LZ_GOV_SENDER"), "SolanaBridge/l1-oapp-mismatch");
-            assertEq(lzGovRelay.wards(addr.addr("MCD_PAUSE_PROXY")), 1, "SolanaBridge/pause-proxy-not-ward");
-            assertFalse(
-                lzGovSender.canCallTarget(addr.addr("LZ_GOV_RELAY"), SOLANA_EID, SOLANA_OFT_PROGRAM),
-                "SolanaBridge/can-call-target-enabled-before-spell"
-            );
-            assertTrue(usdsOft.paused(), "SolanaBridge/usds-oft-not-paused");
-            assertEq(usdsOft.rateLimitAccountingType(), 0, "SolanaBridge/invalid-accounting-type");
-
-            ( , uint48 inboundWindow, , uint256 inboundLimit) = usdsOft.inboundRateLimits(SOLANA_EID);
-            ( , uint48 outboundWindow, , uint256 outboundLimit) = usdsOft.outboundRateLimits(SOLANA_EID);
-
-            assertEq(inboundWindow, 1 days, "SolanaBridge/invalid-inbound-window-before-spell");
-            assertEq(outboundWindow, 1 days, "SolanaBridge/invalid-outbound-window-before-spell");
-            assertEq(inboundLimit, 10_000_000 * WAD, "SolanaBridge/invalid-inbound-limit-before-spell");
-            assertEq(outboundLimit, 10_000_000 * WAD, "SolanaBridge/invalid-outbound-limit-before-spell");
-        }
-
-        SendParam memory sendParams = SendParam({
-            dstEid: SOLANA_EID,
-            to: bytes32("SolanaAddress"),
-            amountLD: 5 * WAD,
-            minAmountLD: 5 * WAD,
-            extraOptions: bytes(""),
-            composeMsg: bytes(""),
-            oftCmd: bytes("")
-        });
-        GodMode.setBalance(address(usds), address(this), 10 * WAD);
-        usds.approve(addr.addr("USDS_OFT"), 10 * WAD);
-        vm.deal(address(this), 10 ether);
-
-        MessagingFee memory sendFee;
-        {
-            uint256 beforeQuote = vm.snapshotState();
-
-            _vote(address(spell));
-            _scheduleWaitAndCast(address(spell));
-            assertTrue(spell.done(), "TestError/spell-not-done");
-
-            sendFee = usdsOft.quoteSend(sendParams, false);
-
-            vm.revertToStateAndDelete(beforeQuote);
-        }
-
-        // Send reverts before the spell is cast
-        vm.expectRevert();
-        usdsOft.send{value: sendFee.nativeFee}(sendParams, sendFee, address(this));
-
-        // Solana message checks
-        {
-            TxParams memory unpauseParams = TxParams({
-                dstEid: SOLANA_EID,
-                dstTarget: SOLANA_OFT_PROGRAM,
-                dstCallData: UNPAUSE_SOLANA_OFT_DST_CALL_DATA,
-                extraOptions: LZ_GOV_BRIDGE_EXTRA_OPTIONS
-            });
-            TxParams memory inboundRateLimitParams = TxParams({
-                dstEid: SOLANA_EID,
-                dstTarget: SOLANA_OFT_PROGRAM,
-                dstCallData: SET_SOLANA_INBOUND_RATE_LIMIT_DST_CALL_DATA,
-                extraOptions: LZ_GOV_BRIDGE_EXTRA_OPTIONS
-            });
-            TxParams memory outboundRateLimitParams = TxParams({
-                dstEid: SOLANA_EID,
-                dstTarget: SOLANA_OFT_PROGRAM,
-                dstCallData: SET_SOLANA_OUTBOUND_RATE_LIMIT_DST_CALL_DATA,
-                extraOptions: LZ_GOV_BRIDGE_EXTRA_OPTIONS
-            });
-
-            MessagingFee memory unpauseFee = lzGovSender.quoteTx(unpauseParams, false);
-            MessagingFee memory inboundRateLimitFee = lzGovSender.quoteTx(inboundRateLimitParams, false);
-            MessagingFee memory outboundRateLimitFee = lzGovSender.quoteTx(outboundRateLimitParams, false);
-
-            vm.expectCall(
-                addr.addr("LZ_GOV_RELAY"),
-                abi.encodeCall(L1GovernanceRelayLike.relayRaw, (unpauseParams, unpauseFee, addr.addr("LZ_GOV_RELAY")))
-            );
-            vm.expectCall(
-                addr.addr("LZ_GOV_RELAY"),
-                abi.encodeCall(L1GovernanceRelayLike.relayRaw, (inboundRateLimitParams, inboundRateLimitFee, addr.addr("LZ_GOV_RELAY")))
-            );
-            vm.expectCall(
-                addr.addr("LZ_GOV_RELAY"),
-                abi.encodeCall(L1GovernanceRelayLike.relayRaw, (outboundRateLimitParams, outboundRateLimitFee, addr.addr("LZ_GOV_RELAY")))
-            );
-        }
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        // Post-state checks
-        {
-            assertTrue(
-                lzGovSender.canCallTarget(addr.addr("LZ_GOV_RELAY"), SOLANA_EID, SOLANA_OFT_PROGRAM),
-                "SolanaBridge/can-call-target-not-enabled"
-            );
-            assertFalse(usdsOft.paused(), "SolanaBridge/usds-oft-still-paused");
-
-            ( , uint48 inboundWindowAfter, , uint256 inboundLimitAfter) = usdsOft.inboundRateLimits(SOLANA_EID);
-            ( , uint48 outboundWindowAfter, , uint256 outboundLimitAfter) = usdsOft.outboundRateLimits(SOLANA_EID);
-
-            assertEq(inboundWindowAfter, 1 days, "SolanaBridge/invalid-inbound-window-after-spell");
-            assertEq(outboundWindowAfter, 1 days, "SolanaBridge/invalid-outbound-window-after-spell");
-            assertEq(inboundLimitAfter, 5_000_000 * WAD, "SolanaBridge/invalid-inbound-limit-after-spell");
-            assertEq(outboundLimitAfter, 5_000_000 * WAD, "SolanaBridge/invalid-outbound-limit-after-spell");
-        }
-
-        // Send succeeds after spell is cast
-        uint256 usdsBalanceBeforeSend = usds.balanceOf(address(this));
-        usdsOft.send{value: sendFee.nativeFee}(sendParams, sendFee, address(this));
-        assertEq(
-            usds.balanceOf(address(this)),
-            usdsBalanceBeforeSend - sendParams.amountLD,
-            "SolanaBridge/oft-send-did-not-work-after-spell"
-        );
-    }
-
-    function testSolanaBridgeUnpauseRevertsWhenRelayUnfunded() public {
-        vm.deal(addr.addr("LZ_GOV_RELAY"), 0);
-
-        _vote(address(spell));
-        spell.schedule();
-        vm.warp(spell.nextCastTime());
-
-        vm.expectRevert();
-        spell.cast();
-    }
-
-    function testSolanaBridgeRelayOrder() public {
-        _vote(address(spell));
-        spell.schedule();
-        vm.warp(spell.nextCastTime());
-
-        vm.recordLogs();
-        spell.cast();
-
-        Vm.Log[] memory entries = vm.getRecordedLogs();
-        bytes32 packetSentTopic = keccak256("PacketSent(bytes,bytes,address)");
-        uint256 packetIndex;
-
-        for (uint256 i = 0; i < entries.length; i++) {
-            if (entries[i].topics.length == 0 || entries[i].topics[0] != packetSentTopic) continue;
-
-            (bytes memory encodedPayload, , ) = abi.decode(entries[i].data, (bytes, bytes, address));
-
-            if (packetIndex == 0) {
-                assertTrue(_bytesEndsWith(encodedPayload, SET_SOLANA_INBOUND_RATE_LIMIT_DST_CALL_DATA), "SolanaBridge/invalid-first-packet");
-            } else if (packetIndex == 1) {
-                assertTrue(_bytesEndsWith(encodedPayload, SET_SOLANA_OUTBOUND_RATE_LIMIT_DST_CALL_DATA), "SolanaBridge/invalid-second-packet");
-            } else if (packetIndex == 2) {
-                assertTrue(_bytesEndsWith(encodedPayload, UNPAUSE_SOLANA_OFT_DST_CALL_DATA), "SolanaBridge/invalid-third-packet");
-            }
-
-            packetIndex++;
-        }
-
-        assertEq(packetIndex, 3, "SolanaBridge/invalid-packet-count");
-    }
-
-    function _bytesEndsWith(bytes memory data, bytes memory suffix) internal pure returns (bool) {
-        if (data.length < suffix.length) return false;
-
-        uint256 offset = data.length - suffix.length;
-        for (uint256 i = 0; i < suffix.length; i++) {
-            if (data[offset + i] != suffix[i]) return false;
-        }
-
-        return true;
-    }
-
-    function testEthereumToAvalancheUsdsFlowDisabled() public {
-        SkyOFTAdapterLike usdsOft = SkyOFTAdapterLike(addr.addr("USDS_OFT"));
-
-        ( , , , uint256 avalancheOutboundLimit) = usdsOft.outboundRateLimits(AVALANCHE_EID);
-        ( , uint256 avalancheAmountCanBeSent) = usdsOft.getAmountCanBeSent(AVALANCHE_EID);
-
-        assertGt(avalancheOutboundLimit, 0, "AvalancheUSDS/non-positive-outbound-limit-before-spell");
-        assertGt(avalancheAmountCanBeSent, 0, "AvalancheUSDS/non-positive-amount-can-be-sent-before-spell");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        ( , , , uint256 avalancheOutboundLimitAfter) = usdsOft.outboundRateLimits(AVALANCHE_EID);
-        ( , uint256 avalancheAmountCanBeSentAfter) = usdsOft.getAmountCanBeSent(AVALANCHE_EID);
-
-        assertEq(avalancheOutboundLimitAfter, 0, "AvalancheUSDS/invalid-outbound-limit-after-spell");
-        assertEq(avalancheAmountCanBeSentAfter, 0, "AvalancheUSDS/invalid-amount-can-be-sent-after-spell");
-
-        SendParam memory sendParams = SendParam({
-            dstEid: AVALANCHE_EID,
-            to: bytes32(uint256(uint160(address(this)))),
-            amountLD: 5 * WAD,
-            minAmountLD: 5 * WAD,
-            extraOptions: bytes(""),
-            composeMsg: bytes(""),
-            oftCmd: bytes("")
-        });
-        GodMode.setBalance(address(usds), address(this), 10 * WAD);
-        usds.approve(addr.addr("USDS_OFT"), 10 * WAD);
-        vm.deal(address(this), 10 ether);
-
-        MessagingFee memory sendFee = usdsOft.quoteSend(sendParams, false);
-
-        vm.expectRevert(RateLimitExceeded.selector);
-        usdsOft.send{value: sendFee.nativeFee}(sendParams, sendFee, address(this));
-    }
 }
