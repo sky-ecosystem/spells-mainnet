@@ -60,22 +60,21 @@ contract DssSpellAction is DssAction {
     // uint256 internal constant X_PCT_RATE = ;
 
     // ---------- Math ----------
-    uint256 constant WAD      = 10 ** 18;
-    uint256 constant RAD      = 10 ** 45;
-    uint256 constant MILLION  = 10 ** 6;
-    uint256 constant BILLION  = 10 ** 9;
+    uint256 internal constant MILLION  = 10 ** 6;
+    uint256 internal constant BILLION  = 10 ** 9;
+    uint256 internal constant WAD      = 10 ** 18;
+    uint256 internal constant RAD      = 10 ** 45;
 
     // ---------- Contracts ----------
-    address internal immutable MCD_VAT                        = DssExecLib.vat();
-    address internal immutable USDC                           = DssExecLib.getChangelogAddress("USDC");
-    address internal immutable MCD_LITE_PSM_USDC_A            = DssExecLib.getChangelogAddress("MCD_LITE_PSM_USDC_A");
-    address internal immutable MCD_IAM_AUTO_LINE              = DssExecLib.getChangelogAddress("MCD_IAM_AUTO_LINE");
-    address internal immutable RWA001_A_URN                   = DssExecLib.getChangelogAddress("RWA001_A_URN");
-    address internal immutable MIP21_LIQUIDATION_ORACLE       = DssExecLib.getChangelogAddress("MIP21_LIQUIDATION_ORACLE");
-    address internal immutable MKR_SKY                  = DssExecLib.getChangelogAddress("MKR_SKY");
+    address internal immutable MCD_VAT                   = DssExecLib.vat();
+    address internal immutable USDC                      = DssExecLib.getChangelogAddress("USDC");
+    address internal immutable MCD_LITE_PSM_USDC_A       = DssExecLib.getChangelogAddress("MCD_LITE_PSM_USDC_A");
+    address internal immutable MCD_IAM_AUTO_LINE         = DssExecLib.getChangelogAddress("MCD_IAM_AUTO_LINE");
+    address internal immutable RWA001_A_URN              = DssExecLib.getChangelogAddress("RWA001_A_URN");
+    address internal immutable MIP21_LIQUIDATION_ORACLE  = DssExecLib.getChangelogAddress("MIP21_LIQUIDATION_ORACLE");
+    address internal immutable MKR_SKY                   = DssExecLib.getChangelogAddress("MKR_SKY");
 
     function actions() public override {
-
         // ---------- RWA001-A Offboarding Spell 1 ----------
 
         // Temporarily update LITE-PSM-USDC-A AutoLine parameters
@@ -99,14 +98,14 @@ contract DssSpellAction is DssAction {
         // Call USDC.approve with:
         // address spender being LITE_PSM_USDC_A;
         // uint256 amount being 14_319_143_510000, i.e. exactly 14,319,143.51 USDC using 6 decimals.
-        GemAbstract(USDC).approve(MCD_LITE_PSM_USDC_A, 14_319_143_510_000);
+        GemAbstract(USDC).approve(MCD_LITE_PSM_USDC_A, 14_319_143_510000);
 
         // Convert returned USDC to DAI
         // Call LITE_PSM_USDC_A.sellGemNoFee with:
         // LITE_PSM_USDC_A being 0xf6e72Db5454dd049d0788e411b06CfAF16853042;
         // address usr being RWA001_A_URN;
         // uint256 gemAmt being 14_319_143_510000, i.e. exactly 14,319,143.51 USDC using 6 decimals
-        uint256 daiOutWad = LitePsmLike(MCD_LITE_PSM_USDC_A).sellGemNoFee(RWA001_A_URN, 14_319_143_510_000);
+        uint256 daiOutWad = LitePsmLike(MCD_LITE_PSM_USDC_A).sellGemNoFee(RWA001_A_URN, 14_319_143_510000);
 
         // Restore the original LITE-PSM-USDC-A AutoLine parameters
         // Call DssExecLib.setIlkAutoLineDebtCeiling with:
@@ -153,10 +152,10 @@ contract DssSpellAction is DssAction {
             _ilk: "ALLOCATOR-SPARK-A",
             // Increase gap by 1 billion USDS from 500 million USDS to 1.5 billion USDS
             _gap: 1500 * MILLION,
-            // Keep line unchanged at 10 billion USDS
-            _amount: 10 * BILLION,
             // Decrease ttl by 12 hours from 24 hours to 12 hours
-            _ttl: 12 hours
+            _ttl: 12 hours,
+            // Keep line unchanged at 10 billion USDS
+            _amount: 10 * BILLION
         });
 
         // ---------- MKR-SKY Delayed Upgrade Penalty Increase ----------
