@@ -1500,8 +1500,8 @@ contract DssSpellTest is DssSpellTestBase {
         {
             (ArtBefore, rate,, rwaALineBefore,) = vat.ilks(ilk);
             uint256 totalDebtBefore = ArtBefore * rate;
-            assertEq(ArtBefore, 13_764_209_680369078818456184, "RWA001_A_offboarding/Art-unexpected-before");
-            assertEq(totalDebtBefore / RAY, 17_338_416_986530573896521461, "RWA001_A_offboarding/total-debt-unexpected-before");
+            assertEq(ArtBefore, 13_764_209_680_369_078_818_456_184, "RWA001_A_offboarding/Art-unexpected-before");
+            assertEq(totalDebtBefore / RAY, 17_338_416_986_530_573_896_521_461, "RWA001_A_offboarding/total-debt-unexpected-before");
 
             (,,, uint48 tocBefore) = oracle.ilks(ilk);
             assertEq(tocBefore, 0, "RWA001_A_offboarding/already-told");

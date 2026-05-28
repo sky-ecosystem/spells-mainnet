@@ -59,7 +59,6 @@ contract DssSpellAction is DssAction {
     //
     // uint256 internal constant X_PCT_RATE = ;
 
-
     // ---------- Math ----------
     uint256 constant WAD      = 10 ** 18;
     uint256 constant RAD      = 10 ** 45;
@@ -100,14 +99,14 @@ contract DssSpellAction is DssAction {
         // Call USDC.approve with:
         // address spender being LITE_PSM_USDC_A;
         // uint256 amount being 14_319_143_510000, i.e. exactly 14,319,143.51 USDC using 6 decimals.
-        GemAbstract(USDC).approve(MCD_LITE_PSM_USDC_A, 14_319_143.51 * 1e6);
+        GemAbstract(USDC).approve(MCD_LITE_PSM_USDC_A, 14_319_143_510_000);
 
         // Convert returned USDC to DAI
         // Call LITE_PSM_USDC_A.sellGemNoFee with:
         // LITE_PSM_USDC_A being 0xf6e72Db5454dd049d0788e411b06CfAF16853042;
         // address usr being RWA001_A_URN;
         // uint256 gemAmt being 14_319_143_510000, i.e. exactly 14,319,143.51 USDC using 6 decimals
-        uint256 daiOutWad = LitePsmLike(MCD_LITE_PSM_USDC_A).sellGemNoFee(RWA001_A_URN, 14_319_143.51 * 1e6);
+        uint256 daiOutWad = LitePsmLike(MCD_LITE_PSM_USDC_A).sellGemNoFee(RWA001_A_URN, 14_319_143_510_000);
 
         // Restore the original LITE-PSM-USDC-A AutoLine parameters
         // Call DssExecLib.setIlkAutoLineDebtCeiling with:
@@ -164,6 +163,14 @@ contract DssSpellAction is DssAction {
 
         // Increase the Delayed Upgrade Penalty for MKR-SKY conversions by 1 percentage point from 3% to 4%
         DssExecLib.setValue(MKR_SKY, "fee", 4 * WAD / 100);
+
+        // ---------- Spark Proxy Spell ----------
+
+        // TODO
+
+        // ---------- Grove Proxy Spell ----------
+
+        // TODO
 
     }
 }
