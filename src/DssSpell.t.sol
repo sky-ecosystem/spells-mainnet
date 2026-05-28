@@ -40,6 +40,12 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
+interface RwaLiquidationOracleLike {
+    function good(bytes32 ilk) external view returns (bool);
+    function ilks(bytes32) external view returns (string memory doc, address pip, uint48 tau, uint48 toc);
+    function cull(bytes32 ilk, address urn) external;
+}
+
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -1481,5 +1487,63 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
+    function testRWA001_A_offboarding() public {
+        bytes32 ilk = "RWA001-A";
+        RwaLiquidationOracleLike oracle = RwaLiquidationOracleLike(addr.addr("MIP21_LIQUIDATION_ORACLE"));
 
+        // Snapshot pre-cast state
+        uint256 ArtBefore;
+        uint256 rate;
+        uint256 rwaALineBefore;
+        uint256 globalLineBefore = vat.Line();
+        (,,, uint256 psmLineBefore,) = vat.ilks("LITE-PSM-USDC-A");
+        {
+            (ArtBefore, rate,, rwaALineBefore,) = vat.ilks(ilk);
+            uint256 totalDebtBefore = ArtBefore * rate;
+            assertEq(ArtBefore, 13_764_209_680369078818456184, "RWA001_A_offboarding/Art-unexpected-before");
+            assertEq(totalDebtBefore / RAY, 17_338_416_986530573896521461, "RWA001_A_offboarding/total-debt-unexpected-before");
+
+            (,,, uint48 tocBefore) = oracle.ilks(ilk);
+            assertEq(tocBefore, 0, "RWA001_A_offboarding/already-told");
+            assertTrue(oracle.good(ilk), "RWA001_A_offboarding/not-good-rwa");
+        }
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // Debt reduced by the wiped amount
+        {
+            (uint256 ArtAfter,,, uint256 ilkLineAfter,) = vat.ilks(ilk);
+            assertApproxEqAbs(
+                ArtBefore * rate - ArtAfter * rate,
+                14_319_143.51 ether * RAY,
+                rate,
+                "RWA001_A_offboarding/debt-not-reduced-by-wipe"
+            );
+            assertEq(ilkLineAfter, 0, "RWA001_A_offboarding/ilk-line-not-zero-after");
+        }
+
+        // Global Line reduced by the previous ilk line and autoLine change
+        (,,, uint256 psmLineAfter,) = vat.ilks("LITE-PSM-USDC-A");
+        assertEq(
+            vat.Line(),
+            globalLineBefore - rwaALineBefore + psmLineAfter - psmLineBefore,
+            "RWA001_A_offboarding/global-line-not-reduced"
+        );
+
+        // Soft liquidation initiated via tell() and cull() callable after tau elapses
+        (,, uint48 tau, uint48 tocAfter) = oracle.ilks(ilk);
+        assertEq(tocAfter, block.timestamp, "RWA001_A_offboarding/not-told");
+
+        // Check if `cull` can be called after tau elapses
+        skip(tau);
+        assertEq(oracle.good("RWA001-A"), false, "RWA001_A_offboarding/still-good-after-tau");
+
+        vm.startPrank(pauseProxy);
+        oracle.cull(ilk, addr.addr("RWA001_A_URN"));
+        vm.stopPrank();
+        (uint256 ArtFinal,,,,) = vat.ilks(ilk);
+        assertEq(ArtFinal, 0, "RWA001_A_offboarding/Art-not-zero-after-cull");
+    }
 }

@@ -196,7 +196,7 @@ contract Config {
         afterSpell.SP_dsr_max   = 30_00;                                      // In basis points
         afterSpell.SP_dsr_step  = 4_00;                                       // In basis points
         afterSpell.sky_mkr_rate = 24_000;                                     // In whole SKY/MKR units
-        afterSpell.mkr_sky_fee  = 3_00;                                       // In basis points
+        afterSpell.mkr_sky_fee  = 4_00;                                       // In basis points
 
         afterSpell.stusds_rate_setter_tau      = 57_600;        // Cooldown period between rate changes in seconds
         afterSpell.stusds_rate_setter_maxLine  = 1_000_000_000; // USDS units
@@ -482,7 +482,7 @@ contract Config {
             aL_line:      0,
             aL_gap:       0,
             aL_ttl:       0,
-            line:         15 * MILLION,
+            line:         0,
             dust:         0,
             pct:          0,
             mat:          10000,
@@ -1031,8 +1031,8 @@ contract Config {
         afterSpell.collaterals["ALLOCATOR-SPARK-A"] = CollateralValues({
             um:           UpdateMethod.AUTOLINE,
             aL_line:      10 * BILLION,
-            aL_gap:       500 * MILLION,
-            aL_ttl:       24 hours,
+            aL_gap:       1500 * MILLION,
+            aL_ttl:       12 hours,
             line:         0,
             dust:         0,
             pct:          0,
