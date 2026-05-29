@@ -46,6 +46,12 @@ interface RwaLiquidationOracleLike {
     function cull(bytes32 ilk, address urn) external;
 }
 
+interface NetworkPaymentAdapterLike {
+    error UnauthorizedSender(address sender);
+    function topUp() external returns (uint256 daiSent);
+    function treasury() external view returns (address);
+}
+
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -1368,22 +1374,22 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
-        PrimeAgentSpell[2] memory primeAgentSpells = [
-            PrimeAgentSpell({
-                // Insert Prime Agent StarGuards Chainlog key
-                starGuardKey: "SPARK_STARGUARD",
-                // Insert Prime Agent spell address
-                addr: 0x84c5E704F7918812BA878ea7Ddbb1365876697C2,
-                // Insert Prime Agent spell codehash
-                codehash: 0x8731ee32dbe70020716a1d7d6623881f52ed120f60bd4876ef39c5e25706f515,
-                // Set to true if the Prime Agent spell is executed directly from core spell
-                directExecutionEnabled: false
-            }),
+    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
+        PrimeAgentSpell[1] memory primeAgentSpells = [
+            // PrimeAgentSpell({
+            //     // Insert Prime Agent StarGuards Chainlog key
+            //     starGuardKey: "SPARK_STARGUARD",
+            //     // Insert Prime Agent spell address
+            //     addr: 0x84c5E704F7918812BA878ea7Ddbb1365876697C2,
+            //     // Insert Prime Agent spell codehash
+            //     codehash: 0x8731ee32dbe70020716a1d7d6623881f52ed120f60bd4876ef39c5e25706f515,
+            //     // Set to true if the Prime Agent spell is executed directly from core spell
+            //     directExecutionEnabled: false
+            // }),
             PrimeAgentSpell({
                 starGuardKey: "GROVE_STARGUARD",
-                addr: 0x8EF80aBDa108a23eA01C8A3D1F5C8B49DD2008e8,
-                codehash: 0x9e8672cc4807d1acac2c63390b2afad3248c109aa4252f4dc5e81a0c95624de7,
+                addr: 0xbE5E67C516074ba0807A3535035868cE7F2Bd372,
+                codehash: 0xb14f6d21bb231192c44f9b868d915f8f541213a6834a72c6158efbd64ff3223c,
                 directExecutionEnabled: false
             })
         ];
@@ -1545,5 +1551,86 @@ contract DssSpellTest is DssSpellTestBase {
         vm.stopPrank();
         (uint256 ArtFinal,,,,) = vat.ilks(ilk);
         assertEq(ArtFinal, 0, "RWA001_A_offboarding/Art-not-zero-after-cull");
+    }
+
+    function test_keeper_offboarding() public {
+        SequencerLike seq = SequencerLike(addr.addr("CRON_SEQUENCER"));
+        NetworkPaymentAdapterLike gelatoAdapter = NetworkPaymentAdapterLike(0x0B5a34D084b6A5ae4361de033d1e6255623b41eD);
+        NetworkPaymentAdapterLike keep3rAdapter = NetworkPaymentAdapterLike(0xaeFed819b6657B3960A8515863abe0529Dfc444A);
+
+        // Sanity check
+        uint256 beforeNumNetworks = seq.numNetworks();
+        assertTrue(seq.hasNetwork("GELATO"));
+        assertTrue(seq.hasNetwork("KEEP3R"));
+        address gelatoTreasuryBefore = gelatoAdapter.treasury();
+        assertNotEq(gelatoTreasuryBefore, address(0), "TestError/gelato-treasury-zero");
+        address keep3rTreasuryBefore = keep3rAdapter.treasury();
+        assertNotEq(keep3rTreasuryBefore, address(0), "TestError/keep3r-treasury-zero");
+        assertGt(block.timestamp, vestDai.fin(30));
+        assertGt(block.timestamp, vestDai.fin(31));
+        assertEq(vestDai.res(30), 1, "TestError/gelato-vest-not-restricted");
+        assertEq(vestDai.res(31), 1, "TestError/keep3r-vest-not-restricted");
+        uint256 gelatoUnpaidAmount = vestDai.unpaid(30);
+        uint256 keep3rUnpaidAmount = vestDai.unpaid(31);
+
+        // Cast the spell
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // Check the result
+        uint256 afterNumNetworks = seq.numNetworks();
+        assertEq(afterNumNetworks, beforeNumNetworks - 2, "TestError/keeper-networks-after-spell-mismatch");
+        assertFalse(seq.hasNetwork("GELATO"));
+        assertFalse(seq.hasNetwork("KEEP3R"));
+        assertEq(gelatoAdapter.treasury(), address(0), "TestError/gelato-treasury-not-set-to-zero");
+        assertEq(keep3rAdapter.treasury(), address(0), "TestError/keep3r-treasury-not-set-to-zero");
+        assertEq(vestDai.unpaid(30), gelatoUnpaidAmount, "TestError/gelato-unpaid-amount-changed");
+        assertEq(vestDai.unpaid(31), keep3rUnpaidAmount, "TestError/keep3r-unpaid-amount-changed");
+
+        // Previous treasury cannot call `topup` anymore
+        vm.expectRevert(abi.encodeWithSelector(NetworkPaymentAdapterLike.UnauthorizedSender.selector, gelatoTreasuryBefore));
+        vm.prank(gelatoTreasuryBefore);
+        gelatoAdapter.topUp();
+        vm.expectRevert(abi.encodeWithSelector(NetworkPaymentAdapterLike.UnauthorizedSender.selector, keep3rTreasuryBefore));
+        vm.prank(keep3rTreasuryBefore);
+        keep3rAdapter.topUp();
+    }
+
+    function test_keeper_update() public {
+        SequencerLike seq = SequencerLike(addr.addr("CRON_SEQUENCER"));
+
+        // Sanity check
+        assertTrue(seq.hasNetwork("MAKER"));
+        assertFalse(seq.hasNetwork("SKY"));
+        (, uint256 makerWindowLength) = seq.windows("MAKER");
+
+        // Cast the spell
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // Check updated results
+        assertFalse(seq.hasNetwork("MAKER"));
+        assertTrue(seq.hasNetwork("SKY"));
+        (, uint256 skyWindowLength) = seq.windows("SKY");
+        assertEq(skyWindowLength, makerWindowLength, "TestError/sky-window-length-mismatch");
+
+        // Check crone sequence works as expected after update
+        (uint256 skyStart,      uint256 skyLength)      = seq.windows("SKY");
+        (uint256 chainlinkStart, ) = seq.windows("CHAINLINK");
+
+        assertEq(skyStart, 0, "TestError/sky-start-not-zero");
+        assertEq(chainlinkStart, skyLength, "TestError/chainlink-start-mismatch");
+
+        uint256 blockNumber = block.number;
+        for(uint8 i = 0; i < 3; i++) {
+            bytes32 currentMaster = seq.getMaster();
+            (, uint256 currentMasterLength) = seq.windows(currentMaster);
+
+            blockNumber += currentMasterLength;
+            vm.roll(blockNumber);
+            assertTrue(seq.getMaster() != currentMaster, "TestError/master-not-rotated-after-window");
+        }
     }
 }

@@ -568,6 +568,9 @@ interface SubProxyLike {
 interface SequencerLike {
     function hasJob(address job) external view returns (bool);
     function getMaster() external view returns (bytes32);
+    function hasNetwork(bytes32 network) external view returns (bool);
+    function numNetworks() external view returns (uint256);
+    function windows(bytes32) external view returns (uint256 start, uint256 length);
 }
 
 interface CronJobLike {

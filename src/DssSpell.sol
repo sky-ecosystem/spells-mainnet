@@ -33,6 +33,16 @@ interface RwaLiquidationLike {
     function tell(bytes32 ilk) external;
 }
 
+interface CronSequencerLike {
+    function addNetwork(bytes32 network, uint256 windowSize) external;
+    function removeNetwork(bytes32 network) external;
+    function windows(bytes32) external view returns (uint256 start, uint256 length);
+}
+
+interface StarGuardLike {
+    function plot(address addr_, bytes32 tag_) external;
+}
+
 contract DssSpellAction is DssAction {
     // Provides a descriptive tag for bot consumption
     // This should be modified weekly to provide a summary of the actions
@@ -69,7 +79,21 @@ contract DssSpellAction is DssAction {
     address internal immutable MCD_IAM_AUTO_LINE         = DssExecLib.getChangelogAddress("MCD_IAM_AUTO_LINE");
     address internal immutable RWA001_A_URN              = DssExecLib.getChangelogAddress("RWA001_A_URN");
     address internal immutable MIP21_LIQUIDATION_ORACLE  = DssExecLib.getChangelogAddress("MIP21_LIQUIDATION_ORACLE");
+    address internal immutable CRON_SEQUENCER            = DssExecLib.getChangelogAddress("CRON_SEQUENCER");
     address internal immutable MKR_SKY                   = DssExecLib.getChangelogAddress("MKR_SKY");
+    address internal immutable SPARK_STARGUARD           = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
+    address internal immutable GROVE_STARGUARD           = DssExecLib.getChangelogAddress("GROVE_STARGUARD");
+    address internal constant  GELATO_ADAPTER            = 0x0B5a34D084b6A5ae4361de033d1e6255623b41eD;
+    address internal constant  KEEP3R_ADAPTER            = 0xaeFed819b6657B3960A8515863abe0529Dfc444A;
+
+    // ---------- Spark Proxy Spell ----------
+    address internal constant SPARK_SPELL      = address(0);
+    bytes32 internal constant SPARK_SPELL_HASH = bytes32(0);
+
+    // ---------- Grove Proxy Spell ----------
+    address internal constant GROVE_SPELL      = 0xbE5E67C516074ba0807A3535035868cE7F2Bd372;
+    bytes32 internal constant GROVE_SPELL_HASH = 0xb14f6d21bb231192c44f9b868d915f8f541213a6834a72c6158efbd64ff3223c;
+
 
     function actions() public override {
         // ---------- RWA001-A Offboarding Spell 1 ----------
@@ -142,6 +166,16 @@ contract DssSpellAction is DssAction {
         // ---------- Keeper Network Adjustments ----------
 
         // TODO
+        CronSequencerLike(CRON_SEQUENCER).removeNetwork("GELATO");
+        DssExecLib.setContract(GELATO_ADAPTER, "treasury", address(0));
+
+        CronSequencerLike(CRON_SEQUENCER).removeNetwork("KEEP3R");
+        DssExecLib.setContract(KEEP3R_ADAPTER, "treasury", address(0));
+
+        (, uint256 makerLength) = CronSequencerLike(CRON_SEQUENCER).windows("MAKER");
+
+        CronSequencerLike(CRON_SEQUENCER).addNetwork("SKY", makerLength);
+        CronSequencerLike(CRON_SEQUENCER).removeNetwork("MAKER");
 
         // ---------- ALLOCATOR-SPARK-A DC-IAM Parameter Updates ----------
 
@@ -166,8 +200,8 @@ contract DssSpellAction is DssAction {
 
         // ---------- Grove Proxy Spell ----------
 
-        // TODO
-
+        // Whitelist Grove spell with address 0xbE5E67C516074ba0807A3535035868cE7F2Bd372 and codehash 0xb14f6d21bb231192c44f9b868d915f8f541213a6834a72c6158efbd64ff3223c in GROVE_STARGUARD, direct execution: No
+        StarGuardLike(GROVE_STARGUARD).plot(GROVE_SPELL, GROVE_SPELL_HASH);
     }
 }
 
