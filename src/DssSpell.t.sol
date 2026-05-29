@@ -1517,7 +1517,7 @@ contract DssSpellTest is DssSpellTestBase {
             (uint256 ArtAfter,,, uint256 ilkLineAfter,) = vat.ilks(ilk);
             assertApproxEqAbs(
                 ArtBefore * rate - ArtAfter * rate,
-                14_319_143.51 ether * RAY,
+                14_319_243.51 ether * RAY,
                 rate,
                 "RWA001_A_offboarding/debt-not-reduced-by-wipe"
             );

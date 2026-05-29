@@ -77,8 +77,8 @@ contract DssSpellAction is DssAction {
         // Temporarily update LITE-PSM-USDC-A AutoLine parameters
         // Call DssExecLib.setIlkAutoLineDebtCeiling with:
         // bytes32 ilk being "LITE-PSM-USDC-A";
-        // uint256 amount being 10_014_319_144;
-        DssExecLib.setIlkAutoLineDebtCeiling("LITE-PSM-USDC-A", 10_014_319_144);
+        // uint256 amount being 10_014_319_244;
+        DssExecLib.setIlkAutoLineDebtCeiling("LITE-PSM-USDC-A", 10_014_319_244);
 
         // Force the updated AutoLine parameters into the Vat debt ceiling
         // Call MCD_IAM_AUTO_LINE.exec with:
@@ -94,15 +94,15 @@ contract DssSpellAction is DssAction {
         // Approve LITE_PSM_USDC_A to pull USDC
         // Call USDC.approve with:
         // address spender being LITE_PSM_USDC_A;
-        // uint256 amount being 14_319_143_510000, i.e. exactly 14,319,143.51 USDC using 6 decimals.
-        GemAbstract(USDC).approve(MCD_LITE_PSM_USDC_A, 14_319_143_510000);
+        // uint256 amount being 14_319_243_510000, i.e. exactly 14,319,243.51 USDC using 6 decimals.
+        GemAbstract(USDC).approve(MCD_LITE_PSM_USDC_A, 14_319_243_510000);
 
         // Convert returned USDC to DAI
         // Call LITE_PSM_USDC_A.sellGemNoFee with:
         // LITE_PSM_USDC_A being 0xf6e72Db5454dd049d0788e411b06CfAF16853042;
         // address usr being RWA001_A_URN;
-        // uint256 gemAmt being 14_319_143_510000, i.e. exactly 14,319,143.51 USDC using 6 decimals
-        uint256 daiOutWad = DssLitePsmLike(MCD_LITE_PSM_USDC_A).sellGemNoFee(RWA001_A_URN, 14_319_143_510000);
+        // uint256 gemAmt being 14_319_243_510000, i.e. exactly 14,319,243.51 USDC using 6 decimals
+        uint256 daiOutWad = DssLitePsmLike(MCD_LITE_PSM_USDC_A).sellGemNoFee(RWA001_A_URN, 14_319_243_510000);
 
         // Restore the original LITE-PSM-USDC-A AutoLine parameters
         // Call DssExecLib.setIlkAutoLineDebtCeiling with:
