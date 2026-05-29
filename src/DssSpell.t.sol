@@ -1496,12 +1496,14 @@ contract DssSpellTest is DssSpellTestBase {
     function testRWA001_A_offboarding() public {
         bytes32 ilk = "RWA001-A";
         RwaLiquidationOracleLike oracle = RwaLiquidationOracleLike(addr.addr("MIP21_LIQUIDATION_ORACLE"));
+        address urn = addr.addr("RWA001_A_URN");
 
         // Snapshot pre-cast state
         uint256 ArtBefore;
         uint256 rate;
         uint256 rwaALineBefore;
         uint256 globalLineBefore = vat.Line();
+        uint256 urnDaiBefore = vat.dai(urn);
         (,,, uint256 psmLineBefore,) = vat.ilks("LITE-PSM-USDC-A");
         {
             (ArtBefore, rate,, rwaALineBefore,) = vat.ilks(ilk);
@@ -1518,7 +1520,7 @@ contract DssSpellTest is DssSpellTestBase {
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        // Debt reduced by the wiped amount
+        // Debt reduced by the wiped amount and urn dai not consumed by the wipe
         {
             (uint256 ArtAfter,,, uint256 ilkLineAfter,) = vat.ilks(ilk);
             assertApproxEqAbs(
@@ -1527,7 +1529,21 @@ contract DssSpellTest is DssSpellTestBase {
                 rate,
                 "RWA001_A_offboarding/debt-not-reduced-by-wipe"
             );
+            (, uint256 urnArtAfter) = vat.urns(ilk, urn);
+            assertApproxEqAbs(
+                (ArtBefore - urnArtAfter) * rate,
+                14_319_243.51 ether * RAY,
+                rate,
+                "RWA001_A_offboarding/urn-art-not-reduced-by-wipe"
+            );
             assertEq(ilkLineAfter, 0, "RWA001_A_offboarding/ilk-line-not-zero-after");
+
+            assertApproxEqAbs(
+                vat.dai(urn),
+                urnDaiBefore,
+                rate,
+                "RWA001_A_offboarding/urn-dai-not-consumed-by-wipe"
+            );
         }
 
         // Global Line reduced by the previous ilk line and autoLine change
@@ -1548,21 +1564,21 @@ contract DssSpellTest is DssSpellTestBase {
         assertFalse(oracle.good("RWA001-A"), "RWA001_A_offboarding/still-good-after-tau");
 
         vm.startPrank(pauseProxy);
-        oracle.cull(ilk, addr.addr("RWA001_A_URN"));
+        oracle.cull(ilk, urn);
         vm.stopPrank();
         (uint256 ArtFinal,,,,) = vat.ilks(ilk);
         assertEq(ArtFinal, 0, "RWA001_A_offboarding/Art-not-zero-after-cull");
     }
 
     function test_keeper_offboarding() public {
-        SequencerLike seq = SequencerLike(addr.addr("CRON_SEQUENCER"));
+        SequencerLike sequencer = SequencerLike(addr.addr("CRON_SEQUENCER"));
         NetworkPaymentAdapterLike gelatoAdapter = NetworkPaymentAdapterLike(0x0B5a34D084b6A5ae4361de033d1e6255623b41eD);
         NetworkPaymentAdapterLike keep3rAdapter = NetworkPaymentAdapterLike(0xaeFed819b6657B3960A8515863abe0529Dfc444A);
 
         // Sanity check
-        uint256 beforeNumNetworks = seq.numNetworks();
-        assertTrue(seq.hasNetwork("GELATO"));
-        assertTrue(seq.hasNetwork("KEEP3R"));
+        uint256 beforeNumNetworks = sequencer.numNetworks();
+        assertTrue(sequencer.hasNetwork("GELATO"));
+        assertTrue(sequencer.hasNetwork("KEEP3R"));
         address gelatoTreasuryBefore = gelatoAdapter.treasury();
         assertNotEq(gelatoTreasuryBefore, address(0), "TestError/gelato-treasury-zero");
         address keep3rTreasuryBefore = keep3rAdapter.treasury();
@@ -1580,10 +1596,10 @@ contract DssSpellTest is DssSpellTestBase {
         assertTrue(spell.done(), "TestError/spell-not-done");
 
         // Check the result
-        uint256 afterNumNetworks = seq.numNetworks();
+        uint256 afterNumNetworks = sequencer.numNetworks();
         assertEq(afterNumNetworks, beforeNumNetworks - 2, "TestError/keeper-networks-after-spell-mismatch");
-        assertFalse(seq.hasNetwork("GELATO"));
-        assertFalse(seq.hasNetwork("KEEP3R"));
+        assertFalse(sequencer.hasNetwork("GELATO"));
+        assertFalse(sequencer.hasNetwork("KEEP3R"));
         assertEq(gelatoAdapter.treasury(), address(0), "TestError/gelato-treasury-not-set-to-zero");
         assertEq(keep3rAdapter.treasury(), address(0), "TestError/keep3r-treasury-not-set-to-zero");
         assertEq(vestDai.unpaid(30), gelatoUnpaidAmount, "TestError/gelato-unpaid-amount-changed");
@@ -1599,12 +1615,12 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     function test_keeper_update() public {
-        SequencerLike seq = SequencerLike(addr.addr("CRON_SEQUENCER"));
+        SequencerLike sequencer = SequencerLike(addr.addr("CRON_SEQUENCER"));
 
         // Sanity check
-        assertTrue(seq.hasNetwork("MAKER"));
-        assertFalse(seq.hasNetwork("SKY"));
-        (, uint256 makerWindowLength) = seq.windows("MAKER");
+        assertTrue(sequencer.hasNetwork("MAKER"));
+        assertFalse(sequencer.hasNetwork("SKY"));
+        (, uint256 makerWindowLength) = sequencer.windows("MAKER");
 
         // Cast the spell
         _vote(address(spell));
@@ -1612,26 +1628,26 @@ contract DssSpellTest is DssSpellTestBase {
         assertTrue(spell.done(), "TestError/spell-not-done");
 
         // Check updated results
-        assertFalse(seq.hasNetwork("MAKER"));
-        assertTrue(seq.hasNetwork("SKY"));
-        (, uint256 skyWindowLength) = seq.windows("SKY");
+        assertFalse(sequencer.hasNetwork("MAKER"));
+        assertTrue(sequencer.hasNetwork("SKY"));
+        (, uint256 skyWindowLength) = sequencer.windows("SKY");
         assertEq(skyWindowLength, makerWindowLength, "TestError/sky-window-length-mismatch");
 
         // Check crone sequence works as expected after update
-        (uint256 skyStart,      uint256 skyLength)      = seq.windows("SKY");
-        (uint256 chainlinkStart, ) = seq.windows("CHAINLINK");
+        (uint256 skyStart,      uint256 skyLength)      = sequencer.windows("SKY");
+        (uint256 chainlinkStart, ) = sequencer.windows("CHAINLINK");
 
         assertEq(skyStart, 0, "TestError/sky-start-not-zero");
         assertEq(chainlinkStart, skyLength, "TestError/chainlink-start-mismatch");
 
         uint256 blockNumber = block.number;
         for(uint8 i = 0; i < 3; i++) {
-            bytes32 currentMaster = seq.getMaster();
-            (, uint256 currentMasterLength) = seq.windows(currentMaster);
+            bytes32 currentMaster = sequencer.getMaster();
+            (, uint256 currentMasterLength) = sequencer.windows(currentMaster);
 
             blockNumber += currentMasterLength;
             vm.roll(blockNumber);
-            assertTrue(seq.getMaster() != currentMaster, "TestError/master-not-rotated-after-window");
+            assertTrue(sequencer.getMaster() != currentMaster, "TestError/master-not-rotated-after-window");
         }
     }
 }
