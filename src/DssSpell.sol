@@ -21,15 +21,12 @@ import "dss-exec-lib/DssAction.sol";
 import { VatAbstract } from "dss-interfaces/dss/VatAbstract.sol";
 import { GemAbstract } from "dss-interfaces/ERC/GemAbstract.sol";
 import { RwaUrnAbstract } from "dss-interfaces/dss/mip21/RwaUrnAbstract.sol";
+import { DssAutoLineAbstract } from "dss-interfaces/dss/DssAutoLineAbstract.sol";
 
-interface LitePsmLike {
+interface DssLitePsmLike {
     function rush() external view returns (uint256 wad);
     function fill() external returns (uint256 wad);
     function sellGemNoFee(address usr, uint256 gemAmt) external returns (uint256 daiOutWad);
-}
-
-interface IAMAutoLineLike {
-    function exec(bytes32) external returns (uint256);
 }
 
 interface RwaLiquidationLike {
@@ -86,12 +83,12 @@ contract DssSpellAction is DssAction {
         // Force the updated AutoLine parameters into the Vat debt ceiling
         // Call MCD_IAM_AUTO_LINE.exec with:
         // bytes32 ilk being "LITE-PSM-USDC-A"
-        IAMAutoLineLike(MCD_IAM_AUTO_LINE).exec("LITE-PSM-USDC-A");
+        DssAutoLineAbstract(MCD_IAM_AUTO_LINE).exec("LITE-PSM-USDC-A");
 
         // Fill the LITE-PSM-USDC-A DAI buffer
         // Call LITE_PSM_USDC_A.fill() only if LITE_PSM_USDC_A.rush() > 0
-        if(LitePsmLike(MCD_LITE_PSM_USDC_A).rush() > 0) {
-            LitePsmLike(MCD_LITE_PSM_USDC_A).fill();
+        if(DssLitePsmLike(MCD_LITE_PSM_USDC_A).rush() > 0) {
+            DssLitePsmLike(MCD_LITE_PSM_USDC_A).fill();
         }
 
         // Approve LITE_PSM_USDC_A to pull USDC
@@ -105,7 +102,7 @@ contract DssSpellAction is DssAction {
         // LITE_PSM_USDC_A being 0xf6e72Db5454dd049d0788e411b06CfAF16853042;
         // address usr being RWA001_A_URN;
         // uint256 gemAmt being 14_319_143_510000, i.e. exactly 14,319,143.51 USDC using 6 decimals
-        uint256 daiOutWad = LitePsmLike(MCD_LITE_PSM_USDC_A).sellGemNoFee(RWA001_A_URN, 14_319_143_510000);
+        uint256 daiOutWad = DssLitePsmLike(MCD_LITE_PSM_USDC_A).sellGemNoFee(RWA001_A_URN, 14_319_143_510000);
 
         // Restore the original LITE-PSM-USDC-A AutoLine parameters
         // Call DssExecLib.setIlkAutoLineDebtCeiling with:
@@ -116,7 +113,7 @@ contract DssSpellAction is DssAction {
         // Re-execute MCD_IAM_AUTO_LINE for LITE-PSM-USDC-A
         // Call MCD_IAM_AUTO_LINE.exec with:
         // bytes32 ilk being "LITE-PSM-USDC-A"
-        IAMAutoLineLike(MCD_IAM_AUTO_LINE).exec("LITE-PSM-USDC-A");
+        DssAutoLineAbstract(MCD_IAM_AUTO_LINE).exec("LITE-PSM-USDC-A");
 
         // Repay RWA001_A_URN debt
         // Call RWA001_A_URN.wipe with:
