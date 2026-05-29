@@ -1541,10 +1541,11 @@ contract DssSpellTest is DssSpellTestBase {
         // Soft liquidation initiated via tell() and cull() callable after tau elapses
         (,, uint48 tau, uint48 tocAfter) = oracle.ilks(ilk);
         assertEq(tocAfter, block.timestamp, "RWA001_A_offboarding/not-told");
+        assertTrue(oracle.good("RWA001-A"), "RWA001_A_offboarding/not-good-before-tau");
 
         // Check if `cull` can be called after tau elapses
         skip(tau);
-        assertEq(oracle.good("RWA001-A"), false, "RWA001_A_offboarding/still-good-after-tau");
+        assertFalse(oracle.good("RWA001-A"), "RWA001_A_offboarding/still-good-after-tau");
 
         vm.startPrank(pauseProxy);
         oracle.cull(ilk, addr.addr("RWA001_A_URN"));

@@ -29,7 +29,7 @@ interface DssLitePsmLike {
     function sellGemNoFee(address usr, uint256 gemAmt) external returns (uint256 daiOutWad);
 }
 
-interface RwaLiquidationLike {
+interface RwaLiquidationOracleLike {
     function tell(bytes32 ilk) external;
 }
 
@@ -161,7 +161,7 @@ contract DssSpellAction is DssAction {
         // Call MIP21_LIQUIDATION_ORACLE.tell with:
         // MIP21_LIQUIDATION_ORACLE being 0x88f88Bb9E66241B73B84f3A6E197FbBa487b1E30
         // bytes32 ilk being "RWA001-A"
-        RwaLiquidationLike(MIP21_LIQUIDATION_ORACLE).tell("RWA001-A");
+        RwaLiquidationOracleLike(MIP21_LIQUIDATION_ORACLE).tell("RWA001-A");
 
         // ---------- Keeper Network Adjustments ----------
 
