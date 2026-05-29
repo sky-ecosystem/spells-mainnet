@@ -97,6 +97,7 @@ contract DssSpellAction is DssAction {
 
     function actions() public override {
         // ---------- RWA001-A Offboarding Spell 1 ----------
+        // Forum: https://forum.skyeco.com/t/technical-scope-of-rwa001-a-offboarding/27706/5
 
         // Temporarily update LITE-PSM-USDC-A AutoLine parameters
         // Call DssExecLib.setIlkAutoLineDebtCeiling with:
@@ -164,20 +165,33 @@ contract DssSpellAction is DssAction {
         RwaLiquidationOracleLike(MIP21_LIQUIDATION_ORACLE).tell("RWA001-A");
 
         // ---------- Keeper Network Adjustments ----------
+        // Forum: https://forum.skyeco.com/t/technical-scope-of-keeper-network-adjustments/27947
 
-        // TODO
+        // Remove the GELATO lane from CRON_SEQUENCER
         CronSequencerLike(CRON_SEQUENCER).removeNetwork("GELATO");
+
+        // Disable the claim path of the Gelato adapter at 0x0B5a34D084b6A5ae4361de033d1e6255623b41eD
         DssExecLib.setContract(GELATO_ADAPTER, "treasury", address(0));
 
+        // Remove the KEEP3R lane from CRON_SEQUENCER
         CronSequencerLike(CRON_SEQUENCER).removeNetwork("KEEP3R");
+
+        // Disable the claim path of the Keep3r adapter at 0xaeFed819b6657B3960A8515863abe0529Dfc444A
         DssExecLib.setContract(KEEP3R_ADAPTER, "treasury", address(0));
 
+        // Rename the MAKER lane to SKY
+        // Note: save the maker window length to reuse for the SKY lane
         (, uint256 makerLength) = CronSequencerLike(CRON_SEQUENCER).windows("MAKER");
 
+        // Note: Add the SKY lane to CRON_SEQUENCER with the same window length as MAKER
         CronSequencerLike(CRON_SEQUENCER).addNetwork("SKY", makerLength);
+
+        // Note: Remove the MAKER lane from CRON_SEQUENCER
         CronSequencerLike(CRON_SEQUENCER).removeNetwork("MAKER");
 
         // ---------- ALLOCATOR-SPARK-A DC-IAM Parameter Updates ----------
+        // Forum: https://forum.skyeco.com/t/june-4-2026-proposed-changes-to-spark-for-upcoming-spell/27931
+        // Atlas: https://sky-atlas.io/#41a1ae38-4f5c-468f-b6ba-47e16ecc5aec
 
         DssExecLib.setIlkAutoLineParameters({
             _ilk: "ALLOCATOR-SPARK-A",
@@ -190,6 +204,8 @@ contract DssSpellAction is DssAction {
         });
 
         // ---------- MKR-SKY Delayed Upgrade Penalty Increase ----------
+        // Forum: https://forum.skyeco.com/t/delayed-migration-penalty-update-june-4th-spell/27940
+        // Atlas: https://sky-atlas.io/#ec820ddb-5d12-43d8-81b7-a7602a70332a
 
         // Increase the Delayed Upgrade Penalty for MKR-SKY conversions by 1 percentage point from 3% to 4%
         DssExecLib.setValue(MKR_SKY, "fee", 4 * WAD / 100);
