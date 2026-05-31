@@ -1572,23 +1572,25 @@ contract DssSpellTest is DssSpellTestBase {
 
     function test_keeper_offboarding() public {
         SequencerLike sequencer = SequencerLike(addr.addr("CRON_SEQUENCER"));
-        NetworkPaymentAdapterLike gelatoAdapter = NetworkPaymentAdapterLike(0x0B5a34D084b6A5ae4361de033d1e6255623b41eD);
-        NetworkPaymentAdapterLike keep3rAdapter = NetworkPaymentAdapterLike(0xaeFed819b6657B3960A8515863abe0529Dfc444A);
+        NetworkPaymentAdapterLike gelatoAdapter = NetworkPaymentAdapterLike(wallets.addr("GELATO_PAYMENT_ADAPTER"));
+        NetworkPaymentAdapterLike keep3rAdapter = NetworkPaymentAdapterLike(wallets.addr("KEEP3R_PAYMENT_ADAPTER"));
 
         // Sanity check
         uint256 beforeNumNetworks = sequencer.numNetworks();
         assertTrue(sequencer.hasNetwork("GELATO"));
         assertTrue(sequencer.hasNetwork("KEEP3R"));
         address gelatoTreasuryBefore = gelatoAdapter.treasury();
-        assertNotEq(gelatoTreasuryBefore, address(0), "TestError/gelato-treasury-zero");
+        assertNotEq(gelatoTreasuryBefore, address(0), "keeper_offboarding/gelato-treasury-zero");
         address keep3rTreasuryBefore = keep3rAdapter.treasury();
-        assertNotEq(keep3rTreasuryBefore, address(0), "TestError/keep3r-treasury-zero");
+        assertNotEq(keep3rTreasuryBefore, address(0), "keeper_offboarding/keep3r-treasury-zero");
         assertGt(block.timestamp, vestDai.fin(30));
         assertGt(block.timestamp, vestDai.fin(31));
-        assertEq(vestDai.res(30), 1, "TestError/gelato-vest-not-restricted");
-        assertEq(vestDai.res(31), 1, "TestError/keep3r-vest-not-restricted");
+        assertEq(vestDai.res(30), 1, "keeper_offboarding/gelato-vest-not-restricted");
+        assertEq(vestDai.res(31), 1, "keeper_offboarding/keep3r-vest-not-restricted");
         uint256 gelatoUnpaidAmount = vestDai.unpaid(30);
         uint256 keep3rUnpaidAmount = vestDai.unpaid(31);
+        assertGt(gelatoUnpaidAmount, 0, "keeper_offboarding/gelato-unpaid-amount-zero");
+        assertGt(keep3rUnpaidAmount, 0, "keeper_offboarding/keep3r-unpaid-amount-zero");
 
         // Cast the spell
         _vote(address(spell));
@@ -1597,13 +1599,13 @@ contract DssSpellTest is DssSpellTestBase {
 
         // Check the result
         uint256 afterNumNetworks = sequencer.numNetworks();
-        assertEq(afterNumNetworks, beforeNumNetworks - 2, "TestError/keeper-networks-after-spell-mismatch");
+        assertEq(afterNumNetworks, beforeNumNetworks - 2, "keeper_offboarding/keeper-networks-after-spell-mismatch");
         assertFalse(sequencer.hasNetwork("GELATO"));
         assertFalse(sequencer.hasNetwork("KEEP3R"));
-        assertEq(gelatoAdapter.treasury(), address(0), "TestError/gelato-treasury-not-set-to-zero");
-        assertEq(keep3rAdapter.treasury(), address(0), "TestError/keep3r-treasury-not-set-to-zero");
-        assertEq(vestDai.unpaid(30), gelatoUnpaidAmount, "TestError/gelato-unpaid-amount-changed");
-        assertEq(vestDai.unpaid(31), keep3rUnpaidAmount, "TestError/keep3r-unpaid-amount-changed");
+        assertEq(gelatoAdapter.treasury(), address(0), "keeper_offboarding/gelato-treasury-not-set-to-zero");
+        assertEq(keep3rAdapter.treasury(), address(0), "keeper_offboarding/keep3r-treasury-not-set-to-zero");
+        assertEq(vestDai.unpaid(30), gelatoUnpaidAmount, "keeper_offboarding/gelato-unpaid-amount-changed");
+        assertEq(vestDai.unpaid(31), keep3rUnpaidAmount, "keeper_offboarding/keep3r-unpaid-amount-changed");
 
         // Previous treasury cannot call `topup` anymore
         vm.expectRevert(abi.encodeWithSelector(NetworkPaymentAdapterLike.UnauthorizedSender.selector, gelatoTreasuryBefore));
@@ -1625,20 +1627,20 @@ contract DssSpellTest is DssSpellTestBase {
         // Cast the spell
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
+        assertTrue(spell.done(), "keeper_update/spell-not-done");
 
         // Check updated results
         assertFalse(sequencer.hasNetwork("MAKER"));
         assertTrue(sequencer.hasNetwork("SKY"));
         (, uint256 skyWindowLength) = sequencer.windows("SKY");
-        assertEq(skyWindowLength, makerWindowLength, "TestError/sky-window-length-mismatch");
+        assertEq(skyWindowLength, makerWindowLength, "keeper_update/sky-window-length-mismatch");
 
         // Check crone sequence works as expected after update
         (uint256 skyStart,      uint256 skyLength)      = sequencer.windows("SKY");
         (uint256 chainlinkStart, ) = sequencer.windows("CHAINLINK");
 
-        assertEq(skyStart, 0, "TestError/sky-start-not-zero");
-        assertEq(chainlinkStart, skyLength, "TestError/chainlink-start-mismatch");
+        assertEq(skyStart, 0, "keeper_update/sky-start-not-zero");
+        assertEq(chainlinkStart, skyLength, "keeper_update/chainlink-start-mismatch");
 
         uint256 blockNumber = block.number;
         for(uint8 i = 0; i < 3; i++) {
@@ -1647,7 +1649,7 @@ contract DssSpellTest is DssSpellTestBase {
 
             blockNumber += currentMasterLength;
             vm.roll(blockNumber);
-            assertTrue(sequencer.getMaster() != currentMaster, "TestError/master-not-rotated-after-window");
+            assertTrue(sequencer.getMaster() != currentMaster, "keeper_update/master-not-rotated-after-window");
         }
     }
 }
