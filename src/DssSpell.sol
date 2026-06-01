@@ -146,7 +146,7 @@ contract DssSpellAction is DssAction {
         // uint256 wad being the DAI amount returned by LITE_PSM_USDC_A.sellGemNoFee(RWA001_A_URN, gemAmt).
         RwaUrnAbstract(RWA001_A_URN).wipe(daiOutWad);
 
-        // Note: get the current `line` from the Vat to decrease the global debt ceiling
+        // Note: Get the current `line` from the Vat to decrease the global debt ceiling
         (,,, uint256 line,) = VatAbstract(MCD_VAT).ilks("RWA001-A");
 
         // Set the RWA001-A debt ceiling to zero
@@ -181,7 +181,7 @@ contract DssSpellAction is DssAction {
         DssExecLib.setContract(KEEP3R_ADAPTER, "treasury", address(0));
 
         // Rename the MAKER lane to SKY
-        // Note: save the maker window length to reuse for the SKY lane
+        // Note: Save the maker window length to reuse for the SKY lane
         (, uint256 makerLength) = CronSequencerLike(CRON_SEQUENCER).windows("MAKER");
 
         // Note: Add the SKY lane to CRON_SEQUENCER with the same window length as MAKER
