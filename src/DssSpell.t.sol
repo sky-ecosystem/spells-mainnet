@@ -1388,7 +1388,6 @@ contract DssSpellTest is DssSpellTestBase {
             })
         ];
 
-
         for (uint256 i = 0; i < primeAgentSpells.length; i++) {
             _testStarGuardExecution({
                 starGuardKey: primeAgentSpells[i].starGuardKey,

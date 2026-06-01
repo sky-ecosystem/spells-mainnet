@@ -91,7 +91,6 @@ contract DssSpellAction is DssAction {
     address internal constant GROVE_SPELL      = 0xbE5E67C516074ba0807A3535035868cE7F2Bd372;
     bytes32 internal constant GROVE_SPELL_HASH = 0xb14f6d21bb231192c44f9b868d915f8f541213a6834a72c6158efbd64ff3223c;
 
-
     function actions() public override {
         // ---------- RWA001-A Offboarding Spell 1 ----------
         // Forum: https://forum.skyeco.com/t/technical-scope-of-rwa001-a-offboarding/27706/5
