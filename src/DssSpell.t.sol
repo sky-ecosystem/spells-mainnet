@@ -1502,6 +1502,8 @@ contract DssSpellTest is DssSpellTestBase {
         uint256 ArtBefore;
         uint256 rate;
         uint256 rwaALineBefore;
+
+        // Sanity check
         uint256 globalLineBefore = vat.Line();
         uint256 urnDaiBefore = vat.dai(urn);
         (,,, uint256 psmLineBefore,) = vat.ilks("LITE-PSM-USDC-A");
@@ -1546,7 +1548,7 @@ contract DssSpellTest is DssSpellTestBase {
             );
         }
 
-        // Global Line reduced by the previous ilk line and autoLine change
+        // Global Line reduced by the previous ilk line and autoLine change amount
         (,,, uint256 psmLineAfter,) = vat.ilks("LITE-PSM-USDC-A");
         assertEq(
             vat.Line(),
@@ -1554,7 +1556,7 @@ contract DssSpellTest is DssSpellTestBase {
             "testRWA001AOffboarding/global-line-not-reduced"
         );
 
-        // Soft liquidation initiated via tell() and cull() callable after tau elapses
+        // Soft liquidation initiated via tell()
         (,, uint48 tau, uint48 tocAfter) = oracle.ilks(ilk);
         assertEq(tocAfter, block.timestamp, "testRWA001AOffboarding/not-told");
         assertTrue(oracle.good("RWA001-A"), "testRWA001AOffboarding/not-good-before-tau");
@@ -1597,7 +1599,7 @@ contract DssSpellTest is DssSpellTestBase {
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        // Check the result
+        // Check the updated state
         uint256 afterNumNetworks = sequencer.numNetworks();
         assertEq(afterNumNetworks, beforeNumNetworks - 2, "testKeeperOffboarding/keeper-networks-after-spell-mismatch");
         assertFalse(sequencer.hasNetwork("GELATO"));
@@ -1636,7 +1638,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(skyWindowLength, makerWindowLength, "testKeeperUpdate/sky-window-length-mismatch");
 
         // Check crone sequence works as expected after update
-        (uint256 skyStart,      uint256 skyLength)      = sequencer.windows("SKY");
+        (uint256 skyStart, uint256 skyLength) = sequencer.windows("SKY");
         (uint256 chainlinkStart, ) = sequencer.windows("CHAINLINK");
 
         assertEq(skyStart, 0, "testKeeperUpdate/sky-start-not-zero");
