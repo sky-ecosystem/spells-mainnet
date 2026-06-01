@@ -40,12 +40,6 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
-interface RwaLiquidationOracleLike {
-    function good(bytes32 ilk) external view returns (bool);
-    function ilks(bytes32) external view returns (string memory doc, address pip, uint48 tau, uint48 toc);
-    function cull(bytes32 ilk, address urn) external;
-}
-
 interface NetworkPaymentAdapterLike {
     error UnauthorizedSender(address sender);
     function topUp() external returns (uint256 daiSent);
@@ -1495,7 +1489,7 @@ contract DssSpellTest is DssSpellTestBase {
     // SPELL-SPECIFIC TESTS GO BELOW
     function testRWA001AOffboarding() public {
         bytes32 ilk = "RWA001-A";
-        RwaLiquidationOracleLike oracle = RwaLiquidationOracleLike(addr.addr("MIP21_LIQUIDATION_ORACLE"));
+        RwaLiquidationOracleAbstract oracle = RwaLiquidationOracleAbstract(addr.addr("MIP21_LIQUIDATION_ORACLE"));
         address urn = addr.addr("RWA001_A_URN");
 
         // Snapshot pre-cast state

@@ -22,15 +22,12 @@ import { VatAbstract } from "dss-interfaces/dss/VatAbstract.sol";
 import { GemAbstract } from "dss-interfaces/ERC/GemAbstract.sol";
 import { RwaUrnAbstract } from "dss-interfaces/dss/mip21/RwaUrnAbstract.sol";
 import { DssAutoLineAbstract } from "dss-interfaces/dss/DssAutoLineAbstract.sol";
+import { RwaLiquidationOracleAbstract } from "dss-interfaces/dss/mip21/RwaLiquidationOracleAbstract.sol";
 
 interface DssLitePsmLike {
     function rush() external view returns (uint256 wad);
     function fill() external returns (uint256 wad);
     function sellGemNoFee(address usr, uint256 gemAmt) external returns (uint256 daiOutWad);
-}
-
-interface RwaLiquidationOracleLike {
-    function tell(bytes32 ilk) external;
 }
 
 interface CronSequencerLike {
@@ -162,7 +159,7 @@ contract DssSpellAction is DssAction {
         // Call MIP21_LIQUIDATION_ORACLE.tell with:
         // MIP21_LIQUIDATION_ORACLE being 0x88f88Bb9E66241B73B84f3A6E197FbBa487b1E30
         // bytes32 ilk being "RWA001-A"
-        RwaLiquidationOracleLike(MIP21_LIQUIDATION_ORACLE).tell("RWA001-A");
+        RwaLiquidationOracleAbstract(MIP21_LIQUIDATION_ORACLE).tell("RWA001-A");
 
         // ---------- Keeper Network Adjustments ----------
         // Forum: https://forum.skyeco.com/t/technical-scope-of-keeper-network-adjustments/27947
