@@ -80,8 +80,8 @@ contract DssSpellAction is DssAction {
     address internal immutable MKR_SKY                   = DssExecLib.getChangelogAddress("MKR_SKY");
     address internal immutable SPARK_STARGUARD           = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
     address internal immutable GROVE_STARGUARD           = DssExecLib.getChangelogAddress("GROVE_STARGUARD");
-    address internal constant  GELATO_ADAPTER            = 0x0B5a34D084b6A5ae4361de033d1e6255623b41eD;
-    address internal constant  KEEP3R_ADAPTER            = 0xaeFed819b6657B3960A8515863abe0529Dfc444A;
+    address internal constant  GELATO_PAYMENT_ADAPTER    = 0x0B5a34D084b6A5ae4361de033d1e6255623b41eD;
+    address internal constant  KEEP3R_PAYMENT_ADAPTER    = 0xaeFed819b6657B3960A8515863abe0529Dfc444A;
 
     // ---------- Spark Proxy Spell ----------
     address internal constant SPARK_SPELL      = 0xAb385eC0Df225D5A37F5245D2aE43D53Fe4Fed20;
@@ -108,7 +108,7 @@ contract DssSpellAction is DssAction {
 
         // Fill the LITE-PSM-USDC-A DAI buffer
         // Call LITE_PSM_USDC_A.fill() only if LITE_PSM_USDC_A.rush() > 0
-        if(DssLitePsmLike(MCD_LITE_PSM_USDC_A).rush() > 0) {
+        if (DssLitePsmLike(MCD_LITE_PSM_USDC_A).rush() > 0) {
             DssLitePsmLike(MCD_LITE_PSM_USDC_A).fill();
         }
 
@@ -168,13 +168,13 @@ contract DssSpellAction is DssAction {
         CronSequencerLike(CRON_SEQUENCER).removeNetwork("GELATO");
 
         // Disable the claim path of the Gelato adapter at 0x0B5a34D084b6A5ae4361de033d1e6255623b41eD
-        DssExecLib.setContract(GELATO_ADAPTER, "treasury", address(0));
+        DssExecLib.setContract(GELATO_PAYMENT_ADAPTER, "treasury", address(0));
 
         // Remove the KEEP3R lane from CRON_SEQUENCER
         CronSequencerLike(CRON_SEQUENCER).removeNetwork("KEEP3R");
 
         // Disable the claim path of the Keep3r adapter at 0xaeFed819b6657B3960A8515863abe0529Dfc444A
-        DssExecLib.setContract(KEEP3R_ADAPTER, "treasury", address(0));
+        DssExecLib.setContract(KEEP3R_PAYMENT_ADAPTER, "treasury", address(0));
 
         // Rename the MAKER lane to SKY
         // Note: Save the maker window length to reuse for the SKY lane
