@@ -1493,7 +1493,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
-    function testRWA001_A_offboarding() public {
+    function testRWA001AOffboarding() public {
         bytes32 ilk = "RWA001-A";
         RwaLiquidationOracleLike oracle = RwaLiquidationOracleLike(addr.addr("MIP21_LIQUIDATION_ORACLE"));
         address urn = addr.addr("RWA001_A_URN");
@@ -1508,12 +1508,12 @@ contract DssSpellTest is DssSpellTestBase {
         {
             (ArtBefore, rate,, rwaALineBefore,) = vat.ilks(ilk);
             uint256 totalDebtBefore = ArtBefore * rate;
-            assertEq(ArtBefore, 13_764_209_680_369_078_818_456_184, "RWA001_A_offboarding/Art-unexpected-before");
-            assertEq(totalDebtBefore / RAY, 17_338_416_986_530_573_896_521_461, "RWA001_A_offboarding/total-debt-unexpected-before");
+            assertEq(ArtBefore, 13_764_209_680_369_078_818_456_184, "testRWA001AOffboarding/Art-unexpected-before");
+            assertEq(totalDebtBefore / RAY, 17_338_416_986_530_573_896_521_461, "testRWA001AOffboarding/total-debt-unexpected-before");
 
             (,,, uint48 tocBefore) = oracle.ilks(ilk);
-            assertEq(tocBefore, 0, "RWA001_A_offboarding/already-told");
-            assertTrue(oracle.good(ilk), "RWA001_A_offboarding/not-good-rwa");
+            assertEq(tocBefore, 0, "testRWA001AOffboarding/already-told");
+            assertTrue(oracle.good(ilk), "testRWA001AOffboarding/not-good-rwa");
         }
 
         _vote(address(spell));
@@ -1527,22 +1527,22 @@ contract DssSpellTest is DssSpellTestBase {
                 ArtBefore * rate - ArtAfter * rate,
                 14_319_243.51 ether * RAY,
                 rate,
-                "RWA001_A_offboarding/debt-not-reduced-by-wipe"
+                "testRWA001AOffboarding/debt-not-reduced-by-wipe"
             );
             (, uint256 urnArtAfter) = vat.urns(ilk, urn);
             assertApproxEqAbs(
                 (ArtBefore - urnArtAfter) * rate,
                 14_319_243.51 ether * RAY,
                 rate,
-                "RWA001_A_offboarding/urn-art-not-reduced-by-wipe"
+                "testRWA001AOffboarding/urn-art-not-reduced-by-wipe"
             );
-            assertEq(ilkLineAfter, 0, "RWA001_A_offboarding/ilk-line-not-zero-after");
+            assertEq(ilkLineAfter, 0, "testRWA001AOffboarding/ilk-line-not-zero-after");
 
             assertApproxEqAbs(
                 vat.dai(urn),
                 urnDaiBefore,
                 rate,
-                "RWA001_A_offboarding/urn-dai-not-consumed-by-wipe"
+                "testRWA001AOffboarding/urn-dai-not-consumed-by-wipe"
             );
         }
 
@@ -1551,26 +1551,26 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(
             vat.Line(),
             globalLineBefore - rwaALineBefore + psmLineAfter - psmLineBefore,
-            "RWA001_A_offboarding/global-line-not-reduced"
+            "testRWA001AOffboarding/global-line-not-reduced"
         );
 
         // Soft liquidation initiated via tell() and cull() callable after tau elapses
         (,, uint48 tau, uint48 tocAfter) = oracle.ilks(ilk);
-        assertEq(tocAfter, block.timestamp, "RWA001_A_offboarding/not-told");
-        assertTrue(oracle.good("RWA001-A"), "RWA001_A_offboarding/not-good-before-tau");
+        assertEq(tocAfter, block.timestamp, "testRWA001AOffboarding/not-told");
+        assertTrue(oracle.good("RWA001-A"), "testRWA001AOffboarding/not-good-before-tau");
 
         // Check if `cull` can be called after tau elapses
         skip(tau);
-        assertFalse(oracle.good("RWA001-A"), "RWA001_A_offboarding/still-good-after-tau");
+        assertFalse(oracle.good("RWA001-A"), "testRWA001AOffboarding/still-good-after-tau");
 
         vm.startPrank(pauseProxy);
         oracle.cull(ilk, urn);
         vm.stopPrank();
         (uint256 ArtFinal,,,,) = vat.ilks(ilk);
-        assertEq(ArtFinal, 0, "RWA001_A_offboarding/Art-not-zero-after-cull");
+        assertEq(ArtFinal, 0, "testRWA001AOffboarding/Art-not-zero-after-cull");
     }
 
-    function test_keeper_offboarding() public {
+    function testKeeperOffboarding() public {
         SequencerLike sequencer = SequencerLike(addr.addr("CRON_SEQUENCER"));
         NetworkPaymentAdapterLike gelatoAdapter = NetworkPaymentAdapterLike(wallets.addr("GELATO_PAYMENT_ADAPTER"));
         NetworkPaymentAdapterLike keep3rAdapter = NetworkPaymentAdapterLike(wallets.addr("KEEP3R_PAYMENT_ADAPTER"));
@@ -1580,17 +1580,17 @@ contract DssSpellTest is DssSpellTestBase {
         assertTrue(sequencer.hasNetwork("GELATO"));
         assertTrue(sequencer.hasNetwork("KEEP3R"));
         address gelatoTreasuryBefore = gelatoAdapter.treasury();
-        assertNotEq(gelatoTreasuryBefore, address(0), "keeper_offboarding/gelato-treasury-zero");
+        assertNotEq(gelatoTreasuryBefore, address(0), "testKeeperOffboarding/gelato-treasury-zero");
         address keep3rTreasuryBefore = keep3rAdapter.treasury();
-        assertNotEq(keep3rTreasuryBefore, address(0), "keeper_offboarding/keep3r-treasury-zero");
+        assertNotEq(keep3rTreasuryBefore, address(0), "testKeeperOffboarding/keep3r-treasury-zero");
         assertGt(block.timestamp, vestDai.fin(30));
         assertGt(block.timestamp, vestDai.fin(31));
-        assertEq(vestDai.res(30), 1, "keeper_offboarding/gelato-vest-not-restricted");
-        assertEq(vestDai.res(31), 1, "keeper_offboarding/keep3r-vest-not-restricted");
+        assertEq(vestDai.res(30), 1, "testKeeperOffboarding/gelato-vest-not-restricted");
+        assertEq(vestDai.res(31), 1, "testKeeperOffboarding/keep3r-vest-not-restricted");
         uint256 gelatoUnpaidAmount = vestDai.unpaid(30);
         uint256 keep3rUnpaidAmount = vestDai.unpaid(31);
-        assertGt(gelatoUnpaidAmount, 0, "keeper_offboarding/gelato-unpaid-amount-zero");
-        assertGt(keep3rUnpaidAmount, 0, "keeper_offboarding/keep3r-unpaid-amount-zero");
+        assertGt(gelatoUnpaidAmount, 0, "testKeeperOffboarding/gelato-unpaid-amount-zero");
+        assertGt(keep3rUnpaidAmount, 0, "testKeeperOffboarding/keep3r-unpaid-amount-zero");
 
         // Cast the spell
         _vote(address(spell));
@@ -1599,13 +1599,13 @@ contract DssSpellTest is DssSpellTestBase {
 
         // Check the result
         uint256 afterNumNetworks = sequencer.numNetworks();
-        assertEq(afterNumNetworks, beforeNumNetworks - 2, "keeper_offboarding/keeper-networks-after-spell-mismatch");
+        assertEq(afterNumNetworks, beforeNumNetworks - 2, "testKeeperOffboarding/keeper-networks-after-spell-mismatch");
         assertFalse(sequencer.hasNetwork("GELATO"));
         assertFalse(sequencer.hasNetwork("KEEP3R"));
-        assertEq(gelatoAdapter.treasury(), address(0), "keeper_offboarding/gelato-treasury-not-set-to-zero");
-        assertEq(keep3rAdapter.treasury(), address(0), "keeper_offboarding/keep3r-treasury-not-set-to-zero");
-        assertEq(vestDai.unpaid(30), gelatoUnpaidAmount, "keeper_offboarding/gelato-unpaid-amount-changed");
-        assertEq(vestDai.unpaid(31), keep3rUnpaidAmount, "keeper_offboarding/keep3r-unpaid-amount-changed");
+        assertEq(gelatoAdapter.treasury(), address(0), "testKeeperOffboarding/gelato-treasury-not-set-to-zero");
+        assertEq(keep3rAdapter.treasury(), address(0), "testKeeperOffboarding/keep3r-treasury-not-set-to-zero");
+        assertEq(vestDai.unpaid(30), gelatoUnpaidAmount, "testKeeperOffboarding/gelato-unpaid-amount-changed");
+        assertEq(vestDai.unpaid(31), keep3rUnpaidAmount, "testKeeperOffboarding/keep3r-unpaid-amount-changed");
 
         // Previous treasury cannot call `topup` anymore
         vm.expectRevert(abi.encodeWithSelector(NetworkPaymentAdapterLike.UnauthorizedSender.selector, gelatoTreasuryBefore));
@@ -1616,7 +1616,7 @@ contract DssSpellTest is DssSpellTestBase {
         keep3rAdapter.topUp();
     }
 
-    function test_keeper_update() public {
+    function testKeeperUpdate() public {
         SequencerLike sequencer = SequencerLike(addr.addr("CRON_SEQUENCER"));
 
         // Sanity check
@@ -1627,20 +1627,20 @@ contract DssSpellTest is DssSpellTestBase {
         // Cast the spell
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "keeper_update/spell-not-done");
+        assertTrue(spell.done(), "testKeeperUpdate/spell-not-done");
 
         // Check updated results
         assertFalse(sequencer.hasNetwork("MAKER"));
         assertTrue(sequencer.hasNetwork("SKY"));
         (, uint256 skyWindowLength) = sequencer.windows("SKY");
-        assertEq(skyWindowLength, makerWindowLength, "keeper_update/sky-window-length-mismatch");
+        assertEq(skyWindowLength, makerWindowLength, "testKeeperUpdate/sky-window-length-mismatch");
 
         // Check crone sequence works as expected after update
         (uint256 skyStart,      uint256 skyLength)      = sequencer.windows("SKY");
         (uint256 chainlinkStart, ) = sequencer.windows("CHAINLINK");
 
-        assertEq(skyStart, 0, "keeper_update/sky-start-not-zero");
-        assertEq(chainlinkStart, skyLength, "keeper_update/chainlink-start-mismatch");
+        assertEq(skyStart, 0, "testKeeperUpdate/sky-start-not-zero");
+        assertEq(chainlinkStart, skyLength, "testKeeperUpdate/chainlink-start-mismatch");
 
         uint256 blockNumber = block.number;
         for(uint8 i = 0; i < 3; i++) {
@@ -1649,7 +1649,7 @@ contract DssSpellTest is DssSpellTestBase {
 
             blockNumber += currentMasterLength;
             vm.roll(blockNumber);
-            assertTrue(sequencer.getMaster() != currentMaster, "keeper_update/master-not-rotated-after-window");
+            assertTrue(sequencer.getMaster() != currentMaster, "testKeeperUpdate/master-not-rotated-after-window");
         }
     }
 }
