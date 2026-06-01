@@ -166,6 +166,7 @@ contract DssSpellAction is DssAction {
 
         // ---------- Keeper Network Adjustments ----------
         // Forum: https://forum.skyeco.com/t/technical-scope-of-keeper-network-adjustments/27947
+        // Poll: https://vote.sky.money/polling/QmafyxBw
 
         // Remove the GELATO lane from CRON_SEQUENCER
         CronSequencerLike(CRON_SEQUENCER).removeNetwork("GELATO");
