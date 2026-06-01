@@ -87,8 +87,8 @@ contract DssSpellAction is DssAction {
     address internal constant  KEEP3R_ADAPTER            = 0xaeFed819b6657B3960A8515863abe0529Dfc444A;
 
     // ---------- Spark Proxy Spell ----------
-    address internal constant SPARK_SPELL      = address(0);
-    bytes32 internal constant SPARK_SPELL_HASH = bytes32(0);
+    address internal constant SPARK_SPELL      = 0xAb385eC0Df225D5A37F5245D2aE43D53Fe4Fed20;
+    bytes32 internal constant SPARK_SPELL_HASH = 0x7801a877c029ce6ec7dcde0d16183eef2f81fd6e8fbd04a6433f0d6c3c0ed267;
 
     // ---------- Grove Proxy Spell ----------
     address internal constant GROVE_SPELL      = 0xbE5E67C516074ba0807A3535035868cE7F2Bd372;
@@ -211,10 +211,19 @@ contract DssSpellAction is DssAction {
         DssExecLib.setValue(MKR_SKY, "fee", 4 * WAD / 100);
 
         // ---------- Spark Proxy Spell ----------
+        // Forum: https://forum.skyeco.com/t/june-4-2026-proposed-changes-to-spark-for-upcoming-spell/27931
+        // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0xe09e63d9eb11a7a89cb28801e060443b5a098a262f17171e77f5e33202f0ffdb
+        // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0x75c80c3b462ab1efe3aa2cb919e97e487ae66d0c62265d204fe9499499cc7e6d
+        // Atlas: https://sky-atlas.io/#ea73f176-0b94-4e93-b1ee-ca498ac5a6c6
+        // Atlas: https://sky-atlas.io/#6a4870fa-73f1-4d49-b7ee-d531fb59a971
 
-        // TODO
+        // Whitelist Spark spell with address 0xAb385eC0Df225D5A37F5245D2aE43D53Fe4Fed20 and codehash 0x7801a877c029ce6ec7dcde0d16183eef2f81fd6e8fbd04a6433f0d6c3c0ed267 in SPARK_STARGUARD, direct execution: No
+        StarGuardLike(SPARK_STARGUARD).plot(SPARK_SPELL, SPARK_SPELL_HASH);
 
         // ---------- Grove Proxy Spell ----------
+        // Forum: https://forum.skyeco.com/t/june-4-2026-proposed-changes-to-grove-for-upcoming-spell/27924
+        // Atlas: https://sky-atlas.io/#85f7d545-d56c-40b9-b1b4-05663cd7772a
+        // Poll: https://vote.sky.money/polling/QmeS7Hm2
 
         // Whitelist Grove spell with address 0xbE5E67C516074ba0807A3535035868cE7F2Bd372 and codehash 0xb14f6d21bb231192c44f9b868d915f8f541213a6834a72c6158efbd64ff3223c in GROVE_STARGUARD, direct execution: No
         StarGuardLike(GROVE_STARGUARD).plot(GROVE_SPELL, GROVE_SPELL_HASH);
