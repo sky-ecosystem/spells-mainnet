@@ -1586,6 +1586,29 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(ArtFinal, 0, "testRWA001AOffboarding/Art-not-zero-after-cull");
     }
 
+    function testRWA001AOffboardingIsSkipped() public {
+        uint256 donationAmount = 4_000_000 * WAD;
+        GemAbstract usdc = GemAbstract(addr.addr("USDC"));
+        RwaUrnAbstract urn = RwaUrnAbstract(addr.addr("RWA001_A_URN"));
+
+        GodMode.setBalance(address(dai), address(urn), donationAmount);
+        urn.wipe(donationAmount);
+
+        uint256 pauseProxyUsdcBefore = usdc.balanceOf(pauseProxy);
+        (uint256 ArtBefore,,, uint256 ilkLineBefore,) = vat.ilks(RWA001_A);
+
+        // Check that the spell is marked as done without executing the RWA001-A offboarding logic
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        uint256 pauseProxyUsdcAfter = usdc.balanceOf(pauseProxy);
+        assertEq(pauseProxyUsdcAfter, pauseProxyUsdcBefore, "testRWA001AOffboardingIsSkipped/pause-proxy-usdc-changed");
+        (uint256 ArtAfter,,, uint256 ilkLineAfter,) = vat.ilks(RWA001_A);
+        assertEq(ArtAfter, ArtBefore, "testRWA001AOffboardingIsSkipped/Art-changed");
+        assertEq(ilkLineAfter, ilkLineBefore, "testRWA001AOffboardingIsSkipped/ilk-line-changed");
+    }
+
     function testKeeperOffboarding() public {
         SequencerLike sequencer = SequencerLike(addr.addr("CRON_SEQUENCER"));
         NetworkPaymentAdapterLike gelatoPaymentAdapter = NetworkPaymentAdapterLike(wallets.addr("GELATO_PAYMENT_ADAPTER"));
