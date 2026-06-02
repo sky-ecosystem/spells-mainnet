@@ -1596,12 +1596,12 @@ contract DssSpellTest is DssSpellTestBase {
         urn.wipe(donationAmount);
 
         uint256 pauseProxyUsdcBefore = usdc.balanceOf(pauseProxy);
-        (uint256 ArtBefore,,, uint256 ilkLineBefore,) = vat.ilks(RWA001_A);
+        (uint256 ArtBefore, uint256 rate,, uint256 ilkLineBefore,) = vat.ilks(RWA001_A);
 
         // Actual debt amount is smaller than expected wipe amount due to the donation
         assertGt(
-            14_319_243.51 ether,
-            ArtBefore,
+            14_319_243.51 ether * RAY,
+            ArtBefore * rate,
             "testRWA001AOffboardingIsSkipped/donation-too-small"
         );
 
