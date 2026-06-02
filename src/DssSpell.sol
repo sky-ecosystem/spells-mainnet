@@ -101,7 +101,7 @@ contract DssSpellAction is DssAction {
         uint256 daiDebt = Art * rate / RAY;
 
         // Note: Only execute the debt repayment and soft liquidation steps when vault is in default state
-        if(daiDebt > 14_319_243.51 ether) {
+        if (daiDebt > 14_319_243.51 ether) {
             // Temporarily update LITE-PSM-USDC-A AutoLine parameters
             // Call DssExecLib.setIlkAutoLineDebtCeiling with:
             // bytes32 ilk being "LITE-PSM-USDC-A";
