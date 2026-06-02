@@ -1466,8 +1466,6 @@ contract DssSpellTestBase is Config, DssTest {
         // Enforce the global Line also falls between the minimum global Line and that minimum global Line + offset.
         assertLe(minimumGlobalLine, vat.Line(), "TestError/vat-Line-2");
         assertGe(minimumGlobalLine + values.max_global_line_offset * RAD, vat.Line(), "TestError/vat-Line-3");
-
-        // TODO: have a discussion about how we want to manage the global Line going forward.
     }
 
     function _getOSMPrice(address pip) internal returns (uint256) {
