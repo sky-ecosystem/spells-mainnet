@@ -153,7 +153,7 @@ contract Config {
         //
         // Values for all system configuration changes
         //
-        afterSpell.max_global_line_offset = 700 * MILLION;                                // Offset between the global line against the sum of local lines, after external line increases
+        afterSpell.max_global_line_offset = 700 * MILLION;                                // Offset between the global line against the sum of local lines
         afterSpell.pause_delay            = 48 hours;                                     // In seconds
         afterSpell.vow_wait               = 156 hours;                                    // In seconds
         afterSpell.vow_dump               = 0;                                            // In whole Dai units
