@@ -1592,19 +1592,18 @@ contract DssSpellTest is DssSpellTestBase {
         RwaUrnAbstract urn = RwaUrnAbstract(addr.addr("RWA001_A_URN"));
         RwaLiquidationOracleAbstract oracle = RwaLiquidationOracleAbstract(addr.addr("MIP21_LIQUIDATION_ORACLE"));
 
-        (uint256 originalArt, uint256 rate,,,) = vat.ilks(RWA001_A);
-        // Actual debt amount is smaller than expected wipe amount due to the donation
-        assertGt(
-            14_319_243.51 ether,
-            originalArt * rate / RAY - donationAmount,
-            "testRWA001AOffboardingIsSkipped/donation-too-small"
-        );
-
         GodMode.setBalance(address(dai), address(urn), donationAmount);
         urn.wipe(donationAmount);
 
         uint256 pauseProxyUsdcBefore = usdc.balanceOf(pauseProxy);
         (uint256 ArtBefore,,, uint256 ilkLineBefore,) = vat.ilks(RWA001_A);
+
+        // Actual debt amount is smaller than expected wipe amount due to the donation
+        assertGt(
+            14_319_243.51 ether,
+            ArtBefore,
+            "testRWA001AOffboardingIsSkipped/donation-too-small"
+        );
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
