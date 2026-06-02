@@ -1603,7 +1603,6 @@ contract DssSpellTest is DssSpellTestBase {
         urn.wipe(donationAmount);
 
         uint256 pauseProxyUsdcBefore = usdc.balanceOf(pauseProxy);
-
         (uint256 ArtBefore,,, uint256 ilkLineBefore,) = vat.ilks(RWA001_A);
 
         _vote(address(spell));
