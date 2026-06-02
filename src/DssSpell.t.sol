@@ -1595,13 +1595,20 @@ contract DssSpellTest is DssSpellTestBase {
         urn.wipe(donationAmount);
 
         uint256 pauseProxyUsdcBefore = usdc.balanceOf(pauseProxy);
-        (uint256 ArtBefore,,, uint256 ilkLineBefore,) = vat.ilks(RWA001_A);
+        (uint256 ArtBefore, uint256 rate,, uint256 ilkLineBefore,) = vat.ilks(RWA001_A);
 
-        // Check that the spell is marked as done without executing the RWA001-A offboarding logic
+        // Actual debt amount is smaller than expected wipe amount due to the donation
+        assertGt(
+            14_319_243.51 ether,
+            ArtBefore * rate / RAY - donationAmount,
+            "testRWA001AOffboardingIsSkipped/donation-too-small"
+        );
+
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
+        // Ensure no state changes happened as the debt repayment was skipped in the spell
         uint256 pauseProxyUsdcAfter = usdc.balanceOf(pauseProxy);
         assertEq(pauseProxyUsdcAfter, pauseProxyUsdcBefore, "testRWA001AOffboardingIsSkipped/pause-proxy-usdc-changed");
         (uint256 ArtAfter,,, uint256 ilkLineAfter,) = vat.ilks(RWA001_A);
