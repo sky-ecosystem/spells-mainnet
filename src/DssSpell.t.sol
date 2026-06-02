@@ -1590,6 +1590,7 @@ contract DssSpellTest is DssSpellTestBase {
         uint256 donationAmount = 4_000_000 * WAD;
         GemAbstract usdc = GemAbstract(addr.addr("USDC"));
         RwaUrnAbstract urn = RwaUrnAbstract(addr.addr("RWA001_A_URN"));
+        RwaLiquidationOracleAbstract oracle = RwaLiquidationOracleAbstract(addr.addr("MIP21_LIQUIDATION_ORACLE"));
 
         (uint256 originalArt, uint256 rate,,,) = vat.ilks(RWA001_A);
         // Actual debt amount is smaller than expected wipe amount due to the donation
@@ -1615,6 +1616,8 @@ contract DssSpellTest is DssSpellTestBase {
         (uint256 ArtAfter,,, uint256 ilkLineAfter,) = vat.ilks(RWA001_A);
         assertEq(ArtAfter, ArtBefore, "testRWA001AOffboardingIsSkipped/Art-changed");
         assertEq(ilkLineAfter, ilkLineBefore, "testRWA001AOffboardingIsSkipped/ilk-line-changed");
+        (,,, uint48 tocAfter) = oracle.ilks(RWA001_A);
+        assertEq(tocAfter, 0, "testRWA001AOffboardingIsSkipped/oracle-tell-called");
     }
 
     function testKeeperOffboarding() public {
@@ -1692,7 +1695,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(chainlinkStart, skyLength, "testKeeperUpdate/chainlink-start-mismatch");
 
         uint256 blockNumber = block.number;
-        for(uint8 i = 0; i < 3; i++) {
+        for (uint8 i = 0; i < 3; i++) {
             bytes32 currentMaster = sequencer.getMaster();
             (, uint256 currentMasterLength) = sequencer.windows(currentMaster);
 
