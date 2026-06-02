@@ -98,10 +98,13 @@ contract DssSpellAction is DssAction {
 
         // Note: Get the current debt amount of RWA001-A from the Vat
         (uint256 Art, uint256 rate,,,) = VatAbstract(MCD_VAT).ilks("RWA001-A");
-        uint256 daiDebt = Art * rate / RAY;
+        uint256 urnDebtRad = Art * rate;
+        // Note: Expected swap amount equals to 14,319,243.51 USDC
+        // Note: Directly converting usdc amount to 18 decimals (ether) here to avoid extra precision conversion
+        uint256 expectedSwapDaiRad = 14_319_243.51 ether * RAY;
 
         // Note: Only execute the debt repayment and soft liquidation steps when vault is in default state
-        if (daiDebt > 14_319_243.51 ether) {
+        if (urnDebtRad > expectedSwapDaiRad) {
             // Temporarily update LITE-PSM-USDC-A AutoLine parameters
             // Call DssExecLib.setIlkAutoLineDebtCeiling with:
             // bytes32 ilk being "LITE-PSM-USDC-A";
