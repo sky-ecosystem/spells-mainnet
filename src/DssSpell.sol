@@ -103,7 +103,7 @@ contract DssSpellAction is DssAction {
         // Note: Directly converting usdc amount to 18 decimals (ether) here to avoid extra precision conversion
         uint256 expectedSwapDaiRad = 14_319_243.51 ether * RAY;
 
-        // Note: Only execute the debt repayment and soft liquidation steps when vault is in default state
+        // Only execute the following items if the debt is bigger than the repaid USDC amount
         if (urnDebtRad > expectedSwapDaiRad) {
             // Temporarily update LITE-PSM-USDC-A AutoLine parameters
             // Call DssExecLib.setIlkAutoLineDebtCeiling with:
