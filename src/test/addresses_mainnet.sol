@@ -581,7 +581,7 @@ contract Addresses {
         addr["STUSDS"]                           = 0x99CD4Ec3f88A45940936F469E4bB72A2A701EEB9;
         addr["STUSDS_IMP"]                       = 0x7A61B7adCFD493f7CF0F86dFCECB94b72c227F22;
         addr["STUSDS_RATE_SETTER"]               = 0x30784615252B13E1DbE2bDf598627eaC297Bf4C5;
-        addr["STUSDS_MOM"]                       = 0xf5DEe2CeDC5ADdd85597742445c0bf9b9cAfc699;
+        addr["STUSDS_MOM"]                       = 0x99159d0b885CC6633daC7CD4d82e4247A834b89A;
         addr["NOVA_ALM_PROXY"]                   = 0xa5139956eC99aE2e51eA39d0b57C42B6D8db0758;
         addr["ALLOCATOR_OBEX_A_VAULT"]           = 0xF275110dFE7B80df66a762f968f59B70BABE2b29;
         addr["ALLOCATOR_OBEX_A_BUFFER"]          = 0x51E9681D7a05abFD33EfaFd43e5dd3Afc0093F1D;
@@ -626,5 +626,7 @@ contract Addresses {
         addr["SUSDS_OFT"]                        = 0x85A3FE4DA2a6cB98A5bdF62458B0dB8471B9f0f1;
         addr["OFT_PAUSER"]                       = 0x38d1114b4cE3e079CC0f627df6aC2776B5887776;
         addr["PATTERN_ALM_PROXY"]                = 0xbA43325E91C79E500486a23E953ab3d8C46f169F;
+        addr["ALLOCATOR_GROVE_A_VAULT"]          = 0xf739a30c74927dc6cFA3B67E4933872a1FC5F4EB;
+        addr["ALLOCATOR_GROVE_A_BUFFER"]         = 0x436DABce608f73BeA2b75fba35bffe72739697d5;
     }
 }
