@@ -67,6 +67,9 @@ contract DssSpellAction is DssAction {
         // min being 0 basis points
         // step being 400 basis points
 
+        // Note: bump Chainlog version
+        DssExecLib.setChangelogVersion("1.20.16");
+
         // ---------- LitePSM Parameter Update ----------
         // Forum: https://forum.skyeco.com/t/lite-psm-usdc-a-parameter-change/27961
         // Forum: https://forum.skyeco.com/t/lite-psm-usdc-a-parameter-change/27961/2
