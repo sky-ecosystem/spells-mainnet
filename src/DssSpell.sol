@@ -23,9 +23,12 @@ import { ChainlogAbstract } from "dss-interfaces/dss/ChainlogAbstract.sol";
 import { GemAbstract } from "dss-interfaces/ERC/GemAbstract.sol";
 import { JugAbstract } from "dss-interfaces/dss/JugAbstract.sol";
 import { VatAbstract } from "dss-interfaces/dss/VatAbstract.sol";
+// Note: Code matches audited code (https://reports.chainsecurity.com/MakerDAO/ChainSecurity_MakerDAO_AllocatorDeploymentScripts_Audit.pdf)
 import { AllocatorSharedInstance, AllocatorIlkInstance } from "./dependencies/dss-allocator/AllocatorInstances.sol";
 import { AllocatorInit, AllocatorIlkConfig } from "./dependencies/dss-allocator/AllocatorInit.sol";
+// Note: Code matches audited code (https://reports.chainsecurity.com/Sky/ChainSecurity_Sky_SkyStUSDS_Audit.pdf)
 import { StUsdsInit } from "./dependencies/stusds/StUsdsInit.sol";
+// Note: Code matches audited code (https://reports.chainsecurity.com/Sky/ChainSecurity_Sky_EndgameToolkit_Audit.pdf)
 import { TreasuryFundedFarmingInit, FarmingUpdateVestParams } from "./dependencies/endgame-toolkit/treasury-funded-farms/TreasuryFundedFarmingInit.sol";
 
 interface LineMomLike {
