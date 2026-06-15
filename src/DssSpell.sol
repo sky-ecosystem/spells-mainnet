@@ -28,7 +28,6 @@ import { AllocatorInit, AllocatorIlkConfig } from "./dependencies/dss-allocator/
 import { StUsdsInit } from "./dependencies/stusds/StUsdsInit.sol";
 import { TreasuryFundedFarmingInit, FarmingUpdateVestParams } from "./dependencies/endgame-toolkit/treasury-funded-farms/TreasuryFundedFarmingInit.sol";
 
-
 interface LineMomLike {
     function addIlk(bytes32 ilk) external;
 }
