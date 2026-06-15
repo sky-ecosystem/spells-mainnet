@@ -693,7 +693,7 @@ contract DssSpellTest is DssSpellTestBase {
 
     function testVestSky() public { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
-        uint256 JUN_15_2026_22_59_31 = 1786284083;
+        uint256 AUG_09_2026_14_01_23 = 1786284083;
 
         uint256 spellCastTime = _getSpellCastTime();
 
@@ -716,7 +716,7 @@ contract DssSpellTest is DssSpellTestBase {
         YankedVestStream[] memory yankedStreams = new YankedVestStream[](1);
         yankedStreams[0] = YankedVestStream({
             id:  13,
-            fin: JUN_15_2026_22_59_31,
+            fin: AUG_09_2026_14_01_23,
             end: spellCastTime
         });
 
@@ -1349,7 +1349,7 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
+    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
         PrimeAgentSpell[1] memory primeAgentSpells = [
             PrimeAgentSpell({
                 // Insert Prime Agent StarGuards Chainlog key
