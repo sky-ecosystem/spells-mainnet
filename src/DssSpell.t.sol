@@ -424,7 +424,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     function testNewLineMomIlks() public { // add the `skipped` modifier to skip
-        bytes32[2] memory ilks = [
+        bytes32[1] memory ilks = [
             bytes32("ALLOCATOR-GROVE-A")
         ];
 
