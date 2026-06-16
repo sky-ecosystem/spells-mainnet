@@ -1469,6 +1469,17 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
+    function testPipAllocatorGroveRemovedFromChainlog() public {
+        // AllocatorInit.initIlk temporarily registers PIP_ALLOCATOR_GROVE_A in the chainlog, then the
+        // spell removes it, so it must no longer resolve after cast
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        vm.expectRevert("dss-chain-log/invalid-key");
+        chainLog.getAddress("PIP_ALLOCATOR_GROVE_A");
+    }
+
     function testStUsdsMomZeroLine() public {
         StUsdsMomLike mom = StUsdsMomLike(addr.addr("STUSDS_MOM")); // new MOM activated by StUsdsInit.replaceMom
 
