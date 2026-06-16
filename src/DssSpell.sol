@@ -177,6 +177,7 @@ contract DssSpellAction is DssAction {
         LineMomLike(LINE_MOM).addIlk("ALLOCATOR-GROVE-A");
 
         // Add ALLOCATOR-GROVE-A ilk to the MCD_SPBEAM with the following parameters:
+        // Note: This is only a subheading, actual instructions follow
 
         // max being 3,000 basis points
         DssExecLib.setValue(MCD_SPBEAM, "ALLOCATOR-GROVE-A", "max", 3_000);
