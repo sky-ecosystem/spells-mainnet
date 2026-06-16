@@ -238,7 +238,7 @@ contract DssSpellAction is DssAction {
         // Transfer 2,946,125 USDS from the Surplus Buffer to the Core Council Buffer (0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364)
         _transferUsds(CORE_COUNCIL_BUDGET_MULTISIG, 2_946_125 * WAD);
 
-        // ---------- LSSKY-> SKY Rewards Normalization ----------
+        // ---------- LSSKY->SKY Rewards Normalization ----------
         // Forum: https://forum.skyeco.com/t/lssky-to-sky-rewards-sky-rewards-for-sky-stakers-normalization-configuration/27721/24
         // Atlas: https://sky-atlas.io/#6cacdc1c-bdfa-4f68-bdb4-bf31943dcfba
 
