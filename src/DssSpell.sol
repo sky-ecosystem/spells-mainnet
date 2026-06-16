@@ -243,7 +243,7 @@ contract DssSpellAction is DssAction {
 
         // ---------- LSSKY->SKY Rewards Normalization ----------
         // Forum: https://forum.skyeco.com/t/lssky-to-sky-rewards-sky-rewards-for-sky-stakers-normalization-configuration/27721/24
-        // Atlas: https://sky-atlas.io/#6cacdc1c-bdfa-4f68-bdb4-bf31943dcfba
+        // Atlas: https://sky-atlas.io/#a98a1bfe-5713-43f5-a8bd-83c5808900b8
 
         // Update LSSKY->SKY Farm vest by calling `TreasuryFundedFarmingInit.updateFarmVest()` with params:
         TreasuryFundedFarmingInit.updateFarmVest(FarmingUpdateVestParams({
