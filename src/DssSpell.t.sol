@@ -40,6 +40,13 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
+interface StUsdsMomLike {
+    function authority() external view returns (address);
+    function zeroLine(address rateSetter) external;
+    function zeroCap(address rateSetter) external;
+    function haltRateSetter(address rateSetter) external;
+}
+
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -1461,4 +1468,33 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
+
+    function testStUsdsMomZeroLine() public {
+        StUsdsMomLike mom = StUsdsMomLike(addr.addr("STUSDS_MOM")); // new MOM activated by StUsdsInit.replaceMom
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // Sanity: replaceMom wired the new MOM as a ward of STUSDS and STUSDS_RATE_SETTER, with the chief as authority
+        assertEq(mom.authority(), address(chief),                           "TestError/stusds-mom-authority");
+        assertEq(stusds.wards(address(mom)), 1,                             "TestError/stusds-mom-not-warded-stusds");
+        assertEq(WardsAbstract(address(rateSetter)).wards(address(mom)), 1, "TestError/stusds-mom-not-warded-ratesetter");
+
+        bytes32 ilk = stusds.ilk(); // LSEV2-SKY-A
+
+        // Pre-condition: the borrow ceiling is live before the emergency action
+        (,,, uint256 vatLineBefore,) = vat.ilks(ilk);
+        assertGt(vatLineBefore, 0, "TestError/stusds-mom-precondition-vat-line-zero");
+
+        // Happy path: governance (chief hat) triggers the new MOM emergency zeroLine, which zeroes the
+        // line on stUSDS and the rate setter, then drips it through to the Vat (the new MOM behavior).
+        vm.prank(chief.hat());
+        mom.zeroLine(address(rateSetter));
+
+        assertEq(stusds.line(), 0,        "TestError/stusds-mom-line-not-zeroed");
+        assertEq(rateSetter.maxLine(), 0, "TestError/stusds-mom-ratesetter-maxline-not-zeroed");
+        (,,, uint256 vatLineAfter,) = vat.ilks(ilk);
+        assertEq(vatLineAfter, 0,         "TestError/stusds-mom-vat-line-not-propagated");
+    }
 }
