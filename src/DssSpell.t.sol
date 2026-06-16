@@ -42,6 +42,8 @@ interface LineMomLike {
 
 interface StUsdsMomLike {
     function authority() external view returns (address);
+    function owner() external view returns (address);
+    function stusds() external view returns (address);
     function zeroLine(address rateSetter) external;
     function zeroCap(address rateSetter) external;
     function haltRateSetter(address rateSetter) external;
@@ -1480,17 +1482,36 @@ contract DssSpellTest is DssSpellTestBase {
         chainLog.getAddress("PIP_ALLOCATOR_GROVE_A");
     }
 
+    function testStUsdsMomReplacement() public {
+        address newMom = addr.addr("STUSDS_MOM");           // new MOM (from harness addresses)
+        address oldMom = chainLog.getAddress("STUSDS_MOM"); // captured pre-cast = old MOM
+        assertTrue(newMom != oldMom, "TestError/stusds-mom-not-replaced");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // New MOM is live in the chainlog and correctly wired
+        assertEq(chainLog.getAddress("STUSDS_MOM"), newMom, "TestError/stusds-mom-chainlog-not-updated");
+        assertEq(StUsdsMomLike(newMom).stusds(), addr.addr("STUSDS"), "TestError/stusds-mom-stusds-mismatch");
+        assertEq(StUsdsMomLike(newMom).owner(), addr.addr("MCD_PAUSE_PROXY"), "TestError/stusds-mom-owner-not-pause-proxy");
+        assertEq(StUsdsMomLike(newMom).authority(), addr.addr("MCD_ADM"), "TestError/stusds-mom-authority-not-chief");
+        assertEq(stusds.wards(newMom), 1, "TestError/stusds-mom-not-warded-stusds");
+        assertEq(WardsAbstract(address(rateSetter)).wards(newMom), 1, "TestError/stusds-mom-not-warded-ratesetter");
+
+        // Old MOM is fully decommissioned
+        assertEq(StUsdsMomLike(oldMom).authority(), address(0), "TestError/old-stusds-mom-authority-not-cleared");
+        assertEq(StUsdsMomLike(oldMom).owner(), address(0), "TestError/old-stusds-mom-owner-not-cleared");
+        assertEq(stusds.wards(oldMom), 0, "TestError/old-stusds-mom-still-warded-stusds");
+        assertEq(WardsAbstract(address(rateSetter)).wards(oldMom), 0, "TestError/old-stusds-mom-still-warded-ratesetter");
+    }
+
     function testStUsdsMomZeroLine() public {
         StUsdsMomLike mom = StUsdsMomLike(addr.addr("STUSDS_MOM")); // new MOM activated by StUsdsInit.replaceMom
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
-
-        // Sanity: replaceMom wired the new MOM as a ward of STUSDS and STUSDS_RATE_SETTER, with the chief as authority
-        assertEq(mom.authority(), address(chief),                           "TestError/stusds-mom-authority");
-        assertEq(stusds.wards(address(mom)), 1,                             "TestError/stusds-mom-not-warded-stusds");
-        assertEq(WardsAbstract(address(rateSetter)).wards(address(mom)), 1, "TestError/stusds-mom-not-warded-ratesetter");
 
         bytes32 ilk = stusds.ilk(); // LSEV2-SKY-A
 
