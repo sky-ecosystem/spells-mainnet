@@ -81,6 +81,10 @@ contract DssSpellAction is DssAction {
 
     // ---------- Contracts ----------
     address internal immutable MCD_PAUSE_PROXY          = DssExecLib.pauseProxy();
+    address internal immutable DAI                      = DssExecLib.dai();
+    address internal immutable MCD_JUG                  = DssExecLib.jug();
+    address internal immutable MCD_VAT                  = DssExecLib.vat();
+    address internal immutable MCD_VOW                  = DssExecLib.vow();
     address internal immutable PIP_ALLOCATOR            = DssExecLib.getChangelogAddress("PIP_ALLOCATOR");
     address internal immutable ALLOCATOR_ROLES          = DssExecLib.getChangelogAddress("ALLOCATOR_ROLES");
     address internal immutable ALLOCATOR_REGISTRY       = DssExecLib.getChangelogAddress("ALLOCATOR_REGISTRY");
@@ -88,7 +92,6 @@ contract DssSpellAction is DssAction {
     address internal immutable ILK_REGISTRY             = DssExecLib.getChangelogAddress("ILK_REGISTRY");
     address internal immutable LINE_MOM                 = DssExecLib.getChangelogAddress("LINE_MOM");
     address internal immutable MCD_SPBEAM               = DssExecLib.getChangelogAddress("MCD_SPBEAM");
-    address internal immutable CHAINLOG                 = DssExecLib.LOG;
     address internal immutable MCD_LITE_PSM_USDC_A      = DssExecLib.getChangelogAddress("MCD_LITE_PSM_USDC_A");
     address internal immutable ALLOCATOR_SPARK_A_VAULT  = DssExecLib.getChangelogAddress("ALLOCATOR_SPARK_A_VAULT");
     address internal immutable ALLOCATOR_BLOOM_A_VAULT  = DssExecLib.getChangelogAddress("ALLOCATOR_BLOOM_A_VAULT");
@@ -98,10 +101,6 @@ contract DssSpellAction is DssAction {
     address internal immutable KEEL_SUBPROXY            = DssExecLib.getChangelogAddress("KEEL_SUBPROXY");
     address internal immutable OBEX_SUBPROXY            = DssExecLib.getChangelogAddress("OBEX_SUBPROXY");
     address internal immutable SKYBASE_SUBPROXY         = DssExecLib.getChangelogAddress("SKYBASE_SUBPROXY");
-    address internal immutable DAI                      = DssExecLib.dai();
-    address internal immutable MCD_JUG                  = DssExecLib.jug();
-    address internal immutable MCD_VAT                  = DssExecLib.vat();
-    address internal immutable MCD_VOW                  = DssExecLib.vow();
     address internal immutable REWARDS_DIST_LSSKY_SKY   = DssExecLib.getChangelogAddress("REWARDS_DIST_LSSKY_SKY");
     address internal immutable SPARK_STARGUARD          = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
     address internal immutable SAFE_HARBOR_AGREEMENT    = DssExecLib.getChangelogAddress("SAFE_HARBOR_AGREEMENT");
@@ -164,14 +163,14 @@ contract DssSpellAction is DssAction {
         });
 
         // Note: We also need dss as an input parameter for initIlk
-        DssInstance memory dss = MCD.loadFromChainlog(CHAINLOG);
+        DssInstance memory dss = MCD.loadFromChainlog(DssExecLib.LOG);
 
         // Note: Call AllocatorInit.initIlk with the parameters created above:
         AllocatorInit.initIlk(dss, allocatorSharedInstance, allocatorIlkInstance, allocatorGroveIlkCfg);
 
         // Remove the newly created PIP_ALLOCATOR_GROVE_A from chainlog
         // Note: PIP_ALLOCATOR_GROVE_A was added to the chainlog when calling AllocatorInit.initIlk above
-        ChainlogAbstract(CHAINLOG).removeAddress("PIP_ALLOCATOR_GROVE_A");
+        ChainlogAbstract(DssExecLib.LOG).removeAddress("PIP_ALLOCATOR_GROVE_A");
 
         // Add ALLOCATOR-GROVE-A ilk to the LINE_MOM
         LineMomLike(LINE_MOM).addIlk("ALLOCATOR-GROVE-A");
