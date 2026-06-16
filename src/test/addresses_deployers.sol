@@ -57,7 +57,8 @@ contract Deployers {
             0x89aAB8CAeEf8d25051cA6E534C6944e51f15DAd2,  // Deployer for ALLOCATOR-NOVA-A,
             0xe3aeA2949A0b0F3BD4e897C577286766a9F4aed0,  // Deployer for SPBEAM
             0x12E85B7a985283bbFf212A059e2D226397b78F95,  // LZ deployer
-            0x86865836187fD889B7AE65027056F3Fb43312018   // Deployer for OBEX_ALM_PROXY
+            0x86865836187fD889B7AE65027056F3Fb43312018,  // Deployer for OBEX_ALM_PROXY
+            0xc03B540a2c9400C4aCE019598e4bD3d34baC5b68   // Dewiz from 2026-06-18
         ];
     }
 
