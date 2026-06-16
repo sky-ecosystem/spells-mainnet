@@ -80,42 +80,44 @@ contract DssSpellAction is DssAction {
     uint256 internal constant BILLION = 10 ** 9;
 
     // ---------- Contracts ----------
-    address internal immutable MCD_PAUSE_PROXY = DssExecLib.pauseProxy();
-    address internal immutable PIP_ALLOCATOR = DssExecLib.getChangelogAddress("PIP_ALLOCATOR");
-    address internal immutable ALLOCATOR_ROLES = DssExecLib.getChangelogAddress("ALLOCATOR_ROLES");
-    address internal immutable ALLOCATOR_REGISTRY = DssExecLib.getChangelogAddress("ALLOCATOR_REGISTRY");
-    address internal immutable GROVE_SUBPROXY = DssExecLib.getChangelogAddress("GROVE_SUBPROXY");
-    address internal immutable ILK_REGISTRY = DssExecLib.getChangelogAddress("ILK_REGISTRY");
-    address internal immutable LINE_MOM = DssExecLib.getChangelogAddress("LINE_MOM");
-    address internal immutable MCD_SPBEAM = DssExecLib.getChangelogAddress("MCD_SPBEAM");
-    address internal immutable CHAINLOG = DssExecLib.LOG;
-    address internal immutable MCD_LITE_PSM_USDC_A = DssExecLib.getChangelogAddress("MCD_LITE_PSM_USDC_A");
-    address internal immutable ALLOCATOR_SPARK_A_VAULT = DssExecLib.getChangelogAddress("ALLOCATOR_SPARK_A_VAULT");
-    address internal immutable ALLOCATOR_BLOOM_A_VAULT = DssExecLib.getChangelogAddress("ALLOCATOR_BLOOM_A_VAULT");
-    address internal immutable ALLOCATOR_OBEX_A_VAULT = DssExecLib.getChangelogAddress("ALLOCATOR_OBEX_A_VAULT");
-    address internal immutable DAI_USDS = DssExecLib.getChangelogAddress("DAI_USDS");
-    address internal immutable SPARK_SUBPROXY = DssExecLib.getChangelogAddress("SPARK_SUBPROXY");
-    address internal immutable KEEL_SUBPROXY = DssExecLib.getChangelogAddress("KEEL_SUBPROXY");
-    address internal immutable OBEX_SUBPROXY = DssExecLib.getChangelogAddress("OBEX_SUBPROXY");
-    address internal immutable SKYBASE_SUBPROXY = DssExecLib.getChangelogAddress("SKYBASE_SUBPROXY");
-    address internal immutable DAI = DssExecLib.dai();
-    address internal immutable MCD_JUG = DssExecLib.jug();
-    address internal immutable MCD_VAT = DssExecLib.vat();
-    address internal immutable MCD_VOW = DssExecLib.vow();
-    address internal immutable REWARDS_DIST_LSSKY_SKY = DssExecLib.getChangelogAddress("REWARDS_DIST_LSSKY_SKY");
-    address internal immutable SPARK_STARGUARD = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
+    address internal immutable MCD_PAUSE_PROXY          = DssExecLib.pauseProxy();
+    address internal immutable PIP_ALLOCATOR            = DssExecLib.getChangelogAddress("PIP_ALLOCATOR");
+    address internal immutable ALLOCATOR_ROLES          = DssExecLib.getChangelogAddress("ALLOCATOR_ROLES");
+    address internal immutable ALLOCATOR_REGISTRY       = DssExecLib.getChangelogAddress("ALLOCATOR_REGISTRY");
+    address internal immutable GROVE_SUBPROXY           = DssExecLib.getChangelogAddress("GROVE_SUBPROXY");
+    address internal immutable ILK_REGISTRY             = DssExecLib.getChangelogAddress("ILK_REGISTRY");
+    address internal immutable LINE_MOM                 = DssExecLib.getChangelogAddress("LINE_MOM");
+    address internal immutable MCD_SPBEAM               = DssExecLib.getChangelogAddress("MCD_SPBEAM");
+    address internal immutable CHAINLOG                 = DssExecLib.LOG;
+    address internal immutable MCD_LITE_PSM_USDC_A      = DssExecLib.getChangelogAddress("MCD_LITE_PSM_USDC_A");
+    address internal immutable ALLOCATOR_SPARK_A_VAULT  = DssExecLib.getChangelogAddress("ALLOCATOR_SPARK_A_VAULT");
+    address internal immutable ALLOCATOR_BLOOM_A_VAULT  = DssExecLib.getChangelogAddress("ALLOCATOR_BLOOM_A_VAULT");
+    address internal immutable ALLOCATOR_OBEX_A_VAULT   = DssExecLib.getChangelogAddress("ALLOCATOR_OBEX_A_VAULT");
+    address internal immutable DAI_USDS                 = DssExecLib.getChangelogAddress("DAI_USDS");
+    address internal immutable SPARK_SUBPROXY           = DssExecLib.getChangelogAddress("SPARK_SUBPROXY");
+    address internal immutable KEEL_SUBPROXY            = DssExecLib.getChangelogAddress("KEEL_SUBPROXY");
+    address internal immutable OBEX_SUBPROXY            = DssExecLib.getChangelogAddress("OBEX_SUBPROXY");
+    address internal immutable SKYBASE_SUBPROXY         = DssExecLib.getChangelogAddress("SKYBASE_SUBPROXY");
+    address internal immutable DAI                      = DssExecLib.dai();
+    address internal immutable MCD_JUG                  = DssExecLib.jug();
+    address internal immutable MCD_VAT                  = DssExecLib.vat();
+    address internal immutable MCD_VOW                  = DssExecLib.vow();
+    address internal immutable REWARDS_DIST_LSSKY_SKY   = DssExecLib.getChangelogAddress("REWARDS_DIST_LSSKY_SKY");
+    address internal immutable SPARK_STARGUARD          = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
+    address internal immutable SAFE_HARBOR_AGREEMENT    = DssExecLib.getChangelogAddress("SAFE_HARBOR_AGREEMENT");
 
-    address internal constant ALLOCATOR_GROVE_A_VAULT = 0xf739a30c74927dc6cFA3B67E4933872a1FC5F4EB;
-    address internal constant ALLOCATOR_GROVE_A_BUFFER = 0x436DABce608f73BeA2b75fba35bffe72739697d5;
 
-    address internal constant NEW_STUSDS_MOM = 0x99159d0b885CC6633daC7CD4d82e4247A834b89A;
+    address internal constant ALLOCATOR_GROVE_A_VAULT   = 0xf739a30c74927dc6cFA3B67E4933872a1FC5F4EB;
+    address internal constant ALLOCATOR_GROVE_A_BUFFER  = 0x436DABce608f73BeA2b75fba35bffe72739697d5;
+
+    address internal constant NEW_STUSDS_MOM            = 0x99159d0b885CC6633daC7CD4d82e4247A834b89A;
 
     // ---------- Wallets ----------
     address internal constant CORE_COUNCIL_BUDGET_MULTISIG = 0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364;
 
     // ---------- Spark Spell ----------
-    address internal constant SPARK_SPELL = 0xe08BD6D9016EAC522903FC68c80F809664C2692A;
-    bytes32 internal constant SPARK_SPELL_HASH = 0xdf7cca8d640cde5f2f8184ccb03f76031a024cb8ab2c192092acfe329b5aebf5;
+    address internal constant SPARK_SPELL       = 0xe08BD6D9016EAC522903FC68c80F809664C2692A;
+    bytes32 internal constant SPARK_SPELL_HASH  = 0xdf7cca8d640cde5f2f8184ccb03f76031a024cb8ab2c192092acfe329b5aebf5;
 
     function actions() public override {
         // ---------- ALLOCATOR-GROVE-A Onboarding ----------
@@ -254,10 +256,19 @@ contract DssSpellAction is DssAction {
             vestTau: 90 days
         }));
 
-        // ---------- Safe Harbor Update (TODO) ----------
+        // ---------- Safe Harbor Update ----------
         // Atlas: https://sky-atlas.io/#fcd868db-4a91-4ee0-baf5-1ebd40fc651e
 
-        // TBD after technical scopes published
+        // Note: Code below is generated via Safe Harbor script, thus the formatting may be different than the usual spell instructions format
+        bytes[] memory calldatas = new bytes[](2);
+
+        // Remove accounts from eip155:1 chain: 0xf5DEe2CeDC5ADdd85597742445c0bf9b9cAfc699
+        calldatas[0] = hex'3aa3f6750000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000086569703135353a3100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000002a30786635444565324365444335414464643835353937373432343435633062663962396341666336393900000000000000000000000000000000000000000000';
+
+        // Add accounts to eip155:1 chain: 0xf739a30c74927dc6cFA3B67E4933872a1FC5F4EB, 0x436DABce608f73BeA2b75fba35bffe72739697d5, 0x99159d0b885CC6633daC7CD4d82e4247A834b89A
+        calldatas[1] = hex'46c2b7340000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000086569703135353a3100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001a000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002a3078663733396133306337343932376463366346413342363745343933333837326131464335463445420000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002a3078343336444142636536303866373342654132623735666261333562666665373237333936393764350000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002a30783939313539643062383835434336363333646143374344346438326534323437413833346238394100000000000000000000000000000000000000000000';
+
+        _updateSafeHarbor(calldatas);
 
         // ---------- Spark Proxy Spell ----------
         // Forum: https://forum.skyeco.com/t/june-18-2026-proposed-changes-to-spark-for-upcoming-spell/27952
@@ -305,6 +316,18 @@ contract DssSpellAction is DssAction {
         // Note: Increase the outstanding debt of the vault, while reducing sin[vow], canceling out the sin generated by vat.suck.
         //       The net effect is that dai[vow] and urn[vault].art increase.
         VatAbstract(MCD_VAT).grab(ilk, vault, address(0), MCD_VOW, 0, int256(dart));
+    }
+
+    /// @notice Wraps the operations required to update the Safe Harbor agreement.
+    /// @dev This function executes pre-encoded function calls on the Safe Harbor agreement contract.
+    ///      The calldatas array contains ABI-encoded function calls (selector + parameters) that
+    ///      will be executed sequentially on the Safe Harbor agreement contract.
+    /// @param calldatas Array of ABI-encoded function calls to execute on the Safe Harbor agreement contract
+    function _updateSafeHarbor(bytes[] memory calldatas) internal {
+        for (uint256 i = 0; i < calldatas.length; i++) {
+            (bool success,) = SAFE_HARBOR_AGREEMENT.call(calldatas[i]);
+            require(success, "updateSafeHarbor/safe-harbor-update-failed");
+        }
     }
 }
 

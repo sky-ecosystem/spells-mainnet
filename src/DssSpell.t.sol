@@ -1410,27 +1410,44 @@ contract DssSpellTest is DssSpellTestBase {
     struct ChainUpdates {
         string caip2ChainId;
         SafeHarborAgreementLike.Account[] addedAccounts;
+        SafeHarborAgreementLike.Account[] removedAccounts;
     }
 
-    function testUpdateSafeHarborAddedAccounts() public skipped { // add the `skipped` modifier to skip
+    function testUpdateSafeHarborAccounts() public { // add the `skipped` modifier to skip
         SafeHarborAgreementLike agreement = SafeHarborAgreementLike(addr.addr("SAFE_HARBOR_AGREEMENT"));
 
         ChainUpdates[1] memory chainUpdates;
 
         // Build array of accounts to be added to Safe Harbor Agreement
-        SafeHarborAgreementLike.Account[] memory addedAccounts = new SafeHarborAgreementLike.Account[](1);
+        SafeHarborAgreementLike.Account[] memory addedAccounts = new SafeHarborAgreementLike.Account[](3);
         addedAccounts[0] = SafeHarborAgreementLike.Account({
-            accountAddress: "0x85A3FE4DA2a6cB98A5bdF62458B0dB8471B9f0f1",
+            accountAddress: "0xf739a30c74927dc6cFA3B67E4933872a1FC5F4EB",
+            ChildContractScope: 0
+        });
+        addedAccounts[1] = SafeHarborAgreementLike.Account({
+            accountAddress: "0x436DABce608f73BeA2b75fba35bffe72739697d5",
+            ChildContractScope: 0
+        });
+        addedAccounts[2] = SafeHarborAgreementLike.Account({
+            accountAddress: "0x99159d0b885CC6633daC7CD4d82e4247A834b89A",
             ChildContractScope: 0
         });
 
-        // Configure chain updates for eip155:1 with added accounts
-        chainUpdates[0] = ChainUpdates({
-            caip2ChainId: "eip155:1",
-            addedAccounts: addedAccounts
+        // Build array of accounts to be removed from Safe Harbor Agreement
+        SafeHarborAgreementLike.Account[] memory removedAccounts = new SafeHarborAgreementLike.Account[](1);
+        removedAccounts[0] = SafeHarborAgreementLike.Account({
+            accountAddress: "0xf5DEe2CeDC5ADdd85597742445c0bf9b9cAfc699",
+            ChildContractScope: 0
         });
 
-        // Check that added accounts are not present before spell execution
+        // Configure chain updates for eip155:1 with added and removed accounts
+        chainUpdates[0] = ChainUpdates({
+            caip2ChainId: "eip155:1",
+            addedAccounts: addedAccounts,
+            removedAccounts: removedAccounts
+        });
+
+        // Check expected pre-spell state: added accounts absent, removed accounts present
         for (uint256 i = 0; i < chainUpdates.length; i++) {
             SafeHarborAgreementLike.AgreementDetails memory details = agreement.getDetails();
             SafeHarborAgreementLike.Chain memory chain = _findChain(details, chainUpdates[i].caip2ChainId);
@@ -1438,7 +1455,14 @@ contract DssSpellTest is DssSpellTestBase {
             for (uint256 j = 0; j < chainUpdates[i].addedAccounts.length; j++) {
                 assertFalse(
                     _accountExistsInChain(chain, chainUpdates[i].addedAccounts[j].accountAddress),
-                    string.concat("testUpdateSafeHarborAddedAccounts/account-already-present-before-spell-execution-", chainUpdates[i].addedAccounts[j].accountAddress)
+                    string.concat("testUpdateSafeHarborAccounts/added-account-already-present-before-spell-execution-", chainUpdates[i].addedAccounts[j].accountAddress)
+                );
+            }
+
+            for (uint256 j = 0; j < chainUpdates[i].removedAccounts.length; j++) {
+                assertTrue(
+                    _accountExistsInChain(chain, chainUpdates[i].removedAccounts[j].accountAddress),
+                    string.concat("testUpdateSafeHarborAccounts/removed-account-not-present-before-spell-execution-", chainUpdates[i].removedAccounts[j].accountAddress)
                 );
             }
         }
@@ -1447,7 +1471,7 @@ contract DssSpellTest is DssSpellTestBase {
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        // Check that added accounts are present after spell execution
+        // Check expected post-spell state: added accounts present (with correct scope), removed accounts absent
         for (uint256 i = 0; i < chainUpdates.length; i++) {
             SafeHarborAgreementLike.AgreementDetails memory details = agreement.getDetails();
             SafeHarborAgreementLike.Chain memory chain = _findChain(details, chainUpdates[i].caip2ChainId);
@@ -1455,7 +1479,7 @@ contract DssSpellTest is DssSpellTestBase {
             for (uint256 j = 0; j < chainUpdates[i].addedAccounts.length; j++) {
                 assertTrue(
                     _accountExistsInChain(chain, chainUpdates[i].addedAccounts[j].accountAddress),
-                    string.concat("testUpdateSafeHarborAddedAccounts/safe-harbor-account-not-found-after-spell-execution-", chainUpdates[i].addedAccounts[j].accountAddress)
+                    string.concat("testUpdateSafeHarborAccounts/added-account-not-found-after-spell-execution-", chainUpdates[i].addedAccounts[j].accountAddress)
                 );
 
                 // Verify the account has the correct ChildContractScope
@@ -1463,7 +1487,14 @@ contract DssSpellTest is DssSpellTestBase {
                 assertEq(
                     account.ChildContractScope,
                     chainUpdates[i].addedAccounts[j].ChildContractScope,
-                    string.concat("testUpdateSafeHarborAddedAccounts/incorrect-scope-for-account-", chainUpdates[i].addedAccounts[j].accountAddress)
+                    string.concat("testUpdateSafeHarborAccounts/incorrect-scope-for-account-", chainUpdates[i].addedAccounts[j].accountAddress)
+                );
+            }
+
+            for (uint256 j = 0; j < chainUpdates[i].removedAccounts.length; j++) {
+                assertFalse(
+                    _accountExistsInChain(chain, chainUpdates[i].removedAccounts[j].accountAddress),
+                    string.concat("testUpdateSafeHarborAccounts/removed-account-still-present-after-spell-execution-", chainUpdates[i].removedAccounts[j].accountAddress)
                 );
             }
         }
