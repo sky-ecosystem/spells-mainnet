@@ -30,9 +30,4 @@ if [[ -n "$BLOCK" ]]; then
     TEST_ARGS="${TEST_ARGS} --fork-block-number ${BLOCK}"
 fi
 
-# Compile the spell with the optimizer on (separate profile + out dir) so DssSpellAction fits under
-# the EIP-170 size limit. The tests load this artifact via vm.deployCode. The test sources are skipped
-# here because they do not compile with the optimizer on (stack too deep in the Safe Harbor checks).
-FOUNDRY_PROFILE=optimized forge build --skip '*.t.sol' --skip '*.t.base.sol'
-
 forge test --fork-url "$ETH_RPC_URL" $TEST_ARGS

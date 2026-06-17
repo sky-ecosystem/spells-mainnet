@@ -33,8 +33,6 @@ import "./test/addresses_deployers.sol";
 import "./test/addresses_wallets.sol";
 import "./test/config.sol";
 
-import {DssSpell} from "./DssSpell.sol";
-
 import {RootDomain} from "dss-test/domains/RootDomain.sol";
 import {OptimismDomain} from "dss-test/domains/OptimismDomain.sol";
 import {ArbitrumDomain} from "dss-test/domains/ArbitrumDomain.sol";
@@ -647,6 +645,23 @@ interface SafeHarborAgreementLike {
     function getDetails() external view returns (AgreementDetails memory _details);
 }
 
+// Minimal interface for the spell so this harness has no source-level dependency on DssSpell.sol.
+// That keeps DssSpell.sol out of the harness's compilation unit, letting `compilation_restrictions`
+// (in foundry.toml) compile the spell with the optimizer on — to fit under EIP-170 — while this
+// harness compiles with the optimizer off (the Safe Harbor checks don't fit otherwise). The spell is
+// loaded via vm.deployCode in _deployNewSpell.
+interface DssSpellLike {
+    function action() external view returns (address);
+    function cast() external;
+    function description() external view returns (string memory);
+    function done() external view returns (bool);
+    function eta() external view returns (uint256);
+    function expiration() external view returns (uint256);
+    function nextCastTime() external view returns (uint256);
+    function officeHours() external view returns (bool);
+    function schedule() external;
+}
+
 contract DssSpellTestBase is Config, DssTest {
     using stdStorage for StdStorage;
 
@@ -713,7 +728,7 @@ contract DssSpellTestBase is Config, DssTest {
     StusdsRateSetterLike rateSetter         = StusdsRateSetterLike(addr.addr("STUSDS_RATE_SETTER"));
     StusdsLike stusds                       = StusdsLike(addr.addr("STUSDS"));
 
-    DssSpell spell;
+    DssSpellLike spell;
 
     string         config;
     RootDomain     rootDomain;
@@ -926,8 +941,8 @@ contract DssSpellTestBase is Config, DssTest {
 
         // warp and cast previous spells so values are up-to-date to test against
         for (uint256 i; i < prevSpells.length; i++) {
-            DssSpell prevSpell = DssSpell(prevSpells[i]);
-            if (prevSpell != DssSpell(address(0)) && !prevSpell.done()) {
+            DssSpellLike prevSpell = DssSpellLike(prevSpells[i]);
+            if (prevSpell != DssSpellLike(address(0)) && !prevSpell.done()) {
                 if (prevSpell.eta() == 0) {
                     _vote(address(prevSpell));
                     _scheduleWaitAndCast(address(prevSpell));
@@ -941,12 +956,13 @@ contract DssSpellTestBase is Config, DssTest {
         }
     }
 
-    function _deployNewSpell() internal returns (DssSpell) {
+    function _deployNewSpell() internal returns (DssSpellLike) {
         // DssSpellAction only fits under the EIP-170 size limit when compiled with the optimizer on.
-        // The spell is therefore compiled separately with the optimizer enabled (the `optimized`
-        // profile, output to `out-optimized`), while this test harness is compiled with the optimizer
-        // off. Load that optimized artifact here instead of `new DssSpell()`.
-        return DssSpell(vm.deployCode("out-optimized/DssSpell.sol/DssSpell.json"));
+        // DssSpell.sol is compiled with the optimizer enabled via `compilation_restrictions` in
+        // foundry.toml; because this harness references the spell only through the DssSpellLike
+        // interface (no import of DssSpell.sol), that optimizer setting does not propagate here.
+        // Load the optimized artifact instead of `new DssSpell()`.
+        return DssSpellLike(vm.deployCode("DssSpell.sol:DssSpell"));
     }
 
     function setUp() public {
@@ -957,7 +973,7 @@ contract DssSpellTestBase is Config, DssTest {
             ? spellValues.deployed_spell_created
             : block.timestamp;
         spell = spellValues.deployed_spell != address(0)
-            ?  DssSpell(spellValues.deployed_spell)
+            ?  DssSpellLike(spellValues.deployed_spell)
             : _deployNewSpell();
 
         if (spellValues.deployed_spell_block != 0 && spell.eta() != 0) {
@@ -1018,11 +1034,11 @@ contract DssSpellTestBase is Config, DssTest {
     }
 
     function _scheduleWaitAndCast(address spell_) internal {
-        DssSpell(spell_).schedule();
+        DssSpellLike(spell_).schedule();
 
-        vm.warp(DssSpell(spell_).nextCastTime());
+        vm.warp(DssSpellLike(spell_).nextCastTime());
 
-        DssSpell(spell_).cast();
+        DssSpellLike(spell_).cast();
     }
 
     /**
@@ -3162,8 +3178,8 @@ contract DssSpellTestBase is Config, DssTest {
         address vestedRewardsDistribution
     ) internal withSnapshot() {
         _vote(address(spell));
-        DssSpell(spell).schedule();
-        vm.warp(DssSpell(spell).nextCastTime());
+        DssSpellLike(spell).schedule();
+        vm.warp(DssSpellLike(spell).nextCastTime());
 
         // The attack can be executed permissionlessly
         vm.startPrank(address(0xB0B));
@@ -3172,7 +3188,7 @@ contract DssSpellTestBase is Config, DssTest {
 
         // Ensure spell casting is not reverting with "VestedRewardsDistribution/no-pending-amount"
         // even after `distribute()` is called before the spell in the same block
-        DssSpell(spell).cast();
+        DssSpellLike(spell).cast();
         vm.stopPrank();
     }
 
@@ -3603,7 +3619,7 @@ contract DssSpellTestBase is Config, DssTest {
     // Vacuous until the deployed_spell value is non-zero.
     function _testBytecodeMatches() internal {
         // The DssSpell bytecode is non-deterministic, compare only code size
-        DssSpell expectedSpell = _deployNewSpell();
+        DssSpellLike expectedSpell = _deployNewSpell();
         assertEq(_getExtcodesize(address(spell)), _getExtcodesize(address(expectedSpell)), "TestError/spell-codesize");
 
         // The SpellAction bytecode can be compared after chopping off the metada
