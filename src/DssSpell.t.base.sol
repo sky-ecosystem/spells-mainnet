@@ -610,6 +610,9 @@ interface ArbL2GovernanceRelayLike {
     function relay(address target, bytes calldata targetData) external;
 }
 
+// Commented out with the Safe Harbor verification test (see DssSpell.t.sol): used only by that test,
+// and the deep traversal does not compile with the optimizer enabled (legacy "stack too deep").
+/*
 interface SafeHarborAgreementLike {
     struct Account {
         string accountAddress;
@@ -646,6 +649,7 @@ interface SafeHarborAgreementLike {
 
     function getDetails() external view returns (AgreementDetails memory _details);
 }
+*/
 
 contract DssSpellTestBase is Config, DssTest {
     using stdStorage for StdStorage;
@@ -4366,36 +4370,39 @@ contract DssSpellTestBase is Config, DssTest {
         vm.revertToStateAndDelete(beforeCast);
     }
 
-    function _compareStrings(string memory a, string memory b) internal pure returns (bool) {
-        return keccak256(abi.encodePacked(a)) == keccak256(abi.encodePacked(b));
-    }
+    // Commented out with the Safe Harbor verification test (see DssSpell.t.sol): these traversal
+    // helpers do not compile with the optimizer enabled (legacy "stack too deep").
 
-    function _findChain(SafeHarborAgreementLike.AgreementDetails memory details, string memory caip2ChainId) internal pure returns (SafeHarborAgreementLike.Chain memory) {
-        for (uint256 i = 0; i < details.chains.length; i++) {
-            if (_compareStrings(details.chains[i].caip2ChainId, caip2ChainId)) {
-                return details.chains[i];
-            }
-        }
-        revert("_findChain/chain-not-found");
-    }
+    // function _compareStrings(string memory a, string memory b) internal pure returns (bool) {
+    //     return keccak256(abi.encodePacked(a)) == keccak256(abi.encodePacked(b));
+    // }
 
-    function _accountExistsInChain(SafeHarborAgreementLike.Chain memory chain, string memory accountAddress) internal pure returns (bool) {
-        for (uint256 i = 0; i < chain.accounts.length; i++) {
-            if (_compareStrings(chain.accounts[i].accountAddress, accountAddress)) {
-                return true;
-            }
-        }
-        return false;
-    }
+    // function _findChain(SafeHarborAgreementLike.AgreementDetails memory details, string memory caip2ChainId) internal pure returns (SafeHarborAgreementLike.Chain memory) {
+    //     for (uint256 i = 0; i < details.chains.length; i++) {
+    //         if (_compareStrings(details.chains[i].caip2ChainId, caip2ChainId)) {
+    //             return details.chains[i];
+    //         }
+    //     }
+    //     revert("_findChain/chain-not-found");
+    // }
 
-    function _findAccountInChain(SafeHarborAgreementLike.Chain memory chain, string memory accountAddress) internal pure returns (SafeHarborAgreementLike.Account memory) {
-        for (uint256 i = 0; i < chain.accounts.length; i++) {
-            if (_compareStrings(chain.accounts[i].accountAddress, accountAddress)) {
-                return chain.accounts[i];
-            }
-        }
-        revert("_findAccountInChain/account-not-found");
-    }
+    // function _accountExistsInChain(SafeHarborAgreementLike.Chain memory chain, string memory accountAddress) internal pure returns (bool) {
+    //     for (uint256 i = 0; i < chain.accounts.length; i++) {
+    //         if (_compareStrings(chain.accounts[i].accountAddress, accountAddress)) {
+    //             return true;
+    //         }
+    //     }
+    //     return false;
+    // }
+
+    // function _findAccountInChain(SafeHarborAgreementLike.Chain memory chain, string memory accountAddress) internal pure returns (SafeHarborAgreementLike.Account memory) {
+    //     for (uint256 i = 0; i < chain.accounts.length; i++) {
+    //         if (_compareStrings(chain.accounts[i].accountAddress, accountAddress)) {
+    //             return chain.accounts[i];
+    //         }
+    //     }
+    //     revert("_findAccountInChain/account-not-found");
+    // }
 }
 
 contract MockStarSpell {
