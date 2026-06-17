@@ -941,6 +941,14 @@ contract DssSpellTestBase is Config, DssTest {
         }
     }
 
+    function _deployNewSpell() internal returns (DssSpell) {
+        // DssSpellAction only fits under the EIP-170 size limit when compiled with the optimizer on.
+        // The spell is therefore compiled separately with the optimizer enabled (the `optimized`
+        // profile, output to `out-optimized`), while this test harness is compiled with the optimizer
+        // off. Load that optimized artifact here instead of `new DssSpell()`.
+        return DssSpell(vm.deployCode("out-optimized/DssSpell.sol/DssSpell.json"));
+    }
+
     function setUp() public {
         setValues();
         _castPreviousSpell();
@@ -950,7 +958,7 @@ contract DssSpellTestBase is Config, DssTest {
             : block.timestamp;
         spell = spellValues.deployed_spell != address(0)
             ?  DssSpell(spellValues.deployed_spell)
-            : new DssSpell();
+            : _deployNewSpell();
 
         if (spellValues.deployed_spell_block != 0 && spell.eta() != 0) {
             // if we have a deployed spell in the config
@@ -3366,7 +3374,7 @@ contract DssSpellTestBase is Config, DssTest {
     }
 
     function _testGeneral() internal {
-        string memory description = new DssSpell().description();
+        string memory description = _deployNewSpell().description();
         assertTrue(bytes(description).length > 0, "TestError/spell-description-length");
         // DS-Test can't handle strings directly, so cast to a bytes32.
         assertEq(_stringToBytes32(spell.description()),
@@ -3475,7 +3483,7 @@ contract DssSpellTestBase is Config, DssTest {
 
     function _testDeployCost() internal {
         uint256 startGas = gasleft();
-        new DssSpell();
+        _deployNewSpell();
         uint256 endGas = gasleft();
         uint256 totalGas = startGas - endGas;
 
@@ -3595,7 +3603,7 @@ contract DssSpellTestBase is Config, DssTest {
     // Vacuous until the deployed_spell value is non-zero.
     function _testBytecodeMatches() internal {
         // The DssSpell bytecode is non-deterministic, compare only code size
-        DssSpell expectedSpell = new DssSpell();
+        DssSpell expectedSpell = _deployNewSpell();
         assertEq(_getExtcodesize(address(spell)), _getExtcodesize(address(expectedSpell)), "TestError/spell-codesize");
 
         // The SpellAction bytecode can be compared after chopping off the metada

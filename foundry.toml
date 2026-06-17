@@ -4,7 +4,8 @@ out = 'out'
 libs = ['lib']
 fs_permissions = [
     { access = "read", path = "./lib/dss-test/script/input/"},
-    { access = "read", path = "./out/ArbitrumDomain.sol/ArbSysOverride.json"}
+    { access = "read", path = "./out/ArbitrumDomain.sol/ArbSysOverride.json"},
+    { access = "read", path = "./out-optimized/"}
 ]
 solc_version = "0.8.16"
 evm_version  = "cancun"
@@ -16,6 +17,12 @@ libraries = [
 ]
 
 block_gas_limit = 1000000000000000000
+
+# Compile the spell with the optimizer enabled so DssSpellAction fits under the EIP-170 size limit.
+# The optimizer-off test suite loads the resulting artifact via vm.deployCode (see _deployNewSpell).
+[profile.optimized]
+optimizer = true
+out = 'out-optimized'
 
 [rpc_endpoints]
 mainnet = "${ETH_RPC_URL}"
