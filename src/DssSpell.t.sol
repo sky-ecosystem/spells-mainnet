@@ -862,7 +862,7 @@ contract DssSpellTest is DssSpellTestBase {
         PaymentAmounts memory expectedTotalPayments = PaymentAmounts({
             dai:           0 ether, // Note: ether is only a keyword helper
             mkr:           0 ether, // Note: ether is only a keyword helper
-            usds: 9_787_924 ether, // Note: ether is only a keyword helper
+            usds:  9_787_924 ether, // Note: ether is only a keyword helper
             sky:           0 ether  // Note: ether is only a keyword helper
         });
 
