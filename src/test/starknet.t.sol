@@ -121,13 +121,13 @@ contract StarknetTests is DssSpellTestBase, ConfigStarknet {
             // Ensure the Pause Proxy has some ETH for the Starknet Spell
             assertGt(pauseProxy.balance, 0);
             _vote(address(spell));
-            DssSpell(spell).schedule();
+            DssSpellLike(spell).schedule();
 
-            vm.warp(DssSpell(spell).nextCastTime());
+            vm.warp(DssSpellLike(spell).nextCastTime());
 
             vm.expectEmit(true, true, true, false, addr.addr("STARKNET_CORE"));
             emit LogMessageToL2(addr.addr("STARKNET_GOV_RELAY"), starknetValues.l2_gov_relay, starknetValues.relay_selector, _payload(starknetValues.l2_spell), 0, 0);
-            DssSpell(spell).cast();
+            DssSpellLike(spell).cast();
 
             assertTrue(spell.done());
 

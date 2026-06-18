@@ -4,13 +4,23 @@ out = 'out'
 libs = ['lib']
 fs_permissions = [
     { access = "read", path = "./lib/dss-test/script/input/"},
-    { access = "read", path = "./out/ArbitrumDomain.sol/ArbSysOverride.json"}
+    { access = "read", path = "./out/ArbitrumDomain.sol/ArbSysOverride.json"},
+    { access = "read", path = "./out/DssSpell.sol/DssSpell.json"}
 ]
 solc_version = "0.8.16"
 evm_version  = "cancun"
 optimizer = true
 optimizer_runs = 200
 via_ir = false
+# Compile only the spell with the optimizer on (so DssSpellAction fits under EIP-170). The test
+# harness references the spell through the DssSpellLike interface only, so it is NOT pulled into this
+# optimized unit and keeps compiling with the optimizer off (the Safe Harbor checks need that).
+additional_compiler_profiles = [
+    { name = "optimized", optimizer = true, optimizer_runs = 200 }
+]
+compilation_restrictions = [
+    { paths = "src/DssSpell.sol", optimizer = true, optimizer_runs = 200 }
+]
 libraries = [
     "./lib/dss-exec-lib/src/DssExecLib.sol:DssExecLib:0x8De6DDbCd5053d32292AAA0D2105A32d108484a6"
 ]
