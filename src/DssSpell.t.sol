@@ -40,15 +40,6 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
-interface StUsdsMomLike {
-    function authority() external view returns (address);
-    function owner() external view returns (address);
-    function stusds() external view returns (address);
-    function zeroLine(address rateSetter) external;
-    function zeroCap(address rateSetter) external;
-    function haltRateSetter(address rateSetter) external;
-}
-
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -287,7 +278,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
         string[2] memory addedKeys = [
             "ALLOCATOR_GROVE_A_VAULT",
             "ALLOCATOR_GROVE_A_BUFFER"
@@ -374,7 +365,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testAllocatorIntegration() public { // add the `skipped` modifier to skip
+    function testAllocatorIntegration() public skipped { // add the `skipped` modifier to skip
         AllocatorIntegrationParams[1] memory params = [
             AllocatorIntegrationParams({
                 ilk:            "ALLOCATOR-GROVE-A",
@@ -432,7 +423,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testNewLineMomIlks() public { // add the `skipped` modifier to skip
+    function testNewLineMomIlks() public skipped { // add the `skipped` modifier to skip
         bytes32[1] memory ilks = [
             bytes32("ALLOCATOR-GROVE-A")
         ];
@@ -563,7 +554,7 @@ contract DssSpellTest is DssSpellTestBase {
         bytes32 ward;
     }
 
-    function testNewAuthorizations() public { // add the `skipped` modifier to skip
+    function testNewAuthorizations() public skipped { // add the `skipped` modifier to skip
         Authorization[2] memory newAuthorizations = [
             Authorization({ base: "STUSDS", ward: "STUSDS_MOM" }),
             Authorization({ base: "STUSDS_RATE_SETTER", ward: "STUSDS_MOM" })
@@ -700,7 +691,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public { // add the `skipped` modifier to skip
+    function testVestSky() public skipped { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
         uint256 AUG_09_2026_14_01_23 = 1786284083;
 
@@ -791,7 +782,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestedRewardsDist() public {
+    function testVestedRewardsDist() public skipped {
         uint256 expectedVestIdBefore = 13;
         uint256 expectedVestIdAfter = 14;
 
@@ -839,7 +830,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public { // add the `skipped` modifier to skip
+    function testPayments() public skipped { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -1299,7 +1290,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 
-    function testMonthlySettlementCycleInflows() public { // add the `skipped` modifier to skip
+    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
         address ALLOCATOR_SPARK_A_VAULT = addr.addr("ALLOCATOR_SPARK_A_VAULT");
         address ALLOCATOR_BLOOM_A_VAULT = addr.addr("ALLOCATOR_BLOOM_A_VAULT");
         address ALLOCATOR_OBEX_A_VAULT = addr.addr("ALLOCATOR_OBEX_A_VAULT");
@@ -1358,7 +1349,7 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
+    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
         PrimeAgentSpell[1] memory primeAgentSpells = [
             PrimeAgentSpell({
                 // Insert Prime Agent StarGuards Chainlog key
@@ -1407,163 +1398,68 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    // Commented out: the Safe Harbor on-chain verification (deep getDetails() traversal) does not
-    // compile with the optimizer enabled (legacy solc 0.8.16 "stack too deep"), and the optimizer is
-    // required for DssSpellAction to fit under the EIP-170 size limit. The SafeHarborAgreementLike
-    // interface and the traversal helpers in DssSpell.t.base.sol are commented out for the same reason.
+    struct ChainUpdates {
+        string caip2ChainId;
+        SafeHarborAgreementLike.Account[] addedAccounts;
+    }
 
-    // struct ChainUpdates {
-    //     string caip2ChainId;
-    //     SafeHarborAgreementLike.Account[] addedAccounts;
-    //     SafeHarborAgreementLike.Account[] removedAccounts;
-    // }
+    function testUpdateSafeHarborAddedAccounts() public skipped { // add the `skipped` modifier to skip
+        SafeHarborAgreementLike agreement = SafeHarborAgreementLike(addr.addr("SAFE_HARBOR_AGREEMENT"));
 
-    // function testUpdateSafeHarborAccounts() public { // add the `skipped` modifier to skip
-    //     SafeHarborAgreementLike agreement = SafeHarborAgreementLike(addr.addr("SAFE_HARBOR_AGREEMENT"));
+        ChainUpdates[1] memory chainUpdates;
 
-    //     ChainUpdates[1] memory chainUpdates;
+        // Build array of accounts to be added to Safe Harbor Agreement
+        SafeHarborAgreementLike.Account[] memory addedAccounts = new SafeHarborAgreementLike.Account[](1);
+        addedAccounts[0] = SafeHarborAgreementLike.Account({
+            accountAddress: "0x85A3FE4DA2a6cB98A5bdF62458B0dB8471B9f0f1",
+            ChildContractScope: 0
+        });
 
-    //     // Build array of accounts to be added to Safe Harbor Agreement
-    //     SafeHarborAgreementLike.Account[] memory addedAccounts = new SafeHarborAgreementLike.Account[](3);
-    //     addedAccounts[0] = SafeHarborAgreementLike.Account({
-    //         accountAddress: "0xf739a30c74927dc6cFA3B67E4933872a1FC5F4EB",
-    //         ChildContractScope: 0
-    //     });
-    //     addedAccounts[1] = SafeHarborAgreementLike.Account({
-    //         accountAddress: "0x436DABce608f73BeA2b75fba35bffe72739697d5",
-    //         ChildContractScope: 0
-    //     });
-    //     addedAccounts[2] = SafeHarborAgreementLike.Account({
-    //         accountAddress: "0x99159d0b885CC6633daC7CD4d82e4247A834b89A",
-    //         ChildContractScope: 0
-    //     });
+        // Configure chain updates for eip155:1 with added accounts
+        chainUpdates[0] = ChainUpdates({
+            caip2ChainId: "eip155:1",
+            addedAccounts: addedAccounts
+        });
 
-    //     // Build array of accounts to be removed from Safe Harbor Agreement
-    //     SafeHarborAgreementLike.Account[] memory removedAccounts = new SafeHarborAgreementLike.Account[](1);
-    //     removedAccounts[0] = SafeHarborAgreementLike.Account({
-    //         accountAddress: "0xf5DEe2CeDC5ADdd85597742445c0bf9b9cAfc699",
-    //         ChildContractScope: 0
-    //     });
+        // Check that added accounts are not present before spell execution
+        for (uint256 i = 0; i < chainUpdates.length; i++) {
+            SafeHarborAgreementLike.AgreementDetails memory details = agreement.getDetails();
+            SafeHarborAgreementLike.Chain memory chain = _findChain(details, chainUpdates[i].caip2ChainId);
 
-    //     // Configure chain updates for eip155:1 with added and removed accounts
-    //     chainUpdates[0] = ChainUpdates({
-    //         caip2ChainId: "eip155:1",
-    //         addedAccounts: addedAccounts,
-    //         removedAccounts: removedAccounts
-    //     });
+            for (uint256 j = 0; j < chainUpdates[i].addedAccounts.length; j++) {
+                assertFalse(
+                    _accountExistsInChain(chain, chainUpdates[i].addedAccounts[j].accountAddress),
+                    string.concat("testUpdateSafeHarborAddedAccounts/account-already-present-before-spell-execution-", chainUpdates[i].addedAccounts[j].accountAddress)
+                );
+            }
+        }
 
-    //     // Check expected pre-spell state: added accounts absent, removed accounts present
-    //     for (uint256 i = 0; i < chainUpdates.length; i++) {
-    //         SafeHarborAgreementLike.AgreementDetails memory details = agreement.getDetails();
-    //         SafeHarborAgreementLike.Chain memory chain = _findChain(details, chainUpdates[i].caip2ChainId);
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
 
-    //         for (uint256 j = 0; j < chainUpdates[i].addedAccounts.length; j++) {
-    //             assertFalse(
-    //                 _accountExistsInChain(chain, chainUpdates[i].addedAccounts[j].accountAddress),
-    //                 string.concat("testUpdateSafeHarborAccounts/added-account-already-present-before-spell-execution-", chainUpdates[i].addedAccounts[j].accountAddress)
-    //             );
-    //         }
+        // Check that added accounts are present after spell execution
+        for (uint256 i = 0; i < chainUpdates.length; i++) {
+            SafeHarborAgreementLike.AgreementDetails memory details = agreement.getDetails();
+            SafeHarborAgreementLike.Chain memory chain = _findChain(details, chainUpdates[i].caip2ChainId);
 
-    //         for (uint256 j = 0; j < chainUpdates[i].removedAccounts.length; j++) {
-    //             assertTrue(
-    //                 _accountExistsInChain(chain, chainUpdates[i].removedAccounts[j].accountAddress),
-    //                 string.concat("testUpdateSafeHarborAccounts/removed-account-not-present-before-spell-execution-", chainUpdates[i].removedAccounts[j].accountAddress)
-    //             );
-    //         }
-    //     }
+            for (uint256 j = 0; j < chainUpdates[i].addedAccounts.length; j++) {
+                assertTrue(
+                    _accountExistsInChain(chain, chainUpdates[i].addedAccounts[j].accountAddress),
+                    string.concat("testUpdateSafeHarborAddedAccounts/safe-harbor-account-not-found-after-spell-execution-", chainUpdates[i].addedAccounts[j].accountAddress)
+                );
 
-    //     _vote(address(spell));
-    //     _scheduleWaitAndCast(address(spell));
-    //     assertTrue(spell.done(), "TestError/spell-not-done");
-
-    //     // Check expected post-spell state: added accounts present (with correct scope), removed accounts absent
-    //     for (uint256 i = 0; i < chainUpdates.length; i++) {
-    //         SafeHarborAgreementLike.AgreementDetails memory details = agreement.getDetails();
-    //         SafeHarborAgreementLike.Chain memory chain = _findChain(details, chainUpdates[i].caip2ChainId);
-
-    //         for (uint256 j = 0; j < chainUpdates[i].addedAccounts.length; j++) {
-    //             assertTrue(
-    //                 _accountExistsInChain(chain, chainUpdates[i].addedAccounts[j].accountAddress),
-    //                 string.concat("testUpdateSafeHarborAccounts/added-account-not-found-after-spell-execution-", chainUpdates[i].addedAccounts[j].accountAddress)
-    //             );
-
-    //             // Verify the account has the correct ChildContractScope
-    //             SafeHarborAgreementLike.Account memory account = _findAccountInChain(chain, chainUpdates[i].addedAccounts[j].accountAddress);
-    //             assertEq(
-    //                 account.ChildContractScope,
-    //                 chainUpdates[i].addedAccounts[j].ChildContractScope,
-    //                 string.concat("testUpdateSafeHarborAccounts/incorrect-scope-for-account-", chainUpdates[i].addedAccounts[j].accountAddress)
-    //             );
-    //         }
-
-    //         for (uint256 j = 0; j < chainUpdates[i].removedAccounts.length; j++) {
-    //             assertFalse(
-    //                 _accountExistsInChain(chain, chainUpdates[i].removedAccounts[j].accountAddress),
-    //                 string.concat("testUpdateSafeHarborAccounts/removed-account-still-present-after-spell-execution-", chainUpdates[i].removedAccounts[j].accountAddress)
-    //             );
-    //         }
-    //     }
-    // }
-
+                // Verify the account has the correct ChildContractScope
+                SafeHarborAgreementLike.Account memory account = _findAccountInChain(chain, chainUpdates[i].addedAccounts[j].accountAddress);
+                assertEq(
+                    account.ChildContractScope,
+                    chainUpdates[i].addedAccounts[j].ChildContractScope,
+                    string.concat("testUpdateSafeHarborAddedAccounts/incorrect-scope-for-account-", chainUpdates[i].addedAccounts[j].accountAddress)
+                );
+            }
+        }
+    }
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
-    function testPipAllocatorGroveRemovedFromChainlog() public {
-        // AllocatorInit.initIlk temporarily registers PIP_ALLOCATOR_GROVE_A in the chainlog, then the
-        // spell removes it, so it must no longer resolve after cast
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        vm.expectRevert("dss-chain-log/invalid-key");
-        chainLog.getAddress("PIP_ALLOCATOR_GROVE_A");
-    }
-
-    function testStUsdsMomReplacement() public {
-        address newMom = addr.addr("STUSDS_MOM");           // new MOM (from harness addresses)
-        address oldMom = chainLog.getAddress("STUSDS_MOM"); // captured pre-cast = old MOM
-        assertTrue(newMom != oldMom, "TestError/stusds-mom-not-replaced");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        // New MOM is live in the chainlog and correctly wired
-        assertEq(chainLog.getAddress("STUSDS_MOM"), newMom, "TestError/stusds-mom-chainlog-not-updated");
-        assertEq(StUsdsMomLike(newMom).stusds(), addr.addr("STUSDS"), "TestError/stusds-mom-stusds-mismatch");
-        assertEq(StUsdsMomLike(newMom).owner(), addr.addr("MCD_PAUSE_PROXY"), "TestError/stusds-mom-owner-not-pause-proxy");
-        assertEq(StUsdsMomLike(newMom).authority(), addr.addr("MCD_ADM"), "TestError/stusds-mom-authority-not-chief");
-        assertEq(stusds.wards(newMom), 1, "TestError/stusds-mom-not-warded-stusds");
-        assertEq(WardsAbstract(address(rateSetter)).wards(newMom), 1, "TestError/stusds-mom-not-warded-ratesetter");
-
-        // Old MOM is fully decommissioned
-        assertEq(StUsdsMomLike(oldMom).authority(), address(0), "TestError/old-stusds-mom-authority-not-cleared");
-        assertEq(StUsdsMomLike(oldMom).owner(), address(0), "TestError/old-stusds-mom-owner-not-cleared");
-        assertEq(stusds.wards(oldMom), 0, "TestError/old-stusds-mom-still-warded-stusds");
-        assertEq(WardsAbstract(address(rateSetter)).wards(oldMom), 0, "TestError/old-stusds-mom-still-warded-ratesetter");
-    }
-
-    function testStUsdsMomZeroLine() public {
-        StUsdsMomLike mom = StUsdsMomLike(addr.addr("STUSDS_MOM")); // new MOM activated by StUsdsInit.replaceMom
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        bytes32 ilk = stusds.ilk(); // LSEV2-SKY-A
-
-        // Pre-condition: the borrow ceiling is live before the emergency action
-        (,,, uint256 vatLineBefore,) = vat.ilks(ilk);
-        assertGt(vatLineBefore, 0, "TestError/stusds-mom-precondition-vat-line-zero");
-
-        // Happy path: governance (chief hat) triggers the new MOM emergency zeroLine, which zeroes the
-        // line on stUSDS and the rate setter, then drips it through to the Vat (the new MOM behavior).
-        vm.prank(chief.hat());
-        mom.zeroLine(address(rateSetter));
-
-        assertEq(stusds.line(), 0,        "TestError/stusds-mom-line-not-zeroed");
-        assertEq(rateSetter.maxLine(), 0, "TestError/stusds-mom-ratesetter-maxline-not-zeroed");
-        (,,, uint256 vatLineAfter,) = vat.ilks(ilk);
-        assertEq(vatLineAfter, 0,         "TestError/stusds-mom-vat-line-not-propagated");
-    }
 }
