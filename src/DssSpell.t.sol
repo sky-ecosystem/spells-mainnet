@@ -1558,25 +1558,32 @@ contract DssSpellTest is DssSpellTestBase {
         address grove   = addr.addr("GROVE");
         address rewards = addr.addr("REWARDS_USDS_GROVE");
         address dist    = addr.addr("REWARDS_DIST_USDS_GROVE");
+        address staker  = makeAddr("staker");
 
         uint256 stakingAmount = 1_000 * WAD;
-        deal(address(usds), address(this), stakingAmount);
+        deal(address(usds), staker, stakingAmount);
 
         { // Staking, earning, and claiming rewards
             uint256 before = vm.snapshotState();
 
+            assertEq(StakingRewardsLike(rewards).balanceOf(staker), 0, "testUsdsGroveFarmIntegration/balance-not-zero-before-stake");
+            assertEq(StakingRewardsLike(rewards).earned(staker),    0, "testUsdsGroveFarmIntegration/balance-not-zero-before-stake");
+
+            vm.startPrank(staker);
             usds.approve(rewards, stakingAmount);
             StakingRewardsLike(rewards).stake(stakingAmount);
-            assertEq(StakingRewardsLike(rewards).balanceOf(address(this)), stakingAmount, "testUsdsGroveFarmIntegration/stake-failed");
+            assertEq(StakingRewardsLike(rewards).balanceOf(staker), stakingAmount, "testUsdsGroveFarmIntegration/stake-failed");
 
             skip(1 days);
-            assertGt(StakingRewardsLike(rewards).earned(address(this)), 0, "testUsdsGroveFarmIntegration/no-rewards-earned");
+            assertGt(StakingRewardsLike(rewards).earned(staker), 0, "testUsdsGroveFarmIntegration/no-rewards-earned");
 
             StakingRewardsLike(rewards).getReward();
-            assertGt(GemAbstract(grove).balanceOf(address(this)), 0, "testUsdsGroveFarmIntegration/rewards-not-claimed");
+            assertGt(GemAbstract(grove).balanceOf(staker), 0, "testUsdsGroveFarmIntegration/rewards-not-claimed");
 
             StakingRewardsLike(rewards).withdraw(stakingAmount);
-            assertGe(usds.balanceOf(address(this)), stakingAmount, "testUsdsGroveFarmIntegration/unstake-failed");
+            assertEq(StakingRewardsLike(rewards).balanceOf(staker), 0, "testUsdsGroveFarmIntegration/staked-balance-not-zero-after-withdraw");
+            assertGe(usds.balanceOf(staker), stakingAmount, "testUsdsGroveFarmIntegration/usds-not-returned-after-withdraw");
+            vm.stopPrank();
 
             vm.revertToStateAndDelete(before);
         }

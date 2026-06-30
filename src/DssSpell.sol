@@ -209,7 +209,6 @@ contract DssSpellAction is DssAction {
         DssExecLib.setChangelogAddress("PAU_BEACON", PAU_BEACON);
 
         // ---------- Transfer USDS from Amatsu SubProxy to SFF ----------
-        // Forum: TODO
         // Atlas: https://sky-atlas.io/#06bac1e1-ae52-4c67-8ca9-0dcec22dddee
 
         // Add 0x5162489F4FEa651b76c75193387d08aAAC9CB52C to the chainlog as SUBPROXY_METHODS
@@ -227,7 +226,7 @@ contract DssSpellAction is DssAction {
         // ---------- Update SafeHarbor Agreement ----------
         // Atlas: https://sky-atlas.io/#fcd868db-4a91-4ee0-baf5-1ebd40fc651e
 
-        // TODO: add relevant content once exec sheet is updated
+        // TBD once technical scopes published
 
         // ---------- Spark Proxy Spell ----------
         // Forum: https://forum.skyeco.com/t/july-2-2026-proposed-changes-to-spark-for-upcoming-spell/27982
