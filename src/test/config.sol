@@ -59,6 +59,7 @@ contract Config {
         uint256 vest_sky_cap;
         uint256 vest_sky_mint_cap;
         uint256 vest_spk_cap;
+        uint256 vest_grove_cap;
         uint256 SP_tau;
         address SP_bud;
         uint256 SP_ssr_min;
@@ -153,39 +154,40 @@ contract Config {
         //
         // Values for all system configuration changes
         //
-        afterSpell.line_offset            = 700 * MILLION;                                // Offset between the global line against the sum of local lines
-        afterSpell.pause_delay            = 48 hours;                                     // In seconds
-        afterSpell.vow_wait               = 156 hours;                                    // In seconds
-        afterSpell.vow_dump               = 0;                                            // In whole Dai units
-        afterSpell.vow_sump               = type(uint256).max;                            // In whole Dai units
-        afterSpell.vow_bump               = 0;                                            // In whole Dai units
-        afterSpell.vow_hump_min           = type(uint256).max;                            // In whole Dai units
-        afterSpell.vow_hump_max           = type(uint256).max;                            // In whole Dai units
-        afterSpell.kick_kbump             = 6 * THOUSAND;                                 // In whole USDS units
-        afterSpell.kick_khump             = -200 * int256(MILLION);                       // In whole USDS units
-        afterSpell.split_hop              = 13_787 seconds;                               // In seconds
-        afterSpell.split_burn             = 100_00;                                       // In basis points
-        afterSpell.split_farm             = "REWARDS_LSSKY_USDS";                         // Farm chainlog key
-        afterSpell.flap_want              = 98_00;                                        // In basis points
-        afterSpell.dog_Hole               = 150 * MILLION;                                // In whole Dai units
-        afterSpell.esm_min                = type(uint256).max;                            // In wei
-        afterSpell.pause_authority        = "MCD_ADM";                                    // Pause authority
-        afterSpell.osm_mom_authority      = "MCD_ADM";                                    // OsmMom authority
-        afterSpell.clipper_mom_authority  = "MCD_ADM";                                    // ClipperMom authority
-        afterSpell.d3m_mom_authority      = "MCD_ADM";                                    // D3MMom authority
-        afterSpell.line_mom_authority     = "MCD_ADM";                                    // LineMom authority
-        afterSpell.lite_psm_mom_authority = "MCD_ADM";                                    // LitePsmMom authority
-        afterSpell.splitter_mom_authority = "MCD_ADM";                                    // SplitterMom authority
-        afterSpell.spbeam_mom_authority   = "MCD_ADM";                                    // SPBeamMom authority
-        afterSpell.stusds_mom_authority   = "MCD_ADM";                                    // Stusds authority
-        afterSpell.vest_dai_cap           = 1_000_000 * WAD /  30 days;                   // In WAD Dai per second
-        afterSpell.vest_mkr_cap           = 2_220 * WAD / 365 days;                       // In WAD MKR per second
-        afterSpell.vest_usds_cap          = 46_200 * WAD /  30 days;                      // In WAD USDS per second
-        afterSpell.vest_sky_cap           = 110 * (1_000_000_000 * WAD / 180 days) / 100; // In WAD SKY per second
-        afterSpell.vest_sky_mint_cap      = 176_000_000 * WAD / 182 days;                 // In WAD SKY per second
-        afterSpell.vest_spk_cap           = 2_502_500_000 * WAD / 730 days;               // In WAD SPK per second
-        afterSpell.ilk_count              = 35;                                           // Num expected in system
-        afterSpell.chainlog_version       = "1.20.16";                                    // String expected in system
+        afterSpell.line_offset            = 700 * MILLION;                                  // Offset between the global line against the sum of local lines
+        afterSpell.pause_delay            = 48 hours;                                       // In seconds
+        afterSpell.vow_wait               = 156 hours;                                      // In seconds
+        afterSpell.vow_dump               = 0;                                              // In whole Dai units
+        afterSpell.vow_sump               = type(uint256).max;                              // In whole Dai units
+        afterSpell.vow_bump               = 0;                                              // In whole Dai units
+        afterSpell.vow_hump_min           = type(uint256).max;                              // In whole Dai units
+        afterSpell.vow_hump_max           = type(uint256).max;                              // In whole Dai units
+        afterSpell.kick_kbump             = 6 * THOUSAND;                                   // In whole USDS units
+        afterSpell.kick_khump             = -200 * int256(MILLION);                         // In whole USDS units
+        afterSpell.split_hop              = 13_787 seconds;                                 // In seconds
+        afterSpell.split_burn             = 100_00;                                         // In basis points
+        afterSpell.split_farm             = "REWARDS_LSSKY_USDS";                           // Farm chainlog key
+        afterSpell.flap_want              = 98_00;                                          // In basis points
+        afterSpell.dog_Hole               = 150 * MILLION;                                  // In whole Dai units
+        afterSpell.esm_min                = type(uint256).max;                              // In wei
+        afterSpell.pause_authority        = "MCD_ADM";                                      // Pause authority
+        afterSpell.osm_mom_authority      = "MCD_ADM";                                      // OsmMom authority
+        afterSpell.clipper_mom_authority  = "MCD_ADM";                                      // ClipperMom authority
+        afterSpell.d3m_mom_authority      = "MCD_ADM";                                      // D3MMom authority
+        afterSpell.line_mom_authority     = "MCD_ADM";                                      // LineMom authority
+        afterSpell.lite_psm_mom_authority = "MCD_ADM";                                      // LitePsmMom authority
+        afterSpell.splitter_mom_authority = "MCD_ADM";                                      // SplitterMom authority
+        afterSpell.spbeam_mom_authority   = "MCD_ADM";                                      // SPBeamMom authority
+        afterSpell.stusds_mom_authority   = "MCD_ADM";                                      // Stusds authority
+        afterSpell.vest_dai_cap           = 1_000_000 * WAD /  30 days;                     // In WAD Dai per second
+        afterSpell.vest_mkr_cap           = 2_220 * WAD / 365 days;                         // In WAD MKR per second
+        afterSpell.vest_usds_cap          = 46_200 * WAD /  30 days;                        // In WAD USDS per second
+        afterSpell.vest_sky_cap           = 110 * (1_000_000_000 * WAD / 180 days) / 100;   // In WAD SKY per second
+        afterSpell.vest_sky_mint_cap      = 176_000_000 * WAD / 182 days;                   // In WAD SKY per second
+        afterSpell.vest_spk_cap           = 2_502_500_000 * WAD / 730 days;                 // In WAD SPK per second
+        afterSpell.vest_grove_cap         = (110 * 2_450_000_000 * WAD) / (100 * 730 days); // In WAD GROVE per second
+        afterSpell.ilk_count              = 35;                                             // Num expected in system
+        afterSpell.chainlog_version       = "1.20.17";                                      // String expected in system
 
         afterSpell.SP_tau       = 57_600 seconds;                             // In seconds
         afterSpell.SP_bud       = 0xe1c6f81D0c3CD570A77813b81AA064c5fff80309; // Address of SPBEAM Bud

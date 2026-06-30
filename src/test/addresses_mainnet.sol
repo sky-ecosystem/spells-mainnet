@@ -628,5 +628,13 @@ contract Addresses {
         addr["PATTERN_ALM_PROXY"]                = 0xbA43325E91C79E500486a23E953ab3d8C46f169F;
         addr["ALLOCATOR_GROVE_A_VAULT"]          = 0xf739a30c74927dc6cFA3B67E4933872a1FC5F4EB;
         addr["ALLOCATOR_GROVE_A_BUFFER"]         = 0x436DABce608f73BeA2b75fba35bffe72739697d5;
+        addr["GROVE_ALM_PROXY"]                  = 0x0DcD9298e163dFD3c0B5b00F0d9093C36e40A153;
+        addr["PAU_BEACON"]                       = 0x829dC2b7E94B1954F0764E573f2E0d45Afa28199;
+        addr["SUBPROXY_METHODS"]                 = 0x5162489F4FEa651b76c75193387d08aAAC9CB52C;
+        addr["SKY_FRONTIER_FOUNDATION"]          = 0xca5183FB9997046fbd9bA8113139bf5a5Af122A0;
+        addr["GROVE"]                            = 0xB30FE1Cf884B48a22a50D22a9282004F2c5E9406;
+        addr["MCD_VEST_GROVE_TREASURY"]          = 0xcBCfCD450de686894d3C5E7E8975cF23EEF077B2;
+        addr["REWARDS_USDS_GROVE"]               = 0x4E41488C19cD35EB4de3083Fc3e204854c75c86a;
+        addr["REWARDS_DIST_USDS_GROVE"]          = 0xAf7a108B4fB0b2F65E1Acc9E1a548abe482559C4;
     }
 }

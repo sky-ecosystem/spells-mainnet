@@ -581,6 +581,10 @@ interface CronJobLike {
 interface VestedRewardsDistributionLike {
     function vestId() external view returns (uint256);
     function distribute() external returns (uint256 amount);
+    function dssVest() external view returns (address);
+    function stakingRewards() external view returns (address);
+    function gem() external view returns (address);
+    function lastDistributedAt() external view returns (uint256);
 }
 
 interface OpL1GovernanceRelayLike {
@@ -681,6 +685,7 @@ contract DssSpellTestBase is Config, DssTest {
     DSTokenAbstract mkr                     = DSTokenAbstract(addr.addr("MKR"));
     GemAbstract sky                         = GemAbstract(addr.addr("SKY"));
     GemAbstract spk                         = GemAbstract(addr.addr("SPK"));
+    GemAbstract grove                       = GemAbstract(addr.addr("GROVE"));
     MkrSkyLike mkrSky                       = MkrSkyLike(addr.addr("MKR_SKY"));
     EndAbstract end                         = EndAbstract(addr.addr("MCD_END"));
     ESMAbstract esm                         = ESMAbstract(addr.addr("MCD_ESM"));
@@ -705,6 +710,7 @@ contract DssSpellTestBase is Config, DssTest {
     VestAbstract vestMkr                    = VestAbstract(addr.addr("MCD_VEST_MKR_TREASURY"));
     VestAbstract vestSky                    = VestAbstract(addr.addr("MCD_VEST_SKY_TREASURY"));
     VestAbstract vestSpk                    = VestAbstract(addr.addr("MCD_VEST_SPK_TREASURY"));
+    VestAbstract vestGrove                  = VestAbstract(addr.addr("MCD_VEST_GROVE_TREASURY"));
     VestAbstract vestSkyMint                = VestAbstract(addr.addr("MCD_VEST_SKY"));
     RwaLiquidationLike liquidationOracle    = RwaLiquidationLike(addr.addr("MIP21_LIQUIDATION_ORACLE"));
     SPBEAMLike spbeam                       = SPBEAMLike(addr.addr("MCD_SPBEAM"));
@@ -1219,6 +1225,7 @@ contract DssSpellTestBase is Config, DssTest {
             assertEq(vestSky.cap(), values.vest_sky_cap, "TestError/vest-sky-cap");
             assertEq(vestSkyMint.cap(), values.vest_sky_mint_cap, "TestError/vest-sky-mint-cap");
             assertEq(vestSpk.cap(), values.vest_spk_cap, "TestError/vest-spk-cap");
+            assertEq(vestGrove.cap(), values.vest_grove_cap, "TestError/vest-grove-cap");
         }
 
         assertEq(vat.wards(pauseProxy), uint256(1), "TestError/pause-proxy-deauthed-on-vat");
@@ -1231,6 +1238,8 @@ contract DssSpellTestBase is Config, DssTest {
             _checkTransferrableVestAllowanceAndBalance('sky', sky, vestSky);
             // check spk allowance and balance
             _checkTransferrableVestAllowanceAndBalance('spk', spk, vestSpk);
+            // check grove allowance and balance
+            _checkTransferrableVestAllowanceAndBalance('grove', grove, vestGrove);
         }
 
         // stusds
@@ -3128,7 +3137,7 @@ contract DssSpellTestBase is Config, DssTest {
         vm.warp(_ns.fin);
 
         // Set balance of pauseProxy to the total amount of the stream to ensure the stream is payable
-        GodMode.setBalance(address(sky), pauseProxy, _ns.tot);
+        GodMode.setBalance(address(_vi.gem), pauseProxy, _ns.tot);
         _vi.vest.vest(_ns.id);
         assertEq(
             _vi.gem.balanceOf(_ns.usr),

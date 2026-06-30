@@ -39,6 +39,10 @@ interface LineMomLike {
     function ilks(bytes32 ilk) external view returns (uint256);
     function wipe(bytes32 ilk) external returns (uint256);
 }
+interface VestedRewardsDistributionJobLike {
+    function has(address) external view returns (bool);
+    function intervals(address) external view returns (uint256);
+}
 
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
@@ -56,7 +60,8 @@ contract DssSpellTest is DssSpellTestBase {
         _testCastOnTime();
     }
 
-    function testNextCastTime() public {
+    // NOTE: skipped due to the custom min ETA logic in the current spell
+    function testNextCastTime() public skipped {
         _testNextCastTime();
     }
 
@@ -278,10 +283,14 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
-        string[2] memory addedKeys = [
-            "ALLOCATOR_GROVE_A_VAULT",
-            "ALLOCATOR_GROVE_A_BUFFER"
+    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+        string[6] memory addedKeys = [
+            "MCD_VEST_GROVE_TREASURY",
+            "GROVE",
+            "REWARDS_USDS_GROVE",
+            "REWARDS_DIST_USDS_GROVE",
+            "PAU_BEACON",
+            "SUBPROXY_METHODS"
         ];
 
         for(uint256 i = 0; i < addedKeys.length; i++) {
@@ -777,6 +786,34 @@ contract DssSpellTest is DssSpellTestBase {
 
         _checkVest(
             VestInst({vest: vestSpk, gem: spk, name: "spk", isTransferrable: true}),
+            newStreams,
+            yankedStreams
+        );
+    }
+
+    function testVestGrove() public {
+        uint256 spellCastTime = _getSpellCastTime();
+        uint256 USDS_GROVE_VEST_TOTAL = 2_450_000_000 * WAD;
+        uint256 USDS_GROVE_VEST_TAU   = 730 days;
+
+        NewVestStream[] memory newStreams = new NewVestStream[](1);
+        newStreams[0] = NewVestStream({
+            id:  1,
+            usr: addr.addr("REWARDS_DIST_USDS_GROVE"),
+            bgn: spellCastTime - 7 days,
+            clf: spellCastTime - 7 days,
+            fin: spellCastTime - 7 days + USDS_GROVE_VEST_TAU,
+            tau: USDS_GROVE_VEST_TAU,
+            mgr: address(0),
+            res: 1,
+            tot: USDS_GROVE_VEST_TOTAL,
+            rxd: (7 days * USDS_GROVE_VEST_TOTAL) / USDS_GROVE_VEST_TAU
+        });
+
+        YankedVestStream[] memory yankedStreams = new YankedVestStream[](0);
+
+        _checkVest(
+            VestInst({vest: vestGrove, gem: grove, name: "grove", isTransferrable: true}),
             newStreams,
             yankedStreams
         );
@@ -1349,15 +1386,35 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
-        PrimeAgentSpell[1] memory primeAgentSpells = [
+    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
+        PrimeAgentSpell[3] memory primeAgentSpells = [
             PrimeAgentSpell({
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "SPARK_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0xe08BD6D9016EAC522903FC68c80F809664C2692A,
+                addr: 0xcc7529473B850103524905D3914470898aDe8747,
                 // Insert Prime Agent spell codehash
-                codehash: 0xdf7cca8d640cde5f2f8184ccb03f76031a024cb8ab2c192092acfe329b5aebf5,
+                codehash: 0xf952ba1ea1df8c42217cecd3c4e88abcde2864fbf1e4465b1a13af0bf05e00f0,
+                // Set to true if the Prime Agent spell is executed directly from core spell
+                directExecutionEnabled: false
+            }),
+            PrimeAgentSpell({
+                // Insert Prime Agent StarGuards Chainlog key
+                starGuardKey: "GROVE_STARGUARD",
+                // Insert Prime Agent spell address
+                addr: 0xa21d2E301D50AfF797143deb5a7C400482E9122C,
+                // Insert Prime Agent spell codehash
+                codehash: 0xb3377dba77dfd8bce7c272e7c4c445ab48b3d0ec3fd0a52f512a39974f059a0f,
+                // Set to true if the Prime Agent spell is executed directly from core spell
+                directExecutionEnabled: false
+            }),
+            PrimeAgentSpell({
+                // Insert Prime Agent StarGuards Chainlog key
+                starGuardKey: "SKYBASE_STARGUARD",
+                // Insert Prime Agent spell address
+                addr: 0xd3e4e16ED515Be794fd181D7d2cEB0447A6f2cb5,
+                // Insert Prime Agent spell codehash
+                codehash: 0x09c387eed3e4373a4cc91fc28686e103cfc704335279f65f2f7308f474c002d9,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             })
@@ -1461,5 +1518,161 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
+    function testGroveFarm() public {
+        address grove         = addr.addr("GROVE");
+        address vestGroveAddr = addr.addr("MCD_VEST_GROVE_TREASURY");
+        address rewards       = addr.addr("REWARDS_USDS_GROVE");
+        address dist          = addr.addr("REWARDS_DIST_USDS_GROVE");
+        address distJob       = addr.addr("CRON_REWARDS_DIST_JOB");
 
+        // Pre-spell: sanity checks
+        assertEq(StakingRewardsLike(rewards).stakingToken(),        addr.addr("USDS"), "testGroveFarm/wrong-staking-token");
+        assertEq(StakingRewardsLike(rewards).rewardsToken(),        grove,             "testGroveFarm/wrong-rewards-token");
+        assertEq(StakingRewardsLike(rewards).rewardsDistribution(), address(0),        "testGroveFarm/rewards-distribution-already-set");
+        assertEq(VestedRewardsDistributionLike(dist).dssVest(),     vestGroveAddr,     "testGroveFarm/wrong-dss-vest");
+        assertEq(VestedRewardsDistributionLike(dist).stakingRewards(), rewards,        "testGroveFarm/wrong-staking-rewards");
+        assertEq(VestedRewardsDistributionLike(dist).gem(),         grove,             "testGroveFarm/wrong-gem");
+        assertEq(VestedRewardsDistributionLike(dist).vestId(),      0,                 "testGroveFarm/vest-id-already-set");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // Post-spell: StakingRewards wiring
+        assertEq(StakingRewardsLike(rewards).rewardsDistribution(), dist, "testGroveFarm/rewards-distribution-not-set");
+
+        // Post-spell: Farm reward state
+        assertGt(StakingRewardsLike(rewards).rewardRate(),                     0,               "testGroveFarm/reward-rate-not-set");
+        assertEq(VestedRewardsDistributionLike(dist).lastDistributedAt(),      block.timestamp, "testGroveFarm/not-distributed");
+
+        // Post-spell: Cron registration
+        assertTrue(VestedRewardsDistributionJobLike(distJob).has(dist),                        "testGroveFarm/dist-not-registered");
+        assertEq(VestedRewardsDistributionJobLike(distJob).intervals(dist), 7 days - 1 hours,  "testGroveFarm/wrong-interval");
+    }
+
+    function testUsdsGroveFarmIntegration() public {
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        address grove   = addr.addr("GROVE");
+        address rewards = addr.addr("REWARDS_USDS_GROVE");
+        address dist    = addr.addr("REWARDS_DIST_USDS_GROVE");
+
+        uint256 stakingAmount = 1_000 * WAD;
+        deal(address(usds), address(this), stakingAmount);
+
+        { // Staking, earning, and claiming rewards
+            uint256 before = vm.snapshotState();
+
+            usds.approve(rewards, stakingAmount);
+            StakingRewardsLike(rewards).stake(stakingAmount);
+            assertEq(StakingRewardsLike(rewards).balanceOf(address(this)), stakingAmount, "testUsdsGroveFarmIntegration/stake-failed");
+
+            skip(1 days);
+            assertGt(StakingRewardsLike(rewards).earned(address(this)), 0, "testUsdsGroveFarmIntegration/no-rewards-earned");
+
+            StakingRewardsLike(rewards).getReward();
+            assertGt(GemAbstract(grove).balanceOf(address(this)), 0, "testUsdsGroveFarmIntegration/rewards-not-claimed");
+
+            StakingRewardsLike(rewards).withdraw(stakingAmount);
+            assertGe(usds.balanceOf(address(this)), stakingAmount, "testUsdsGroveFarmIntegration/unstake-failed");
+
+            vm.revertToStateAndDelete(before);
+        }
+
+        { // Distribute can be called again in the future
+            uint256 pbalance = GemAbstract(grove).balanceOf(rewards);
+            skip(7 days);
+            VestedRewardsDistributionLike(dist).distribute();
+            assertGt(GemAbstract(grove).balanceOf(rewards), pbalance, "testUsdsGroveFarmIntegration/distribute-no-balance-increase");
+        }
+    }
+
+    // 2026-07-06 18:00:00 UTC
+    uint256 constant MIN_ETA = 1783360800;
+
+    function testNextCastTimeMinEta() public {
+        // Spell obtains approval for execution before MIN_ETA
+        {
+            uint256 before = vm.snapshotState();
+
+            vm.warp(1780272000); // 2026-06-01 00:00:00 UTC - could be any date far enough in the past
+            _vote(address(spell));
+            spell.schedule();
+
+            assertEq(spell.nextCastTime(), MIN_ETA, "testNextCastTimeMinEta/min-eta-not-enforced");
+
+            vm.revertToStateAndDelete(before);
+        }
+
+        // Spell obtains approval for execution after MIN_ETA
+        {
+            uint256 before = vm.snapshotState();
+
+            vm.warp(MIN_ETA); // As we move closer to MIN_ETA, GSM delay is still applicable
+            _vote(address(spell));
+            spell.schedule();
+
+            assertEq(spell.nextCastTime(), MIN_ETA + pause.delay(), "testNextCastTimeMinEta/gsm-delay-not-enforced");
+
+            vm.revertToStateAndDelete(before);
+        }
+    }
+
+    function testWhitelistGroveALMProxy() public {
+        address almProxy = addr.addr("GROVE_ALM_PROXY");
+        DssLitePsmLike psmUsdcA = DssLitePsmLike(addr.addr("MCD_LITE_PSM_USDC_A"));
+        GemAbstract usdc = GemAbstract(addr.addr("USDC"));
+
+        // bud is 0 before kiss
+        assertEq(psmUsdcA.bud(almProxy), 0, "testWhitelistGroveALMProxy/invalid-bud");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done());
+
+        // bud is 1 after kiss
+        assertEq(psmUsdcA.bud(almProxy), 1, "testWhitelistGroveALMProxy/invalid-bud");
+
+        // GROVE can call buyGemNoFee() on MCD_LITE_PSM_USDC_A
+        uint256 daiAmount  = 1_000 * WAD;
+        uint256 usdcAmount = 1_000 * 10**6;
+
+        // fund proxy
+        deal(address(dai), almProxy, daiAmount);
+        vm.startPrank(almProxy);
+
+        // buy gem with no fee
+        dai.approve(address(psmUsdcA), daiAmount);
+        psmUsdcA.buyGemNoFee(almProxy, usdcAmount);
+        assertEq(usdc.balanceOf(almProxy), usdcAmount);
+        assertEq(dai.balanceOf(almProxy), 0);
+
+        // now sell it back with no fee
+        usdc.approve(address(psmUsdcA), usdcAmount);
+        psmUsdcA.sellGemNoFee(almProxy, usdcAmount);
+        assertEq(usdc.balanceOf(almProxy), 0);
+        assertEq(dai.balanceOf(almProxy), daiAmount);
+
+        vm.stopPrank();
+    }
+
+    function testTransferUSDSFromAmatsuSubProxy() public {
+        address amatsuSubProxy        = addr.addr("AMATSU_SUBPROXY");
+        address skyFrontierFoundation = wallets.addr("SKY_FRONTIER_FOUNDATION");
+        uint256 transferAmount        = 14_000_000 * WAD;
+
+        deal(address(usds), amatsuSubProxy, transferAmount);
+
+        uint256 subProxyUsdsBefore          = usds.balanceOf(amatsuSubProxy);
+        uint256 skyFrontierFoundationBefore = usds.balanceOf(skyFrontierFoundation);
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done());
+
+        assertEq(usds.balanceOf(amatsuSubProxy), subProxyUsdsBefore - transferAmount, "testTransferUSDSFromAmatsuSubProxy/subproxy-balance-mismatch");
+        assertEq(usds.balanceOf(skyFrontierFoundation), skyFrontierFoundationBefore + transferAmount, "testTransferUSDSFromAmatsuSubProxy/sky-frontier-foundation-balance-mismatch");
+    }
 }
