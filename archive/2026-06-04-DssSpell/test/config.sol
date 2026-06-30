@@ -28,7 +28,7 @@ contract Config {
     }
 
     struct SystemValues {
-        uint256 max_global_line_offset;
+        uint256 line_offset;
         uint256 pause_delay;
         uint256 vow_wait;
         uint256 vow_dump;
@@ -142,9 +142,9 @@ contract Config {
         // Values for spell-specific parameters
         //
         spellValues = SpellValues({
-            deployed_spell:         address(0xC136C3c419746c2e8c0B95100ac866a747e3e04b), // populate with deployed spell if deployed
-            deployed_spell_created: 1781782727,          // use `make deploy-info tx=<deployment-tx>` to obtain the timestamp
-            deployed_spell_block:   25344202,          // use `make deploy-info tx=<deployment-tx>` to obtain the block number
+            deployed_spell:         address(0x0aE3371e9C4e37515259D124C685fe6722c5e253), // populate with deployed spell if deployed
+            deployed_spell_created: 1780503839,          // use `make deploy-info tx=<deployment-tx>` to obtain the timestamp
+            deployed_spell_block:   25238036,          // use `make deploy-info tx=<deployment-tx>` to obtain the block number
             previous_spells:        prevSpells, // older spells to ensure are executed first
             office_hours_enabled:   true,       // true if officehours is expected to be enabled in the spell
             expiration_threshold:   30 days     // Amount of time before spell expires
@@ -153,7 +153,7 @@ contract Config {
         //
         // Values for all system configuration changes
         //
-        afterSpell.max_global_line_offset = 700 * MILLION;                                // Offset between the global line against the sum of local lines
+        afterSpell.line_offset            = 700 * MILLION;                                // Offset between the global line against the sum of local lines
         afterSpell.pause_delay            = 48 hours;                                     // In seconds
         afterSpell.vow_wait               = 156 hours;                                    // In seconds
         afterSpell.vow_dump               = 0;                                            // In whole Dai units
@@ -184,8 +184,8 @@ contract Config {
         afterSpell.vest_sky_cap           = 110 * (1_000_000_000 * WAD / 180 days) / 100; // In WAD SKY per second
         afterSpell.vest_sky_mint_cap      = 176_000_000 * WAD / 182 days;                 // In WAD SKY per second
         afterSpell.vest_spk_cap           = 2_502_500_000 * WAD / 730 days;               // In WAD SPK per second
-        afterSpell.ilk_count              = 35;                                           // Num expected in system
-        afterSpell.chainlog_version       = "1.20.16";                                    // String expected in system
+        afterSpell.ilk_count              = 34;                                           // Num expected in system
+        afterSpell.chainlog_version       = "1.20.15";                                    // String expected in system
 
         afterSpell.SP_tau       = 57_600 seconds;                             // In seconds
         afterSpell.SP_bud       = 0xe1c6f81D0c3CD570A77813b81AA064c5fff80309; // Address of SPBEAM Bud
@@ -422,7 +422,7 @@ contract Config {
         afterSpell.collaterals["LITE-PSM-USDC-A"] = CollateralValues({
             um:           UpdateMethod.AUTOLINE,
             aL_line:      10 * BILLION,
-            aL_gap:       800 * MILLION,
+            aL_gap:       400 * MILLION,
             aL_ttl:       12 hours,
             line:         0,
             dust:         0,
@@ -1206,35 +1206,6 @@ contract Config {
             um:           UpdateMethod.AUTOLINE,
             aL_line:      10_000_000,
             aL_gap:       10_000_000,
-            aL_ttl:       86_400,
-            line:         0,
-            dust:         0,
-            pct:          0,
-            mat:          100_00,
-            liqType:      "",
-            liqOn:        false,
-            chop:         0,
-            dog_hole:     0,
-            clip_buf:     0,
-            clip_tail:    0,
-            clip_cusp:    0,
-            clip_chip:    0,
-            clip_tip:     0,
-            clipper_mom:  0,
-            cm_tolerance: 0,
-            calc_tau:     0,
-            calc_step:    0,
-            calc_cut:     0,
-            SP_enabled:   true,
-            SP_min:       0,
-            SP_max:       3_000,
-            SP_step:      400,
-            offboarding:  false
-        });
-        afterSpell.collaterals["ALLOCATOR-GROVE-A"] = CollateralValues({
-            um:           UpdateMethod.AUTOLINE,
-            aL_line:      5_000_000,
-            aL_gap:       1_000_000,
             aL_ttl:       86_400,
             line:         0,
             dust:         0,

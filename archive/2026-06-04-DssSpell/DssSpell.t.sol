@@ -40,13 +40,10 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
-interface StUsdsMomLike {
-    function authority() external view returns (address);
-    function owner() external view returns (address);
-    function stusds() external view returns (address);
-    function zeroLine(address rateSetter) external;
-    function zeroCap(address rateSetter) external;
-    function haltRateSetter(address rateSetter) external;
+interface NetworkPaymentAdapterLike {
+    error UnauthorizedSender(address sender);
+    function topUp() external returns (uint256 daiSent);
+    function treasury() external view returns (address);
 }
 
 contract DssSpellTest is DssSpellTestBase {
@@ -188,7 +185,7 @@ contract DssSpellTest is DssSpellTestBase {
                 pip:      addr.addr("PIP_USDC"),
                 litePsm:  addr.addr("MCD_LITE_PSM_USDC_A"),
                 pocket:   addr.addr("MCD_LITE_PSM_USDC_A_POCKET"),
-                bufUnits: 800_000_000,
+                bufUnits: 400_000_000,
                 tinBps:             0,
                 toutBps:            0
             })
@@ -287,10 +284,9 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
-        string[2] memory addedKeys = [
-            "ALLOCATOR_GROVE_A_VAULT",
-            "ALLOCATOR_GROVE_A_BUFFER"
+    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
+        string[1] memory addedKeys = [
+            "SUSDS_OFT"
         ];
 
         for(uint256 i = 0; i < addedKeys.length; i++) {
@@ -374,16 +370,26 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testAllocatorIntegration() public { // add the `skipped` modifier to skip
-        AllocatorIntegrationParams[1] memory params = [
+    function testAllocatorIntegration() public skipped { // add the `skipped` modifier to skip
+        AllocatorIntegrationParams[2] memory params = [
             AllocatorIntegrationParams({
-                ilk:            "ALLOCATOR-GROVE-A",
+                ilk:            "ALLOCATOR-PRYSM-A",
                 pip:            addr.addr("PIP_ALLOCATOR"),
                 registry:       addr.addr("ALLOCATOR_REGISTRY"),
                 roles:          addr.addr("ALLOCATOR_ROLES"),
-                buffer:         addr.addr("ALLOCATOR_GROVE_A_BUFFER"),
-                vault:          addr.addr("ALLOCATOR_GROVE_A_VAULT"),
-                allocatorProxy: addr.addr("GROVE_SUBPROXY"),
+                buffer:         addr.addr("ALLOCATOR_PRYSM_A_BUFFER"),
+                vault:          addr.addr("ALLOCATOR_PRYSM_A_VAULT"),
+                allocatorProxy: addr.addr("PRYSM_SUBPROXY"),
+                owner:          addr.addr("MCD_PAUSE_PROXY")
+            }),
+            AllocatorIntegrationParams({
+                ilk:            "ALLOCATOR-INTERVAL-A",
+                pip:            addr.addr("PIP_ALLOCATOR"),
+                registry:       addr.addr("ALLOCATOR_REGISTRY"),
+                roles:          addr.addr("ALLOCATOR_ROLES"),
+                buffer:         addr.addr("ALLOCATOR_INTERVAL_A_BUFFER"),
+                vault:          addr.addr("ALLOCATOR_INTERVAL_A_VAULT"),
+                allocatorProxy: addr.addr("INTERVAL_SUBPROXY"),
                 owner:          addr.addr("MCD_PAUSE_PROXY")
             })
         ];
@@ -432,9 +438,10 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testNewLineMomIlks() public { // add the `skipped` modifier to skip
-        bytes32[1] memory ilks = [
-            bytes32("ALLOCATOR-GROVE-A")
+    function testNewLineMomIlks() public skipped { // add the `skipped` modifier to skip
+        bytes32[2] memory ilks = [
+            bytes32("ALLOCATOR-PRYSM-A"),
+            bytes32("ALLOCATOR-INTERVAL-A")
         ];
 
         for (uint256 i = 0; i < ilks.length; i++) {
@@ -563,10 +570,13 @@ contract DssSpellTest is DssSpellTestBase {
         bytes32 ward;
     }
 
-    function testNewAuthorizations() public { // add the `skipped` modifier to skip
-        Authorization[2] memory newAuthorizations = [
+    function testNewAuthorizations() public skipped { // add the `skipped` modifier to skip
+        Authorization[5] memory newAuthorizations = [
+            Authorization({ base: "MCD_VAT", ward: "STUSDS" }),
             Authorization({ base: "STUSDS", ward: "STUSDS_MOM" }),
-            Authorization({ base: "STUSDS_RATE_SETTER", ward: "STUSDS_MOM" })
+            Authorization({ base: "STUSDS_RATE_SETTER", ward: "STUSDS_MOM" }),
+            Authorization({ base: "STUSDS", ward: "STUSDS_RATE_SETTER" }),
+            Authorization({ base: "STUSDS", ward: "LOCKSTAKE_CLIP" })
         ];
 
         for (uint256 i = 0; i < newAuthorizations.length; i++) {
@@ -700,16 +710,16 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public { // add the `skipped` modifier to skip
+    function testVestSky() public skipped { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
-        uint256 AUG_09_2026_14_01_23 = 1786284083;
+        uint256 JUL_26_2026_14_02_59 = 1785074579;
 
         uint256 spellCastTime = _getSpellCastTime();
 
         // Build expected new stream
         NewVestStream[] memory newStreams = new NewVestStream[](1);
         newStreams[0] = NewVestStream({
-            id:  14,
+            id:  13,
             usr: addr.addr("REWARDS_DIST_LSSKY_SKY"),
             bgn: spellCastTime,
             clf: spellCastTime,
@@ -717,15 +727,15 @@ contract DssSpellTest is DssSpellTestBase {
             tau: 90 days,
             mgr: address(0),
             res: 1,
-            tot: 240_862_942 * WAD,
+            tot: 239_982_804 * WAD,
             rxd: 0 // Amount already claimed
         });
 
         // For each yanked stream, provide Stream object and initialize the array with the current number of yanked streams
         YankedVestStream[] memory yankedStreams = new YankedVestStream[](1);
         yankedStreams[0] = YankedVestStream({
-            id:  13,
-            fin: AUG_09_2026_14_01_23,
+            id:  12,
+            fin: JUL_26_2026_14_02_59,
             end: spellCastTime
         });
 
@@ -791,9 +801,9 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestedRewardsDist() public {
-        uint256 expectedVestIdBefore = 13;
-        uint256 expectedVestIdAfter = 14;
+    function testVestedRewardsDist() public skipped {
+        uint256 expectedVestIdBefore = 12;
+        uint256 expectedVestIdAfter = 13;
 
         address rewardsDist = addr.addr("REWARDS_DIST_LSSKY_SKY");
         address stakingRewards = addr.addr("REWARDS_LSSKY_SKY");
@@ -839,7 +849,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public { // add the `skipped` modifier to skip
+    function testPayments() public skipped { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -850,19 +860,19 @@ contract DssSpellTest is DssSpellTestBase {
         //    the amount to be paid
         // Initialize the array with the number of payees
         Payee[6] memory payees = [
-            Payee(address(usds), addr.addr("SPARK_SUBPROXY"),                  4_204_857 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("GROVE_SUBPROXY"),                    271_843 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("KEEL_SUBPROXY"),                      32_279 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("OBEX_SUBPROXY"),                     526_204 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("SKYBASE_SUBPROXY"),                1_806_616 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG"), 2_946_125 ether) // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("SPARK_SUBPROXY"),                  1_512_762 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("GROVE_SUBPROXY"),                    241_690 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("KEEL_SUBPROXY"),                      52_915 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("OBEX_SUBPROXY"),                      64_862 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("SKYBASE_SUBPROXY"),                  201_469 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG"), 3_144_308 ether) // Note: ether is only a keyword helper
         ];
 
         // Fill the total values from exec sheet
         PaymentAmounts memory expectedTotalPayments = PaymentAmounts({
             dai:           0 ether, // Note: ether is only a keyword helper
             mkr:           0 ether, // Note: ether is only a keyword helper
-            usds:  9_787_924 ether, // Note: ether is only a keyword helper
+            usds: 5_218_006 ether, // Note: ether is only a keyword helper
             sky:           0 ether  // Note: ether is only a keyword helper
         });
 
@@ -1299,18 +1309,18 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 
-    function testMonthlySettlementCycleInflows() public { // add the `skipped` modifier to skip
+    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
         address ALLOCATOR_SPARK_A_VAULT = addr.addr("ALLOCATOR_SPARK_A_VAULT");
         address ALLOCATOR_BLOOM_A_VAULT = addr.addr("ALLOCATOR_BLOOM_A_VAULT");
         address ALLOCATOR_OBEX_A_VAULT = addr.addr("ALLOCATOR_OBEX_A_VAULT");
 
         AllocatorPayment[3] memory payments = [
-            AllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 13_427_874 * WAD),
-            AllocatorPayment(ALLOCATOR_BLOOM_A_VAULT,  8_877_823 * WAD),
-            AllocatorPayment(ALLOCATOR_OBEX_A_VAULT,   2_461_845 * WAD)
+            AllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 9_179_021 * WAD),
+            AllocatorPayment(ALLOCATOR_BLOOM_A_VAULT, 9_385_986 * WAD),
+            AllocatorPayment(ALLOCATOR_OBEX_A_VAULT,  1_969_499 * WAD)
         ];
 
-        uint256 expectedTotalAmount = 24_767_542 * WAD;
+        uint256 expectedTotalAmount = 20_534_506 * WAD;
 
         MscIlkValues[] memory expectedValues = new MscIlkValues[](payments.length);
         uint256 totalDtab = 0;
@@ -1359,15 +1369,21 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
-        PrimeAgentSpell[1] memory primeAgentSpells = [
+        PrimeAgentSpell[2] memory primeAgentSpells = [
             PrimeAgentSpell({
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "SPARK_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0xe08BD6D9016EAC522903FC68c80F809664C2692A,
+                addr: 0xAb385eC0Df225D5A37F5245D2aE43D53Fe4Fed20,
                 // Insert Prime Agent spell codehash
-                codehash: 0xdf7cca8d640cde5f2f8184ccb03f76031a024cb8ab2c192092acfe329b5aebf5,
+                codehash: 0x7801a877c029ce6ec7dcde0d16183eef2f81fd6e8fbd04a6433f0d6c3c0ed267,
                 // Set to true if the Prime Agent spell is executed directly from core spell
+                directExecutionEnabled: false
+            }),
+            PrimeAgentSpell({
+                starGuardKey: "GROVE_STARGUARD",
+                addr: 0xbE5E67C516074ba0807A3535035868cE7F2Bd372,
+                codehash: 0xb14f6d21bb231192c44f9b868d915f8f541213a6834a72c6158efbd64ff3223c,
                 directExecutionEnabled: false
             })
         ];
@@ -1407,163 +1423,284 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    // Commented out: the Safe Harbor on-chain verification (deep getDetails() traversal) does not
-    // compile with the optimizer enabled (legacy solc 0.8.16 "stack too deep"), and the optimizer is
-    // required for DssSpellAction to fit under the EIP-170 size limit. The SafeHarborAgreementLike
-    // interface and the traversal helpers in DssSpell.t.base.sol are commented out for the same reason.
+    struct ChainUpdates {
+        string caip2ChainId;
+        SafeHarborAgreementLike.Account[] addedAccounts;
+    }
 
-    // struct ChainUpdates {
-    //     string caip2ChainId;
-    //     SafeHarborAgreementLike.Account[] addedAccounts;
-    //     SafeHarborAgreementLike.Account[] removedAccounts;
-    // }
+    function testUpdateSafeHarborAddedAccounts() public skipped { // add the `skipped` modifier to skip
+        SafeHarborAgreementLike agreement = SafeHarborAgreementLike(addr.addr("SAFE_HARBOR_AGREEMENT"));
 
-    // function testUpdateSafeHarborAccounts() public { // add the `skipped` modifier to skip
-    //     SafeHarborAgreementLike agreement = SafeHarborAgreementLike(addr.addr("SAFE_HARBOR_AGREEMENT"));
+        ChainUpdates[1] memory chainUpdates;
 
-    //     ChainUpdates[1] memory chainUpdates;
+        // Build array of accounts to be added to Safe Harbor Agreement
+        SafeHarborAgreementLike.Account[] memory addedAccounts = new SafeHarborAgreementLike.Account[](1);
+        addedAccounts[0] = SafeHarborAgreementLike.Account({
+            accountAddress: "0x85A3FE4DA2a6cB98A5bdF62458B0dB8471B9f0f1",
+            ChildContractScope: 0
+        });
 
-    //     // Build array of accounts to be added to Safe Harbor Agreement
-    //     SafeHarborAgreementLike.Account[] memory addedAccounts = new SafeHarborAgreementLike.Account[](3);
-    //     addedAccounts[0] = SafeHarborAgreementLike.Account({
-    //         accountAddress: "0xf739a30c74927dc6cFA3B67E4933872a1FC5F4EB",
-    //         ChildContractScope: 0
-    //     });
-    //     addedAccounts[1] = SafeHarborAgreementLike.Account({
-    //         accountAddress: "0x436DABce608f73BeA2b75fba35bffe72739697d5",
-    //         ChildContractScope: 0
-    //     });
-    //     addedAccounts[2] = SafeHarborAgreementLike.Account({
-    //         accountAddress: "0x99159d0b885CC6633daC7CD4d82e4247A834b89A",
-    //         ChildContractScope: 0
-    //     });
+        // Configure chain updates for eip155:1 with added accounts
+        chainUpdates[0] = ChainUpdates({
+            caip2ChainId: "eip155:1",
+            addedAccounts: addedAccounts
+        });
 
-    //     // Build array of accounts to be removed from Safe Harbor Agreement
-    //     SafeHarborAgreementLike.Account[] memory removedAccounts = new SafeHarborAgreementLike.Account[](1);
-    //     removedAccounts[0] = SafeHarborAgreementLike.Account({
-    //         accountAddress: "0xf5DEe2CeDC5ADdd85597742445c0bf9b9cAfc699",
-    //         ChildContractScope: 0
-    //     });
+        // Check that added accounts are not present before spell execution
+        for (uint256 i = 0; i < chainUpdates.length; i++) {
+            SafeHarborAgreementLike.AgreementDetails memory details = agreement.getDetails();
+            SafeHarborAgreementLike.Chain memory chain = _findChain(details, chainUpdates[i].caip2ChainId);
 
-    //     // Configure chain updates for eip155:1 with added and removed accounts
-    //     chainUpdates[0] = ChainUpdates({
-    //         caip2ChainId: "eip155:1",
-    //         addedAccounts: addedAccounts,
-    //         removedAccounts: removedAccounts
-    //     });
+            for (uint256 j = 0; j < chainUpdates[i].addedAccounts.length; j++) {
+                assertFalse(
+                    _accountExistsInChain(chain, chainUpdates[i].addedAccounts[j].accountAddress),
+                    string.concat("testUpdateSafeHarborAddedAccounts/account-already-present-before-spell-execution-", chainUpdates[i].addedAccounts[j].accountAddress)
+                );
+            }
+        }
 
-    //     // Check expected pre-spell state: added accounts absent, removed accounts present
-    //     for (uint256 i = 0; i < chainUpdates.length; i++) {
-    //         SafeHarborAgreementLike.AgreementDetails memory details = agreement.getDetails();
-    //         SafeHarborAgreementLike.Chain memory chain = _findChain(details, chainUpdates[i].caip2ChainId);
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
 
-    //         for (uint256 j = 0; j < chainUpdates[i].addedAccounts.length; j++) {
-    //             assertFalse(
-    //                 _accountExistsInChain(chain, chainUpdates[i].addedAccounts[j].accountAddress),
-    //                 string.concat("testUpdateSafeHarborAccounts/added-account-already-present-before-spell-execution-", chainUpdates[i].addedAccounts[j].accountAddress)
-    //             );
-    //         }
+        // Check that added accounts are present after spell execution
+        for (uint256 i = 0; i < chainUpdates.length; i++) {
+            SafeHarborAgreementLike.AgreementDetails memory details = agreement.getDetails();
+            SafeHarborAgreementLike.Chain memory chain = _findChain(details, chainUpdates[i].caip2ChainId);
 
-    //         for (uint256 j = 0; j < chainUpdates[i].removedAccounts.length; j++) {
-    //             assertTrue(
-    //                 _accountExistsInChain(chain, chainUpdates[i].removedAccounts[j].accountAddress),
-    //                 string.concat("testUpdateSafeHarborAccounts/removed-account-not-present-before-spell-execution-", chainUpdates[i].removedAccounts[j].accountAddress)
-    //             );
-    //         }
-    //     }
+            for (uint256 j = 0; j < chainUpdates[i].addedAccounts.length; j++) {
+                assertTrue(
+                    _accountExistsInChain(chain, chainUpdates[i].addedAccounts[j].accountAddress),
+                    string.concat("testUpdateSafeHarborAddedAccounts/safe-harbor-account-not-found-after-spell-execution-", chainUpdates[i].addedAccounts[j].accountAddress)
+                );
 
-    //     _vote(address(spell));
-    //     _scheduleWaitAndCast(address(spell));
-    //     assertTrue(spell.done(), "TestError/spell-not-done");
-
-    //     // Check expected post-spell state: added accounts present (with correct scope), removed accounts absent
-    //     for (uint256 i = 0; i < chainUpdates.length; i++) {
-    //         SafeHarborAgreementLike.AgreementDetails memory details = agreement.getDetails();
-    //         SafeHarborAgreementLike.Chain memory chain = _findChain(details, chainUpdates[i].caip2ChainId);
-
-    //         for (uint256 j = 0; j < chainUpdates[i].addedAccounts.length; j++) {
-    //             assertTrue(
-    //                 _accountExistsInChain(chain, chainUpdates[i].addedAccounts[j].accountAddress),
-    //                 string.concat("testUpdateSafeHarborAccounts/added-account-not-found-after-spell-execution-", chainUpdates[i].addedAccounts[j].accountAddress)
-    //             );
-
-    //             // Verify the account has the correct ChildContractScope
-    //             SafeHarborAgreementLike.Account memory account = _findAccountInChain(chain, chainUpdates[i].addedAccounts[j].accountAddress);
-    //             assertEq(
-    //                 account.ChildContractScope,
-    //                 chainUpdates[i].addedAccounts[j].ChildContractScope,
-    //                 string.concat("testUpdateSafeHarborAccounts/incorrect-scope-for-account-", chainUpdates[i].addedAccounts[j].accountAddress)
-    //             );
-    //         }
-
-    //         for (uint256 j = 0; j < chainUpdates[i].removedAccounts.length; j++) {
-    //             assertFalse(
-    //                 _accountExistsInChain(chain, chainUpdates[i].removedAccounts[j].accountAddress),
-    //                 string.concat("testUpdateSafeHarborAccounts/removed-account-still-present-after-spell-execution-", chainUpdates[i].removedAccounts[j].accountAddress)
-    //             );
-    //         }
-    //     }
-    // }
-
+                // Verify the account has the correct ChildContractScope
+                SafeHarborAgreementLike.Account memory account = _findAccountInChain(chain, chainUpdates[i].addedAccounts[j].accountAddress);
+                assertEq(
+                    account.ChildContractScope,
+                    chainUpdates[i].addedAccounts[j].ChildContractScope,
+                    string.concat("testUpdateSafeHarborAddedAccounts/incorrect-scope-for-account-", chainUpdates[i].addedAccounts[j].accountAddress)
+                );
+            }
+        }
+    }
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
-    function testPipAllocatorGroveRemovedFromChainlog() public {
-        // AllocatorInit.initIlk temporarily registers PIP_ALLOCATOR_GROVE_A in the chainlog, then the
-        // spell removes it, so it must no longer resolve after cast
+    bytes32 constant internal RWA001_A = "RWA001-A";
+    function testRWA001AOffboarding() public {
+        RwaLiquidationOracleAbstract oracle = RwaLiquidationOracleAbstract(addr.addr("MIP21_LIQUIDATION_ORACLE"));
+        address urn = addr.addr("RWA001_A_URN");
+        GemAbstract usdc = GemAbstract(addr.addr("USDC"));
+
+        // Snapshot pre-cast state
+        (uint256 ArtBefore, uint256 rate,, uint256 rwaALineBefore,) = vat.ilks(RWA001_A);
+
+        // Sanity check
+        uint256 globalLineBefore = vat.Line();
+        uint256 urnDaiBefore = vat.dai(urn);
+        (,,, uint256 psmLineBefore,) = vat.ilks("LITE-PSM-USDC-A");
+
+        {
+            uint256 totalDebtBefore = ArtBefore * rate;
+            assertEq(ArtBefore, 13_764_209_680_369_078_818_456_184, "testRWA001AOffboarding/Art-unexpected-before");
+            assertEq(totalDebtBefore / RAY, 17_338_416_986_530_573_896_521_461, "testRWA001AOffboarding/total-debt-unexpected-before");
+
+            (,,, uint48 tocBefore) = oracle.ilks(RWA001_A);
+            assertEq(tocBefore, 0, "testRWA001AOffboarding/already-told");
+            assertTrue(oracle.good(RWA001_A), "testRWA001AOffboarding/not-good-rwa");
+        }
+        uint256 pauseProxyUsdcBefore = usdc.balanceOf(pauseProxy);
+        uint256 litePsmPocketUsdcBefore = usdc.balanceOf(addr.addr("MCD_LITE_PSM_USDC_A_POCKET"));
+
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        vm.expectRevert("dss-chain-log/invalid-key");
-        chainLog.getAddress("PIP_ALLOCATOR_GROVE_A");
+        // Debt reduced by the wiped amount and urn dai not consumed by the wipe
+        {
+            (uint256 ArtAfter,,, uint256 ilkLineAfter,) = vat.ilks(RWA001_A);
+            assertApproxEqAbs(
+                ArtBefore * rate - ArtAfter * rate,
+                14_319_243.51 ether * RAY,
+                rate,
+                "testRWA001AOffboarding/debt-not-reduced-by-wipe"
+            );
+            (, uint256 urnArtAfter) = vat.urns(RWA001_A, urn);
+            assertApproxEqAbs(
+                (ArtBefore - urnArtAfter) * rate,
+                14_319_243.51 ether * RAY,
+                rate,
+                "testRWA001AOffboarding/urn-art-not-reduced-by-wipe"
+            );
+            assertEq(ilkLineAfter, 0, "testRWA001AOffboarding/ilk-line-not-zero-after");
+
+            assertApproxEqAbs(
+                vat.dai(urn),
+                urnDaiBefore,
+                rate,
+                "testRWA001AOffboarding/urn-dai-not-consumed-by-wipe"
+            );
+        }
+
+        // USDC pulled from MCD_PAUSE_PROXY into LitePSM
+        {
+            assertEq(
+                pauseProxyUsdcBefore - usdc.balanceOf(pauseProxy),
+                14_319_243_510000,
+                "testRWA001AOffboarding/pause-proxy-usdc-not-spent"
+            );
+            assertEq(
+                usdc.balanceOf(addr.addr("MCD_LITE_PSM_USDC_A_POCKET")) - litePsmPocketUsdcBefore,
+                14_319_243_510000,
+                "testRWA001AOffboarding/lite-psm-pocket-usdc-not-received"
+            );
+            assertEq(
+                usdc.allowance(pauseProxy, addr.addr("MCD_LITE_PSM_USDC_A")),
+                0,
+                "testRWA001AOffboarding/lite-psm-allowance-not-cleared"
+            );
+        }
+
+        // Global Line reduced by the previous ilk line and autoLine change amount
+        (,,, uint256 psmLineAfter,) = vat.ilks("LITE-PSM-USDC-A");
+        assertEq(
+            vat.Line(),
+            globalLineBefore - rwaALineBefore + psmLineAfter - psmLineBefore,
+            "testRWA001AOffboarding/global-line-not-reduced"
+        );
+
+        // Soft liquidation initiated via tell()
+        (,, uint48 tau, uint48 tocAfter) = oracle.ilks(RWA001_A);
+        assertEq(tocAfter, block.timestamp, "testRWA001AOffboarding/not-told");
+        assertTrue(oracle.good(RWA001_A), "testRWA001AOffboarding/not-good-before-tau");
+
+        // Check if `cull` can be called after tau elapses
+        skip(tau);
+        assertFalse(oracle.good(RWA001_A), "testRWA001AOffboarding/still-good-after-tau");
+
+        vm.startPrank(pauseProxy);
+        oracle.cull(RWA001_A, urn);
+        vm.stopPrank();
+        (uint256 ArtFinal,,,,) = vat.ilks(RWA001_A);
+        assertEq(ArtFinal, 0, "testRWA001AOffboarding/Art-not-zero-after-cull");
     }
 
-    function testStUsdsMomReplacement() public {
-        address newMom = addr.addr("STUSDS_MOM");           // new MOM (from harness addresses)
-        address oldMom = chainLog.getAddress("STUSDS_MOM"); // captured pre-cast = old MOM
-        assertTrue(newMom != oldMom, "TestError/stusds-mom-not-replaced");
+    function testRWA001AOffboardingIsSkipped() public {
+        uint256 donationAmount = 4_000_000 * WAD;
+        GemAbstract usdc = GemAbstract(addr.addr("USDC"));
+        RwaUrnAbstract urn = RwaUrnAbstract(addr.addr("RWA001_A_URN"));
+        RwaLiquidationOracleAbstract oracle = RwaLiquidationOracleAbstract(addr.addr("MIP21_LIQUIDATION_ORACLE"));
+
+        GodMode.setBalance(address(dai), address(urn), donationAmount);
+        urn.wipe(donationAmount);
+
+        uint256 pauseProxyUsdcBefore = usdc.balanceOf(pauseProxy);
+        (uint256 ArtBefore, uint256 rate,, uint256 ilkLineBefore,) = vat.ilks(RWA001_A);
+
+        // Actual debt amount is smaller than expected wipe amount due to the donation
+        assertGt(
+            14_319_243.51 ether * RAY,
+            ArtBefore * rate,
+            "testRWA001AOffboardingIsSkipped/donation-too-small"
+        );
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        // New MOM is live in the chainlog and correctly wired
-        assertEq(chainLog.getAddress("STUSDS_MOM"), newMom, "TestError/stusds-mom-chainlog-not-updated");
-        assertEq(StUsdsMomLike(newMom).stusds(), addr.addr("STUSDS"), "TestError/stusds-mom-stusds-mismatch");
-        assertEq(StUsdsMomLike(newMom).owner(), addr.addr("MCD_PAUSE_PROXY"), "TestError/stusds-mom-owner-not-pause-proxy");
-        assertEq(StUsdsMomLike(newMom).authority(), addr.addr("MCD_ADM"), "TestError/stusds-mom-authority-not-chief");
-        assertEq(stusds.wards(newMom), 1, "TestError/stusds-mom-not-warded-stusds");
-        assertEq(WardsAbstract(address(rateSetter)).wards(newMom), 1, "TestError/stusds-mom-not-warded-ratesetter");
-
-        // Old MOM is fully decommissioned
-        assertEq(StUsdsMomLike(oldMom).authority(), address(0), "TestError/old-stusds-mom-authority-not-cleared");
-        assertEq(StUsdsMomLike(oldMom).owner(), address(0), "TestError/old-stusds-mom-owner-not-cleared");
-        assertEq(stusds.wards(oldMom), 0, "TestError/old-stusds-mom-still-warded-stusds");
-        assertEq(WardsAbstract(address(rateSetter)).wards(oldMom), 0, "TestError/old-stusds-mom-still-warded-ratesetter");
+        // Ensure no state changes happened as the debt repayment was skipped in the spell
+        uint256 pauseProxyUsdcAfter = usdc.balanceOf(pauseProxy);
+        assertEq(pauseProxyUsdcAfter, pauseProxyUsdcBefore, "testRWA001AOffboardingIsSkipped/pause-proxy-usdc-changed");
+        (uint256 ArtAfter,,, uint256 ilkLineAfter,) = vat.ilks(RWA001_A);
+        assertEq(ArtAfter, ArtBefore, "testRWA001AOffboardingIsSkipped/Art-changed");
+        assertEq(ilkLineAfter, ilkLineBefore, "testRWA001AOffboardingIsSkipped/ilk-line-changed");
+        (,,, uint48 tocAfter) = oracle.ilks(RWA001_A);
+        assertEq(tocAfter, 0, "testRWA001AOffboardingIsSkipped/oracle-tell-called");
     }
 
-    function testStUsdsMomZeroLine() public {
-        StUsdsMomLike mom = StUsdsMomLike(addr.addr("STUSDS_MOM")); // new MOM activated by StUsdsInit.replaceMom
+    function testKeeperOffboarding() public {
+        SequencerLike sequencer = SequencerLike(addr.addr("CRON_SEQUENCER"));
+        NetworkPaymentAdapterLike gelatoPaymentAdapter = NetworkPaymentAdapterLike(wallets.addr("GELATO_PAYMENT_ADAPTER"));
+        NetworkPaymentAdapterLike keep3rPaymentAdapter = NetworkPaymentAdapterLike(wallets.addr("KEEP3R_PAYMENT_ADAPTER"));
 
+        // Sanity check
+        uint256 beforeNumNetworks = sequencer.numNetworks();
+        assertTrue(sequencer.hasNetwork("GELATO"));
+        assertTrue(sequencer.hasNetwork("KEEP3R"));
+        address gelatoTreasuryBefore = gelatoPaymentAdapter.treasury();
+        assertNotEq(gelatoTreasuryBefore, address(0), "testKeeperOffboarding/gelato-treasury-zero");
+        address keep3rTreasuryBefore = keep3rPaymentAdapter.treasury();
+        assertNotEq(keep3rTreasuryBefore, address(0), "testKeeperOffboarding/keep3r-treasury-zero");
+        assertEq(vestDai.usr(30), address(gelatoPaymentAdapter), "testKeeperOffboarding/gelato-vest-usr-mismatch");
+        assertEq(vestDai.usr(31), address(keep3rPaymentAdapter), "testKeeperOffboarding/keep3r-vest-usr-mismatch");
+        assertEq(vestDai.fin(30), 1779580799);
+        assertEq(vestDai.fin(31), 1779580799);
+        assertEq(vestDai.res(30), 1, "testKeeperOffboarding/gelato-vest-not-restricted");
+        assertEq(vestDai.res(31), 1, "testKeeperOffboarding/keep3r-vest-not-restricted");
+        uint256 gelatoUnpaidAmount = vestDai.unpaid(30);
+        uint256 keep3rUnpaidAmount = vestDai.unpaid(31);
+        assertGt(gelatoUnpaidAmount, 0, "testKeeperOffboarding/gelato-unpaid-amount-zero");
+        assertGt(keep3rUnpaidAmount, 0, "testKeeperOffboarding/keep3r-unpaid-amount-zero");
+
+        // Cast the spell
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        bytes32 ilk = stusds.ilk(); // LSEV2-SKY-A
+        // Check the updated state
+        uint256 afterNumNetworks = sequencer.numNetworks();
+        assertEq(afterNumNetworks, beforeNumNetworks - 2, "testKeeperOffboarding/keeper-networks-after-spell-mismatch");
+        assertFalse(sequencer.hasNetwork("GELATO"));
+        assertFalse(sequencer.hasNetwork("KEEP3R"));
+        assertEq(gelatoPaymentAdapter.treasury(), address(0), "testKeeperOffboarding/gelato-treasury-not-set-to-zero");
+        assertEq(keep3rPaymentAdapter.treasury(), address(0), "testKeeperOffboarding/keep3r-treasury-not-set-to-zero");
+        assertEq(vestDai.unpaid(30), gelatoUnpaidAmount, "testKeeperOffboarding/gelato-unpaid-amount-changed");
+        assertEq(vestDai.unpaid(31), keep3rUnpaidAmount, "testKeeperOffboarding/keep3r-unpaid-amount-changed");
 
-        // Pre-condition: the borrow ceiling is live before the emergency action
-        (,,, uint256 vatLineBefore,) = vat.ilks(ilk);
-        assertGt(vatLineBefore, 0, "TestError/stusds-mom-precondition-vat-line-zero");
+        // Previous treasury cannot call `topUp` anymore
+        vm.expectRevert(abi.encodeWithSelector(NetworkPaymentAdapterLike.UnauthorizedSender.selector, gelatoTreasuryBefore));
+        vm.prank(gelatoTreasuryBefore);
+        gelatoPaymentAdapter.topUp();
+        vm.expectRevert(abi.encodeWithSelector(NetworkPaymentAdapterLike.UnauthorizedSender.selector, keep3rTreasuryBefore));
+        vm.prank(keep3rTreasuryBefore);
+        keep3rPaymentAdapter.topUp();
+    }
 
-        // Happy path: governance (chief hat) triggers the new MOM emergency zeroLine, which zeroes the
-        // line on stUSDS and the rate setter, then drips it through to the Vat (the new MOM behavior).
-        vm.prank(chief.hat());
-        mom.zeroLine(address(rateSetter));
+    function testKeeperUpdate() public {
+        SequencerLike sequencer = SequencerLike(addr.addr("CRON_SEQUENCER"));
 
-        assertEq(stusds.line(), 0,        "TestError/stusds-mom-line-not-zeroed");
-        assertEq(rateSetter.maxLine(), 0, "TestError/stusds-mom-ratesetter-maxline-not-zeroed");
-        (,,, uint256 vatLineAfter,) = vat.ilks(ilk);
-        assertEq(vatLineAfter, 0,         "TestError/stusds-mom-vat-line-not-propagated");
+        // Sanity check
+        assertTrue(sequencer.hasNetwork("MAKER"));
+        assertFalse(sequencer.hasNetwork("SKY"));
+        (, uint256 makerWindowLength) = sequencer.windows("MAKER");
+
+        // Cast the spell
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "testKeeperUpdate/spell-not-done");
+
+        // Check updated results
+        assertFalse(sequencer.hasNetwork("MAKER"));
+        assertTrue(sequencer.hasNetwork("SKY"));
+        (, uint256 skyWindowLength) = sequencer.windows("SKY");
+        assertEq(skyWindowLength, makerWindowLength, "testKeeperUpdate/sky-window-length-mismatch");
+
+        // Check cron sequence works as expected after update
+        (uint256 skyStart, uint256 skyLength) = sequencer.windows("SKY");
+        (uint256 chainlinkStart, ) = sequencer.windows("CHAINLINK");
+
+        assertEq(skyStart, 0, "testKeeperUpdate/sky-start-not-zero");
+        assertEq(chainlinkStart, skyLength, "testKeeperUpdate/chainlink-start-mismatch");
+
+        uint256 blockNumber = block.number;
+        for (uint8 i = 0; i < 3; i++) {
+            bytes32 currentMaster = sequencer.getMaster();
+            (, uint256 currentMasterLength) = sequencer.windows(currentMaster);
+
+            blockNumber += currentMasterLength;
+            vm.roll(blockNumber);
+            assertTrue(sequencer.getMaster() != currentMaster, "testKeeperUpdate/master-not-rotated-after-window");
+        }
     }
 }
