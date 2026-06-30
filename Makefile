@@ -5,7 +5,7 @@ test                 :; ./scripts/test-dssspell-forge.sh no-match="$(no-match)" 
 estimate             :; forge build --quiet; BYTECODE=$$(jq -r '.bytecode.object' out/DssSpell.sol/DssSpell.json); GAS=$$(cast estimate --create $$BYTECODE); echo "Estimated gas: $$GAS"
 deploy               :; ./scripts/deploy.py
 deploy-info          :; ./scripts/get-deploy-info.sh tx=$(tx)
-verify               :; ./scripts/verify.py DssSpell $(addr)
+verify               :; ./scripts/verification/verify.py DssSpell $(addr)
 flatten              :; forge flatten src/DssSpell.sol --output out/flat.sol
 diff-deployed-spell  :; ./scripts/diff-deployed-dssspell.sh $(spell)
 check-deployed-spell :; ./scripts/check-deployed-dssspell.sh
@@ -20,5 +20,5 @@ exec-hash            :; ./scripts/hash-exec-copy.py date="$(date)"
 opt-cost             :; ./scripts/get-opt-relay-cost.sh $(spell)
 arb-cost             :; ./scripts/get-arb-relay-cost.sh $(spell)
 rates                :; ./scripts/rates.sh $(pct)
-safeharbor-generate  :; cd scripts/safeharbor && npm ci && npm run generate; cd -
-safeharbor-inspect   :; cd scripts/safeharbor && npm ci && npm run inspect; cd -
+safeharbor-generate  :; cd scripts/safeharbor && npm --silent ci && npm run --silent generate
+safeharbor-inspect   :; cd scripts/safeharbor && npm --silent ci && npm run --silent inspect

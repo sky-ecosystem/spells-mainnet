@@ -2,7 +2,6 @@
 
 exports[`inspectPayload E2E Tests > Account addition scenarios > should generate addAccounts updates when new accounts are added to existing chains 1`] = `
 "
-        // ---------- Bug Bounty Updates ----------
         bytes[] memory calldatas = new bytes[](2);
 
         // Add accounts to eip155:1 chain: 0xA3
@@ -16,7 +15,6 @@ exports[`inspectPayload E2E Tests > Account addition scenarios > should generate
 
 exports[`inspectPayload E2E Tests > Account addition scenarios > should generate addAccounts updates when new accounts are added to existing chains 2`] = `
 "
-        // ---------- Bug Bounty Updates ----------
         bytes[] memory calldatas = new bytes[](2);
 
         // Add accounts to eip155:1 chain: 0xA3
@@ -30,7 +28,6 @@ exports[`inspectPayload E2E Tests > Account addition scenarios > should generate
 
 exports[`inspectPayload E2E Tests > Account removal scenarios > should generate removeAccounts updates when accounts are removed 1`] = `
 "
-        // ---------- Bug Bounty Updates ----------
         bytes[] memory calldatas = new bytes[](3);
 
         // Remove accounts from eip155:1 chain: 0xA2
@@ -47,7 +44,6 @@ exports[`inspectPayload E2E Tests > Account removal scenarios > should generate 
 
 exports[`inspectPayload E2E Tests > Chain addition scenarios > should generate addChains updates when new chains are introduced 1`] = `
 "
-        // ---------- Bug Bounty Updates ----------
         bytes[] memory calldatas = new bytes[](1);
 
         // Add new eip155:10 with recovery address 0xOPTIMISM_RECOVERY_ADDRESS and accounts: 0xD1, 0xD2; Add new eip155:137 with recovery address 0xPOLYGON_RECOVERY_ADDRESS and accounts: 0xE1
@@ -58,7 +54,6 @@ exports[`inspectPayload E2E Tests > Chain addition scenarios > should generate a
 
 exports[`inspectPayload E2E Tests > Chain addition scenarios > should generate addChains with empty accounts for new empty chains 1`] = `
 "
-        // ---------- Bug Bounty Updates ----------
         bytes[] memory calldatas = new bytes[](1);
 
         // Add new eip155:10 with recovery address 0xOPTIMISM_RECOVERY_ADDRESS and no accounts
@@ -69,7 +64,6 @@ exports[`inspectPayload E2E Tests > Chain addition scenarios > should generate a
 
 exports[`inspectPayload E2E Tests > Chain removal scenarios > should generate removeChains updates when chains are removed 1`] = `
 "
-        // ---------- Bug Bounty Updates ----------
         bytes[] memory calldatas = new bytes[](1);
 
         // Remove chains: eip155:100, eip155:42161
@@ -80,7 +74,6 @@ exports[`inspectPayload E2E Tests > Chain removal scenarios > should generate re
 
 exports[`inspectPayload E2E Tests > Complex mixed scenarios > should handle simultaneous chain additions, removals, and account changes 1`] = `
 "
-        // ---------- Bug Bounty Updates ----------
         bytes[] memory calldatas = new bytes[](5);
 
         // Remove chains: eip155:100
@@ -103,7 +96,6 @@ exports[`inspectPayload E2E Tests > Complex mixed scenarios > should handle simu
 
 exports[`inspectPayload E2E Tests > Complex mixed scenarios > should preserve childContractScope values correctly in complex scenarios 1`] = `
 "
-        // ---------- Bug Bounty Updates ----------
         bytes[] memory calldatas = new bytes[](4);
 
         // Remove chains: eip155:100, eip155:42161
@@ -123,7 +115,6 @@ exports[`inspectPayload E2E Tests > Complex mixed scenarios > should preserve ch
 
 exports[`inspectPayload E2E Tests > Edge cases > shoud handle account scope changes 1`] = `
 "
-        // ---------- Bug Bounty Updates ----------
         bytes[] memory calldatas = new bytes[](2);
 
         // Remove accounts from eip155:1 chain: 0xA1
@@ -137,7 +128,6 @@ exports[`inspectPayload E2E Tests > Edge cases > shoud handle account scope chan
 
 exports[`inspectPayload E2E Tests > Edge cases > should handle completely empty CSV state 1`] = `
 "
-        // ---------- Bug Bounty Updates ----------
         bytes[] memory calldatas = new bytes[](1);
 
         // Remove chains: eip155:1, eip155:100, eip155:42161
@@ -148,7 +138,6 @@ exports[`inspectPayload E2E Tests > Edge cases > should handle completely empty 
 
 exports[`inspectPayload E2E Tests > Edge cases > should handle completely empty onchain state 1`] = `
 "
-        // ---------- Bug Bounty Updates ----------
         bytes[] memory calldatas = new bytes[](1);
 
         // Add new eip155:1 with recovery address 0xETHEREUM_RECOVERY_ADDRESS and accounts: 0xA1
