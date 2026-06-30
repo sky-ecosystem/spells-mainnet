@@ -40,8 +40,10 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 interface VestedRewardsDistributionJobLike {
-    function has(address) external view returns (bool);
+    function has(address dist) external view returns (bool);
     function intervals(address) external view returns (uint256);
+    function workable(bytes32 network) external returns (bool ok, bytes memory args);
+    function work(bytes32 network, bytes memory args) external;
 }
 
 contract DssSpellTest is DssSpellTestBase {
@@ -1518,7 +1520,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
-    function testGroveFarm() public {
+    function test_usdsGroveFarm_deploymentAndInitialization() public {
         address grove         = addr.addr("GROVE");
         address vestGroveAddr = addr.addr("MCD_VEST_GROVE_TREASURY");
         address rewards       = addr.addr("REWARDS_USDS_GROVE");
@@ -1526,74 +1528,115 @@ contract DssSpellTest is DssSpellTestBase {
         address distJob       = addr.addr("CRON_REWARDS_DIST_JOB");
 
         // Pre-spell: sanity checks
-        assertEq(StakingRewardsLike(rewards).stakingToken(),        addr.addr("USDS"), "testGroveFarm/wrong-staking-token");
-        assertEq(StakingRewardsLike(rewards).rewardsToken(),        grove,             "testGroveFarm/wrong-rewards-token");
-        assertEq(StakingRewardsLike(rewards).rewardsDistribution(), address(0),        "testGroveFarm/rewards-distribution-already-set");
-        assertEq(VestedRewardsDistributionLike(dist).dssVest(),     vestGroveAddr,     "testGroveFarm/wrong-dss-vest");
-        assertEq(VestedRewardsDistributionLike(dist).stakingRewards(), rewards,        "testGroveFarm/wrong-staking-rewards");
-        assertEq(VestedRewardsDistributionLike(dist).gem(),         grove,             "testGroveFarm/wrong-gem");
-        assertEq(VestedRewardsDistributionLike(dist).vestId(),      0,                 "testGroveFarm/vest-id-already-set");
+        assertEq(StakingRewardsLike(rewards).stakingToken(),              addr.addr("USDS"), "test_usdsGroveFarm_deploymentAndInitialization/wrong-staking-token");
+        assertEq(StakingRewardsLike(rewards).rewardsToken(),              grove,             "test_usdsGroveFarm_deploymentAndInitialization/wrong-rewards-token");
+        assertEq(StakingRewardsLike(rewards).rewardsDistribution(),       address(0),        "test_usdsGroveFarm_deploymentAndInitialization/rewards-distribution-already-set");
+        assertEq(StakingRewardsLike(rewards).rewardsDuration(),           7 days,            "test_usdsGroveFarm_deploymentAndInitialization/wrong-rewards-duration");
+        assertEq(VestedRewardsDistributionLike(dist).dssVest(),           vestGroveAddr,     "test_usdsGroveFarm_deploymentAndInitialization/wrong-dss-vest");
+        assertEq(VestedRewardsDistributionLike(dist).stakingRewards(),    rewards,           "test_usdsGroveFarm_deploymentAndInitialization/wrong-staking-rewards");
+        assertEq(VestedRewardsDistributionLike(dist).gem(),               grove,             "test_usdsGroveFarm_deploymentAndInitialization/wrong-gem");
+        assertEq(VestedRewardsDistributionLike(dist).wards(pauseProxy),   1,                 "test_usdsGroveFarm_deploymentAndInitialization/pauseProxy-not-authed-on-dist");
+        assertEq(VestedRewardsDistributionLike(dist).vestId(),            0,                 "test_usdsGroveFarm_deploymentAndInitialization/vest-id-already-set");
+        assertEq(VestedRewardsDistributionLike(dist).lastDistributedAt(), 0,                 "test_usdsGroveFarm_deploymentAndInitialization/already-distributed");
+        assertEq(vestGrove.wards(pauseProxy),                             1,                 "test_usdsGroveFarm_deploymentAndInitialization/pauseProxy-not-authed-on-vest");
+        assertFalse(VestedRewardsDistributionJobLike(distJob).has(dist),                     "test_usdsGroveFarm_deploymentAndInitialization/dist-already-registered");
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
         // Post-spell: StakingRewards wiring
-        assertEq(StakingRewardsLike(rewards).rewardsDistribution(), dist, "testGroveFarm/rewards-distribution-not-set");
+        assertEq(StakingRewardsLike(rewards).rewardsDistribution(), dist,   "test_usdsGroveFarm_deploymentAndInitialization/rewards-distribution-not-set");
+        assertEq(StakingRewardsLike(rewards).rewardsDuration(),     7 days, "test_usdsGroveFarm_deploymentAndInitialization/wrong-rewards-duration-after");
 
         // Post-spell: Farm reward state
-        assertGt(StakingRewardsLike(rewards).rewardRate(),                     0,               "testGroveFarm/reward-rate-not-set");
-        assertEq(VestedRewardsDistributionLike(dist).lastDistributedAt(),      block.timestamp, "testGroveFarm/not-distributed");
+        assertEq(StakingRewardsLike(rewards).rewardRate(),                2_450_000_000 * WAD / 730 days, "test_usdsGroveFarm_deploymentAndInitialization/wrong-reward-rate");
+        assertEq(VestedRewardsDistributionLike(dist).lastDistributedAt(), block.timestamp,                "test_usdsGroveFarm_deploymentAndInitialization/not-distributed");
 
         // Post-spell: Cron registration
-        assertTrue(VestedRewardsDistributionJobLike(distJob).has(dist),                        "testGroveFarm/dist-not-registered");
-        assertEq(VestedRewardsDistributionJobLike(distJob).intervals(dist), 7 days - 1 hours,  "testGroveFarm/wrong-interval");
+        assertTrue(VestedRewardsDistributionJobLike(distJob).has(dist),                       "test_usdsGroveFarm_deploymentAndInitialization/dist-not-registered");
+        assertEq(VestedRewardsDistributionJobLike(distJob).intervals(dist), 7 days - 1 hours, "test_usdsGroveFarm_deploymentAndInitialization/wrong-interval");
     }
 
-    function testUsdsGroveFarmIntegration() public {
+    function test_usdsGroveFarm_vestedRewardsDistributionJob_execution() public {
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        address distJob = addr.addr("CRON_REWARDS_DIST_JOB");
+        address dist    = addr.addr("REWARDS_DIST_USDS_GROVE");
+        address rewards = addr.addr("REWARDS_USDS_GROVE");
+
+        uint256 originalTimestamp = block.timestamp;
+
+        // Advance time since distribute() was called in spell
+        vm.warp(originalTimestamp + 7 days);
+
+        bytes32 network = SequencerLike(addr.addr("CRON_SEQUENCER")).getMaster();
+
+        (bool isWorkable, bytes memory args) = (false, "");
+        bool foundUsdsGrove = false;
+        do {
+            // Note: `workable` is not a view function in this case, so we need to revert to the previous state after calling it.
+            uint256 beforeWorkable = vm.snapshotState();
+            (isWorkable, args) = VestedRewardsDistributionJobLike(distJob).workable(network);
+            vm.revertToStateAndDelete(beforeWorkable);
+
+            if (isWorkable) {
+                address d = abi.decode(args, (address));
+                if (d == dist) {
+                    foundUsdsGrove = true;
+                }
+                // Execute the distribution job
+                VestedRewardsDistributionJobLike(distJob).work(network, args);
+            }
+        } while(isWorkable);
+
+        // Verify GROVE distribution has been executed
+        assertTrue(foundUsdsGrove, "test_usdsGroveFarm_vestedRewardsDistributionJob_execution/grove-dist-not-workable");
+
+        // Verify GROVE farm has reward rate > 0
+        assertGt(StakingRewardsLike(rewards).rewardRate(), 0, "test_usdsGroveFarm_vestedRewardsDistributionJob_execution/reward-rate-zero-after-dist");
+
+        // Check if the job is no longer workable
+        // Note: `workable` is not a view function in this case, so we need to revert to the previous state after calling it.
+        uint256 beforeFinalWorkable = vm.snapshotState();
+        (bool finalWorkable, ) = VestedRewardsDistributionJobLike(distJob).workable(network);
+        vm.revertToStateAndDelete(beforeFinalWorkable);
+
+        assertFalse(finalWorkable, "test_usdsGroveFarm_vestedRewardsDistributionJob_execution/still-workable-after-execution");
+    }
+
+    function test_usdsGroveFarm_stakingDistributionAndUnstaking() public {
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
         address grove   = addr.addr("GROVE");
         address rewards = addr.addr("REWARDS_USDS_GROVE");
-        address dist    = addr.addr("REWARDS_DIST_USDS_GROVE");
         address staker  = makeAddr("staker");
 
         uint256 stakingAmount = 1_000 * WAD;
         deal(address(usds), staker, stakingAmount);
 
-        { // Staking, earning, and claiming rewards
-            uint256 before = vm.snapshotState();
+        assertEq(StakingRewardsLike(rewards).balanceOf(staker), 0, "test_usdsGroveFarm_stakingDistributionAndUnstaking/balance-not-zero-before-stake");
+        assertEq(StakingRewardsLike(rewards).earned(staker),    0, "test_usdsGroveFarm_stakingDistributionAndUnstaking/balance-not-zero-before-stake");
 
-            assertEq(StakingRewardsLike(rewards).balanceOf(staker), 0, "testUsdsGroveFarmIntegration/balance-not-zero-before-stake");
-            assertEq(StakingRewardsLike(rewards).earned(staker),    0, "testUsdsGroveFarmIntegration/balance-not-zero-before-stake");
+        vm.startPrank(staker);
+        usds.approve(rewards, stakingAmount);
+        StakingRewardsLike(rewards).stake(stakingAmount);
+        assertEq(StakingRewardsLike(rewards).balanceOf(staker), stakingAmount, "test_usdsGroveFarm_stakingDistributionAndUnstaking/stake-failed");
 
-            vm.startPrank(staker);
-            usds.approve(rewards, stakingAmount);
-            StakingRewardsLike(rewards).stake(stakingAmount);
-            assertEq(StakingRewardsLike(rewards).balanceOf(staker), stakingAmount, "testUsdsGroveFarmIntegration/stake-failed");
+        skip(1 days);
+        assertGt(StakingRewardsLike(rewards).earned(staker), 0, "test_usdsGroveFarm_stakingDistributionAndUnstaking/no-rewards-earned");
 
-            skip(1 days);
-            assertGt(StakingRewardsLike(rewards).earned(staker), 0, "testUsdsGroveFarmIntegration/no-rewards-earned");
+        StakingRewardsLike(rewards).getReward();
+        assertGt(GemAbstract(grove).balanceOf(staker), 0, "test_usdsGroveFarm_stakingDistributionAndUnstaking/rewards-not-claimed");
 
-            StakingRewardsLike(rewards).getReward();
-            assertGt(GemAbstract(grove).balanceOf(staker), 0, "testUsdsGroveFarmIntegration/rewards-not-claimed");
-
-            StakingRewardsLike(rewards).withdraw(stakingAmount);
-            assertEq(StakingRewardsLike(rewards).balanceOf(staker), 0, "testUsdsGroveFarmIntegration/staked-balance-not-zero-after-withdraw");
-            assertGe(usds.balanceOf(staker), stakingAmount, "testUsdsGroveFarmIntegration/usds-not-returned-after-withdraw");
-            vm.stopPrank();
-
-            vm.revertToStateAndDelete(before);
-        }
-
-        { // Distribute can be called again in the future
-            uint256 pbalance = GemAbstract(grove).balanceOf(rewards);
-            skip(7 days);
-            VestedRewardsDistributionLike(dist).distribute();
-            assertGt(GemAbstract(grove).balanceOf(rewards), pbalance, "testUsdsGroveFarmIntegration/distribute-no-balance-increase");
-        }
+        StakingRewardsLike(rewards).withdraw(stakingAmount);
+        assertEq(StakingRewardsLike(rewards).balanceOf(staker), 0, "test_usdsGroveFarm_stakingDistributionAndUnstaking/staked-balance-not-zero-after-withdraw");
+        assertGe(usds.balanceOf(staker), stakingAmount, "test_usdsGroveFarm_stakingDistributionAndUnstaking/usds-not-returned-after-withdraw");
+        vm.stopPrank();
     }
 
     // 2026-07-06 18:00:00 UTC

@@ -585,6 +585,7 @@ interface VestedRewardsDistributionLike {
     function stakingRewards() external view returns (address);
     function gem() external view returns (address);
     function lastDistributedAt() external view returns (uint256);
+    function wards(address) external view returns (uint256);
 }
 
 interface OpL1GovernanceRelayLike {
