@@ -791,7 +791,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestGrove() public {
+    function testVestGrove() public { // add the `skipped` modifier to skip
         uint256 spellCastTime = _getSpellCastTime();
         uint256 USDS_GROVE_VEST_TOTAL = 2_450_000_000 * WAD;
         uint256 USDS_GROVE_VEST_TAU   = 730 days;
@@ -819,7 +819,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestedRewardsDist() public skipped {
+    function testVestedRewardsDist() public skipped { // add the `skipped` modifier to skip
         uint256 expectedVestIdBefore = 13;
         uint256 expectedVestIdAfter = 14;
 
