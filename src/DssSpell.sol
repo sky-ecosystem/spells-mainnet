@@ -155,7 +155,7 @@ contract DssSpellAction is DssAction {
         // ---------- Set earliest execution date July 6, 18:00 UTC ----------
         require(block.timestamp >= JUL_06_2026_18_00_UTC, "Spell can only be cast after July 06, 2026, 18:00 UTC");
 
-        // ---------- Set Up GROVE Token Rewards ----------
+        // ---------- Initialize GROVE Token Rewards ----------
         // Forum: https://forum.skyeco.com/t/technical-scope-grove-farm/27999
         // Poll: https://vote.sky.money/polling/Qmd3gCcD
 
