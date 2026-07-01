@@ -58,7 +58,10 @@ contract Deployers {
             0xe3aeA2949A0b0F3BD4e897C577286766a9F4aed0,  // Deployer for SPBEAM
             0x12E85B7a985283bbFf212A059e2D226397b78F95,  // LZ deployer
             0x86865836187fD889B7AE65027056F3Fb43312018,  // Deployer for OBEX_ALM_PROXY
-            0xc03B540a2c9400C4aCE019598e4bD3d34baC5b68   // Dewiz from 2026-06-18
+            0xc03B540a2c9400C4aCE019598e4bD3d34baC5b68,  // Dewiz from 2026-06-18
+            0x6DC7f94F6c25f344f98AA99c9deD97BD50b2dEAB,  // Deployer for GROVE
+            0xF544D77337167715F5a80C20De4Bc416234543AF,  // Deployer for GROVE_ALM_PROXY
+            0x1ca4ECaF0E13ca833c80dA835DEEa15e1684361d   // Deployer for PAU_BEACON
         ];
     }
 

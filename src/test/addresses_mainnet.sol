@@ -631,7 +631,6 @@ contract Addresses {
         addr["GROVE_ALM_PROXY"]                  = 0x0DcD9298e163dFD3c0B5b00F0d9093C36e40A153;
         addr["PAU_BEACON"]                       = 0x829dC2b7E94B1954F0764E573f2E0d45Afa28199;
         addr["SUBPROXY_METHODS"]                 = 0x5162489F4FEa651b76c75193387d08aAAC9CB52C;
-        addr["SKY_FRONTIER_FOUNDATION"]          = 0xca5183FB9997046fbd9bA8113139bf5a5Af122A0;
         addr["GROVE"]                            = 0xB30FE1Cf884B48a22a50D22a9282004F2c5E9406;
         addr["MCD_VEST_GROVE_TREASURY"]          = 0xcBCfCD450de686894d3C5E7E8975cF23EEF077B2;
         addr["REWARDS_USDS_GROVE"]               = 0x4E41488C19cD35EB4de3083Fc3e204854c75c86a;
