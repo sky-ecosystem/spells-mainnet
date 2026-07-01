@@ -135,7 +135,7 @@ contract DssSpellAction is DssAction {
     address internal constant GROVE                   = 0xB30FE1Cf884B48a22a50D22a9282004F2c5E9406;
     address internal constant REWARDS_USDS_GROVE      = 0x4E41488C19cD35EB4de3083Fc3e204854c75c86a;
     address internal constant REWARDS_DIST_USDS_GROVE = 0xAf7a108B4fB0b2F65E1Acc9E1a548abe482559C4;
-    
+
     // ---------- Wallets ----------
     address internal constant SKY_FRONTIER_FOUNDATION = 0xca5183FB9997046fbd9bA8113139bf5a5Af122A0;
 

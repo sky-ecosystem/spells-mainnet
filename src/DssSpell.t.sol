@@ -39,11 +39,17 @@ interface LineMomLike {
     function ilks(bytes32 ilk) external view returns (uint256);
     function wipe(bytes32 ilk) external returns (uint256);
 }
+
 interface VestedRewardsDistributionJobLike {
     function has(address dist) external view returns (bool);
     function intervals(address) external view returns (uint256);
     function workable(bytes32 network) external returns (bool ok, bytes memory args);
     function work(bytes32 network, bytes memory args) external;
+}
+
+interface DssVestTransferrableLike {
+    function czar() external view returns (address);
+    function gem() external view returns (address);
 }
 
 contract DssSpellTest is DssSpellTestBase {
@@ -1557,6 +1563,10 @@ contract DssSpellTest is DssSpellTestBase {
         address distJob       = addr.addr("CRON_REWARDS_DIST_JOB");
 
         // Pre-spell: sanity checks
+        assertEq(DssVestTransferrableLike(vestGroveAddr).czar(),          pauseProxy,        "test_usdsGroveFarm_deploymentAndInitialization/wrong-vest-czar");
+        assertEq(DssVestTransferrableLike(vestGroveAddr).gem(),           grove,             "test_usdsGroveFarm_deploymentAndInitialization/wrong-vest-gem");
+        assertEq(StakingRewardsLike(rewards).owner(),                     pauseProxy,        "test_usdsGroveFarm_deploymentAndInitialization/wrong-rewards-owner");
+        assertEq(StakingRewardsLike(rewards).rewardRate(),                0,                 "test_usdsGroveFarm_deploymentAndInitialization/reward-rate-not-zero");
         assertEq(StakingRewardsLike(rewards).stakingToken(),              addr.addr("USDS"), "test_usdsGroveFarm_deploymentAndInitialization/wrong-staking-token");
         assertEq(StakingRewardsLike(rewards).rewardsToken(),              grove,             "test_usdsGroveFarm_deploymentAndInitialization/wrong-rewards-token");
         assertEq(StakingRewardsLike(rewards).rewardsDistribution(),       address(0),        "test_usdsGroveFarm_deploymentAndInitialization/rewards-distribution-already-set");
@@ -1581,6 +1591,7 @@ contract DssSpellTest is DssSpellTestBase {
         // Post-spell: Farm reward state
         assertEq(StakingRewardsLike(rewards).rewardRate(),                2_450_000_000 * WAD / 730 days, "test_usdsGroveFarm_deploymentAndInitialization/wrong-reward-rate");
         assertEq(VestedRewardsDistributionLike(dist).lastDistributedAt(), block.timestamp,                "test_usdsGroveFarm_deploymentAndInitialization/not-distributed");
+        assertEq(VestedRewardsDistributionLike(dist).vestId(),            1,                              "test_usdsGroveFarm_deploymentAndInitialization/wrong-vest-id");
 
         // Post-spell: Cron registration
         assertTrue(VestedRewardsDistributionJobLike(distJob).has(dist),                       "test_usdsGroveFarm_deploymentAndInitialization/dist-not-registered");
@@ -1623,6 +1634,7 @@ contract DssSpellTest is DssSpellTestBase {
 
         // Verify GROVE distribution has been executed
         assertTrue(foundUsdsGrove, "test_usdsGroveFarm_vestedRewardsDistributionJob_execution/grove-dist-not-workable");
+        assertEq(VestedRewardsDistributionLike(dist).lastDistributedAt(), block.timestamp, "test_usdsGroveFarm_vestedRewardsDistributionJob_execution/last-distributed-at-not-updated");
 
         // Verify GROVE farm has reward rate > 0
         assertGt(StakingRewardsLike(rewards).rewardRate(), 0, "test_usdsGroveFarm_vestedRewardsDistributionJob_execution/reward-rate-zero-after-dist");
@@ -1742,7 +1754,7 @@ contract DssSpellTest is DssSpellTestBase {
         address skyFrontierFoundation = wallets.addr("SKY_FRONTIER_FOUNDATION");
         uint256 transferAmount        = 14_000_000 * WAD;
 
-        deal(address(usds), amatsuSubProxy, transferAmount);
+        assertGe(usds.balanceOf(amatsuSubProxy), transferAmount);
 
         uint256 subProxyUsdsBefore          = usds.balanceOf(amatsuSubProxy);
         uint256 skyFrontierFoundationBefore = usds.balanceOf(skyFrontierFoundation);
