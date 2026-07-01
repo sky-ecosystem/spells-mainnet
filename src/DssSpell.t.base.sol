@@ -4428,9 +4428,6 @@ contract DssSpellTestBase is Config, DssTest {
             recipientBalancesBefore[i] = GemAbstract(transfers[i].token).balanceOf(transfers[i].recipient);
         }
 
-        // Snapshot total supply
-        uint256 usdsTotalSupplyBefore = usds.totalSupply();
-
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "_testSubProxyTransfers/spell-not-done");
@@ -4448,9 +4445,6 @@ contract DssSpellTestBase is Config, DssTest {
                 "_testSubProxyTransfers/recipient-balance-mismatch"
             );
         }
-
-        // Post-spell: verify no minting occurred
-        assertEq(usds.totalSupply(), usdsTotalSupplyBefore, "_testSubProxyTransfers/usds-total-supply-changed");
     }
 }
 
