@@ -1554,6 +1554,18 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
+    function testSubProxyTransfers() public { // add the `skipped` modifier to skip
+        SubProxyTransfer[] memory transfers = new SubProxyTransfer[](1);
+        transfers[0] = SubProxyTransfer({
+            token:     address(usds),
+            subProxy:  addr.addr("AMATSU_SUBPROXY"),
+            recipient: wallets.addr("SKY_FRONTIER_FOUNDATION"),
+            amount:    14_000_000 ether // Note: ether is only a keyword helper
+        });
+
+        _testSubProxyTransfers(transfers);
+    }
+
     // SPELL-SPECIFIC TESTS GO BELOW
     function test_usdsGroveFarm_deploymentAndInitialization() public {
         address grove         = addr.addr("GROVE");
@@ -1749,21 +1761,4 @@ contract DssSpellTest is DssSpellTestBase {
         vm.stopPrank();
     }
 
-    function testTransferUSDSFromAmatsuSubProxy() public {
-        address amatsuSubProxy        = addr.addr("AMATSU_SUBPROXY");
-        address skyFrontierFoundation = wallets.addr("SKY_FRONTIER_FOUNDATION");
-        uint256 transferAmount        = 14_000_000 * WAD;
-
-        assertGe(usds.balanceOf(amatsuSubProxy), transferAmount);
-
-        uint256 subProxyUsdsBefore          = usds.balanceOf(amatsuSubProxy);
-        uint256 skyFrontierFoundationBefore = usds.balanceOf(skyFrontierFoundation);
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done());
-
-        assertEq(usds.balanceOf(amatsuSubProxy), subProxyUsdsBefore - transferAmount, "testTransferUSDSFromAmatsuSubProxy/subproxy-balance-mismatch");
-        assertEq(usds.balanceOf(skyFrontierFoundation), skyFrontierFoundationBefore + transferAmount, "testTransferUSDSFromAmatsuSubProxy/sky-frontier-foundation-balance-mismatch");
-    }
 }

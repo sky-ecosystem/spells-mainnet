@@ -211,6 +211,7 @@ contract DssSpellAction is DssAction {
 
         // ---------- Transfer USDS from Amatsu SubProxy to SFF ----------
         // Forum: https://forum.skyeco.com/t/technical-scope-for-transferring-funds-from-the-subproxy/28004
+        // Forum: https://forum.skyeco.com/t/technical-scope-for-transferring-funds-from-the-subproxy/28004/2
         // Atlas: https://sky-atlas.io/#06bac1e1-ae52-4c67-8ca9-0dcec22dddee
 
         // Add 0x5162489F4FEa651b76c75193387d08aAAC9CB52C to the chainlog as SUBPROXY_METHODS
