@@ -4406,46 +4406,6 @@ contract DssSpellTestBase is Config, DssTest {
         }
         revert("_findAccountInChain/account-not-found");
     }
-
-    struct SubProxyTransfer {
-        address token;
-        address subProxy;
-        address recipient;
-        uint256 amount;
-    }
-
-    function _testSubProxyTransfers(SubProxyTransfer[] memory transfers) internal {
-        // Pre-spell: verify each subProxy has sufficient balance and snapshot balances
-        uint256[] memory subProxyBalancesBefore  = new uint256[](transfers.length);
-        uint256[] memory recipientBalancesBefore = new uint256[](transfers.length);
-        for (uint256 i = 0; i < transfers.length; i++) {
-            assertGe(
-                GemAbstract(transfers[i].token).balanceOf(transfers[i].subProxy),
-                transfers[i].amount,
-                "_testSubProxyTransfers/insufficient-subproxy-balance"
-            );
-            subProxyBalancesBefore[i]  = GemAbstract(transfers[i].token).balanceOf(transfers[i].subProxy);
-            recipientBalancesBefore[i] = GemAbstract(transfers[i].token).balanceOf(transfers[i].recipient);
-        }
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "_testSubProxyTransfers/spell-not-done");
-
-        // Post-spell: verify individual balances
-        for (uint256 i = 0; i < transfers.length; i++) {
-            assertEq(
-                GemAbstract(transfers[i].token).balanceOf(transfers[i].subProxy),
-                subProxyBalancesBefore[i] - transfers[i].amount,
-                "_testSubProxyTransfers/subproxy-balance-mismatch"
-            );
-            assertEq(
-                GemAbstract(transfers[i].token).balanceOf(transfers[i].recipient),
-                recipientBalancesBefore[i] + transfers[i].amount,
-                "_testSubProxyTransfers/recipient-balance-mismatch"
-            );
-        }
-    }
 }
 
 contract MockStarSpell {
