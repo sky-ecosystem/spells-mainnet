@@ -1471,44 +1471,56 @@ contract DssSpellTest is DssSpellTestBase {
     // struct ChainUpdates {
     //     string caip2ChainId;
     //     SafeHarborAgreementLike.Account[] addedAccounts;
-    //     SafeHarborAgreementLike.Account[] removedAccounts;
     // }
 
-    // function testUpdateSafeHarborAccounts() public { // add the `skipped` modifier to skip
+    // function testUpdateSafeHarborAddedAccounts() public { // add the `skipped` modifier to skip
     //     SafeHarborAgreementLike agreement = SafeHarborAgreementLike(addr.addr("SAFE_HARBOR_AGREEMENT"));
 
     //     ChainUpdates[1] memory chainUpdates;
 
     //     // Build array of accounts to be added to Safe Harbor Agreement
-    //     SafeHarborAgreementLike.Account[] memory addedAccounts = new SafeHarborAgreementLike.Account[](3);
-    //     addedAccounts[0] = SafeHarborAgreementLike.Account({
-    //         accountAddress: "0xf739a30c74927dc6cFA3B67E4933872a1FC5F4EB",
-    //         ChildContractScope: 0
-    //     });
-    //     addedAccounts[1] = SafeHarborAgreementLike.Account({
-    //         accountAddress: "0x436DABce608f73BeA2b75fba35bffe72739697d5",
-    //         ChildContractScope: 0
-    //     });
-    //     addedAccounts[2] = SafeHarborAgreementLike.Account({
-    //         accountAddress: "0x99159d0b885CC6633daC7CD4d82e4247A834b89A",
-    //         ChildContractScope: 0
-    //     });
+    //     SafeHarborAgreementLike.Account[] memory addedAccounts = new SafeHarborAgreementLike.Account[](33);
+    //     addedAccounts[0]  = SafeHarborAgreementLike.Account({ accountAddress: "0x829dC2b7E94B1954F0764E573f2E0d45Afa28199", ChildContractScope: 0 });
+    //     addedAccounts[1]  = SafeHarborAgreementLike.Account({ accountAddress: "0x8CE890A96a193ff2DD4B2eA3C682326F655f6b62", ChildContractScope: 0 });
+    //     addedAccounts[2]  = SafeHarborAgreementLike.Account({ accountAddress: "0xC84825BCD13AEddc372400239499380376a44A39", ChildContractScope: 0 });
+    //     addedAccounts[3]  = SafeHarborAgreementLike.Account({ accountAddress: "0xADf62692340e46EF90336f2e75ce3b37f1148873", ChildContractScope: 0 });
+    //     addedAccounts[4]  = SafeHarborAgreementLike.Account({ accountAddress: "0xa0A10BA97be1412730D694B8dE1afe7eff20eC31", ChildContractScope: 0 });
+    //     addedAccounts[5]  = SafeHarborAgreementLike.Account({ accountAddress: "0x139D81d7d6040fAeF7cF0EF5A2636Ca8a97a30d8", ChildContractScope: 0 });
+    //     addedAccounts[6]  = SafeHarborAgreementLike.Account({ accountAddress: "0x3817F734CAe6AD2BDb79F9ff23091F2AD478da5F", ChildContractScope: 0 });
+    //     addedAccounts[7]  = SafeHarborAgreementLike.Account({ accountAddress: "0x1dCA18608c89174181153E786778705b4A0E1a06", ChildContractScope: 0 });
+    //     addedAccounts[8]  = SafeHarborAgreementLike.Account({ accountAddress: "0x4f7e0E3612b0e1E156A2B6570a51d4BD709F1315", ChildContractScope: 0 });
+    //     addedAccounts[9]  = SafeHarborAgreementLike.Account({ accountAddress: "0xEc48D773CEef1c6b07CdA1afA2716C478b55187B", ChildContractScope: 0 });
+    //     addedAccounts[10] = SafeHarborAgreementLike.Account({ accountAddress: "0xF24E91f5D8529436c9fB92dd94F80d4A6C25d0f0", ChildContractScope: 0 });
+    //     addedAccounts[11] = SafeHarborAgreementLike.Account({ accountAddress: "0xA0c323a0acb20F259eA4ff343319D450BE6472e5", ChildContractScope: 0 });
+    //     addedAccounts[12] = SafeHarborAgreementLike.Account({ accountAddress: "0x691b5c26aD2B74d2376f4eD87904E9D3E47bD630", ChildContractScope: 0 });
+    //     addedAccounts[13] = SafeHarborAgreementLike.Account({ accountAddress: "0x321138Db5E056e9d0080D4c278e10A1EdC091Eb0", ChildContractScope: 0 });
+    //     addedAccounts[14] = SafeHarborAgreementLike.Account({ accountAddress: "0x46b24ba00B65CB4f603447590e539b08097fb7Ac", ChildContractScope: 0 });
+    //     addedAccounts[15] = SafeHarborAgreementLike.Account({ accountAddress: "0xcC9dD4c9B2a9c08f2692e7060F43d29A03E87348", ChildContractScope: 0 });
+    //     addedAccounts[16] = SafeHarborAgreementLike.Account({ accountAddress: "0xE4A5dAc768a310cc2316f258901b32E499653064", ChildContractScope: 0 });
+    //     addedAccounts[17] = SafeHarborAgreementLike.Account({ accountAddress: "0xff0d19920E207e3A17eb5A2E5bA3AFA44836362b", ChildContractScope: 0 });
+    //     addedAccounts[18] = SafeHarborAgreementLike.Account({ accountAddress: "0xeE197475607E9a27cCAA4786e740d2F0d0E706A7", ChildContractScope: 0 });
+    //     addedAccounts[19] = SafeHarborAgreementLike.Account({ accountAddress: "0x4DA7608C331b8f135df5b985018933780eCd089D", ChildContractScope: 0 });
+    //     addedAccounts[20] = SafeHarborAgreementLike.Account({ accountAddress: "0x445D9Dc752F269Be48250f1A180CAC4c61cE4bab", ChildContractScope: 0 });
+    //     addedAccounts[21] = SafeHarborAgreementLike.Account({ accountAddress: "0x75D35ffB8e6B871E12EB549CcF6afD324c46E47D", ChildContractScope: 0 });
+    //     addedAccounts[22] = SafeHarborAgreementLike.Account({ accountAddress: "0x1221CC4B85Ab260660aD21C2829e0EB516dffBc7", ChildContractScope: 0 });
+    //     addedAccounts[23] = SafeHarborAgreementLike.Account({ accountAddress: "0x1d8D089EB7D558F5dc6aA0cf98DDe13B77b3F641", ChildContractScope: 0 });
+    //     addedAccounts[24] = SafeHarborAgreementLike.Account({ accountAddress: "0x081506DE21C695Af5e61a81aD288C8A96B6b59B9", ChildContractScope: 0 });
+    //     addedAccounts[25] = SafeHarborAgreementLike.Account({ accountAddress: "0x3a82D11Cd37Fb0098363262Dc69425d07Fa05516", ChildContractScope: 0 });
+    //     addedAccounts[26] = SafeHarborAgreementLike.Account({ accountAddress: "0x69A5d548830AC2A4Ba90A44a2C75BDA71f97fc66", ChildContractScope: 2 });
+    //     addedAccounts[27] = SafeHarborAgreementLike.Account({ accountAddress: "0x2968c3b5478cF93B70aB1e24255d4EDBBd27a089", ChildContractScope: 2 });
+    //     addedAccounts[28] = SafeHarborAgreementLike.Account({ accountAddress: "0xc812aAD3FaE2D3511C664374B601a9BeBFeCCa2E", ChildContractScope: 0 });
+    //     addedAccounts[29] = SafeHarborAgreementLike.Account({ accountAddress: "0x5162489F4FEa651b76c75193387d08aAAC9CB52C", ChildContractScope: 0 });
+    //     addedAccounts[30] = SafeHarborAgreementLike.Account({ accountAddress: "0xcBCfCD450de686894d3C5E7E8975cF23EEF077B2", ChildContractScope: 0 });
+    //     addedAccounts[31] = SafeHarborAgreementLike.Account({ accountAddress: "0x4E41488C19cD35EB4de3083Fc3e204854c75c86a", ChildContractScope: 0 });
+    //     addedAccounts[32] = SafeHarborAgreementLike.Account({ accountAddress: "0xAf7a108B4fB0b2F65E1Acc9E1a548abe482559C4", ChildContractScope: 0 });
 
-    //     // Build array of accounts to be removed from Safe Harbor Agreement
-    //     SafeHarborAgreementLike.Account[] memory removedAccounts = new SafeHarborAgreementLike.Account[](1);
-    //     removedAccounts[0] = SafeHarborAgreementLike.Account({
-    //         accountAddress: "0xf5DEe2CeDC5ADdd85597742445c0bf9b9cAfc699",
-    //         ChildContractScope: 0
-    //     });
-
-    //     // Configure chain updates for eip155:1 with added and removed accounts
+    //     // Configure chain updates for eip155:1 with added accounts
     //     chainUpdates[0] = ChainUpdates({
     //         caip2ChainId: "eip155:1",
-    //         addedAccounts: addedAccounts,
-    //         removedAccounts: removedAccounts
+    //         addedAccounts: addedAccounts
     //     });
 
-    //     // Check expected pre-spell state: added accounts absent, removed accounts present
+    //     // Check that added accounts are not present before spell execution
     //     for (uint256 i = 0; i < chainUpdates.length; i++) {
     //         SafeHarborAgreementLike.AgreementDetails memory details = agreement.getDetails();
     //         SafeHarborAgreementLike.Chain memory chain = _findChain(details, chainUpdates[i].caip2ChainId);
@@ -1516,14 +1528,7 @@ contract DssSpellTest is DssSpellTestBase {
     //         for (uint256 j = 0; j < chainUpdates[i].addedAccounts.length; j++) {
     //             assertFalse(
     //                 _accountExistsInChain(chain, chainUpdates[i].addedAccounts[j].accountAddress),
-    //                 string.concat("testUpdateSafeHarborAccounts/added-account-already-present-before-spell-execution-", chainUpdates[i].addedAccounts[j].accountAddress)
-    //             );
-    //         }
-
-    //         for (uint256 j = 0; j < chainUpdates[i].removedAccounts.length; j++) {
-    //             assertTrue(
-    //                 _accountExistsInChain(chain, chainUpdates[i].removedAccounts[j].accountAddress),
-    //                 string.concat("testUpdateSafeHarborAccounts/removed-account-not-present-before-spell-execution-", chainUpdates[i].removedAccounts[j].accountAddress)
+    //                 string.concat("testUpdateSafeHarborAddedAccounts/account-already-present-before-spell-execution-", chainUpdates[i].addedAccounts[j].accountAddress)
     //             );
     //         }
     //     }
@@ -1532,7 +1537,7 @@ contract DssSpellTest is DssSpellTestBase {
     //     _scheduleWaitAndCast(address(spell));
     //     assertTrue(spell.done(), "TestError/spell-not-done");
 
-    //     // Check expected post-spell state: added accounts present (with correct scope), removed accounts absent
+    //     // Check that added accounts are present after spell execution
     //     for (uint256 i = 0; i < chainUpdates.length; i++) {
     //         SafeHarborAgreementLike.AgreementDetails memory details = agreement.getDetails();
     //         SafeHarborAgreementLike.Chain memory chain = _findChain(details, chainUpdates[i].caip2ChainId);
@@ -1540,7 +1545,7 @@ contract DssSpellTest is DssSpellTestBase {
     //         for (uint256 j = 0; j < chainUpdates[i].addedAccounts.length; j++) {
     //             assertTrue(
     //                 _accountExistsInChain(chain, chainUpdates[i].addedAccounts[j].accountAddress),
-    //                 string.concat("testUpdateSafeHarborAccounts/added-account-not-found-after-spell-execution-", chainUpdates[i].addedAccounts[j].accountAddress)
+    //                 string.concat("testUpdateSafeHarborAddedAccounts/safe-harbor-account-not-found-after-spell-execution-", chainUpdates[i].addedAccounts[j].accountAddress)
     //             );
 
     //             // Verify the account has the correct ChildContractScope
@@ -1548,14 +1553,7 @@ contract DssSpellTest is DssSpellTestBase {
     //             assertEq(
     //                 account.ChildContractScope,
     //                 chainUpdates[i].addedAccounts[j].ChildContractScope,
-    //                 string.concat("testUpdateSafeHarborAccounts/incorrect-scope-for-account-", chainUpdates[i].addedAccounts[j].accountAddress)
-    //             );
-    //         }
-
-    //         for (uint256 j = 0; j < chainUpdates[i].removedAccounts.length; j++) {
-    //             assertFalse(
-    //                 _accountExistsInChain(chain, chainUpdates[i].removedAccounts[j].accountAddress),
-    //                 string.concat("testUpdateSafeHarborAccounts/removed-account-still-present-after-spell-execution-", chainUpdates[i].removedAccounts[j].accountAddress)
+    //                 string.concat("testUpdateSafeHarborAddedAccounts/incorrect-scope-for-account-", chainUpdates[i].addedAccounts[j].accountAddress)
     //             );
     //         }
     //     }
