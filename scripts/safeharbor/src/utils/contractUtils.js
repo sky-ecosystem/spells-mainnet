@@ -7,7 +7,7 @@ const AGREEMENT_CHAINLOG_KEY = "SAFE_HARBOR_AGREEMENT";
 export async function createAgreementInstance(rpcUrl) {
     const provider = new JsonRpcProvider(rpcUrl);
     const chainlog = new Contract(CHAINLOG_ADDRESS, CHAINLOG_ABI, provider);
-    const agreementAddress = await chainlog.getAddress(
+    const agreementAddress = await chainlog["getAddress(bytes32)"](
         encodeBytes32String(AGREEMENT_CHAINLOG_KEY),
     );
 

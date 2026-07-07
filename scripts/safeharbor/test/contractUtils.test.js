@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 const contractCalls = [];
-const getAddress = vi.fn();
+const getContractAddress = vi.fn();
+const getChainlogAddress = vi.fn();
 const encodeBytes32String = vi.fn((value) => `bytes32:${value}`);
 
 vi.mock("ethers", () => ({
@@ -9,7 +10,10 @@ vi.mock("ethers", () => ({
         contractCalls.push({ address, abi, provider });
 
         if (contractCalls.length === 1) {
-            return { getAddress };
+            return {
+                getAddress: getContractAddress,
+                "getAddress(bytes32)": getChainlogAddress,
+            };
         }
 
         return { address, abi, provider };
@@ -25,7 +29,10 @@ describe("createAgreementInstance", () => {
     });
 
     test("loads the Safe Harbor agreement address from the Chainlog", async () => {
-        getAddress.mockResolvedValue(
+        getContractAddress.mockResolvedValue(
+            "0xdA0Ab1e0017DEbCd72Be8599041a2aa3bA7e740F",
+        );
+        getChainlogAddress.mockResolvedValue(
             "0x0000000000000000000000000000000000000529",
         );
 
@@ -45,9 +52,10 @@ describe("createAgreementInstance", () => {
         expect(encodeBytes32String).toHaveBeenCalledWith(
             "SAFE_HARBOR_AGREEMENT",
         );
-        expect(getAddress).toHaveBeenCalledWith(
+        expect(getChainlogAddress).toHaveBeenCalledWith(
             "bytes32:SAFE_HARBOR_AGREEMENT",
         );
+        expect(getContractAddress).not.toHaveBeenCalled();
         expect(contractCalls[1]).toEqual({
             address: "0x0000000000000000000000000000000000000529",
             abi: AGREEMENT_V3_ABI,
