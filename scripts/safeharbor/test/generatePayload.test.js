@@ -1,4 +1,4 @@
-import { test, expect, it, describe, vi, beforeEach } from "vitest";
+import { test, expect, describe, vi, beforeEach } from "vitest";
 import assert from "node:assert";
 import { generatePayload } from "../src/generatePayload.js";
 
@@ -621,8 +621,8 @@ describe("inspectPayload E2E Tests", () => {
             );
 
             // Verify that the unknown chain was not included in the result
-            assert.ok(!result.hasOwnProperty("UNKNOWN"));
-            assert.ok(result.hasOwnProperty("ETHEREUM"));
+            assert.ok(!Object.hasOwn(result, "UNKNOWN"));
+            assert.ok(Object.hasOwn(result, "ETHEREUM"));
 
             // Clean up
             consoleWarnSpy.mockRestore();

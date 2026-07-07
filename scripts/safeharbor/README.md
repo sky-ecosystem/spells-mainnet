@@ -3,7 +3,7 @@
 Safeharbor registry is a contract that allows protocols to identify addresses that are entitled to have funds recovered by a white hat during an attack.
 
 - Read more about the SafeHarbor [here](https://github.com/security-alliance/safe-harbor)
-- The full contracts for the registry can be found [here](https://github.com/PatrickAlphaC/safe-harbor/tree/0b0abb8b627eff87e2f7b52bf8ec484cd6ce0e32/registry-contracts/src)
+- The full contracts for the registry can be found [here](https://github.com/security-alliance/safe-harbor/tree/ae8f4abe24f29f8c098cd0056201bcdffa8991cd/registry-contracts/src/v2)
 
 # Initial Deployment
 

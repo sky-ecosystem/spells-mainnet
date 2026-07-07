@@ -16,7 +16,9 @@ if (!process.env.ETH_RPC_URL) {
 }
 
 // Create agreement contract instance
-const agreementContract = createAgreementInstance(process.env.ETH_RPC_URL);
+const agreementContract = await createAgreementInstance(
+    process.env.ETH_RPC_URL,
+);
 
 // Get command and arguments
 const command = process.argv[2];
