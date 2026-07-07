@@ -1,6 +1,8 @@
 import { test, expect, describe, vi, beforeEach } from "vitest";
 import assert from "node:assert";
+import { Interface } from "ethers";
 import { generatePayload } from "../src/generatePayload.js";
+import { AGREEMENT_V3_ABI } from "../src/abis.js";
 
 // Mock the dependencies
 vi.mock("../src/fetchCSV.js", async (importOriginal) => {
@@ -128,7 +130,7 @@ describe("inspectPayload E2E Tests", () => {
             assert.ok(result.solidityCode);
             assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
             expect(result.solidityCode).toMatchSnapshot();
-            expect(result.solidityCode).toMatchSnapshot();
+            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 2);
             const addAccountsUpdates = result.updates.filter(
                 (u) => u.function === "addAccounts",
@@ -165,6 +167,7 @@ describe("inspectPayload E2E Tests", () => {
             assert.ok(result.solidityCode);
             assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
             expect(result.solidityCode).toMatchSnapshot();
+            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 3);
             const removeAccountsUpdates = result.updates.filter(
                 (u) => u.function === "removeAccounts",
@@ -213,6 +216,7 @@ describe("inspectPayload E2E Tests", () => {
             assert.ok(result.solidityCode);
             assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
             expect(result.solidityCode).toMatchSnapshot();
+            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 1);
             const addChainsUpdates = result.updates.filter(
                 (u) => u.function === "addChains",
@@ -261,6 +265,7 @@ describe("inspectPayload E2E Tests", () => {
             assert.ok(result.solidityCode);
             assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
             expect(result.solidityCode).toMatchSnapshot();
+            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 1);
             const addChainsUpdates = result.updates.filter(
                 (u) => u.function === "addChains",
@@ -288,6 +293,7 @@ describe("inspectPayload E2E Tests", () => {
             assert.ok(result.solidityCode);
             assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
             expect(result.solidityCode).toMatchSnapshot();
+            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 1);
             const removeChainsUpdates = result.updates.filter(
                 (u) => u.function === "removeChains",
@@ -324,6 +330,7 @@ describe("inspectPayload E2E Tests", () => {
             assert.ok(result.solidityCode);
             assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
             expect(result.solidityCode).toMatchSnapshot();
+            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 5);
             const chainUpdates = result.updates.filter(
                 (u) =>
@@ -415,6 +422,7 @@ describe("inspectPayload E2E Tests", () => {
             assert.ok(result.solidityCode);
             assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
             expect(result.solidityCode).toMatchSnapshot();
+            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 4);
             const addChainUpdate = result.updates.find(
                 (u) => u.function === "addChains",
@@ -456,6 +464,7 @@ describe("inspectPayload E2E Tests", () => {
             assert.ok(result.solidityCode);
             assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
             expect(result.solidityCode).toMatchSnapshot();
+            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 1);
             const addChainsUpdates = result.updates.filter(
                 (u) => u.function === "addChains",
@@ -475,6 +484,7 @@ describe("inspectPayload E2E Tests", () => {
             assert.ok(result.solidityCode);
             assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
             expect(result.solidityCode).toMatchSnapshot();
+            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 1);
             const removeChainsUpdates = result.updates.filter(
                 (u) => u.function === "removeChains",
@@ -507,6 +517,7 @@ describe("inspectPayload E2E Tests", () => {
             assert.ok(result.solidityCode);
             assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
             expect(result.solidityCode).toMatchSnapshot();
+            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
         });
     });
 
@@ -719,3 +730,88 @@ GNOSIS,eip155:100,0xGNOSIS_RECOVERY_ADDRESS`,
         });
     });
 });
+
+const agreementInterface = new Interface(AGREEMENT_V3_ABI);
+
+/**
+ * Converts values decoded by ethers into snapshot-friendly JavaScript values.
+ *
+ * Ethers returns ABI tuples as Result objects with positional fields, while the
+ * Agreement ABI knows the component names. Passing the matching ABI ParamType
+ * lets snapshots show named structs such as accountAddress, childContractScope,
+ * and caip2ChainId instead of opaque positional arrays.
+ *
+ * @param {*} value Value returned by ethers while decoding calldata.
+ * @param {import("ethers").ParamType} [param] ABI parameter metadata for value.
+ * @returns {*} Stable value suitable for inline object snapshots.
+ */
+function normalizeDecodedValue(value, param) {
+    if (param?.name === "childContractScope") {
+        return Number(value);
+    }
+
+    if (typeof value === "bigint") {
+        return value.toString();
+    }
+
+    if (!value || typeof value !== "object") {
+        return value;
+    }
+
+    if (param?.baseType === "array") {
+        return value.map((item) =>
+            normalizeDecodedValue(item, param.arrayChildren),
+        );
+    }
+
+    if (param?.baseType === "tuple") {
+        return Object.fromEntries(
+            param.components.map((component, index) => [
+                component.name,
+                normalizeDecodedValue(value[index], component),
+            ]),
+        );
+    }
+
+    if (Array.isArray(value)) {
+        return value.map((item) => normalizeDecodedValue(item));
+    }
+
+    return Object.fromEntries(
+        Object.entries(value)
+            .filter(([key]) => Number.isNaN(Number(key)))
+            .map(([key, nestedValue]) => [
+                key,
+                normalizeDecodedValue(nestedValue),
+            ]),
+    );
+}
+
+/**
+ * Builds the stable payload snapshot for generated Safe Harbor updates.
+ *
+ * The raw calldata is preserved so the snapshot pins the exact executable
+ * bytes. The same calldata is decoded through the Agreement ABI to prove those
+ * bytes map back to the expected function name and named arguments.
+ *
+ * @param {Array<{function: string, calldata: string}>} updates Generated payload updates.
+ * @returns {Array<{index: number, function: string, calldata: string, decodedName: string, decodedArgs: Array<*>}>}
+ */
+function payloadSnapshot(updates) {
+    return updates.map((update, index) => {
+        const decoded = agreementInterface.parseTransaction({
+            data: update.calldata,
+        });
+        assert.ok(decoded, `Unable to decode payload update ${index}`);
+
+        return {
+            index,
+            function: update.function,
+            calldata: update.calldata,
+            decodedName: decoded.name,
+            decodedArgs: decoded.fragment.inputs.map((input, inputIndex) =>
+                normalizeDecodedValue(decoded.args[inputIndex], input),
+            ),
+        };
+    });
+}
