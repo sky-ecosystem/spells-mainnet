@@ -1477,8 +1477,8 @@ contract DssSpellTestBase is Config, DssTest {
         // TODO: consider a buffer for fee accrual
         assertTrue(vat.debt() + sums[1] <= vat.Line(), "TestError/vat-Line-1");
 
-        (,,, uint256 lsev2SkyAIlkLine,) = vat.ilks(stusds.ilk());
-        uint256 stusdsAvailableLineIncrease = rateSetter.maxLine() - lsev2SkyAIlkLine;
+        (,,, uint256 stusdsIlkLine,) = vat.ilks(stusds.ilk());
+        uint256 stusdsAvailableLineIncrease = rateSetter.maxLine() - stusdsIlkLine;
         uint256 minimumGlobalLine = sums[0] + stusdsAvailableLineIncrease;
 
         // Enforce the global Line also falls between the minimum global Line and that minimum global Line + offset.
