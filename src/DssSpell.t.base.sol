@@ -1477,11 +1477,13 @@ contract DssSpellTestBase is Config, DssTest {
         // TODO: consider a buffer for fee accrual
         assertTrue(vat.debt() + sums[1] <= vat.Line(), "TestError/vat-Line-1");
 
-        // Enforce the global Line also falls between (sum of lines) + offset and (sum of lines) + 2*offset.
-        assertLe(sums[0] +     values.line_offset * RAD, vat.Line(), "TestError/vat-Line-2");
-        assertGe(sums[0] + 2 * values.line_offset * RAD, vat.Line(), "TestError/vat-Line-3");
+        (,,, uint256 stusdsIlkLine,) = vat.ilks(stusds.ilk());
+        uint256 stusdsAvailableLineIncrease = rateSetter.maxLine() - stusdsIlkLine;
+        uint256 minimumGlobalLine = sums[0] + stusdsAvailableLineIncrease;
 
-        // TODO: have a discussion about how we want to manage the global Line going forward.
+        // Enforce the global Line also falls between the minimum global Line and that minimum global Line + offset.
+        assertLe(minimumGlobalLine, vat.Line(), "TestError/vat-Line-2");
+        assertGe(minimumGlobalLine + values.max_global_line_offset * RAD, vat.Line(), "TestError/vat-Line-3");
     }
 
     function _getOSMPrice(address pip) internal returns (uint256) {
