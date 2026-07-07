@@ -4247,19 +4247,23 @@ contract DssSpellTestBase is Config, DssTest {
         assertEq(primeAgentSpell, spellAddr, "TestError/PrimeAgentSpell/prime-agent-starguard-spell-not-updated");
         assertEq(primeAgentSpellHash, spellHash, "TestError/PrimeAgentSpell/prime-agent-starguard-spell-hash-mismatch");
 
-        // Try to execute the primeAgentSpell via starGuard before the deadline
-        while (block.timestamp <= deadline) {
-            if (!starGuard.prob()) {
-                skip(1 hours);
-            } else {
-                vm.expectEmit(true, false, false, false, address(starGuard));
-                emit Exec(address(primeAgentSpell));
-                address executed = starGuard.exec();
-                assertEq(executed, primeAgentSpell, "StarGuard/exec-wrong-target");
-                return;
-            }
-        }
-        revert("TestError/PrimeAgentSpell/spell-not-executable-before-deadline");
+        assertGt(deadline, block.timestamp, "StarGuard/deadline-not-in-future");
+        assertTrue(starGuard.prob(), "StarGuard/prob-not-true-after-plot");
+
+        uint256 beforeExpiry = vm.snapshotState();
+
+        vm.warp(deadline - 1);
+        assertTrue(starGuard.prob(), "StarGuard/prob-not-true-before-deadline");
+
+        vm.expectEmit(true, false, false, false, address(starGuard));
+        emit Exec(address(primeAgentSpell));
+        address executed = starGuard.exec();
+        assertEq(executed, primeAgentSpell, "StarGuard/exec-wrong-target");
+
+        vm.revertToState(beforeExpiry);
+        vm.warp(deadline + 1);
+        assertFalse(starGuard.prob(), "StarGuard/prob-true-after-deadline");
+        vm.revertToStateAndDelete(beforeExpiry);
     }
 
     event Drop(address indexed addr);
