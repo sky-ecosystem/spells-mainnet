@@ -4252,7 +4252,7 @@ contract DssSpellTestBase is Config, DssTest {
 
         uint256 beforeExpiry = vm.snapshotState();
 
-        vm.warp(deadline - 1);
+        vm.warp(deadline);
         assertTrue(starGuard.prob(), "StarGuard/prob-not-true-before-deadline");
 
         vm.expectEmit(true, false, false, false, address(starGuard));
