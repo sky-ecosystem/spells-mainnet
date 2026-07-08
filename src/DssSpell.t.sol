@@ -40,18 +40,6 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
-interface VestedRewardsDistributionJobLike {
-    function has(address dist) external view returns (bool);
-    function intervals(address) external view returns (uint256);
-    function workable(bytes32 network) external returns (bool ok, bytes memory args);
-    function work(bytes32 network, bytes memory args) external;
-}
-
-interface DssVestTransferrableLike {
-    function czar() external view returns (address);
-    function gem() external view returns (address);
-}
-
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -68,8 +56,7 @@ contract DssSpellTest is DssSpellTestBase {
         _testCastOnTime();
     }
 
-    // NOTE: skipped due to the custom min ETA logic in the current spell
-    function testNextCastTime() public skipped {
+    function testNextCastTime() public {
         _testNextCastTime();
     }
 
@@ -291,7 +278,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
         string[6] memory addedKeys = [
             "MCD_VEST_GROVE_TREASURY",
             "GROVE",
@@ -799,7 +786,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestGrove() public { // add the `skipped` modifier to skip
+    function testVestGrove() public skipped { // add the `skipped` modifier to skip
         uint256 spellCastTime = _getSpellCastTime();
         uint256 USDS_GROVE_VEST_TOTAL = 2_450_000_000 * WAD;
         uint256 USDS_GROVE_VEST_TAU   = 730 days;
@@ -1394,7 +1381,7 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
+    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
         PrimeAgentSpell[3] memory primeAgentSpells = [
             PrimeAgentSpell({
                 // Insert Prime Agent StarGuards Chainlog key
@@ -1560,215 +1547,5 @@ contract DssSpellTest is DssSpellTestBase {
     // }
 
     // SPELL-SPECIFIC TESTS GO BELOW
-    function test_usdsGroveFarm_deploymentAndInitialization() public {
-        address grove         = addr.addr("GROVE");
-        address vestGroveAddr = addr.addr("MCD_VEST_GROVE_TREASURY");
-        address rewards       = addr.addr("REWARDS_USDS_GROVE");
-        address dist          = addr.addr("REWARDS_DIST_USDS_GROVE");
-        address distJob       = addr.addr("CRON_REWARDS_DIST_JOB");
 
-        // Pre-spell: sanity checks
-        assertEq(DssVestTransferrableLike(vestGroveAddr).czar(),          pauseProxy,        "test_usdsGroveFarm_deploymentAndInitialization/wrong-vest-czar");
-        assertEq(DssVestTransferrableLike(vestGroveAddr).gem(),           grove,             "test_usdsGroveFarm_deploymentAndInitialization/wrong-vest-gem");
-        assertEq(StakingRewardsLike(rewards).owner(),                     pauseProxy,        "test_usdsGroveFarm_deploymentAndInitialization/wrong-rewards-owner");
-        assertEq(StakingRewardsLike(rewards).rewardRate(),                0,                 "test_usdsGroveFarm_deploymentAndInitialization/reward-rate-not-zero");
-        assertEq(StakingRewardsLike(rewards).stakingToken(),              addr.addr("USDS"), "test_usdsGroveFarm_deploymentAndInitialization/wrong-staking-token");
-        assertEq(StakingRewardsLike(rewards).rewardsToken(),              grove,             "test_usdsGroveFarm_deploymentAndInitialization/wrong-rewards-token");
-        assertEq(StakingRewardsLike(rewards).rewardsDistribution(),       address(0),        "test_usdsGroveFarm_deploymentAndInitialization/rewards-distribution-already-set");
-        assertEq(StakingRewardsLike(rewards).rewardsDuration(),           7 days,            "test_usdsGroveFarm_deploymentAndInitialization/wrong-rewards-duration");
-        assertEq(VestedRewardsDistributionLike(dist).dssVest(),           vestGroveAddr,     "test_usdsGroveFarm_deploymentAndInitialization/wrong-dss-vest");
-        assertEq(VestedRewardsDistributionLike(dist).stakingRewards(),    rewards,           "test_usdsGroveFarm_deploymentAndInitialization/wrong-staking-rewards");
-        assertEq(VestedRewardsDistributionLike(dist).gem(),               grove,             "test_usdsGroveFarm_deploymentAndInitialization/wrong-gem");
-        assertEq(VestedRewardsDistributionLike(dist).wards(pauseProxy),   1,                 "test_usdsGroveFarm_deploymentAndInitialization/pauseProxy-not-authed-on-dist");
-        assertEq(VestedRewardsDistributionLike(dist).vestId(),            0,                 "test_usdsGroveFarm_deploymentAndInitialization/vest-id-already-set");
-        assertEq(VestedRewardsDistributionLike(dist).lastDistributedAt(), 0,                 "test_usdsGroveFarm_deploymentAndInitialization/already-distributed");
-        assertEq(vestGrove.wards(pauseProxy),                             1,                 "test_usdsGroveFarm_deploymentAndInitialization/pauseProxy-not-authed-on-vest");
-        assertFalse(VestedRewardsDistributionJobLike(distJob).has(dist),                     "test_usdsGroveFarm_deploymentAndInitialization/dist-already-registered");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        // Post-spell: StakingRewards wiring
-        assertEq(StakingRewardsLike(rewards).rewardsDistribution(), dist,   "test_usdsGroveFarm_deploymentAndInitialization/rewards-distribution-not-set");
-        assertEq(StakingRewardsLike(rewards).rewardsDuration(),     7 days, "test_usdsGroveFarm_deploymentAndInitialization/wrong-rewards-duration-after");
-
-        // Post-spell: Farm reward state
-        assertEq(StakingRewardsLike(rewards).rewardRate(),                2_450_000_000 * WAD / 730 days, "test_usdsGroveFarm_deploymentAndInitialization/wrong-reward-rate");
-        assertEq(VestedRewardsDistributionLike(dist).lastDistributedAt(), block.timestamp,                "test_usdsGroveFarm_deploymentAndInitialization/not-distributed");
-        assertEq(VestedRewardsDistributionLike(dist).vestId(),            1,                              "test_usdsGroveFarm_deploymentAndInitialization/wrong-vest-id");
-
-        // Post-spell: Cron registration
-        assertTrue(VestedRewardsDistributionJobLike(distJob).has(dist),                       "test_usdsGroveFarm_deploymentAndInitialization/dist-not-registered");
-        assertEq(VestedRewardsDistributionJobLike(distJob).intervals(dist), 7 days - 1 hours, "test_usdsGroveFarm_deploymentAndInitialization/wrong-interval");
-    }
-
-    function test_usdsGroveFarm_vestedRewardsDistributionJob_execution() public {
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        address distJob = addr.addr("CRON_REWARDS_DIST_JOB");
-        address dist    = addr.addr("REWARDS_DIST_USDS_GROVE");
-        address rewards = addr.addr("REWARDS_USDS_GROVE");
-
-        uint256 originalTimestamp = block.timestamp;
-
-        // Advance time since distribute() was called in spell
-        vm.warp(originalTimestamp + 7 days);
-
-        bytes32 network = SequencerLike(addr.addr("CRON_SEQUENCER")).getMaster();
-
-        (bool isWorkable, bytes memory args) = (false, "");
-        bool foundUsdsGrove = false;
-        do {
-            // Note: `workable` is not a view function in this case, so we need to revert to the previous state after calling it.
-            uint256 beforeWorkable = vm.snapshotState();
-            (isWorkable, args) = VestedRewardsDistributionJobLike(distJob).workable(network);
-            vm.revertToStateAndDelete(beforeWorkable);
-
-            if (isWorkable) {
-                address d = abi.decode(args, (address));
-                if (d == dist) {
-                    foundUsdsGrove = true;
-                }
-                // Execute the distribution job
-                VestedRewardsDistributionJobLike(distJob).work(network, args);
-            }
-        } while(isWorkable);
-
-        // Verify GROVE distribution has been executed
-        assertTrue(foundUsdsGrove, "test_usdsGroveFarm_vestedRewardsDistributionJob_execution/grove-dist-not-workable");
-        assertEq(VestedRewardsDistributionLike(dist).lastDistributedAt(), block.timestamp, "test_usdsGroveFarm_vestedRewardsDistributionJob_execution/last-distributed-at-not-updated");
-
-        // Verify GROVE farm has reward rate > 0
-        assertGt(StakingRewardsLike(rewards).rewardRate(), 0, "test_usdsGroveFarm_vestedRewardsDistributionJob_execution/reward-rate-zero-after-dist");
-
-        // Check if the job is no longer workable
-        // Note: `workable` is not a view function in this case, so we need to revert to the previous state after calling it.
-        uint256 beforeFinalWorkable = vm.snapshotState();
-        (bool finalWorkable, ) = VestedRewardsDistributionJobLike(distJob).workable(network);
-        vm.revertToStateAndDelete(beforeFinalWorkable);
-
-        assertFalse(finalWorkable, "test_usdsGroveFarm_vestedRewardsDistributionJob_execution/still-workable-after-execution");
-    }
-
-    function test_usdsGroveFarm_stakingDistributionAndUnstaking() public {
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        address grove   = addr.addr("GROVE");
-        address rewards = addr.addr("REWARDS_USDS_GROVE");
-        address staker  = makeAddr("staker");
-
-        uint256 stakingAmount = 1_000 * WAD;
-        deal(address(usds), staker, stakingAmount);
-
-        assertEq(StakingRewardsLike(rewards).balanceOf(staker), 0, "test_usdsGroveFarm_stakingDistributionAndUnstaking/balance-not-zero-before-stake");
-        assertEq(StakingRewardsLike(rewards).earned(staker),    0, "test_usdsGroveFarm_stakingDistributionAndUnstaking/balance-not-zero-before-stake");
-
-        vm.startPrank(staker);
-        usds.approve(rewards, stakingAmount);
-        StakingRewardsLike(rewards).stake(stakingAmount);
-        assertEq(StakingRewardsLike(rewards).balanceOf(staker), stakingAmount, "test_usdsGroveFarm_stakingDistributionAndUnstaking/stake-failed");
-
-        skip(1 days);
-        assertGt(StakingRewardsLike(rewards).earned(staker), 0, "test_usdsGroveFarm_stakingDistributionAndUnstaking/no-rewards-earned");
-
-        StakingRewardsLike(rewards).getReward();
-        assertGt(GemAbstract(grove).balanceOf(staker), 0, "test_usdsGroveFarm_stakingDistributionAndUnstaking/rewards-not-claimed");
-
-        StakingRewardsLike(rewards).withdraw(stakingAmount);
-        assertEq(StakingRewardsLike(rewards).balanceOf(staker), 0, "test_usdsGroveFarm_stakingDistributionAndUnstaking/staked-balance-not-zero-after-withdraw");
-        assertGe(usds.balanceOf(staker), stakingAmount, "test_usdsGroveFarm_stakingDistributionAndUnstaking/usds-not-returned-after-withdraw");
-        vm.stopPrank();
-    }
-
-    // 2026-07-06 18:00:00 UTC
-    uint256 constant MIN_ETA = 1783360800;
-
-    function testNextCastTimeMinEta() public {
-        // Spell obtains approval for execution before MIN_ETA
-        {
-            uint256 before = vm.snapshotState();
-
-            vm.warp(1780272000); // 2026-06-01 00:00:00 UTC - could be any date far enough in the past
-            _vote(address(spell));
-            spell.schedule();
-
-            assertEq(spell.nextCastTime(), MIN_ETA, "testNextCastTimeMinEta/min-eta-not-enforced");
-
-            vm.revertToStateAndDelete(before);
-        }
-
-        // Spell obtains approval for execution after MIN_ETA
-        {
-            uint256 before = vm.snapshotState();
-
-            vm.warp(MIN_ETA); // As we move closer to MIN_ETA, GSM delay is still applicable
-            _vote(address(spell));
-            spell.schedule();
-
-            assertEq(spell.nextCastTime(), MIN_ETA + pause.delay(), "testNextCastTimeMinEta/gsm-delay-not-enforced");
-
-            vm.revertToStateAndDelete(before);
-        }
-    }
-
-    function testWhitelistGroveALMProxy() public {
-        address almProxy = addr.addr("GROVE_ALM_PROXY");
-        DssLitePsmLike psmUsdcA = DssLitePsmLike(addr.addr("MCD_LITE_PSM_USDC_A"));
-        GemAbstract usdc = GemAbstract(addr.addr("USDC"));
-
-        // bud is 0 before kiss
-        assertEq(psmUsdcA.bud(almProxy), 0, "testWhitelistGroveALMProxy/invalid-bud");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done());
-
-        // bud is 1 after kiss
-        assertEq(psmUsdcA.bud(almProxy), 1, "testWhitelistGroveALMProxy/invalid-bud");
-
-        // GROVE can call buyGemNoFee() on MCD_LITE_PSM_USDC_A
-        uint256 daiAmount  = 1_000 * WAD;
-        uint256 usdcAmount = 1_000 * 10**6;
-
-        // fund proxy
-        deal(address(dai), almProxy, daiAmount);
-        vm.startPrank(almProxy);
-
-        // buy gem with no fee
-        dai.approve(address(psmUsdcA), daiAmount);
-        psmUsdcA.buyGemNoFee(almProxy, usdcAmount);
-        assertEq(usdc.balanceOf(almProxy), usdcAmount);
-        assertEq(dai.balanceOf(almProxy), 0);
-
-        // now sell it back with no fee
-        usdc.approve(address(psmUsdcA), usdcAmount);
-        psmUsdcA.sellGemNoFee(almProxy, usdcAmount);
-        assertEq(usdc.balanceOf(almProxy), 0);
-        assertEq(dai.balanceOf(almProxy), daiAmount);
-
-        vm.stopPrank();
-    }
-
-    function testTransferUSDSFromAmatsuSubProxy() public {
-        address amatsuSubProxy        = addr.addr("AMATSU_SUBPROXY");
-        address skyFrontierFoundation = wallets.addr("SKY_FRONTIER_FOUNDATION");
-        uint256 transferAmount        = 14_000_000 * WAD;
-
-        assertGe(usds.balanceOf(amatsuSubProxy), transferAmount);
-
-        uint256 subProxyUsdsBefore          = usds.balanceOf(amatsuSubProxy);
-        uint256 skyFrontierFoundationBefore = usds.balanceOf(skyFrontierFoundation);
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done());
-
-        assertEq(usds.balanceOf(amatsuSubProxy), subProxyUsdsBefore - transferAmount, "testTransferUSDSFromAmatsuSubProxy/subproxy-balance-mismatch");
-        assertEq(usds.balanceOf(skyFrontierFoundation), skyFrontierFoundationBefore + transferAmount, "testTransferUSDSFromAmatsuSubProxy/sky-frontier-foundation-balance-mismatch");
-    }
 }
