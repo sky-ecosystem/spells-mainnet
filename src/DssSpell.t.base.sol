@@ -4252,13 +4252,17 @@ contract DssSpellTestBase is Config, DssTest {
 
         uint256 beforeExpiry = vm.snapshotState();
 
-        vm.warp(deadline);
+        vm.warp(deadline - 1);
         assertTrue(starGuard.prob(), "StarGuard/prob-not-true-before-deadline");
 
         vm.expectEmit(true, false, false, false, address(starGuard));
         emit Exec(address(primeAgentSpell));
         address executed = starGuard.exec();
         assertEq(executed, primeAgentSpell, "StarGuard/exec-wrong-target");
+
+        vm.revertToState(beforeExpiry);
+        vm.warp(deadline);
+        assertTrue(starGuard.prob(), "StarGuard/prob-not-true-at-deadline");
 
         vm.revertToState(beforeExpiry);
         vm.warp(deadline + 1);
