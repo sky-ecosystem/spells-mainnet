@@ -4250,8 +4250,10 @@ contract DssSpellTestBase is Config, DssTest {
         assertGt(deadline, block.timestamp, "StarGuard/deadline-not-in-future");
         assertTrue(starGuard.prob(), "StarGuard/prob-not-true-after-plot");
 
+        // Snapshot the plotted state so the execution and boundary checks do not affect each other.
         uint256 beforeExpiry = vm.snapshotState();
 
+        // Execution must work strictly before expiry.
         vm.warp(deadline - 1);
         assertTrue(starGuard.prob(), "StarGuard/prob-not-true-before-deadline");
 
@@ -4260,10 +4262,12 @@ contract DssSpellTestBase is Config, DssTest {
         address executed = starGuard.exec();
         assertEq(executed, primeAgentSpell, "StarGuard/exec-wrong-target");
 
+        // StarGuard's deadline check is inclusive: block.timestamp <= deadline.
         vm.revertToState(beforeExpiry);
         vm.warp(deadline);
         assertTrue(starGuard.prob(), "StarGuard/prob-not-true-at-deadline");
 
+        // After the inclusive deadline, prob() must flip false.
         vm.revertToState(beforeExpiry);
         vm.warp(deadline + 1);
         assertFalse(starGuard.prob(), "StarGuard/prob-true-after-deadline");
