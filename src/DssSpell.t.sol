@@ -40,6 +40,10 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
+interface RwaLiquidationOracleLike {
+    function ilks(bytes32) external view returns (string memory doc, address pip, uint48 tau, uint48 toc);
+}
+
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -278,14 +282,11 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
-        string[6] memory addedKeys = [
-            "MCD_VEST_GROVE_TREASURY",
-            "GROVE",
-            "REWARDS_USDS_GROVE",
-            "REWARDS_DIST_USDS_GROVE",
-            "PAU_BEACON",
-            "SUBPROXY_METHODS"
+    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+        string[3] memory addedKeys = [
+            "EMSP_STUSDS_RATE_S_DISS_BUD_FAB",
+            "EMSP_STUSDS_WIPE_PARAM_FAB",
+            "EMSP_STUSDS_RATE_SETTER_HALT"
         ];
 
         for(uint256 i = 0; i < addedKeys.length; i++) {
@@ -695,16 +696,16 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public skipped { // add the `skipped` modifier to skip
+    function testVestSky() public { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
-        uint256 AUG_09_2026_14_01_23 = 1786284083;
+        uint256 SEP_20_2026_14_04_59 = 1789913099;
 
         uint256 spellCastTime = _getSpellCastTime();
 
         // Build expected new stream
         NewVestStream[] memory newStreams = new NewVestStream[](1);
         newStreams[0] = NewVestStream({
-            id:  14,
+            id:  15,
             usr: addr.addr("REWARDS_DIST_LSSKY_SKY"),
             bgn: spellCastTime,
             clf: spellCastTime,
@@ -712,15 +713,15 @@ contract DssSpellTest is DssSpellTestBase {
             tau: 90 days,
             mgr: address(0),
             res: 1,
-            tot: 240_862_942 * WAD,
+            tot: 286_714_697 * WAD,
             rxd: 0 // Amount already claimed
         });
 
         // For each yanked stream, provide Stream object and initialize the array with the current number of yanked streams
         YankedVestStream[] memory yankedStreams = new YankedVestStream[](1);
         yankedStreams[0] = YankedVestStream({
-            id:  13,
-            fin: AUG_09_2026_14_01_23,
+            id:  14,
+            fin: SEP_20_2026_14_04_59,
             end: spellCastTime
         });
 
@@ -814,9 +815,9 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestedRewardsDist() public skipped { // add the `skipped` modifier to skip
-        uint256 expectedVestIdBefore = 13;
-        uint256 expectedVestIdAfter = 14;
+    function testVestedRewardsDist() public { // add the `skipped` modifier to skip
+        uint256 expectedVestIdBefore = 14;
+        uint256 expectedVestIdAfter = 15;
 
         address rewardsDist = addr.addr("REWARDS_DIST_LSSKY_SKY");
         address stakingRewards = addr.addr("REWARDS_LSSKY_SKY");
@@ -862,9 +863,10 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public skipped { // add the `skipped` modifier to skip
+    function testPayments() public { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
-        bool ignoreTotalSupplyDaiUsds = false;
+        // Note: set to true because the RWA001-A cull() also increases vat.sin(vow)
+        bool ignoreTotalSupplyDaiUsds = true;
         bool ignoreTotalSupplyMkrSky = true;
 
         // For each payment, create a Payee object with:
@@ -872,21 +874,22 @@ contract DssSpellTest is DssSpellTestBase {
         //    the destination address,
         //    the amount to be paid
         // Initialize the array with the number of payees
-        Payee[6] memory payees = [
-            Payee(address(usds), addr.addr("SPARK_SUBPROXY"),                  4_204_857 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("GROVE_SUBPROXY"),                    271_843 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("KEEL_SUBPROXY"),                      32_279 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("OBEX_SUBPROXY"),                     526_204 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("SKYBASE_SUBPROXY"),                1_806_616 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG"), 2_946_125 ether) // Note: ether is only a keyword helper
+        Payee[7] memory payees = [
+            Payee(address(usds), addr.addr("SPARK_SUBPROXY"),                  9_746_443 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("GROVE_SUBPROXY"),                  2_328_332 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("KEEL_SUBPROXY"),                   77_284 ether),    // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("OBEX_SUBPROXY"),                   1_519_539 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("SKYBASE_SUBPROXY"),                204_242 ether),   // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG"), 3_378_069 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("DEMAND_SIDE_BUFFER_MULTISIG"),  34_902 ether)     // Note: ether is only a keyword helper
         ];
 
         // Fill the total values from exec sheet
         PaymentAmounts memory expectedTotalPayments = PaymentAmounts({
-            dai:           0 ether, // Note: ether is only a keyword helper
-            mkr:           0 ether, // Note: ether is only a keyword helper
-            usds:  9_787_924 ether, // Note: ether is only a keyword helper
-            sky:           0 ether  // Note: ether is only a keyword helper
+            dai:           0  ether, // Note: ether is only a keyword helper
+            mkr:           0  ether, // Note: ether is only a keyword helper
+            usds:  17_288_811 ether, // Note: ether is only a keyword helper
+            sky:           0  ether  // Note: ether is only a keyword helper
         });
 
         // Fill the total values based on the source for the transfers above
@@ -1322,18 +1325,18 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 
-    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
+    function testMonthlySettlementCycleInflows() public { // add the `skipped` modifier to skip
         address ALLOCATOR_SPARK_A_VAULT = addr.addr("ALLOCATOR_SPARK_A_VAULT");
         address ALLOCATOR_BLOOM_A_VAULT = addr.addr("ALLOCATOR_BLOOM_A_VAULT");
         address ALLOCATOR_OBEX_A_VAULT = addr.addr("ALLOCATOR_OBEX_A_VAULT");
 
         AllocatorPayment[3] memory payments = [
-            AllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 13_427_874 * WAD),
-            AllocatorPayment(ALLOCATOR_BLOOM_A_VAULT,  8_877_823 * WAD),
-            AllocatorPayment(ALLOCATOR_OBEX_A_VAULT,   2_461_845 * WAD)
+            AllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 16_923_682 * WAD),
+            AllocatorPayment(ALLOCATOR_BLOOM_A_VAULT, 12_342_158 * WAD),
+            AllocatorPayment(ALLOCATOR_OBEX_A_VAULT,  3_450_783 * WAD)
         ];
 
-        uint256 expectedTotalAmount = 24_767_542 * WAD;
+        uint256 expectedTotalAmount = 32_716_623 * WAD;
 
         MscIlkValues[] memory expectedValues = new MscIlkValues[](payments.length);
         uint256 totalDtab = 0;
@@ -1381,15 +1384,15 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
+    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
         PrimeAgentSpell[3] memory primeAgentSpells = [
             PrimeAgentSpell({
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "SPARK_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0xcc7529473B850103524905D3914470898aDe8747,
+                addr: 0xC1090e8fEE666868622a2F1e870185F944108Ee2,
                 // Insert Prime Agent spell codehash
-                codehash: 0xf952ba1ea1df8c42217cecd3c4e88abcde2864fbf1e4465b1a13af0bf05e00f0,
+                codehash: 0xa7b0b6c470169f40016d354a8944f9e5f3f787159fec5192694e8f1ddbc7f26f,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             }),
@@ -1397,19 +1400,19 @@ contract DssSpellTest is DssSpellTestBase {
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "GROVE_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0xa21d2E301D50AfF797143deb5a7C400482E9122C,
+                addr: 0x4f1318bC0490dC7C7F8230F1dd91A4A2e4694134,
                 // Insert Prime Agent spell codehash
-                codehash: 0xb3377dba77dfd8bce7c272e7c4c445ab48b3d0ec3fd0a52f512a39974f059a0f,
+                codehash: 0x38dd6399490f19d7a7e17a6eafda5d2ad92f9395c08efe2fdbacfda3b6d36a89,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             }),
             PrimeAgentSpell({
                 // Insert Prime Agent StarGuards Chainlog key
-                starGuardKey: "SKYBASE_STARGUARD",
+                starGuardKey: "PRYSM_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0xd3e4e16ED515Be794fd181D7d2cEB0447A6f2cb5,
+                addr: 0x5D9311fcDda62c08EB9F1115Ca804881a6660445,
                 // Insert Prime Agent spell codehash
-                codehash: 0x09c387eed3e4373a4cc91fc28686e103cfc704335279f65f2f7308f474c002d9,
+                codehash: 0x7dca6bc3a3097897198698a674bc824fd3bbb1c9b94c655cd0d78c49db2b9f3e,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             })
@@ -1548,4 +1551,80 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
+    function testRWA001AOffboarding() public {
+        RwaLiquidationOracleLike oracle = RwaLiquidationOracleLike(addr.addr("MIP21_LIQUIDATION_ORACLE"));
+        address RWA001_A_URN = addr.addr("RWA001_A_URN");
+
+        bytes32 ilk = bytes32("RWA001-A");
+
+        (, uint256 rate,,,) = vat.ilks(ilk);
+        (, uint256 urnArtBefore) = vat.urns(ilk, RWA001_A_URN);
+        uint256 sinBefore = vat.sin(address(vow));
+        uint256 daiUsdsSupplyBefore = dai.totalSupply() + usds.totalSupply();
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done());
+
+        uint256 totalPayments = 17_288_811 * WAD;
+        assertEq(
+            dai.totalSupply() + usds.totalSupply() - daiUsdsSupplyBefore,
+            totalPayments,
+            "testRWA001AOffboarding/invalid-dai-usds-supply-increase"
+        );
+        assertEq(
+            vat.sin(address(vow)) - sinBefore,
+            totalPayments * RAY + urnArtBefore * rate,
+            "testRWA001AOffboarding/invalid-sin-increase"
+        );
+
+        (, address pip,,) = oracle.ilks(ilk);
+        uint256 price = uint256(DSValueAbstract(pip).read());
+        assertEq(price, 0, "testRWA001AOffboarding/invalid-price-after-cull");
+
+        (uint256 Art,,,,) = vat.ilks(ilk);
+        assertEq(Art, 0, "testRWA001AOffboarding/invalid-art-after-cull");
+
+        (uint256 ink, uint256 art) = vat.urns(ilk, RWA001_A_URN);
+        assertEq(ink, 0, "testRWA001AOffboarding/invalid-ink-after-cull");
+        assertEq(art, 0, "testRWA001AOffboarding/invalid-art-after-cull");
+    }
+
+    function testWhitelistOseroALMProxy() public {
+        address almProxy = addr.addr("OSERO_ALM_PROXY");
+        DssLitePsmLike psmUsdcA = DssLitePsmLike(addr.addr("MCD_LITE_PSM_USDC_A"));
+        GemAbstract usdc = GemAbstract(addr.addr("USDC"));
+
+        // bud is 0 before kiss
+        assertEq(psmUsdcA.bud(almProxy), 0, "testWhitelistOseroALMProxy/invalid-bud");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done());
+
+        // bud is 1 after kiss
+        assertEq(psmUsdcA.bud(almProxy), 1, "testWhitelistOseroALMProxy/invalid-bud");
+
+        // OSERO can call buyGemNoFee() on MCD_LITE_PSM_USDC_A
+        uint256 daiAmount  = 1_000 * WAD;
+        uint256 usdcAmount = 1_000 * 10**6;
+
+        // fund proxy
+        deal(address(dai), almProxy, daiAmount);
+        vm.startPrank(almProxy);
+
+        // buy gem with no fee
+        dai.approve(address(psmUsdcA), daiAmount);
+        psmUsdcA.buyGemNoFee(almProxy, usdcAmount);
+        assertEq(usdc.balanceOf(almProxy), usdcAmount);
+        assertEq(dai.balanceOf(almProxy), 0);
+
+        // now sell it back with no fee
+        usdc.approve(address(psmUsdcA), usdcAmount);
+        psmUsdcA.sellGemNoFee(almProxy, usdcAmount);
+        assertEq(usdc.balanceOf(almProxy), 0);
+        assertEq(dai.balanceOf(almProxy), daiAmount);
+
+        vm.stopPrank();
+    }
 }
