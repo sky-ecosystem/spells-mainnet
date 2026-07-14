@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[3]
-CLI = ROOT / "scripts" / "setup-foundry.py"
+CLI = ROOT / "scripts" / "setup-foundry" / "setup-foundry.py"
 BINARIES = ("forge", "cast", "anvil", "chisel")
 
 
@@ -237,7 +237,7 @@ class FoundryFixture:
             [sys.executable, "-m", "setup-foundry"],
             command=command,
             path_mode=path_mode,
-            cwd=CLI.parent,
+            cwd=CLI.parent.parent,
         )
 
     def run_command(self, argv, command=None, path_mode="foundry", cwd=None):

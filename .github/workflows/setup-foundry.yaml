@@ -3,11 +3,9 @@ name: Setup Foundry
 on:
   push:
     paths:
-      - "scripts/setup-foundry.py"
       - "scripts/setup-foundry/**"
   pull_request:
     paths:
-      - "scripts/setup-foundry.py"
       - "scripts/setup-foundry/**"
 
 jobs:

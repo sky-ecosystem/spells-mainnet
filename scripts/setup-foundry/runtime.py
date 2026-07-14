@@ -40,14 +40,12 @@ def validate_environment():
 
 def tooling_sha256(tool_root):
     tool_root = Path(tool_root)
-    paths = [tool_root / "setup-foundry.py"]
-    package = tool_root / "setup-foundry"
-    paths.extend(
+    paths = [
         path
-        for path in package.rglob("*.py")
+        for path in tool_root.rglob("*.py")
         if "__pycache__" not in path.parts
-        and "tests" not in path.relative_to(package).parts
-    )
+        and "tests" not in path.relative_to(tool_root).parts
+    ]
     digest = hashlib.sha256()
     for path in sorted(paths, key=lambda item: item.relative_to(tool_root).as_posix()):
         digest.update(path.relative_to(tool_root).as_posix().encode())

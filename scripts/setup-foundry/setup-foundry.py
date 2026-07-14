@@ -7,8 +7,10 @@ and permits only the newest stable release that has matured for seven days.
 
 import sys
 from importlib import import_module
+from pathlib import Path
 
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 main = import_module("setup-foundry.cli").main
 
 
