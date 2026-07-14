@@ -146,7 +146,7 @@ verify_attestation() {
         --jq '.[] | {subjects: [.verificationResult.statement.subject[].name], signer: .verificationResult.signature.certificate.buildSignerURI, source: .verificationResult.signature.certificate.sourceRepositoryURI}'
 }
 
-printf '\nArchive attestation:\n'
+printf '\nRelease asset attestation:\n'
 verify_attestation "$TEMP_DIR/$RELEASE_ASSET"
 
 EXTRACTED_DIR="$TEMP_DIR/extracted"
@@ -193,7 +193,7 @@ printf '\nEvidence summary:\n'
 printf '  Source: spells-mainnet %s; installer SHA-256 %s\n' "$SOURCE_COMMIT" "$INSTALLER_SHA256"
 printf '  Release: %s; %s; %s\n' "$VERSION" "$PUBLISHED_AT" "$RELEASE_URL"
 printf '  Policy decision: %s\n' "$SELECTION_REASON"
-printf '  Archive attestation: verified against %s\n' "$SIGNER_WORKFLOW"
+printf '  Release asset attestation: verified against %s\n' "$SIGNER_WORKFLOW"
 printf '  Binary attestations: forge, cast, anvil, and chisel verified against %s\n' "$SIGNER_WORKFLOW"
 printf '  Installed versions:\n'
 for version_output in "${VERSION_OUTPUTS[@]}"; do
