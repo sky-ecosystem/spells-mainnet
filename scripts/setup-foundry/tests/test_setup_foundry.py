@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import contextlib
 import importlib.util
 import io
@@ -13,11 +11,11 @@ import sys
 import tempfile
 import textwrap
 import unittest
-from unittest import mock
 from pathlib import Path
+from unittest import mock
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 CLI = ROOT / "scripts" / "setup-foundry" / "setup-foundry.py"
 BINARIES = ("forge", "cast", "anvil", "chisel")
 
@@ -608,7 +606,3 @@ sys.exit(module.main(["verify"]))
                 result = self.run_cli(command)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn("Usage:", result.stdout)
-
-
-if __name__ == "__main__":
-    unittest.main(verbosity=2)

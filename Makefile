@@ -2,7 +2,7 @@ all                  :; forge build
 clean                :; forge clean
 install-foundry      :; python3 ./scripts/setup-foundry/setup-foundry.py install
 verify-foundry       :; python3 ./scripts/setup-foundry/setup-foundry.py verify
-test-setup-foundry   :; python3 ./scripts/setup-foundry/test-setup-foundry.py
+test-setup-foundry   :; python3 -m unittest discover -s scripts/setup-foundry/tests -p 'test_*.py' -v
                         # Usage example: make test match=SpellIsCast
 test                 :; ./scripts/test-dssspell-forge.sh no-match="$(no-match)" match="$(match)" block="$(block)"
 estimate             :; forge build --quiet; BYTECODE=$$(jq -r '.bytecode.object' out/DssSpell.sol/DssSpell.json); GAS=$$(cast estimate --create $$BYTECODE); echo "Estimated gas: $$GAS"
