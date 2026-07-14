@@ -217,7 +217,7 @@ contract DssSpellAction is DssAction {
             // Decrease ALLOCATOR-PRYSM-A `gap` from 10 million USDS to 1 million USDS
             _gap: 1 * MILLION,
             // Leave ALLOCATOR-PRYSM-A `duty` and `ttl` unchanged at 0% and 24 hours (86,400 seconds) respectively
-            _ttl: 86_400
+            _ttl: 86_400 seconds
             // Note: This operation does not modify `duty`, as this function does not support updating it.
         });
 
