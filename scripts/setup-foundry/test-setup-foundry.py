@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+import contextlib
+import importlib.util
+import io
 import json
 import os
 import shutil
@@ -9,6 +12,7 @@ import sys
 import tempfile
 import textwrap
 import unittest
+from unittest import mock
 from pathlib import Path
 
 
@@ -380,6 +384,41 @@ class SetupFoundryTests(unittest.TestCase):
         self.assertFalse((self.destination / "anvil").exists())
         self.assertFalse((self.destination / "chisel").exists())
         self.assertIn("Previous Foundry installation restored", result.stdout)
+
+    def test_mid_install_failure_rolls_back_partial_mutation(self):
+        spec = importlib.util.spec_from_file_location("setup_foundry", CLI)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        extracted = self.fixture / "extracted"
+        backup = self.fixture / "backup"
+        extracted.mkdir()
+        for binary in BINARIES:
+            (self.destination / binary).write_text(f"old {binary}\n")
+            (extracted / binary).write_text(f"new {binary}\n")
+
+        installation = module.Installation(self.destination, backup)
+        installation.prepare()
+        real_replace = os.replace
+        replacements = 0
+
+        def fail_on_third_replacement(source, destination):
+            nonlocal replacements
+            replacements += 1
+            if replacements == 3:
+                raise OSError("simulated partial installation failure")
+            real_replace(source, destination)
+
+        with mock.patch.object(module.os, "replace", side_effect=fail_on_third_replacement):
+            with self.assertRaises(OSError):
+                installation.install(extracted)
+        rollback_output = io.StringIO()
+        with contextlib.redirect_stderr(rollback_output):
+            installation.rollback()
+
+        for binary in BINARIES:
+            self.assertEqual((self.destination / binary).read_text(), f"old {binary}\n")
+        self.assertEqual(list(self.destination.glob(".*.setup-foundry.*")), [])
+        self.assertIn("Previous Foundry installation restored", rollback_output.getvalue())
 
     def test_install_preserves_unmanaged_destination_files(self):
         unmanaged = self.destination / ".forge.setup-foundry"
