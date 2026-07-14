@@ -1,3 +1,11 @@
+"""Safely install an attested Foundry release asset.
+
+The asset is attested before its archive is read. Installation is transactional:
+all four installed binaries are attested before execution, failures restore the
+previous entries, and incomplete rollback preserves recovery data for manual
+restoration.
+"""
+
 import os
 import platform
 import shutil
@@ -161,6 +169,8 @@ def install_and_verify_binaries(installation, extracted_directory, destination, 
 
 def install_selected_release(selection, destination):
     asset = foundry_release_asset(selection)
+
+    # Own this directory explicitly so incomplete rollback can retain recovery data.
     temporary_directory = Path(tempfile.mkdtemp())
     preserve_recovery_data = False
     try:

@@ -1,4 +1,5 @@
 import contextlib
+import inspect
 import importlib.util
 import io
 import subprocess
@@ -22,6 +23,11 @@ def load_cli_module():
 
 
 class CliBoundaryTests(unittest.TestCase):
+    def test_subcommand_handlers_declare_integer_exit_codes(self):
+        module = load_cli_module()
+        self.assertIs(inspect.signature(module.install.handle).return_annotation, int)
+        self.assertIs(inspect.signature(module.verify.handle).return_annotation, int)
+
     def test_dispatches_only_to_subcommand_handlers(self):
         module = load_cli_module()
         with mock.patch.object(module.install, "handle", return_value=2) as install_handle:

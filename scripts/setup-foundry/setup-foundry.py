@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Verify or install an age-eligible stable Foundry release."""
+"""CLI for the repository's verified Foundry setup tooling.
+
+The delegated package pins GitHub and Foundry's release workflow as trust roots
+and permits only the newest stable release that has matured for seven days.
+"""
 
 import signal
 import sys

@@ -1,3 +1,9 @@
+"""Select policy-eligible releases and validate GitHub attestations.
+
+Callers must attest a release asset before inspecting its archive and attest
+installed binaries before executing them.
+"""
+
 import json
 from datetime import datetime, timezone
 

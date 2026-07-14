@@ -9,7 +9,7 @@ from ..runtime import collect_source_metadata, validate_environment
 TOOL_ROOT = Path(__file__).resolve().parents[2]
 
 
-def handle():
+def handle() -> int:
     validate_environment()
     source_commit, tooling_hash = collect_source_metadata(TOOL_ROOT)
     selection = select_release()
