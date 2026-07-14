@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+# Install an age-eligible stable Foundry release from GitHub.com.
+# GitHub.com and Foundry's official release workflow are the pinned trust roots:
+# verify the archive before extraction and each installed binary before execution.
+# If a later step fails after destination mutation begins, restore the prior binaries.
+# The script's explicit exit 2 means installation succeeded but PATH setup is incomplete.
+
 set -euo pipefail
 
 GITHUB_HOST=github.com
@@ -13,6 +19,7 @@ die() {
     exit 1
 }
 
+# Validate local prerequisites, authentication, and the supported target before download.
 for command in gh git bash tar install uname mktemp mkdir rm rmdir cp sort sed dirname; do
     command -v "$command" >/dev/null 2>&1 || die "required command not found: $command"
 done
@@ -49,6 +56,7 @@ REPO_ROOT=$(git -C "$SCRIPT_DIR/.." rev-parse --show-toplevel 2>/dev/null) || di
 SOURCE_COMMIT=$(git -C "$REPO_ROOT" rev-parse HEAD)
 INSTALLER_SHA256=$(sha256 "$SCRIPT_PATH")
 
+# Use the latest stable release only after it is seven days old; otherwise use its predecessor.
 LATEST_RECORD=$(gh api "repos/$REPOSITORY/releases/latest" --hostname "$GITHUB_HOST" \
     --jq "[.tag_name, .published_at, .html_url, (if (now - (.published_at | fromdateiso8601)) < $MINIMUM_RELEASE_AGE_SECONDS then \"previous\" else \"latest\" end)] | @tsv")
 IFS=$'\t' read -r VERSION PUBLISHED_AT RELEASE_URL SELECTION <<< "$LATEST_RECORD"
@@ -69,6 +77,7 @@ fi
 
 ARCHIVE="foundry_${VERSION}_${PLATFORM}_${ARCH}.tar.gz"
 DESTINATION="$HOME/.foundry/bin"
+# Preserve the previous installation in temporary state so destination changes can be rolled back.
 TEMP_DIR=$(mktemp -d)
 BACKUP_DIR="$TEMP_DIR/previous-installation"
 ROLLBACK_REQUIRED=0
@@ -118,6 +127,7 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
+# Record provenance before downloading, verify before extraction, and verify again before execution.
 printf 'Foundry release: %s\n' "$VERSION"
 printf 'Published at: %s\n' "$PUBLISHED_AT"
 printf 'Release URL: %s\n' "$RELEASE_URL"
@@ -178,6 +188,7 @@ for binary in "${BINARIES[@]}"; do
 done
 ROLLBACK_REQUIRED=0
 
+# Summarize the verified result; only incomplete PATH setup produces the script's explicit exit 2.
 printf '\nEvidence summary:\n'
 printf '  Source: spells-mainnet %s; installer SHA-256 %s\n' "$SOURCE_COMMIT" "$INSTALLER_SHA256"
 printf '  Release: %s; %s; %s\n' "$VERSION" "$PUBLISHED_AT" "$RELEASE_URL"
