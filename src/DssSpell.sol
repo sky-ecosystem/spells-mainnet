@@ -182,8 +182,8 @@ contract DssSpellAction is DssAction {
         );
 
         // ---------- Add STUSDS_MOM Emergency Spells to the Chainlog ----------
-        // Forum: https://forum.skyeco.com/t/technical-scope-of-the-new-stusdsmom-deploy-and-replacement/27967/6
-        // Forum: https://forum.skyeco.com/t/technical-scope-of-the-new-stusdsmom-deploy-and-replacement/27967/8
+        // Forum: https://forum.skyeco.com/t/technical-scope-of-the-new-stusdsmom-deploy-and-replacement/27967/5
+        // Forum: https://forum.skyeco.com/t/technical-scope-of-the-new-stusdsmom-deploy-and-replacement/27967/7
 
         // Add the following Emergency Spells related to the STUSDS_MOM to the chainlog:
         // EMSP_STUSDS_RATE_S_DISS_BUD_FAB: 0xb3Fd827F58989cFacFE50d2F8e86A1113b6066D1
