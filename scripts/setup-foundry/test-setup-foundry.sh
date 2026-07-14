@@ -3,7 +3,7 @@
 set -u
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
-CLI="$ROOT/scripts/setup-foundry/cli.sh"
+CLI="$ROOT/scripts/setup-foundry/setup-foundry.sh"
 BASH_PATH=$(command -v bash)
 PASS=0
 FAIL=0
