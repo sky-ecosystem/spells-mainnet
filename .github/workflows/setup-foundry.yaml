@@ -1,6 +1,12 @@
 name: Setup Foundry
 
-on: [push, pull_request]
+on:
+  push:
+    paths:
+      - "scripts/setup-foundry/**"
+  pull_request:
+    paths:
+      - "scripts/setup-foundry/**"
 
 jobs:
   test:
