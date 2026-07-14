@@ -23,42 +23,6 @@ usage() {
     printf 'Usage: %s {verify|install}\n' "${0##*/}" >&2
 }
 
-main() {
-    [ "$#" -eq 1 ] || { usage; exit 1; }
-    case "$1" in
-        verify) verify_foundry ;;
-        install) install_foundry ;;
-        *) usage; exit 1 ;;
-    esac
-}
-
-verify_foundry() {
-    validate_environment
-    collect_source_metadata
-    select_release
-    report_selection
-    resolve_path_binaries
-    verify_binary_paths
-    validate_installed_release
-    run_binary_versions
-    report_verification_summary
-    printf '\nFoundry verification completed successfully.\n'
-}
-
-install_foundry() {
-    validate_environment
-    validate_install_platform
-    collect_source_metadata
-    select_release
-    initialize_installation
-    report_selection
-    download_verify_and_extract_release
-    prepare_destination
-    install_binaries
-    verify_installed_binaries
-    finalize_installation
-}
-
 sha256() {
     if command -v sha256sum >/dev/null 2>&1; then
         sha256sum "$1" | sed 's/[[:space:]].*$//'
@@ -366,6 +330,42 @@ finalize_installation() {
             ;;
     esac
     printf '\nFoundry installation and verification completed successfully.\n'
+}
+
+verify_foundry() {
+    validate_environment
+    collect_source_metadata
+    select_release
+    report_selection
+    resolve_path_binaries
+    verify_binary_paths
+    validate_installed_release
+    run_binary_versions
+    report_verification_summary
+    printf '\nFoundry verification completed successfully.\n'
+}
+
+install_foundry() {
+    validate_environment
+    validate_install_platform
+    collect_source_metadata
+    select_release
+    initialize_installation
+    report_selection
+    download_verify_and_extract_release
+    prepare_destination
+    install_binaries
+    verify_installed_binaries
+    finalize_installation
+}
+
+main() {
+    [ "$#" -eq 1 ] || { usage; exit 1; }
+    case "$1" in
+        verify) verify_foundry ;;
+        install) install_foundry ;;
+        *) usage; exit 1 ;;
+    esac
 }
 
 main "$@"
