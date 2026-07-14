@@ -6,13 +6,11 @@ import sys
 import unittest
 from unittest import mock
 
-from .support import CLI, FoundryFixture
+from .support import CLI, FoundryFixture, load_module
 
 
 def load_cli_module():
-    from setup_foundry import cli
-
-    return cli
+    return load_module("cli")
 
 
 class CliBoundaryTests(unittest.TestCase):
@@ -95,9 +93,10 @@ class CliBehaviorTests(FoundryFixture, unittest.TestCase):
 import os
 import signal
 import sys
+from importlib import import_module
 from pathlib import Path
 sys.path.insert(0, str(Path(sys.argv[1]).parent))
-from setup_foundry import cli as module
+module = import_module("setup-foundry.cli")
 module.verify.handle = lambda: os.kill(os.getpid(), getattr(signal, sys.argv[2]))
 sys.exit(module.main(["verify"]))
 """

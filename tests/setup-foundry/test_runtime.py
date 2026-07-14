@@ -4,29 +4,30 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from setup_foundry.runtime import tooling_sha256
+from .support import CLI, FoundryFixture, load_module
 
-from .support import CLI, FoundryFixture
+
+tooling_sha256 = load_module("runtime").tooling_sha256
 
 
 class RuntimeHashTests(unittest.TestCase):
     def test_hash_is_deterministic_and_covers_only_runtime_python(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            (root / "setup_foundry").mkdir()
+            (root / "setup-foundry").mkdir()
             (root / "setup-foundry.py").write_text("entry\n")
-            (root / "setup_foundry" / "z.py").write_text("z\n")
-            (root / "setup_foundry" / "a.py").write_text("a\n")
+            (root / "setup-foundry" / "z.py").write_text("z\n")
+            (root / "setup-foundry" / "a.py").write_text("a\n")
             baseline = tooling_sha256(root)
 
             self.assertEqual(tooling_sha256(root), baseline)
             (root / "tests").mkdir()
             (root / "tests" / "test_cli.py").write_text("ignored\n")
-            (root / "setup_foundry" / "__pycache__").mkdir()
-            (root / "setup_foundry" / "__pycache__" / "a.pyc").write_bytes(b"ignored")
+            (root / "setup-foundry" / "__pycache__").mkdir()
+            (root / "setup-foundry" / "__pycache__" / "a.pyc").write_bytes(b"ignored")
             self.assertEqual(tooling_sha256(root), baseline)
 
-            (root / "setup_foundry" / "a.py").write_text("changed\n")
+            (root / "setup-foundry" / "a.py").write_text("changed\n")
             self.assertNotEqual(tooling_sha256(root), baseline)
 
     def test_hash_includes_paths_to_avoid_ambiguous_concatenation(self):
@@ -37,10 +38,10 @@ class RuntimeHashTests(unittest.TestCase):
             first_root = Path(first)
             second_root = Path(second)
             for root in (first_root, second_root):
-                (root / "setup_foundry").mkdir()
+                (root / "setup-foundry").mkdir()
                 (root / "setup-foundry.py").write_text("")
-            (first_root / "setup_foundry" / "a.py").write_text("bc")
-            (second_root / "setup_foundry" / "ab.py").write_text("c")
+            (first_root / "setup-foundry" / "a.py").write_text("bc")
+            (second_root / "setup-foundry" / "ab.py").write_text("c")
             self.assertNotEqual(tooling_sha256(first_root), tooling_sha256(second_root))
 
 

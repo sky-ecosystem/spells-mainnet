@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from .support import BINARIES, FoundryFixture
+from .support import BINARIES, FoundryFixture, load_module
 
 
 class InstallTests(FoundryFixture, unittest.TestCase):
@@ -28,7 +28,7 @@ class InstallTests(FoundryFixture, unittest.TestCase):
         )
 
     def test_install_foundry_only_orchestrates_high_level_steps(self):
-        from setup_foundry.commands import install as module
+        module = load_module("commands.install")
 
         selection = object()
         destination = object()
@@ -147,7 +147,7 @@ class InstallTests(FoundryFixture, unittest.TestCase):
         self.assertIn("Previous Foundry installation restored", result.stdout)
 
     def test_incomplete_rollback_preserves_reported_backups(self):
-        from setup_foundry import installation as module
+        module = load_module("installation")
 
         cli_module = self.load_cli_module()
         old_forge = self.destination / "forge"
@@ -192,7 +192,7 @@ class InstallTests(FoundryFixture, unittest.TestCase):
         self.assertEqual((recovery_directory / "forge").read_text(), "old forge\n")
 
     def test_success_and_complete_rollback_clean_temporary_data(self):
-        from setup_foundry import installation as module
+        module = load_module("installation")
 
         cli_module = self.load_cli_module()
         real_mkdtemp = tempfile.mkdtemp
@@ -229,7 +229,7 @@ class InstallTests(FoundryFixture, unittest.TestCase):
         self.assertFalse(created[-1].exists())
 
     def test_mid_install_failure_rolls_back_partial_mutation(self):
-        from setup_foundry import installation as module
+        module = load_module("installation")
 
         extracted = self.fixture / "extracted"
         backup = self.fixture / "backup"

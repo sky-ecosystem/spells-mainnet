@@ -5,12 +5,17 @@ import subprocess
 import sys
 import tempfile
 import textwrap
+from importlib import import_module
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
 CLI = ROOT / "scripts" / "setup-foundry.py"
 BINARIES = ("forge", "cast", "anvil", "chisel")
+
+
+def load_module(name):
+    return import_module(f"setup-foundry.{name}")
 
 
 FAKE_GH = r"""#!__PYTHON__
@@ -229,7 +234,7 @@ class FoundryFixture:
 
     def run_module(self, command=None, path_mode="foundry"):
         return self.run_command(
-            [sys.executable, "-m", "setup_foundry"],
+            [sys.executable, "-m", "setup-foundry"],
             command=command,
             path_mode=path_mode,
             cwd=CLI.parent,
@@ -265,6 +270,4 @@ class FoundryFixture:
 
     @staticmethod
     def load_cli_module():
-        from setup_foundry import cli
-
-        return cli
+        return load_module("cli")

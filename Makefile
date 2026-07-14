@@ -3,7 +3,7 @@ clean                :; forge clean
 install-foundry      :; python3 ./scripts/setup-foundry.py install
 verify-foundry       :; python3 ./scripts/setup-foundry.py verify
 test-setup-foundry   :; PYTHONPATH=./scripts python3 -m unittest discover \
-	--start-directory ./tests/setup_foundry \
+	--start-directory ./tests/setup-foundry \
 	--top-level-directory . \
 	--pattern 'test_*.py' -v
                         # Usage example: make test match=SpellIsCast

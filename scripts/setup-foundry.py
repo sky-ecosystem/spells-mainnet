@@ -6,8 +6,10 @@ and permits only the newest stable release that has matured for seven days.
 """
 
 import sys
+from importlib import import_module
 
-from setup_foundry.cli import main
+
+main = import_module("setup-foundry.cli").main
 
 
 if __name__ == "__main__":

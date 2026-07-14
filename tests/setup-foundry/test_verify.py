@@ -1,12 +1,12 @@
 import unittest
 from unittest import mock
 
-from .support import BINARIES, FoundryFixture
+from .support import BINARIES, FoundryFixture, load_module
 
 
 class VerifyHandlerBoundaryTests(unittest.TestCase):
     def test_verify_handler_only_orchestrates_high_level_steps(self):
-        from setup_foundry.commands import verify
+        verify = load_module("commands.verify")
 
         selection = object()
         paths = object()
