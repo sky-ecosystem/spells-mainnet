@@ -2,9 +2,9 @@ all                  :; forge build
 clean                :; forge clean
 install-foundry      :; python3 ./scripts/setup-foundry/setup-foundry.py install
 verify-foundry       :; python3 ./scripts/setup-foundry/setup-foundry.py verify
-test-setup-foundry   :; PYTHONPATH=./scripts python3 -m unittest discover \
+test-setup-foundry   :; PYTHONPATH=./scripts/setup-foundry python3 -m unittest discover \
 	--start-directory ./scripts/setup-foundry/tests \
-	--top-level-directory ./scripts \
+	--top-level-directory ./scripts/setup-foundry \
 	--pattern 'test_*.py' -v
                         # Usage example: make test match=SpellIsCast
 test                 :; ./scripts/test-dssspell-forge.sh no-match="$(no-match)" match="$(match)" block="$(block)"

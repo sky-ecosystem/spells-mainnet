@@ -6,14 +6,14 @@ import sys
 import unittest
 from unittest import mock
 
-from .support import CLI, FoundryFixture, load_module
-
-
-def load_cli_module():
-    return load_module("cli")
+from .support import CLI, FoundryFixture, load_cli_module
 
 
 class CliBoundaryTests(unittest.TestCase):
+    def test_entrypoint_owns_cli_logic(self):
+        module = load_cli_module()
+        self.assertEqual(module.main.__module__, module.__name__)
+
     def test_subcommand_handlers_declare_integer_exit_codes(self):
         module = load_cli_module()
         self.assertIs(inspect.signature(module.install.handle).return_annotation, int)
@@ -47,15 +47,6 @@ class CliBoundaryTests(unittest.TestCase):
 
 
 class CliBehaviorTests(FoundryFixture, unittest.TestCase):
-    def test_package_is_executable_as_a_module(self):
-        script_result = self.run_cli("verify")
-        module_result = self.run_module("verify")
-
-        self.assertEqual(module_result.returncode, script_result.returncode)
-        self.assertIn(
-            "Foundry verification completed successfully", module_result.stdout
-        )
-
     def test_failure_never_uses_path_warning_exit_code(self):
         self.env.update({"TEST_ATTEST_FAIL": "cast", "TEST_ATTEST_STATUS": "2"})
         result = self.run_cli("verify")
@@ -93,10 +84,12 @@ class CliBehaviorTests(FoundryFixture, unittest.TestCase):
 import os
 import signal
 import sys
-from importlib import import_module
+import importlib.util
 from pathlib import Path
 sys.path.insert(0, str(Path(sys.argv[1]).parent))
-module = import_module("setup-foundry.cli")
+spec = importlib.util.spec_from_file_location("setup_foundry_signal_probe", sys.argv[1])
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
 module.verify.handle = lambda: os.kill(os.getpid(), getattr(signal, sys.argv[2]))
 sys.exit(module.main(["verify"]))
 """

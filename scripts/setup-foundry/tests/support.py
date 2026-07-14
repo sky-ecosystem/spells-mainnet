@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tempfile
 import textwrap
+import importlib.util
 from importlib import import_module
 from pathlib import Path
 
@@ -15,7 +16,14 @@ BINARIES = ("forge", "cast", "anvil", "chisel")
 
 
 def load_module(name):
-    return import_module(f"setup-foundry.{name}")
+    return import_module(f"src.{name}")
+
+
+def load_cli_module():
+    spec = importlib.util.spec_from_file_location("setup_foundry_entrypoint", CLI)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 FAKE_GH = r"""#!__PYTHON__
@@ -232,14 +240,6 @@ class FoundryFixture:
             [sys.executable, str(CLI)], command=command, path_mode=path_mode
         )
 
-    def run_module(self, command=None, path_mode="foundry"):
-        return self.run_command(
-            [sys.executable, "-m", "setup-foundry"],
-            command=command,
-            path_mode=path_mode,
-            cwd=CLI.parent.parent,
-        )
-
     def run_command(self, argv, command=None, path_mode="foundry", cwd=None):
         env = self.env.copy()
         prefixes = {
@@ -270,4 +270,4 @@ class FoundryFixture:
 
     @staticmethod
     def load_cli_module():
-        return load_module("cli")
+        return load_cli_module()
