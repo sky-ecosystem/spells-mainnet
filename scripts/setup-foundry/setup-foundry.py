@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
-"""Verify or install an age-eligible stable Foundry release from GitHub.com."""
+"""Verify or install an age-eligible stable Foundry release from GitHub.com.
+
+GitHub.com and foundry-rs/foundry/.github/workflows/release.yml are the pinned
+trust roots. The CLI selects the newest non-draft, non-prerelease release old
+enough for the seven-day policy. Installs verify the release asset before
+parsing its archive, then verify all four installed binaries before executing
+them. Installation is transactional: failures restore the prior files, and an
+incomplete restoration preserves and reports the backup directory for manual
+recovery.
+"""
 
 import hashlib
 import json
@@ -364,7 +373,7 @@ class Installation:
 
     def rollback(self):
         if not self.rollback_required:
-            return
+            return True
         print("\nInstallation did not complete; restoring the previous Foundry binaries.", file=sys.stderr)
         rollback_failed = False
         for binary in BINARIES:
@@ -386,9 +395,11 @@ class Installation:
                 rollback_failed = True
         if rollback_failed:
             print(f"Error: Foundry rollback was incomplete; inspect {self.destination} before continuing.", file=sys.stderr)
+            print(f"Backups preserved at: {self.backup_directory}", file=sys.stderr)
         else:
             print("Previous Foundry installation restored.", file=sys.stderr)
         self.rollback_required = False
+        return not rollback_failed
 
 
 def verify_foundry():
@@ -412,8 +423,10 @@ def install_foundry():
     asset = f"foundry_{selection['version']}_{system}_{architecture}.tar.gz"
     destination = Path.home() / ".foundry" / "bin"
 
-    with tempfile.TemporaryDirectory() as temporary_name:
-        temporary_directory = Path(temporary_name)
+    # Own the temporary directory explicitly so incomplete rollback can retain recovery data.
+    temporary_directory = Path(tempfile.mkdtemp())
+    preserve_recovery_data = False
+    try:
         archive = temporary_directory / asset
         extracted_directory = temporary_directory / "extracted"
         backup_directory = temporary_directory / "previous-installation"
@@ -444,8 +457,11 @@ def install_foundry():
             run_binary_versions(paths)
             installation.commit()
         except BaseException:
-            installation.rollback()
+            preserve_recovery_data = not installation.rollback()
             raise
+    finally:
+        if not preserve_recovery_data:
+            shutil.rmtree(temporary_directory)
 
     print("\nEvidence summary:")
     print(f"  Source: spells-mainnet {source_commit}; setup CLI SHA-256 {cli_sha256}")

@@ -5,6 +5,7 @@ import importlib.util
 import io
 import json
 import os
+import platform
 import shutil
 import stat
 import subprocess
@@ -400,10 +401,23 @@ sys.exit(module.main(["verify"]))
         self.assertIn("no stable Foundry release published at least seven days ago was found", result.stdout)
 
     def test_install_asset_attestation_failure_blocks_archive_read_and_mutation(self):
-        asset = "foundry_v2.0.0_linux_amd64.tar.gz"
+        systems = {"Linux": "linux", "Darwin": "darwin"}
+        architectures = {
+            "x86_64": "amd64",
+            "amd64": "amd64",
+            "arm64": "arm64",
+            "aarch64": "arm64",
+        }
+        asset = (
+            f"foundry_v2.0.0_{systems[platform.system()]}_"
+            f"{architectures[platform.machine()]}.tar.gz"
+        )
         self.env.update({"TEST_ATTEST_FAIL": asset, "TEST_INVALID_ARCHIVE": "1"})
         result = self.run_cli("install", "none")
-        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("attestation verification failed for", result.stdout)
+        self.assertIn(asset, result.stdout)
+        self.assertNotIn("could not read Foundry release archive", result.stdout)
         self.assertTrue(self.destination.is_dir())
         self.assertEqual(list(self.destination.iterdir()), [])
 
@@ -445,6 +459,67 @@ sys.exit(module.main(["verify"]))
         self.assertFalse((self.destination / "anvil").exists())
         self.assertFalse((self.destination / "chisel").exists())
         self.assertIn("Previous Foundry installation restored", result.stdout)
+
+    def test_incomplete_rollback_preserves_reported_backups(self):
+        module = self.load_cli_module()
+        old_forge = self.destination / "forge"
+        old_forge.write_text("old forge\n")
+        env = self.env.copy()
+        env.update({
+            "PATH": f"{self.destination}:{self.fake_bin}:/usr/bin:/bin",
+            "TEST_ATTEST_FAIL": "cast",
+            "TEST_ATTEST_STATUS": "42",
+        })
+        real_copy_entry = module.copy_entry
+        real_mkdtemp = tempfile.mkdtemp
+
+        def fail_restore(source, destination):
+            if source.parent.name == "previous-installation":
+                raise OSError("simulated restore failure")
+            real_copy_entry(source, destination)
+
+        output = io.StringIO()
+        with mock.patch.dict(os.environ, env, clear=True):
+            with mock.patch.object(module, "copy_entry", side_effect=fail_restore):
+                with mock.patch.object(
+                    module.tempfile,
+                    "mkdtemp",
+                    side_effect=lambda *args, **kwargs: real_mkdtemp(dir=self.fixture),
+                ):
+                    with contextlib.redirect_stdout(output), contextlib.redirect_stderr(output):
+                        self.assertEqual(module.main(["install"]), 1)
+
+        prefix = "Backups preserved at: "
+        recovery_lines = [line for line in output.getvalue().splitlines() if line.startswith(prefix)]
+        self.assertEqual(len(recovery_lines), 1, output.getvalue())
+        recovery_directory = Path(recovery_lines[0][len(prefix):])
+        self.assertTrue(recovery_directory.is_dir())
+        self.assertEqual((recovery_directory / "forge").read_text(), "old forge\n")
+
+    def test_success_and_complete_rollback_clean_temporary_data(self):
+        module = self.load_cli_module()
+        real_mkdtemp = tempfile.mkdtemp
+        created = []
+
+        def tracked_mkdtemp(*args, **kwargs):
+            path = Path(real_mkdtemp(dir=self.fixture))
+            created.append(path)
+            return str(path)
+
+        env = self.env.copy()
+        env["PATH"] = f"{self.destination}:{self.fake_bin}:/usr/bin:/bin"
+        with mock.patch.dict(os.environ, env, clear=True):
+            with mock.patch.object(module.tempfile, "mkdtemp", side_effect=tracked_mkdtemp):
+                with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                    self.assertEqual(module.main(["install"]), 0)
+        self.assertFalse(created[-1].exists())
+
+        env["TEST_ATTEST_FAIL"] = "cast"
+        with mock.patch.dict(os.environ, env, clear=True):
+            with mock.patch.object(module.tempfile, "mkdtemp", side_effect=tracked_mkdtemp):
+                with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                    self.assertEqual(module.main(["install"]), 1)
+        self.assertFalse(created[-1].exists())
 
     def test_mid_install_failure_rolls_back_partial_mutation(self):
         module = self.load_cli_module()
