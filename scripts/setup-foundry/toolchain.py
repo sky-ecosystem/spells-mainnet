@@ -5,9 +5,9 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from .config import BINARIES
-from .releases import attest_path, parse_timestamp, release_metadata
-from .runtime import SetupError
+from config import BINARIES
+from releases import attest_path, parse_timestamp, release_metadata
+from runtime import SetupError
 
 
 def resolve_path_binaries():

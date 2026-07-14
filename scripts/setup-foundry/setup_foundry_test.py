@@ -6,7 +6,7 @@ import sys
 import unittest
 from unittest import mock
 
-from src.mocks.cli_environment import CLI, FoundryFixture, load_cli_module
+from mocks.cli_environment import CLI, FoundryFixture, load_cli_module
 
 
 class CliBoundaryTests(unittest.TestCase):

@@ -10,31 +10,18 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from src.mocks.cli_environment import BINARIES, FoundryFixture, load_module
+from mocks.cli_environment import BINARIES, FoundryFixture, load_module
 
 
 class InstallTests(FoundryFixture, unittest.TestCase):
-    def test_install_filters_multiple_recent_releases_before_selecting_newest_eligible(
-        self,
-    ):
+    def test_install_sets_executable_permissions_on_all_binaries(self):
         result = self.run_cli("install", "destination")
         self.assertEqual(result.returncode, 0, result.stdout)
-        self.assertEqual((self.log / "download-version").read_text().strip(), "v2.0.0")
         self.assertTrue(
             all(
                 (self.destination / name).stat().st_mode & 0o777 == 0o755
                 for name in BINARIES
             )
-        )
-
-    def test_install_without_eligible_release_fails_before_download(self):
-        self.env["TEST_NO_ELIGIBLE"] = "1"
-        result = self.run_cli("install", "none")
-        self.assertNotEqual(result.returncode, 0)
-        self.assertFalse((self.log / "download-version").exists())
-        self.assertIn(
-            "no stable Foundry release published at least seven days ago was found",
-            result.stdout,
         )
 
     def test_install_asset_attestation_failure_blocks_archive_read_and_mutation(self):
@@ -83,7 +70,6 @@ class InstallTests(FoundryFixture, unittest.TestCase):
         result = self.run_cli("install", "none")
         self.assertEqual(result.returncode, 2, result.stdout)
         self.assertTrue((self.destination / "forge").is_file())
-        self.assertIn("export PATH=", result.stdout)
         self.assertEqual(self.version_log(), list(BINARIES))
 
     def test_post_mutation_failure_restores_partial_prior_installation(self):

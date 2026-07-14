@@ -2,17 +2,17 @@
 
 from pathlib import Path
 
-from ..installation import foundry_destination, install_selected_release
-from ..releases import select_release
-from ..reporting import (
+from installation import foundry_destination, install_selected_release
+from releases import select_release
+from reporting import (
     report_installation_path_status,
     report_installation_summary,
     report_selection,
 )
-from ..runtime import collect_source_metadata, validate_environment
+from runtime import collect_source_metadata, validate_environment
 
 
-TOOL_ROOT = Path(__file__).resolve().parents[2]
+TOOL_ROOT = Path(__file__).resolve().parents[1]
 
 
 def handle() -> int:

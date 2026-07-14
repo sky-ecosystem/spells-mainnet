@@ -7,7 +7,7 @@ installed binaries before executing them.
 import json
 from datetime import datetime, timezone
 
-from .config import (
+from config import (
     GITHUB_HOST,
     MINIMUM_RELEASE_AGE_SECONDS,
     REPOSITORY,
@@ -15,7 +15,7 @@ from .config import (
     SIGNER_WORKFLOW,
     SOURCE_REPOSITORY,
 )
-from .runtime import SetupError, run
+from runtime import SetupError, run
 
 
 def parse_timestamp(value):

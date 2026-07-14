@@ -3,7 +3,7 @@
 import os
 import sys
 
-from .config import SIGNER_WORKFLOW
+from config import SIGNER_WORKFLOW
 
 
 def report_selection(selection, source_commit, tooling_hash):

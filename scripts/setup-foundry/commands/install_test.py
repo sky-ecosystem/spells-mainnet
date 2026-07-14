@@ -1,7 +1,7 @@
 import unittest
 from unittest import mock
 
-from src.mocks.cli_environment import load_module
+from mocks.cli_environment import load_module
 
 
 class InstallHandlerTests(unittest.TestCase):

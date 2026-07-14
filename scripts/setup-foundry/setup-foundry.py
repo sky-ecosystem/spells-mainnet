@@ -10,8 +10,8 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-from src.commands import install, verify
-from src.runtime import SetupError
+from commands import install, verify
+from runtime import SetupError
 
 
 def usage() -> None:

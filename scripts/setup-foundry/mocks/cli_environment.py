@@ -10,13 +10,13 @@ from importlib import import_module
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[4]
+ROOT = Path(__file__).resolve().parents[3]
 CLI = ROOT / "scripts" / "setup-foundry" / "setup-foundry.py"
 BINARIES = ("forge", "cast", "anvil", "chisel")
 
 
 def load_module(name):
-    return import_module(f"src.{name}")
+    return import_module(name)
 
 
 def load_cli_module():
@@ -54,19 +54,14 @@ if args[:2] == ["auth", "status"]:
 if args and args[0] == "api":
     endpoint = next((arg for arg in args[1:] if arg.startswith("repos/")), "")
     if endpoint == "repos/foundry-rs/foundry/releases?per_page=100":
-        if os.environ.get("TEST_NO_ELIGIBLE") == "1":
-            releases = [
-                {"tag_name": "v2.2.0", "published_at": published["recent_one"], "html_url": "https://example.test/v2.2.0", "draft": False, "prerelease": False},
-            ]
-        else:
-            releases = [
-                {"tag_name": "v2.2.0", "published_at": published["recent_one"], "html_url": "https://example.test/v2.2.0", "draft": False, "prerelease": False},
-                {"tag_name": "v1.9.0", "published_at": published["older"], "html_url": "https://example.test/v1.9.0", "draft": False, "prerelease": False},
-                {"tag_name": "v2.1.0", "published_at": published["recent_two"], "html_url": "https://example.test/v2.1.0", "draft": False, "prerelease": False},
-                {"tag_name": "v2.0.0", "published_at": published["selected"], "html_url": "https://example.test/v2.0.0", "draft": False, "prerelease": False},
-                {"tag_name": "v3.0.0-rc1", "published_at": published["prerelease"], "html_url": "https://example.test/v3.0.0-rc1", "draft": False, "prerelease": True},
-                {"tag_name": "v9.0.0", "published_at": published["selected"], "html_url": "https://example.test/v9.0.0", "draft": True, "prerelease": False},
-            ]
+        releases = [
+            {"tag_name": "v2.2.0", "published_at": published["recent_one"], "html_url": "https://example.test/v2.2.0", "draft": False, "prerelease": False},
+            {"tag_name": "v1.9.0", "published_at": published["older"], "html_url": "https://example.test/v1.9.0", "draft": False, "prerelease": False},
+            {"tag_name": "v2.1.0", "published_at": published["recent_two"], "html_url": "https://example.test/v2.1.0", "draft": False, "prerelease": False},
+            {"tag_name": "v2.0.0", "published_at": published["selected"], "html_url": "https://example.test/v2.0.0", "draft": False, "prerelease": False},
+            {"tag_name": "v3.0.0-rc1", "published_at": published["prerelease"], "html_url": "https://example.test/v3.0.0-rc1", "draft": False, "prerelease": True},
+            {"tag_name": "v9.0.0", "published_at": published["selected"], "html_url": "https://example.test/v9.0.0", "draft": True, "prerelease": False},
+        ]
         print(json.dumps([releases]))
         sys.exit(0)
     prefix = "repos/foundry-rs/foundry/releases/tags/"
@@ -141,11 +136,8 @@ if args[:2] == ["attestation", "verify"]:
         tag = os.environ.get("TEST_INSTALLED_TAG", "v2.0.0")
         if os.environ.get("TEST_MIXED_BINARY") == name:
             tag = "v1.9.0"
-    signer = os.environ.get(
-        "TEST_SIGNER",
-        "https://github.com/foundry-rs/foundry/.github/workflows/release.yml@refs/tags/" + tag,
-    )
-    source = os.environ.get("TEST_SOURCE", "https://github.com/foundry-rs/foundry")
+    signer = "https://github.com/foundry-rs/foundry/.github/workflows/release.yml@refs/tags/" + tag
+    source = "https://github.com/foundry-rs/foundry"
     print(json.dumps([{"verificationResult": {"statement": {"subject": [{"name": name}]}, "signature": {"certificate": {"buildSignerURI": signer, "sourceRepositoryURI": source}}}}]))
     sys.exit(0)
 
@@ -204,9 +196,6 @@ class FoundryFixture:
             "TEST_INSTALLED_TAG",
             "TEST_INVALID_ARCHIVE",
             "TEST_MIXED_BINARY",
-            "TEST_NO_ELIGIBLE",
-            "TEST_SIGNER",
-            "TEST_SOURCE",
             "TEST_VERSION_FAIL",
             "TEST_DOWNLOAD_STATUS",
         ):

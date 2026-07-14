@@ -2,10 +2,10 @@
 
 from pathlib import Path
 
-from ..releases import select_release
-from ..reporting import report_selection, report_verification_summary
-from ..runtime import collect_source_metadata, validate_environment
-from ..toolchain import (
+from releases import select_release
+from reporting import report_selection, report_verification_summary
+from runtime import collect_source_metadata, validate_environment
+from toolchain import (
     resolve_path_binaries,
     run_binary_versions,
     validate_installed_release,
@@ -13,7 +13,7 @@ from ..toolchain import (
 )
 
 
-TOOL_ROOT = Path(__file__).resolve().parents[2]
+TOOL_ROOT = Path(__file__).resolve().parents[1]
 
 
 def handle() -> int:

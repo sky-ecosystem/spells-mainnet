@@ -5,7 +5,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from .config import GITHUB_HOST
+from config import GITHUB_HOST
 
 
 class SetupError(Exception):
@@ -40,16 +40,14 @@ def validate_environment():
 
 def tooling_sha256(tool_root):
     tool_root = Path(tool_root)
-    source_root = tool_root / "src"
-    mocks_root = source_root / "mocks"
-    paths = [tool_root / "setup-foundry.py"]
-    paths.extend(
+    mocks_root = tool_root / "mocks"
+    paths = [
         path
-        for path in source_root.rglob("*.py")
+        for path in tool_root.rglob("*.py")
         if "__pycache__" not in path.parts
         and mocks_root not in path.parents
         and not path.name.endswith("_test.py")
-    )
+    ]
     digest = hashlib.sha256()
     for path in sorted(paths, key=lambda item: item.relative_to(tool_root).as_posix()):
         digest.update(path.relative_to(tool_root).as_posix().encode())

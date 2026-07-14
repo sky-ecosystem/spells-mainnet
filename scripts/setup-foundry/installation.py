@@ -14,10 +14,10 @@ import tarfile
 import tempfile
 from pathlib import Path
 
-from .config import BINARIES, QUALIFIED_REPOSITORY
-from .releases import attest_path
-from .runtime import SetupError, run
-from .toolchain import run_binary_versions, verify_binary_paths
+from config import BINARIES, QUALIFIED_REPOSITORY
+from releases import attest_path
+from runtime import SetupError, run
+from toolchain import run_binary_versions, verify_binary_paths
 
 
 def validate_install_platform():
