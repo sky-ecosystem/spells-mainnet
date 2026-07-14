@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from .support import BINARIES, FoundryFixture, load_module
+from test_support import BINARIES, FoundryFixture, load_module
 
 
 class InstallTests(FoundryFixture, unittest.TestCase):

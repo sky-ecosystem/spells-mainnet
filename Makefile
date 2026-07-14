@@ -3,9 +3,9 @@ clean                :; forge clean
 install-foundry      :; python3 ./scripts/setup-foundry/setup-foundry.py install
 verify-foundry       :; python3 ./scripts/setup-foundry/setup-foundry.py verify
 test-setup-foundry   :; PYTHONPATH=./scripts/setup-foundry python3 -m unittest discover \
-	--start-directory ./scripts/setup-foundry/tests \
+	--start-directory ./scripts/setup-foundry \
 	--top-level-directory ./scripts/setup-foundry \
-	--pattern 'test_*.py' -v
+	--pattern '*_test.py' -v
                         # Usage example: make test match=SpellIsCast
 test                 :; ./scripts/test-dssspell-forge.sh no-match="$(no-match)" match="$(match)" block="$(block)"
 estimate             :; forge build --quiet; BYTECODE=$$(jq -r '.bytecode.object' out/DssSpell.sol/DssSpell.json); GAS=$$(cast estimate --create $$BYTECODE); echo "Estimated gas: $$GAS"

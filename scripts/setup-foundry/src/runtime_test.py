@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from .support import CLI, FoundryFixture, load_module
+from test_support import CLI, FoundryFixture, load_module
 
 
 tooling_sha256 = load_module("runtime").tooling_sha256
@@ -15,18 +15,20 @@ class RuntimeHashTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / "setup-foundry.py").write_text("entry\n")
-            (root / "z.py").write_text("z\n")
-            (root / "a.py").write_text("a\n")
+            (root / "src").mkdir()
+            (root / "src" / "z.py").write_text("z\n")
+            (root / "src" / "a.py").write_text("a\n")
             baseline = tooling_sha256(root)
 
             self.assertEqual(tooling_sha256(root), baseline)
-            (root / "tests").mkdir()
-            (root / "tests" / "test_cli.py").write_text("ignored\n")
-            (root / "__pycache__").mkdir()
-            (root / "__pycache__" / "a.pyc").write_bytes(b"ignored")
+            (root / "src" / "a_test.py").write_text("ignored\n")
+            (root / "setup_foundry_test.py").write_text("ignored\n")
+            (root / "test_support.py").write_text("ignored\n")
+            (root / "src" / "__pycache__").mkdir()
+            (root / "src" / "__pycache__" / "a.pyc").write_bytes(b"ignored")
             self.assertEqual(tooling_sha256(root), baseline)
 
-            (root / "a.py").write_text("changed\n")
+            (root / "src" / "a.py").write_text("changed\n")
             self.assertNotEqual(tooling_sha256(root), baseline)
 
     def test_hash_includes_paths_to_avoid_ambiguous_concatenation(self):
@@ -38,8 +40,9 @@ class RuntimeHashTests(unittest.TestCase):
             second_root = Path(second)
             for root in (first_root, second_root):
                 (root / "setup-foundry.py").write_text("")
-            (first_root / "a.py").write_text("bc")
-            (second_root / "ab.py").write_text("c")
+                (root / "src").mkdir()
+            (first_root / "src" / "a.py").write_text("bc")
+            (second_root / "src" / "ab.py").write_text("c")
             self.assertNotEqual(tooling_sha256(first_root), tooling_sha256(second_root))
 
 

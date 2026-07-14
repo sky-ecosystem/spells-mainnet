@@ -1,6 +1,6 @@
 import unittest
 
-from .support import BINARIES, FoundryFixture
+from test_support import BINARIES, FoundryFixture
 
 
 class VerifyTests(FoundryFixture, unittest.TestCase):
