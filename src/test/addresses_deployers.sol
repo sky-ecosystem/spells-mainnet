@@ -61,7 +61,8 @@ contract Deployers {
             0xc03B540a2c9400C4aCE019598e4bD3d34baC5b68,  // Dewiz from 2026-06-18
             0x6DC7f94F6c25f344f98AA99c9deD97BD50b2dEAB,  // Deployer for GROVE
             0xF544D77337167715F5a80C20De4Bc416234543AF,  // Deployer for GROVE_ALM_PROXY
-            0x1ca4ECaF0E13ca833c80dA835DEEa15e1684361d   // Deployer for PAU_BEACON
+            0x1ca4ECaF0E13ca833c80dA835DEEa15e1684361d,  // Deployer for PAU_BEACON
+            0xa71657b776d01A35dEbe9D64d9fa23dBC5676696   // Deployer for OSERO_ALM_PROXY
         ];
     }
 
