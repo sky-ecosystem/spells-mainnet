@@ -1,6 +1,8 @@
 all                  :; forge build
 clean                :; forge clean
-install-foundry      :; ./scripts/install-foundry.sh
+install-foundry      :; ./scripts/setup-foundry/cli.sh install
+verify-foundry       :; ./scripts/setup-foundry/cli.sh verify
+test-setup-foundry   :; ./scripts/setup-foundry/test_cli.sh
                         # Usage example: make test match=SpellIsCast
 test                 :; ./scripts/test-dssspell-forge.sh no-match="$(no-match)" match="$(match)" block="$(block)"
 estimate             :; forge build --quiet; BYTECODE=$$(jq -r '.bytecode.object' out/DssSpell.sol/DssSpell.json); GAS=$$(cast estimate --create $$BYTECODE); echo "Estimated gas: $$GAS"
