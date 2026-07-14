@@ -1,7 +1,7 @@
 import unittest
 from unittest import mock
 
-from test_support import load_module
+from src.mocks.cli_environment import load_module
 
 
 class VerifyHandlerTests(unittest.TestCase):

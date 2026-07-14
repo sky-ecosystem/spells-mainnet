@@ -1,6 +1,6 @@
 import unittest
 
-from test_support import BINARIES, FoundryFixture
+from src.mocks.cli_environment import BINARIES, FoundryFixture
 
 
 class VerifyTests(FoundryFixture, unittest.TestCase):

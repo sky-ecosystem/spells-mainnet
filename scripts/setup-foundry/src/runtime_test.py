@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from test_support import CLI, FoundryFixture, load_module
+from src.mocks.cli_environment import CLI, FoundryFixture, load_module
 
 
 tooling_sha256 = load_module("runtime").tooling_sha256
@@ -22,8 +22,9 @@ class RuntimeHashTests(unittest.TestCase):
 
             self.assertEqual(tooling_sha256(root), baseline)
             (root / "src" / "a_test.py").write_text("ignored\n")
+            (root / "src" / "mocks").mkdir()
+            (root / "src" / "mocks" / "cli_environment.py").write_text("ignored\n")
             (root / "setup_foundry_test.py").write_text("ignored\n")
-            (root / "test_support.py").write_text("ignored\n")
             (root / "src" / "__pycache__").mkdir()
             (root / "src" / "__pycache__" / "a.pyc").write_bytes(b"ignored")
             self.assertEqual(tooling_sha256(root), baseline)

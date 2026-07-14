@@ -1,4 +1,4 @@
-"""Shared subprocess fixtures for Foundry setup tests."""
+"""Mock CLI environment for Foundry setup tests."""
 
 import os
 import subprocess
@@ -10,7 +10,7 @@ from importlib import import_module
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[4]
 CLI = ROOT / "scripts" / "setup-foundry" / "setup-foundry.py"
 BINARIES = ("forge", "cast", "anvil", "chisel")
 
