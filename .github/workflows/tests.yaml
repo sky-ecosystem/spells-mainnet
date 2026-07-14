@@ -3,19 +3,6 @@ name: Tests
 on: [push, pull_request]
 
 jobs:
-  setup-foundry:
-    name: Setup Foundry CLI (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Test Setup Foundry CLI
-        run: make test-setup-foundry
-
   tests:
     runs-on: ubuntu-latest
     steps:

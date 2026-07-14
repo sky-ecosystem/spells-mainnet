@@ -1,0 +1,17 @@
+name: Setup Foundry
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test Setup Foundry
+        run: make test-setup-foundry
