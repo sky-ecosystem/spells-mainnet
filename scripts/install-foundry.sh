@@ -19,8 +19,8 @@ die() {
     exit 1
 }
 
-# Validate local prerequisites, authentication, and the supported target before download.
-for command in gh git bash tar install uname mktemp mkdir rm rmdir cp sort sed dirname; do
+# Validate external prerequisites, authentication, and the supported target before download.
+for command in gh git; do
     command -v "$command" >/dev/null 2>&1 || die "required command not found: $command"
 done
 
