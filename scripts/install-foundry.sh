@@ -153,6 +153,8 @@ EXTRACTED_DIR="$TEMP_DIR/extracted"
 mkdir "$EXTRACTED_DIR"
 tar -xzf "$TEMP_DIR/$RELEASE_ASSET" -C "$EXTRACTED_DIR" "${BINARIES[@]}"
 
+# Reuse an existing directory, including a symlink to one, but reject files and broken links.
+# Track a missing destination so rollback can remove the directory created by this run.
 if [ -e "$DESTINATION" ] || [ -L "$DESTINATION" ]; then
     [ -d "$DESTINATION" ] || die "installation destination is not a directory: $DESTINATION"
 else
