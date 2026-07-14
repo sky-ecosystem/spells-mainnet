@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from installation import foundry_destination, install_selected_release
+from installation import install_selected_release
 from releases import select_release
 from reporting import (
     report_installation_path_status,
@@ -19,7 +19,7 @@ def handle() -> int:
     validate_environment()
     source_commit, tooling_hash = collect_source_metadata(TOOL_ROOT)
     selection = select_release()
-    destination = foundry_destination()
+    destination = Path.home() / ".foundry" / "bin"
     report_selection(selection, source_commit, tooling_hash)
     install_selected_release(selection, destination)
     report_installation_summary(selection, source_commit, tooling_hash)

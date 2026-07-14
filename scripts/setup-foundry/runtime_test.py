@@ -3,11 +3,11 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
-from mocks.cli_environment import CLI, FoundryFixture, load_module
-
-
-tooling_sha256 = load_module("runtime").tooling_sha256
+import runtime
+from mocks.cli_environment import CLI, FoundryFixture
+from runtime import tooling_sha256
 
 
 class RuntimeHashTests(unittest.TestCase):
@@ -48,6 +48,16 @@ class RuntimeHashTests(unittest.TestCase):
 
 
 class RuntimeBehaviorTests(FoundryFixture, unittest.TestCase):
+    def test_run_normalizes_nonzero_process_status(self):
+        result = subprocess.CompletedProcess(
+            ["command"], returncode=42, stdout="", stderr="process failed"
+        )
+        with mock.patch.object(runtime.subprocess, "run", return_value=result):
+            with self.assertRaisesRegex(
+                runtime.SetupError, "could not run command: process failed"
+            ):
+                runtime.run(["command"], "could not run command")
+
     def test_prerequisites_require_gh_git_and_authentication(self):
         minimal_bin = self.fixture / "minimal-bin"
         minimal_bin.mkdir()

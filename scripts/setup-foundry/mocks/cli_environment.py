@@ -6,17 +6,13 @@ import sys
 import tempfile
 import textwrap
 import importlib.util
-from importlib import import_module
 from pathlib import Path
+
+from config import BINARIES
 
 
 ROOT = Path(__file__).resolve().parents[3]
 CLI = ROOT / "scripts" / "setup-foundry" / "setup-foundry.py"
-BINARIES = ("forge", "cast", "anvil", "chisel")
-
-
-def load_module(name):
-    return import_module(name)
 
 
 def load_cli_module():
@@ -39,7 +35,6 @@ args = sys.argv[1:]
 log = Path(os.environ["TEST_LOG"])
 now = datetime.now(timezone.utc)
 published = {
-    "recent_one": (now - timedelta(days=1)).isoformat().replace("+00:00", "Z"),
     "recent_two": (now - timedelta(days=2)).isoformat().replace("+00:00", "Z"),
     "selected": (now - timedelta(days=30)).isoformat().replace("+00:00", "Z"),
     "older": (now - timedelta(days=60)).isoformat().replace("+00:00", "Z"),
@@ -55,12 +50,7 @@ if args and args[0] == "api":
     endpoint = next((arg for arg in args[1:] if arg.startswith("repos/")), "")
     if endpoint == "repos/foundry-rs/foundry/releases?per_page=100":
         releases = [
-            {"tag_name": "v2.2.0", "published_at": published["recent_one"], "html_url": "https://example.test/v2.2.0", "draft": False, "prerelease": False},
-            {"tag_name": "v1.9.0", "published_at": published["older"], "html_url": "https://example.test/v1.9.0", "draft": False, "prerelease": False},
-            {"tag_name": "v2.1.0", "published_at": published["recent_two"], "html_url": "https://example.test/v2.1.0", "draft": False, "prerelease": False},
             {"tag_name": "v2.0.0", "published_at": published["selected"], "html_url": "https://example.test/v2.0.0", "draft": False, "prerelease": False},
-            {"tag_name": "v3.0.0-rc1", "published_at": published["prerelease"], "html_url": "https://example.test/v3.0.0-rc1", "draft": False, "prerelease": True},
-            {"tag_name": "v9.0.0", "published_at": published["selected"], "html_url": "https://example.test/v9.0.0", "draft": True, "prerelease": False},
         ]
         print(json.dumps([releases]))
         sys.exit(0)
@@ -68,7 +58,6 @@ if args and args[0] == "api":
     if endpoint.startswith(prefix):
         tag = endpoint[len(prefix):]
         metadata = {
-            "v2.2.0": (published["recent_one"], False, False),
             "v2.1.0": (published["recent_two"], False, False),
             "v2.0.0": (published["selected"], False, False),
             "v1.9.0": (published["older"], False, False),
@@ -81,12 +70,8 @@ if args and args[0] == "api":
         sys.exit(0)
 
 if args[:2] == ["release", "download"]:
-    if os.environ.get("TEST_DOWNLOAD_STATUS"):
-        sys.exit(int(os.environ["TEST_DOWNLOAD_STATUS"]))
-    tag = args[2]
     asset = args[args.index("--pattern") + 1]
     directory = Path(args[args.index("--dir") + 1])
-    (log / "download-version").write_text(tag + "\n")
     archive = directory / asset
     if os.environ.get("TEST_INVALID_ARCHIVE") == "1":
         archive.write_bytes(b"not a tar archive")
@@ -197,7 +182,6 @@ class FoundryFixture:
             "TEST_INVALID_ARCHIVE",
             "TEST_MIXED_BINARY",
             "TEST_VERSION_FAIL",
-            "TEST_DOWNLOAD_STATUS",
         ):
             self.env.pop(name, None)
 
@@ -256,7 +240,3 @@ class FoundryFixture:
     def version_log(self):
         path = self.log / "versions"
         return path.read_text().splitlines() if path.exists() else []
-
-    @staticmethod
-    def load_cli_module():
-        return load_cli_module()

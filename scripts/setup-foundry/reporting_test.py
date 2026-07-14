@@ -25,57 +25,51 @@ def capture_stdout(function, *args):
 
 
 class ReportingTests(unittest.TestCase):
-    def test_reports_selected_release_and_source(self):
-        _, output = capture_stdout(
-            reporting.report_selection, SELECTION, "source-commit", "tooling-hash"
+    def test_reports_evidence(self):
+        cases = (
+            (
+                reporting.report_selection,
+                (SELECTION, "source-commit", "tooling-hash"),
+                "Eligible Foundry release: v2.0.0\n"
+                "Published at: 2026-01-01T00:00:00Z\n"
+                "Release URL: https://example.test/v2.0.0\n"
+                "Selection policy: newest stable release published at least seven days ago\n"
+                "spells-mainnet commit: source-commit\n"
+                "Setup tooling SHA-256: tooling-hash\n",
+            ),
+            (
+                reporting.report_verification_summary,
+                (
+                    SELECTION,
+                    "source-commit",
+                    "tooling-hash",
+                    "v2.0.0",
+                    "matches newest eligible stable v2.0.0",
+                ),
+                "\nEvidence summary:\n"
+                "  Source: spells-mainnet source-commit; setup tooling SHA-256 tooling-hash\n"
+                "  Eligible release: v2.0.0; 2026-01-01T00:00:00Z; https://example.test/v2.0.0\n"
+                "  Policy decision: newest stable release published at least seven days ago\n"
+                "  Installed release: v2.0.0; matches newest eligible stable v2.0.0\n"
+                "  Binary attestations: forge, cast, anvil, and chisel verified against "
+                f"{SIGNER_WORKFLOW}\n",
+            ),
+            (
+                reporting.report_installation_summary,
+                (SELECTION, "source-commit", "tooling-hash"),
+                "\nEvidence summary:\n"
+                "  Source: spells-mainnet source-commit; setup tooling SHA-256 tooling-hash\n"
+                "  Release: v2.0.0; 2026-01-01T00:00:00Z; https://example.test/v2.0.0\n"
+                "  Policy decision: newest stable release published at least seven days ago\n"
+                f"  Release asset attestation: verified against {SIGNER_WORKFLOW}\n"
+                "  Binary attestations: forge, cast, anvil, and chisel verified against "
+                f"{SIGNER_WORKFLOW}\n",
+            ),
         )
-        self.assertEqual(
-            output,
-            "Eligible Foundry release: v2.0.0\n"
-            "Published at: 2026-01-01T00:00:00Z\n"
-            "Release URL: https://example.test/v2.0.0\n"
-            "Selection policy: newest stable release published at least seven days ago\n"
-            "spells-mainnet commit: source-commit\n"
-            "Setup tooling SHA-256: tooling-hash\n",
-        )
-
-    def test_reports_verification_evidence(self):
-        _, output = capture_stdout(
-            reporting.report_verification_summary,
-            SELECTION,
-            "source-commit",
-            "tooling-hash",
-            "v2.0.0",
-            "matches newest eligible stable v2.0.0",
-        )
-        self.assertEqual(
-            output,
-            "\nEvidence summary:\n"
-            "  Source: spells-mainnet source-commit; setup tooling SHA-256 tooling-hash\n"
-            "  Eligible release: v2.0.0; 2026-01-01T00:00:00Z; https://example.test/v2.0.0\n"
-            "  Policy decision: newest stable release published at least seven days ago\n"
-            "  Installed release: v2.0.0; matches newest eligible stable v2.0.0\n"
-            "  Binary attestations: forge, cast, anvil, and chisel verified against "
-            f"{SIGNER_WORKFLOW}\n",
-        )
-
-    def test_reports_installation_evidence(self):
-        _, output = capture_stdout(
-            reporting.report_installation_summary,
-            SELECTION,
-            "source-commit",
-            "tooling-hash",
-        )
-        self.assertEqual(
-            output,
-            "\nEvidence summary:\n"
-            "  Source: spells-mainnet source-commit; setup tooling SHA-256 tooling-hash\n"
-            "  Release: v2.0.0; 2026-01-01T00:00:00Z; https://example.test/v2.0.0\n"
-            "  Policy decision: newest stable release published at least seven days ago\n"
-            f"  Release asset attestation: verified against {SIGNER_WORKFLOW}\n"
-            "  Binary attestations: forge, cast, anvil, and chisel verified against "
-            f"{SIGNER_WORKFLOW}\n",
-        )
+        for function, arguments, expected in cases:
+            with self.subTest(report=function.__name__):
+                _, output = capture_stdout(function, *arguments)
+                self.assertEqual(output, expected)
 
     def test_reports_whether_installation_destination_is_in_path(self):
         destination = Path("/home/test/.foundry/bin")

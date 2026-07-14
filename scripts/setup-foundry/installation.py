@@ -36,15 +36,6 @@ def validate_install_platform():
     return systems[system], architectures[machine]
 
 
-def foundry_destination():
-    return Path.home() / ".foundry" / "bin"
-
-
-def foundry_release_asset(selection):
-    system, architecture = validate_install_platform()
-    return f"foundry_{selection['version']}_{system}_{architecture}.tar.gz"
-
-
 def download_and_verify_release_asset(selection, asset, temporary_directory):
     archive = temporary_directory / asset
     run(
@@ -97,17 +88,6 @@ def extract_release_archive(archive, extracted_directory):
         raise SetupError(f"could not read Foundry release archive: {error}") from error
 
 
-def path_exists(path):
-    return os.path.lexists(path)
-
-
-def copy_entry(source, destination):
-    if source.is_symlink():
-        destination.symlink_to(os.readlink(source))
-    else:
-        shutil.copy2(source, destination, follow_symlinks=False)
-
-
 class Installation:
     def __init__(self, destination, backup_directory):
         self.destination = destination
@@ -116,7 +96,7 @@ class Installation:
         self.rollback_required = False
 
     def prepare(self):
-        if path_exists(self.destination):
+        if os.path.lexists(self.destination):
             if not self.destination.is_dir():
                 raise SetupError(
                     f"installation destination is not a directory: {self.destination}"
@@ -126,13 +106,13 @@ class Installation:
         self.backup_directory.mkdir(mode=0o700)
         for binary in BINARIES:
             current = self.destination / binary
-            if not path_exists(current):
+            if not os.path.lexists(current):
                 continue
             if not current.is_file() and not current.is_symlink():
                 raise SetupError(
                     f"existing Foundry path is not a file or symbolic link: {current}"
                 )
-            copy_entry(current, self.backup_directory / binary)
+            shutil.copy2(current, self.backup_directory / binary, follow_symlinks=False)
 
     def install(self, extracted_directory):
         self.rollback_required = True
@@ -150,7 +130,7 @@ class Installation:
                 temporary.chmod(0o755)
                 os.replace(temporary, self.destination / binary)
             finally:
-                if path_exists(temporary):
+                if os.path.lexists(temporary):
                     temporary.unlink()
 
     def commit(self):
@@ -167,17 +147,17 @@ class Installation:
         for binary in BINARIES:
             current, backup = self.destination / binary, self.backup_directory / binary
             try:
-                if path_exists(current):
+                if os.path.lexists(current):
                     current.unlink()
-                if path_exists(backup):
-                    copy_entry(backup, current)
+                if os.path.lexists(backup):
+                    shutil.copy2(backup, current, follow_symlinks=False)
             except OSError as error:
                 print(
                     f"Rollback error: could not restore {current}: {error}",
                     file=sys.stderr,
                 )
                 rollback_failed = True
-        if self.destination_created and path_exists(self.destination):
+        if self.destination_created and os.path.lexists(self.destination):
             try:
                 self.destination.rmdir()
             except OSError as error:
@@ -198,18 +178,9 @@ class Installation:
         return not rollback_failed
 
 
-def install_and_verify_binaries(
-    installation, extracted_directory, destination, expected_tag
-):
-    installation.install(extracted_directory)
-    paths = [destination / binary for binary in BINARIES]
-    verify_binary_paths(paths, expected_tag)
-    run_binary_versions(paths)
-    installation.commit()
-
-
 def install_selected_release(selection, destination):
-    asset = foundry_release_asset(selection)
+    system, architecture = validate_install_platform()
+    asset = f"foundry_{selection['version']}_{system}_{architecture}.tar.gz"
 
     # Own this directory explicitly so incomplete rollback can retain recovery data.
     temporary_directory = Path(tempfile.mkdtemp())
@@ -224,9 +195,11 @@ def install_selected_release(selection, destination):
         installation = Installation(destination, backup_directory)
         installation.prepare()
         try:
-            install_and_verify_binaries(
-                installation, extracted_directory, destination, selection["version"]
-            )
+            installation.install(extracted_directory)
+            paths = [destination / binary for binary in BINARIES]
+            verify_binary_paths(paths, selection["version"])
+            run_binary_versions(paths)
+            installation.commit()
         except BaseException:
             preserve_recovery_data = not installation.rollback()
             raise

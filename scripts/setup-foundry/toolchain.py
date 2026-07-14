@@ -1,6 +1,5 @@
 """Inspect and verify an installed Foundry toolchain."""
 
-import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -16,10 +15,7 @@ def resolve_path_binaries():
         resolved = shutil.which(binary)
         if resolved is None:
             raise SetupError(f"Foundry binary not found in PATH: {binary}")
-        path = Path(resolved)
-        if not path.is_file() or not os.access(path, os.X_OK):
-            raise SetupError(f"Foundry command is not an executable file: {path}")
-        paths.append(path)
+        paths.append(Path(resolved))
     return paths
 
 
@@ -43,7 +39,6 @@ def verify_binary_paths(paths, expected_tag=None):
 
 
 def run_binary_versions(paths):
-    outputs = []
     print("\nInstalled versions:")
     for path in paths:
         result = subprocess.run(
@@ -58,9 +53,7 @@ def run_binary_versions(paths):
         output = result.stdout.strip()
         if not output:
             raise SetupError(f"empty version output from {path}")
-        outputs.append(output)
         print(output)
-    return outputs
 
 
 def validate_installed_release(installed_tag, selection):

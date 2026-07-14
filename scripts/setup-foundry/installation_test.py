@@ -10,7 +10,12 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from mocks.cli_environment import BINARIES, FoundryFixture, load_module
+import installation as installation_module
+from mocks.cli_environment import (
+    BINARIES,
+    FoundryFixture,
+    load_cli_module,
+)
 
 
 class InstallTests(FoundryFixture, unittest.TestCase):
@@ -93,9 +98,9 @@ class InstallTests(FoundryFixture, unittest.TestCase):
         self.assertIn("Previous Foundry installation restored", result.stdout)
 
     def test_incomplete_rollback_preserves_reported_backups(self):
-        module = load_module("installation")
+        module = installation_module
 
-        cli_module = self.load_cli_module()
+        cli_module = load_cli_module()
         old_forge = self.destination / "forge"
         old_forge.write_text("old forge\n")
         env = self.env.copy()
@@ -106,17 +111,17 @@ class InstallTests(FoundryFixture, unittest.TestCase):
                 "TEST_ATTEST_STATUS": "42",
             }
         )
-        real_copy_entry = module.copy_entry
+        real_copy2 = module.shutil.copy2
         real_mkdtemp = tempfile.mkdtemp
 
-        def fail_restore(source, destination):
+        def fail_restore(source, destination, *, follow_symlinks=True):
             if source.parent.name == "previous-installation":
                 raise OSError("simulated restore failure")
-            real_copy_entry(source, destination)
+            real_copy2(source, destination, follow_symlinks=follow_symlinks)
 
         output = io.StringIO()
         with mock.patch.dict(os.environ, env, clear=True):
-            with mock.patch.object(module, "copy_entry", side_effect=fail_restore):
+            with mock.patch.object(module.shutil, "copy2", side_effect=fail_restore):
                 with mock.patch.object(
                     module.tempfile,
                     "mkdtemp",
@@ -138,9 +143,9 @@ class InstallTests(FoundryFixture, unittest.TestCase):
         self.assertEqual((recovery_directory / "forge").read_text(), "old forge\n")
 
     def test_success_and_complete_rollback_clean_temporary_data(self):
-        module = load_module("installation")
+        module = installation_module
 
-        cli_module = self.load_cli_module()
+        cli_module = load_cli_module()
         real_mkdtemp = tempfile.mkdtemp
         created = []
 
@@ -175,7 +180,7 @@ class InstallTests(FoundryFixture, unittest.TestCase):
         self.assertFalse(created[-1].exists())
 
     def test_mid_install_failure_rolls_back_partial_mutation(self):
-        module = load_module("installation")
+        module = installation_module
 
         extracted = self.fixture / "extracted"
         backup = self.fixture / "backup"
@@ -184,8 +189,8 @@ class InstallTests(FoundryFixture, unittest.TestCase):
             (self.destination / binary).write_text(f"old {binary}\n")
             (extracted / binary).write_text(f"new {binary}\n")
 
-        installation = module.Installation(self.destination, backup)
-        installation.prepare()
+        transaction = module.Installation(self.destination, backup)
+        transaction.prepare()
         real_replace = os.replace
         replacements = 0
 
@@ -200,10 +205,10 @@ class InstallTests(FoundryFixture, unittest.TestCase):
             module.os, "replace", side_effect=fail_on_third_replacement
         ):
             with self.assertRaises(OSError):
-                installation.install(extracted)
+                transaction.install(extracted)
         rollback_output = io.StringIO()
         with contextlib.redirect_stderr(rollback_output):
-            installation.rollback()
+            transaction.rollback()
 
         for binary in BINARIES:
             self.assertEqual((self.destination / binary).read_text(), f"old {binary}\n")
