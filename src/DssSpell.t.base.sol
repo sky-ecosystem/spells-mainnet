@@ -615,9 +615,6 @@ interface ArbL2GovernanceRelayLike {
     function relay(address target, bytes calldata targetData) external;
 }
 
-// Commented out with the Safe Harbor verification test (see DssSpell.t.sol): used only by that test,
-// and the deep traversal does not compile with the optimizer enabled (legacy "stack too deep").
-
 interface SafeHarborAgreementLike {
     struct Account {
         string accountAddress;
@@ -4381,9 +4378,6 @@ contract DssSpellTestBase is Config, DssTest {
 
         vm.revertToStateAndDelete(beforeCast);
     }
-
-    // Commented out with the Safe Harbor verification test (see DssSpell.t.sol): these traversal
-    // helpers do not compile with the optimizer enabled (legacy "stack too deep").
 
     function _compareStrings(string memory a, string memory b) internal pure returns (bool) {
         return keccak256(abi.encodePacked(a)) == keccak256(abi.encodePacked(b));

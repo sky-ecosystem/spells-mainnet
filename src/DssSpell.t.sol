@@ -1453,11 +1453,6 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    // Commented out: the Safe Harbor on-chain verification (deep getDetails() traversal) does not
-    // compile with the optimizer enabled (legacy solc 0.8.16 "stack too deep"), and the optimizer is
-    // required for DssSpellAction to fit under the EIP-170 size limit. The SafeHarborAgreementLike
-    // interface and the traversal helpers in DssSpell.t.base.sol are commented out for the same reason.
-
     struct ChainUpdates {
         string caip2ChainId;
         SafeHarborAgreementLike.Account[] addedAccounts;
