@@ -5,14 +5,14 @@
 
 set -euo pipefail
 
-GITHUB_HOST=github.com
-REPOSITORY=foundry-rs/foundry
-QUALIFIED_REPOSITORY=$GITHUB_HOST/$REPOSITORY
-SIGNER_WORKFLOW=foundry-rs/foundry/.github/workflows/release.yml
-SIGNER_PREFIX=https://github.com/$SIGNER_WORKFLOW@refs/tags/
-SOURCE_REPOSITORY=https://github.com/$REPOSITORY
-MINIMUM_RELEASE_AGE_SECONDS=604800
-BINARIES=(forge cast anvil chisel)
+GITHUB_HOST="github.com"
+REPOSITORY="foundry-rs/foundry"
+QUALIFIED_REPOSITORY="${GITHUB_HOST}/${REPOSITORY}"
+SIGNER_WORKFLOW="${REPOSITORY}/.github/workflows/release.yml"
+SIGNER_PREFIX="https://${GITHUB_HOST}/${SIGNER_WORKFLOW}@refs/tags/"
+SOURCE_REPOSITORY="https://${GITHUB_HOST}/${REPOSITORY}"
+MINIMUM_RELEASE_AGE_SECONDS="604800"
+BINARIES=("forge" "cast" "anvil" "chisel")
 
 die() {
     printf 'Error: %s\n' "$*" >&2
@@ -62,7 +62,7 @@ collect_source_metadata() {
 
     script_path=${BASH_SOURCE[0]}
     script_dir=$(cd "$(dirname "$script_path")" && pwd)
-    repo_root=$(git -C "$script_dir/../.." rev-parse --show-toplevel 2>/dev/null) || die 'setup CLI is not in a Git checkout'
+    repo_root=$(git -C "${script_dir}/../.." rev-parse --show-toplevel 2>/dev/null) || die 'setup CLI is not in a Git checkout'
     SOURCE_COMMIT=$(git -C "$repo_root" rev-parse HEAD)
     CLI_SHA256=$(sha256 "$script_path")
 }
@@ -70,8 +70,8 @@ collect_source_metadata() {
 select_release() {
     local selected_record
 
-    selected_record=$(gh api --paginate "repos/$REPOSITORY/releases?per_page=100" --hostname "$GITHUB_HOST" \
-        --jq ".[] | select(.draft == false and .prerelease == false and (now - (.published_at | fromdateiso8601)) >= $MINIMUM_RELEASE_AGE_SECONDS) | [.tag_name, .published_at, .html_url] | @tsv" \
+    selected_record=$(gh api --paginate "repos/${REPOSITORY}/releases?per_page=100" --hostname "$GITHUB_HOST" \
+        --jq ".[] | select(.draft == false and .prerelease == false and (now - (.published_at | fromdateiso8601)) >= ${MINIMUM_RELEASE_AGE_SECONDS}) | [.tag_name, .published_at, .html_url] | @tsv" \
         | sort -k2,2r \
         | sed -n '1p')
     [ -n "$selected_record" ] || die 'no stable Foundry release published at least seven days ago was found'
@@ -165,7 +165,7 @@ resolve_path_binaries() {
 validate_installed_release() {
     local record installed_published_at installed_draft installed_prerelease
 
-    record=$(gh api "repos/$REPOSITORY/releases/tags/$INSTALLED_TAG" --hostname "$GITHUB_HOST" \
+    record=$(gh api "repos/${REPOSITORY}/releases/tags/${INSTALLED_TAG}" --hostname "$GITHUB_HOST" \
         --jq '[.tag_name, .published_at, .draft, .prerelease] | @tsv') || die "could not find Foundry release metadata for $INSTALLED_TAG"
     IFS=$'\t' read -r _ installed_published_at installed_draft installed_prerelease <<< "$record"
     [ "$installed_draft" = false ] && [ "$installed_prerelease" = false ] \
@@ -217,14 +217,14 @@ rollback_installation() {
     rollback_failed=0
     printf '\nInstallation did not complete; restoring the previous Foundry binaries.\n' >&2
     for binary in "${BINARIES[@]}"; do
-        if ! rm -f "$DESTINATION/$binary"; then
-            printf 'Rollback error: could not remove %s\n' "$DESTINATION/$binary" >&2
+        if ! rm -f "${DESTINATION}/${binary}"; then
+            printf 'Rollback error: could not remove %s\n' "${DESTINATION}/${binary}" >&2
             rollback_failed=1
             continue
         fi
-        if [ -e "$BACKUP_DIR/$binary" ] || [ -L "$BACKUP_DIR/$binary" ]; then
-            if ! cp -pP "$BACKUP_DIR/$binary" "$DESTINATION/$binary"; then
-                printf 'Rollback error: could not restore %s\n' "$DESTINATION/$binary" >&2
+        if [ -e "${BACKUP_DIR}/${binary}" ] || [ -L "${BACKUP_DIR}/${binary}" ]; then
+            if ! cp -pP "${BACKUP_DIR}/${binary}" "${DESTINATION}/${binary}"; then
+                printf 'Rollback error: could not restore %s\n' "${DESTINATION}/${binary}" >&2
                 rollback_failed=1
             fi
         fi
@@ -258,9 +258,9 @@ cleanup() {
 
 initialize_installation() {
     RELEASE_ASSET="foundry_${VERSION}_${PLATFORM}_${ARCH}.tar.gz"
-    DESTINATION="$HOME/.foundry/bin"
+    DESTINATION="${HOME}/.foundry/bin"
     TEMP_DIR=$(mktemp -d)
-    BACKUP_DIR="$TEMP_DIR/previous-installation"
+    BACKUP_DIR="${TEMP_DIR}/previous-installation"
     ROLLBACK_REQUIRED=0
     DESTINATION_CREATED=0
     trap cleanup EXIT
@@ -271,12 +271,12 @@ initialize_installation() {
 download_verify_and_extract_release() {
     gh release download "$VERSION" --repo "$QUALIFIED_REPOSITORY" --pattern "$RELEASE_ASSET" --dir "$TEMP_DIR"
     printf '\nRelease asset attestation:\n'
-    attest_path "$TEMP_DIR/$RELEASE_ASSET"
+    attest_path "${TEMP_DIR}/${RELEASE_ASSET}"
     [ "$ATTESTED_TAG" = "$VERSION" ] || die "release asset attestation tag $ATTESTED_TAG does not match $VERSION"
 
-    EXTRACTED_DIR="$TEMP_DIR/extracted"
+    EXTRACTED_DIR="${TEMP_DIR}/extracted"
     mkdir "$EXTRACTED_DIR"
-    tar -xzf "$TEMP_DIR/$RELEASE_ASSET" -C "$EXTRACTED_DIR" "${BINARIES[@]}"
+    tar -xzf "${TEMP_DIR}/${RELEASE_ASSET}" -C "$EXTRACTED_DIR" "${BINARIES[@]}"
 }
 
 prepare_destination() {
@@ -292,11 +292,11 @@ prepare_destination() {
 
     mkdir -m 0700 "$BACKUP_DIR"
     for binary in "${BINARIES[@]}"; do
-        if [ -e "$DESTINATION/$binary" ] || [ -L "$DESTINATION/$binary" ]; then
-            if [ ! -f "$DESTINATION/$binary" ] && [ ! -L "$DESTINATION/$binary" ]; then
-                die "existing Foundry path is not a file or symbolic link: $DESTINATION/$binary"
+        if [ -e "${DESTINATION}/${binary}" ] || [ -L "${DESTINATION}/${binary}" ]; then
+            if [ ! -f "${DESTINATION}/${binary}" ] && [ ! -L "${DESTINATION}/${binary}" ]; then
+                die "existing Foundry path is not a file or symbolic link: ${DESTINATION}/${binary}"
             fi
-            cp -pP "$DESTINATION/$binary" "$BACKUP_DIR/$binary"
+            cp -pP "${DESTINATION}/${binary}" "${BACKUP_DIR}/${binary}"
         fi
     done
 }
@@ -309,7 +309,7 @@ install_binaries() {
         install -d -m 0755 "$DESTINATION"
     fi
     for binary in "${BINARIES[@]}"; do
-        install -m 0755 "$EXTRACTED_DIR/$binary" "$DESTINATION/$binary"
+        install -m 0755 "${EXTRACTED_DIR}/${binary}" "${DESTINATION}/${binary}"
     done
 }
 
@@ -318,7 +318,7 @@ verify_installed_binaries() {
 
     BINARY_PATHS=()
     for binary in "${BINARIES[@]}"; do
-        BINARY_PATHS+=("$DESTINATION/$binary")
+        BINARY_PATHS+=("${DESTINATION}/${binary}")
     done
     verify_binary_paths "$VERSION"
     run_binary_versions
