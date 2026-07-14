@@ -388,7 +388,12 @@ class SetupFoundryTests(unittest.TestCase):
     def test_mid_install_failure_rolls_back_partial_mutation(self):
         spec = importlib.util.spec_from_file_location("setup_foundry", CLI)
         module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        previous_bytecode_setting = sys.dont_write_bytecode
+        sys.dont_write_bytecode = True
+        try:
+            spec.loader.exec_module(module)
+        finally:
+            sys.dont_write_bytecode = previous_bytecode_setting
         extracted = self.fixture / "extracted"
         backup = self.fixture / "backup"
         extracted.mkdir()
