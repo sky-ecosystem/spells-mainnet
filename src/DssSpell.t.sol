@@ -1524,6 +1524,16 @@ contract DssSpellTest is DssSpellTestBase {
         uint256 daiUsdsSupplyBefore = dai.totalSupply() + usds.totalSupply();
 
         _vote(address(spell));
+
+        {
+            (,, uint48 tau, uint48 toc) = oracle.ilks(ilk);
+            assertGt(toc, 0, "testRWA001AOffboarding/invalid-toc");
+            assertEq(tau, 30 days, "testRWA001AOffboarding/invalid-tau");
+            assertGe(
+                block.timestamp, uint256(toc) + uint256(tau), "testRWA001AOffboarding/remediation-period-not-ended"
+            );
+        }
+
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done());
 
