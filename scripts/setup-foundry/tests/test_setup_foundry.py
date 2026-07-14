@@ -391,6 +391,46 @@ sys.exit(module.main(["verify"]))
         self.assertEqual((self.log / "download-version").read_text().strip(), "v2.0.0")
         self.assertTrue(all((self.destination / name).stat().st_mode & 0o777 == 0o755 for name in BINARIES))
 
+    def test_install_foundry_only_orchestrates_high_level_steps(self):
+        module = self.load_cli_module()
+        selection = object()
+        destination = object()
+        calls = []
+
+        def record(name, result=None):
+            return mock.Mock(side_effect=lambda *args: calls.append((name, args)) or result)
+
+        with mock.patch.multiple(
+            module,
+            create=True,
+            validate_environment=record("validate"),
+            collect_source_metadata=record("metadata", ("commit", "sha256")),
+            select_release=record("select", selection),
+            foundry_destination=record("destination", destination),
+            report_selection=record("report_selection"),
+            install_selected_release=record("install"),
+            report_installation_summary=record("report_summary"),
+            report_installation_path_status=record("path_status", 2),
+            validate_install_platform=mock.Mock(
+                side_effect=AssertionError("install_foundry called a low-level platform helper")
+            ),
+        ):
+            self.assertEqual(module.install_foundry(), 2)
+
+        self.assertEqual(
+            calls,
+            [
+                ("validate", ()),
+                ("metadata", ()),
+                ("select", ()),
+                ("destination", ()),
+                ("report_selection", (selection, "commit", "sha256")),
+                ("install", (selection, destination)),
+                ("report_summary", (selection, "commit", "sha256")),
+                ("path_status", (destination,)),
+            ],
+        )
+
     def test_install_without_eligible_release_fails_before_download(self):
         self.env["TEST_NO_ELIGIBLE"] = "1"
         result = self.run_cli("install", "none")

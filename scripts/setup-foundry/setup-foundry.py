@@ -415,47 +415,64 @@ def verify_foundry():
     print("\nFoundry verification completed successfully.")
 
 
-def install_foundry():
-    validate_environment()
+def foundry_destination():
+    return Path.home() / ".foundry" / "bin"
+
+
+def foundry_release_asset(selection):
     system, architecture = validate_install_platform()
-    source_commit, cli_sha256 = collect_source_metadata()
-    selection = select_release()
-    asset = f"foundry_{selection['version']}_{system}_{architecture}.tar.gz"
-    destination = Path.home() / ".foundry" / "bin"
+    return f"foundry_{selection['version']}_{system}_{architecture}.tar.gz"
+
+
+def download_and_verify_release_asset(selection, asset, temporary_directory):
+    archive = temporary_directory / asset
+    run(
+        [
+            "gh", "release", "download", selection["version"],
+            "--repo", QUALIFIED_REPOSITORY,
+            "--pattern", asset,
+            "--dir", str(temporary_directory),
+        ],
+        f"could not download Foundry release asset {asset}",
+    )
+    print("\nRelease asset attestation:")
+    asset_tag = attest_path(archive)
+    if asset_tag != selection["version"]:
+        raise SetupError(
+            f"release asset attestation tag {asset_tag} does not match {selection['version']}"
+        )
+    return archive
+
+
+def install_and_verify_binaries(installation, extracted_directory, destination, expected_tag):
+    installation.install(extracted_directory)
+    paths = [destination / binary for binary in BINARIES]
+    verify_binary_paths(paths, expected_tag)
+    run_binary_versions(paths)
+    installation.commit()
+
+
+def install_selected_release(selection, destination):
+    asset = foundry_release_asset(selection)
 
     # Own the temporary directory explicitly so incomplete rollback can retain recovery data.
     temporary_directory = Path(tempfile.mkdtemp())
     preserve_recovery_data = False
     try:
-        archive = temporary_directory / asset
         extracted_directory = temporary_directory / "extracted"
         backup_directory = temporary_directory / "previous-installation"
-        report_selection(selection, source_commit, cli_sha256)
-        run(
-            [
-                "gh", "release", "download", selection["version"],
-                "--repo", QUALIFIED_REPOSITORY,
-                "--pattern", asset,
-                "--dir", str(temporary_directory),
-            ],
-            f"could not download Foundry release asset {asset}",
-        )
-        print("\nRelease asset attestation:")
-        asset_tag = attest_path(archive)
-        if asset_tag != selection["version"]:
-            raise SetupError(
-                f"release asset attestation tag {asset_tag} does not match {selection['version']}"
-            )
+        archive = download_and_verify_release_asset(selection, asset, temporary_directory)
         extract_release_archive(archive, extracted_directory)
 
         installation = Installation(destination, backup_directory)
         installation.prepare()
         try:
-            installation.install(extracted_directory)
-            paths = [destination / binary for binary in BINARIES]
-            verify_binary_paths(paths, selection["version"])
-            run_binary_versions(paths)
-            installation.commit()
+            install_and_verify_binaries(
+                installation,
+                extracted_directory,
+                destination,
+                selection["version"],
+            )
         except BaseException:
             preserve_recovery_data = not installation.rollback()
             raise
@@ -463,6 +480,8 @@ def install_foundry():
         if not preserve_recovery_data:
             shutil.rmtree(temporary_directory)
 
+
+def report_installation_summary(selection, source_commit, cli_sha256):
     print("\nEvidence summary:")
     print(f"  Source: spells-mainnet {source_commit}; setup CLI SHA-256 {cli_sha256}")
     print(f"  Release: {selection['version']}; {selection['published_at']}; {selection['release_url']}")
@@ -470,6 +489,8 @@ def install_foundry():
     print(f"  Release asset attestation: verified against {SIGNER_WORKFLOW}")
     print(f"  Binary attestations: forge, cast, anvil, and chisel verified against {SIGNER_WORKFLOW}")
 
+
+def report_installation_path_status(destination):
     if str(destination) not in os.environ.get("PATH", "").split(os.pathsep):
         print(f"\nFoundry was installed and verified, but {destination} is not in PATH.", file=sys.stderr)
         print('Run: export PATH="$HOME/.foundry/bin:$PATH"', file=sys.stderr)
@@ -477,6 +498,17 @@ def install_foundry():
         return 2
     print("\nFoundry installation and verification completed successfully.")
     return 0
+
+
+def install_foundry():
+    validate_environment()
+    source_commit, cli_sha256 = collect_source_metadata()
+    selection = select_release()
+    destination = foundry_destination()
+    report_selection(selection, source_commit, cli_sha256)
+    install_selected_release(selection, destination)
+    report_installation_summary(selection, source_commit, cli_sha256)
+    return report_installation_path_status(destination)
 
 
 def main(arguments):
