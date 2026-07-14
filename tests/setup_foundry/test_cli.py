@@ -1,25 +1,18 @@
 import contextlib
 import inspect
-import importlib.util
 import io
 import subprocess
 import sys
 import unittest
-from pathlib import Path
 from unittest import mock
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from support import FoundryFixture
-
-
-CLI = Path(__file__).resolve().parents[1] / "setup-foundry.py"
+from .support import CLI, FoundryFixture
 
 
 def load_cli_module():
-    spec = importlib.util.spec_from_file_location("setup_foundry_entrypoint", CLI)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    from setup_foundry import cli
+
+    return cli
 
 
 class CliBoundaryTests(unittest.TestCase):
@@ -30,25 +23,41 @@ class CliBoundaryTests(unittest.TestCase):
 
     def test_dispatches_only_to_subcommand_handlers(self):
         module = load_cli_module()
-        with mock.patch.object(module.install, "handle", return_value=2) as install_handle:
+        with mock.patch.object(
+            module.install, "handle", return_value=2
+        ) as install_handle:
             self.assertEqual(module.main(["install"]), 2)
         install_handle.assert_called_once_with()
 
-        with mock.patch.object(module.verify, "handle", return_value=0) as verify_handle:
+        with mock.patch.object(
+            module.verify, "handle", return_value=0
+        ) as verify_handle:
             self.assertEqual(module.main(["verify"]), 0)
         verify_handle.assert_called_once_with()
 
     def test_entrypoint_does_not_expose_domain_implementation(self):
         module = load_cli_module()
         forbidden = {
-            "select_release", "verify_binary_paths", "extract_release_archive",
-            "Installation", "install_selected_release", "collect_source_metadata",
+            "select_release",
+            "verify_binary_paths",
+            "extract_release_archive",
+            "Installation",
+            "install_selected_release",
+            "collect_source_metadata",
         }
         self.assertTrue(forbidden.isdisjoint(vars(module)))
 
 
-
 class CliBehaviorTests(FoundryFixture, unittest.TestCase):
+    def test_package_is_executable_as_a_module(self):
+        script_result = self.run_cli("verify")
+        module_result = self.run_module("verify")
+
+        self.assertEqual(module_result.returncode, script_result.returncode)
+        self.assertIn(
+            "Foundry verification completed successfully", module_result.stdout
+        )
+
     def test_failure_never_uses_path_warning_exit_code(self):
         self.env.update({"TEST_ATTEST_FAIL": "cast", "TEST_ATTEST_STATUS": "2"})
         result = self.run_cli("verify")
@@ -70,7 +79,9 @@ class CliBehaviorTests(FoundryFixture, unittest.TestCase):
         module = self.load_cli_module()
         output = io.StringIO()
         with contextlib.redirect_stderr(output):
-            with mock.patch.object(module.verify, "handle", side_effect=KeyboardInterrupt):
+            with mock.patch.object(
+                module.verify, "handle", side_effect=KeyboardInterrupt
+            ):
                 self.assertEqual(module.main(["verify"]), 1)
             with mock.patch.object(
                 module.install,
@@ -80,18 +91,16 @@ class CliBehaviorTests(FoundryFixture, unittest.TestCase):
                 self.assertEqual(module.main(["install"]), 1)
 
     def test_main_normalizes_process_signals_to_one(self):
-        probe = r'''
-import importlib.util
+        probe = r"""
 import os
 import signal
 import sys
-sys.dont_write_bytecode = True
-spec = importlib.util.spec_from_file_location("setup_foundry_signal_probe", sys.argv[1])
-module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(module)
+from pathlib import Path
+sys.path.insert(0, str(Path(sys.argv[1]).parent))
+from setup_foundry import cli as module
 module.verify.handle = lambda: os.kill(os.getpid(), getattr(signal, sys.argv[2]))
 sys.exit(module.main(["verify"]))
-'''
+"""
         for signal_name in ("SIGINT", "SIGTERM"):
             with self.subTest(signal=signal_name):
                 result = subprocess.run(

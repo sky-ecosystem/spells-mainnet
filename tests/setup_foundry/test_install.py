@@ -10,24 +10,34 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from support import BINARIES, FoundryFixture
+from .support import BINARIES, FoundryFixture
 
 
 class InstallTests(FoundryFixture, unittest.TestCase):
-    def test_install_filters_multiple_recent_releases_before_selecting_newest_eligible(self):
+    def test_install_filters_multiple_recent_releases_before_selecting_newest_eligible(
+        self,
+    ):
         result = self.run_cli("install", "destination")
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertEqual((self.log / "download-version").read_text().strip(), "v2.0.0")
-        self.assertTrue(all((self.destination / name).stat().st_mode & 0o777 == 0o755 for name in BINARIES))
+        self.assertTrue(
+            all(
+                (self.destination / name).stat().st_mode & 0o777 == 0o755
+                for name in BINARIES
+            )
+        )
 
     def test_install_foundry_only_orchestrates_high_level_steps(self):
         from setup_foundry.commands import install as module
+
         selection = object()
         destination = object()
         calls = []
 
         def record(name, result=None):
-            return mock.Mock(side_effect=lambda *args: calls.append((name, args)) or result)
+            return mock.Mock(
+                side_effect=lambda *args: calls.append((name, args)) or result
+            )
 
         with mock.patch.multiple(
             module,
@@ -62,7 +72,10 @@ class InstallTests(FoundryFixture, unittest.TestCase):
         result = self.run_cli("install", "none")
         self.assertNotEqual(result.returncode, 0)
         self.assertFalse((self.log / "download-version").exists())
-        self.assertIn("no stable Foundry release published at least seven days ago was found", result.stdout)
+        self.assertIn(
+            "no stable Foundry release published at least seven days ago was found",
+            result.stdout,
+        )
 
     def test_install_asset_attestation_failure_blocks_archive_read_and_mutation(self):
         systems = {"Linux": "linux", "Darwin": "darwin"}
@@ -89,7 +102,9 @@ class InstallTests(FoundryFixture, unittest.TestCase):
         self.env.update({"TEST_ASSET_TAG": "v1.9.0", "TEST_INVALID_ARCHIVE": "1"})
         result = self.run_cli("install", "none")
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("release asset attestation tag v1.9.0 does not match v2.0.0", result.stdout)
+        self.assertIn(
+            "release asset attestation tag v1.9.0 does not match v2.0.0", result.stdout
+        )
         self.assertNotIn("tar archive", result.stdout)
 
     def test_install_rejects_unsafe_nonregular_unexpected_and_incomplete_archives(self):
@@ -98,7 +113,10 @@ class InstallTests(FoundryFixture, unittest.TestCase):
                 self.env["TEST_ARCHIVE_VARIANT"] = variant
                 result = self.run_cli("install", "none")
                 self.assertNotEqual(result.returncode, 0)
-                self.assertIn("archive must contain only regular files named forge, cast, anvil, and chisel", result.stdout)
+                self.assertIn(
+                    "archive must contain only regular files named forge, cast, anvil, and chisel",
+                    result.stdout,
+                )
                 self.assertEqual(list(self.destination.iterdir()), [])
 
     def test_install_outside_path_exits_two_after_verified_success(self):
@@ -117,24 +135,31 @@ class InstallTests(FoundryFixture, unittest.TestCase):
         result = self.run_cli("install", "destination")
         self.assertEqual(result.returncode, 1, result.stdout)
         self.assertEqual((self.destination / "forge").read_text(), "old forge\n")
-        self.assertEqual(stat.S_IMODE((self.destination / "forge").stat().st_mode), 0o700)
+        self.assertEqual(
+            stat.S_IMODE((self.destination / "forge").stat().st_mode), 0o700
+        )
         self.assertEqual((self.destination / "cast").read_text(), "old cast\n")
-        self.assertEqual(stat.S_IMODE((self.destination / "cast").stat().st_mode), 0o600)
+        self.assertEqual(
+            stat.S_IMODE((self.destination / "cast").stat().st_mode), 0o600
+        )
         self.assertFalse((self.destination / "anvil").exists())
         self.assertFalse((self.destination / "chisel").exists())
         self.assertIn("Previous Foundry installation restored", result.stdout)
 
     def test_incomplete_rollback_preserves_reported_backups(self):
         from setup_foundry import installation as module
+
         cli_module = self.load_cli_module()
         old_forge = self.destination / "forge"
         old_forge.write_text("old forge\n")
         env = self.env.copy()
-        env.update({
-            "PATH": f"{self.destination}:{self.fake_bin}:/usr/bin:/bin",
-            "TEST_ATTEST_FAIL": "cast",
-            "TEST_ATTEST_STATUS": "42",
-        })
+        env.update(
+            {
+                "PATH": f"{self.destination}:{self.fake_bin}:/usr/bin:/bin",
+                "TEST_ATTEST_FAIL": "cast",
+                "TEST_ATTEST_STATUS": "42",
+            }
+        )
         real_copy_entry = module.copy_entry
         real_mkdtemp = tempfile.mkdtemp
 
@@ -151,18 +176,24 @@ class InstallTests(FoundryFixture, unittest.TestCase):
                     "mkdtemp",
                     side_effect=lambda *args, **kwargs: real_mkdtemp(dir=self.fixture),
                 ):
-                    with contextlib.redirect_stdout(output), contextlib.redirect_stderr(output):
+                    with (
+                        contextlib.redirect_stdout(output),
+                        contextlib.redirect_stderr(output),
+                    ):
                         self.assertEqual(cli_module.main(["install"]), 1)
 
         prefix = "Backups preserved at: "
-        recovery_lines = [line for line in output.getvalue().splitlines() if line.startswith(prefix)]
+        recovery_lines = [
+            line for line in output.getvalue().splitlines() if line.startswith(prefix)
+        ]
         self.assertEqual(len(recovery_lines), 1, output.getvalue())
-        recovery_directory = Path(recovery_lines[0][len(prefix):])
+        recovery_directory = Path(recovery_lines[0][len(prefix) :])
         self.assertTrue(recovery_directory.is_dir())
         self.assertEqual((recovery_directory / "forge").read_text(), "old forge\n")
 
     def test_success_and_complete_rollback_clean_temporary_data(self):
         from setup_foundry import installation as module
+
         cli_module = self.load_cli_module()
         real_mkdtemp = tempfile.mkdtemp
         created = []
@@ -175,20 +206,31 @@ class InstallTests(FoundryFixture, unittest.TestCase):
         env = self.env.copy()
         env["PATH"] = f"{self.destination}:{self.fake_bin}:/usr/bin:/bin"
         with mock.patch.dict(os.environ, env, clear=True):
-            with mock.patch.object(module.tempfile, "mkdtemp", side_effect=tracked_mkdtemp):
-                with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            with mock.patch.object(
+                module.tempfile, "mkdtemp", side_effect=tracked_mkdtemp
+            ):
+                with (
+                    contextlib.redirect_stdout(io.StringIO()),
+                    contextlib.redirect_stderr(io.StringIO()),
+                ):
                     self.assertEqual(cli_module.main(["install"]), 0)
         self.assertFalse(created[-1].exists())
 
         env["TEST_ATTEST_FAIL"] = "cast"
         with mock.patch.dict(os.environ, env, clear=True):
-            with mock.patch.object(module.tempfile, "mkdtemp", side_effect=tracked_mkdtemp):
-                with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            with mock.patch.object(
+                module.tempfile, "mkdtemp", side_effect=tracked_mkdtemp
+            ):
+                with (
+                    contextlib.redirect_stdout(io.StringIO()),
+                    contextlib.redirect_stderr(io.StringIO()),
+                ):
                     self.assertEqual(cli_module.main(["install"]), 1)
         self.assertFalse(created[-1].exists())
 
     def test_mid_install_failure_rolls_back_partial_mutation(self):
         from setup_foundry import installation as module
+
         extracted = self.fixture / "extracted"
         backup = self.fixture / "backup"
         extracted.mkdir()
@@ -208,7 +250,9 @@ class InstallTests(FoundryFixture, unittest.TestCase):
                 raise OSError("simulated partial installation failure")
             real_replace(source, destination)
 
-        with mock.patch.object(module.os, "replace", side_effect=fail_on_third_replacement):
+        with mock.patch.object(
+            module.os, "replace", side_effect=fail_on_third_replacement
+        ):
             with self.assertRaises(OSError):
                 installation.install(extracted)
         rollback_output = io.StringIO()
@@ -218,7 +262,9 @@ class InstallTests(FoundryFixture, unittest.TestCase):
         for binary in BINARIES:
             self.assertEqual((self.destination / binary).read_text(), f"old {binary}\n")
         self.assertEqual(list(self.destination.glob(".*.setup-foundry.*")), [])
-        self.assertIn("Previous Foundry installation restored", rollback_output.getvalue())
+        self.assertIn(
+            "Previous Foundry installation restored", rollback_output.getvalue()
+        )
 
     def test_install_preserves_unmanaged_destination_files(self):
         unmanaged = self.destination / ".forge.setup-foundry"

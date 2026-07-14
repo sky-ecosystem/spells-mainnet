@@ -1,8 +1,14 @@
+"""Install-command orchestration."""
+
 from pathlib import Path
 
 from ..installation import foundry_destination, install_selected_release
 from ..releases import select_release
-from ..reporting import report_installation_path_status, report_installation_summary, report_selection
+from ..reporting import (
+    report_installation_path_status,
+    report_installation_summary,
+    report_selection,
+)
 from ..runtime import collect_source_metadata, validate_environment
 
 

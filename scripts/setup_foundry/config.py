@@ -1,3 +1,5 @@
+"""Repository-defined Foundry release and attestation policy."""
+
 GITHUB_HOST = "github.com"
 REPOSITORY = "foundry-rs/foundry"
 QUALIFIED_REPOSITORY = f"{GITHUB_HOST}/{REPOSITORY}"

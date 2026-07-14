@@ -1,30 +1,30 @@
-#!/usr/bin/env python3
-"""CLI for the repository's verified Foundry setup tooling.
-
-The delegated package pins GitHub and Foundry's release workflow as trust roots
-and permits only the newest stable release that has matured for seven days.
-"""
+"""Command-line interface for the Foundry setup package."""
 
 import signal
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 
-from setup_foundry.commands import install, verify
-from setup_foundry.runtime import SetupError
+from .commands import install, verify
+from .runtime import SetupError
 
 
-def usage():
+def usage() -> None:
+    """Print command usage to standard error."""
     print(f"Usage: {Path(sys.argv[0]).name} {{verify|install}}", file=sys.stderr)
 
 
-def terminate(_signal_number, _frame):
+def terminate(_signal_number, _frame) -> None:
+    """Normalize process termination to a user-facing setup error."""
     raise SetupError("terminated")
 
 
-def main(arguments):
+def main(arguments: Sequence[str]) -> int:
+    """Dispatch a setup command and return its process exit code."""
     if len(arguments) != 1 or arguments[0] not in ("verify", "install"):
         usage()
         return 1
+
     previous_sigterm = signal.signal(signal.SIGTERM, terminate)
     try:
         return {"verify": verify.handle, "install": install.handle}[arguments[0]]()
@@ -36,7 +36,3 @@ def main(arguments):
         return 1
     finally:
         signal.signal(signal.SIGTERM, previous_sigterm)
-
-
-if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))

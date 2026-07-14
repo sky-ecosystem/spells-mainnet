@@ -1,3 +1,5 @@
+"""Process, environment, and source-metadata utilities."""
+
 import hashlib
 import shutil
 import subprocess
@@ -16,7 +18,9 @@ def run(command, failure_message):
     )
     if result.returncode:
         detail = result.stderr.strip() or result.stdout.strip()
-        raise SetupError(failure_message if not detail else f"{failure_message}: {detail}")
+        raise SetupError(
+            failure_message if not detail else f"{failure_message}: {detail}"
+        )
     return result.stdout
 
 
@@ -38,7 +42,9 @@ def tooling_sha256(tool_root):
     tool_root = Path(tool_root)
     paths = [tool_root / "setup-foundry.py"]
     package = tool_root / "setup_foundry"
-    paths.extend(path for path in package.rglob("*.py") if "__pycache__" not in path.parts)
+    paths.extend(
+        path for path in package.rglob("*.py") if "__pycache__" not in path.parts
+    )
     digest = hashlib.sha256()
     for path in sorted(paths, key=lambda item: item.relative_to(tool_root).as_posix()):
         digest.update(path.relative_to(tool_root).as_posix().encode())
@@ -50,7 +56,7 @@ def tooling_sha256(tool_root):
 
 def collect_source_metadata(tool_root):
     tool_root = Path(tool_root).resolve()
-    candidate_root = tool_root.parents[1]
+    candidate_root = tool_root.parent
     repository_root = run(
         ["git", "-C", str(candidate_root), "rev-parse", "--show-toplevel"],
         "setup tooling is not in a Git checkout",

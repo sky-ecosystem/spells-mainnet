@@ -1,3 +1,5 @@
+"""Inspect and verify an installed Foundry toolchain."""
+
 import os
 import shutil
 import subprocess
@@ -30,9 +32,13 @@ def verify_binary_paths(paths, expected_tag=None):
         if installed_tag is None:
             installed_tag = tag
         elif tag != installed_tag:
-            raise SetupError(f"Foundry binaries come from different releases: {installed_tag} and {tag}")
+            raise SetupError(
+                f"Foundry binaries come from different releases: {installed_tag} and {tag}"
+            )
     if expected_tag is not None and installed_tag != expected_tag:
-        raise SetupError(f"installed Foundry release {installed_tag} does not match expected release {expected_tag}")
+        raise SetupError(
+            f"installed Foundry release {installed_tag} does not match expected release {expected_tag}"
+        )
     return installed_tag
 
 
@@ -40,7 +46,13 @@ def run_binary_versions(paths):
     outputs = []
     print("\nInstalled versions:")
     for path in paths:
-        result = subprocess.run([str(path), "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False)
+        result = subprocess.run(
+            [str(path), "--version"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=False,
+        )
         if result.returncode:
             raise SetupError(f"could not read version from {path}")
         output = result.stdout.strip()

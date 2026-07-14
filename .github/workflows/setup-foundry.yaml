@@ -3,10 +3,14 @@ name: Setup Foundry
 on:
   push:
     paths:
-      - "scripts/setup-foundry/**"
+      - "scripts/setup-foundry.py"
+      - "scripts/setup_foundry/**"
+      - "tests/setup_foundry/**"
   pull_request:
     paths:
-      - "scripts/setup-foundry/**"
+      - "scripts/setup-foundry.py"
+      - "scripts/setup_foundry/**"
+      - "tests/setup_foundry/**"
 
 jobs:
   test:

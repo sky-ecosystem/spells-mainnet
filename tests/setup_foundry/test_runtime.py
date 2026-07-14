@@ -4,13 +4,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-
-TOOL_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(TOOL_ROOT))
-
 from setup_foundry.runtime import tooling_sha256
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from support import CLI, FoundryFixture
+
+from .support import CLI, FoundryFixture
 
 
 class RuntimeHashTests(unittest.TestCase):
@@ -25,7 +21,7 @@ class RuntimeHashTests(unittest.TestCase):
 
             self.assertEqual(tooling_sha256(root), baseline)
             (root / "tests").mkdir()
-            (root / "tests" / "test-cli.py").write_text("ignored\n")
+            (root / "tests" / "test_cli.py").write_text("ignored\n")
             (root / "setup_foundry" / "__pycache__").mkdir()
             (root / "setup_foundry" / "__pycache__" / "a.pyc").write_bytes(b"ignored")
             self.assertEqual(tooling_sha256(root), baseline)
@@ -34,7 +30,10 @@ class RuntimeHashTests(unittest.TestCase):
             self.assertNotEqual(tooling_sha256(root), baseline)
 
     def test_hash_includes_paths_to_avoid_ambiguous_concatenation(self):
-        with tempfile.TemporaryDirectory() as first, tempfile.TemporaryDirectory() as second:
+        with (
+            tempfile.TemporaryDirectory() as first,
+            tempfile.TemporaryDirectory() as second,
+        ):
             first_root = Path(first)
             second_root = Path(second)
             for root in (first_root, second_root):
@@ -43,7 +42,6 @@ class RuntimeHashTests(unittest.TestCase):
             (first_root / "setup_foundry" / "a.py").write_text("bc")
             (second_root / "setup_foundry" / "ab.py").write_text("c")
             self.assertNotEqual(tooling_sha256(first_root), tooling_sha256(second_root))
-
 
 
 class RuntimeBehaviorTests(FoundryFixture, unittest.TestCase):
@@ -55,7 +53,11 @@ class RuntimeBehaviorTests(FoundryFixture, unittest.TestCase):
         env["PATH"] = str(minimal_bin)
         result = subprocess.run(
             [sys.executable, str(CLI), "verify"],
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env, check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            env=env,
+            check=False,
         )
         self.assertIn("required command not found: gh", result.stdout)
 
@@ -63,7 +65,11 @@ class RuntimeBehaviorTests(FoundryFixture, unittest.TestCase):
         (minimal_bin / "gh").symlink_to(self.fake_bin / "gh")
         result = subprocess.run(
             [sys.executable, str(CLI), "verify"],
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env, check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            env=env,
+            check=False,
         )
         self.assertIn("required command not found: git", result.stdout)
 

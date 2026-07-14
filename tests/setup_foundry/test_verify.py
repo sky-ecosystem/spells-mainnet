@@ -1,7 +1,7 @@
 import unittest
 from unittest import mock
 
-from support import BINARIES, FoundryFixture
+from .support import BINARIES, FoundryFixture
 
 
 class VerifyHandlerBoundaryTests(unittest.TestCase):
@@ -13,7 +13,9 @@ class VerifyHandlerBoundaryTests(unittest.TestCase):
         calls = []
 
         def record(name, result=None):
-            return mock.Mock(side_effect=lambda *args: calls.append((name, args)) or result)
+            return mock.Mock(
+                side_effect=lambda *args: calls.append((name, args)) or result
+            )
 
         with mock.patch.multiple(
             verify,
@@ -101,7 +103,9 @@ class VerifyTests(FoundryFixture, unittest.TestCase):
         self.assertEqual(self.version_log(), [])
 
     def test_verify_rejects_wrong_attestation_signer_and_source(self):
-        self.env["TEST_SIGNER"] = "https://github.com/attacker/project/.github/workflows/release.yml@refs/tags/v2.0.0"
+        self.env["TEST_SIGNER"] = (
+            "https://github.com/attacker/project/.github/workflows/release.yml@refs/tags/v2.0.0"
+        )
         result = self.run_cli("verify")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("unexpected attestation signer", result.stdout)

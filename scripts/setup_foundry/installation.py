@@ -22,7 +22,12 @@ from .toolchain import run_binary_versions, verify_binary_paths
 
 def validate_install_platform():
     systems = {"Linux": "linux", "Darwin": "darwin"}
-    architectures = {"x86_64": "amd64", "amd64": "amd64", "arm64": "arm64", "aarch64": "arm64"}
+    architectures = {
+        "x86_64": "amd64",
+        "amd64": "amd64",
+        "arm64": "arm64",
+        "aarch64": "arm64",
+    }
     system, machine = platform.system(), platform.machine()
     if system not in systems:
         raise SetupError(f"unsupported operating system: {system}")
@@ -43,14 +48,26 @@ def foundry_release_asset(selection):
 def download_and_verify_release_asset(selection, asset, temporary_directory):
     archive = temporary_directory / asset
     run(
-        ["gh", "release", "download", selection["version"], "--repo", QUALIFIED_REPOSITORY,
-         "--pattern", asset, "--dir", str(temporary_directory)],
+        [
+            "gh",
+            "release",
+            "download",
+            selection["version"],
+            "--repo",
+            QUALIFIED_REPOSITORY,
+            "--pattern",
+            asset,
+            "--dir",
+            str(temporary_directory),
+        ],
         f"could not download Foundry release asset {asset}",
     )
     print("\nRelease asset attestation:")
     asset_tag = attest_path(archive)
     if asset_tag != selection["version"]:
-        raise SetupError(f"release asset attestation tag {asset_tag} does not match {selection['version']}")
+        raise SetupError(
+            f"release asset attestation tag {asset_tag} does not match {selection['version']}"
+        )
     return archive
 
 
@@ -59,8 +76,12 @@ def extract_release_archive(archive, extracted_directory):
     try:
         with tarfile.open(archive, "r:gz") as source:
             members = source.getmembers()
-            if sorted(member.name for member in members) != expected or any(not member.isfile() for member in members):
-                raise SetupError("archive must contain only regular files named forge, cast, anvil, and chisel")
+            if sorted(member.name for member in members) != expected or any(
+                not member.isfile() for member in members
+            ):
+                raise SetupError(
+                    "archive must contain only regular files named forge, cast, anvil, and chisel"
+                )
             extracted_directory.mkdir()
             for member in members:
                 input_file = source.extractfile(member)
@@ -97,7 +118,9 @@ class Installation:
     def prepare(self):
         if path_exists(self.destination):
             if not self.destination.is_dir():
-                raise SetupError(f"installation destination is not a directory: {self.destination}")
+                raise SetupError(
+                    f"installation destination is not a directory: {self.destination}"
+                )
         else:
             self.destination_created = True
         self.backup_directory.mkdir(mode=0o700)
@@ -106,7 +129,9 @@ class Installation:
             if not path_exists(current):
                 continue
             if not current.is_file() and not current.is_symlink():
-                raise SetupError(f"existing Foundry path is not a file or symbolic link: {current}")
+                raise SetupError(
+                    f"existing Foundry path is not a file or symbolic link: {current}"
+                )
             copy_entry(current, self.backup_directory / binary)
 
     def install(self, extracted_directory):
@@ -115,7 +140,9 @@ class Installation:
             self.destination.mkdir(parents=True, mode=0o755)
             self.destination.chmod(0o755)
         for binary in BINARIES:
-            descriptor, temporary_name = tempfile.mkstemp(dir=self.destination, prefix=f".{binary}.setup-foundry.")
+            descriptor, temporary_name = tempfile.mkstemp(
+                dir=self.destination, prefix=f".{binary}.setup-foundry."
+            )
             os.close(descriptor)
             temporary = Path(temporary_name)
             try:
@@ -132,7 +159,10 @@ class Installation:
     def rollback(self):
         if not self.rollback_required:
             return True
-        print("\nInstallation did not complete; restoring the previous Foundry binaries.", file=sys.stderr)
+        print(
+            "\nInstallation did not complete; restoring the previous Foundry binaries.",
+            file=sys.stderr,
+        )
         rollback_failed = False
         for binary in BINARIES:
             current, backup = self.destination / binary, self.backup_directory / binary
@@ -142,16 +172,25 @@ class Installation:
                 if path_exists(backup):
                     copy_entry(backup, current)
             except OSError as error:
-                print(f"Rollback error: could not restore {current}: {error}", file=sys.stderr)
+                print(
+                    f"Rollback error: could not restore {current}: {error}",
+                    file=sys.stderr,
+                )
                 rollback_failed = True
         if self.destination_created and path_exists(self.destination):
             try:
                 self.destination.rmdir()
             except OSError as error:
-                print(f"Rollback error: could not remove newly created directory {self.destination}: {error}", file=sys.stderr)
+                print(
+                    f"Rollback error: could not remove newly created directory {self.destination}: {error}",
+                    file=sys.stderr,
+                )
                 rollback_failed = True
         if rollback_failed:
-            print(f"Error: Foundry rollback was incomplete; inspect {self.destination} before continuing.", file=sys.stderr)
+            print(
+                f"Error: Foundry rollback was incomplete; inspect {self.destination} before continuing.",
+                file=sys.stderr,
+            )
             print(f"Backups preserved at: {self.backup_directory}", file=sys.stderr)
         else:
             print("Previous Foundry installation restored.", file=sys.stderr)
@@ -159,7 +198,9 @@ class Installation:
         return not rollback_failed
 
 
-def install_and_verify_binaries(installation, extracted_directory, destination, expected_tag):
+def install_and_verify_binaries(
+    installation, extracted_directory, destination, expected_tag
+):
     installation.install(extracted_directory)
     paths = [destination / binary for binary in BINARIES]
     verify_binary_paths(paths, expected_tag)
@@ -176,12 +217,16 @@ def install_selected_release(selection, destination):
     try:
         extracted_directory = temporary_directory / "extracted"
         backup_directory = temporary_directory / "previous-installation"
-        archive = download_and_verify_release_asset(selection, asset, temporary_directory)
+        archive = download_and_verify_release_asset(
+            selection, asset, temporary_directory
+        )
         extract_release_archive(archive, extracted_directory)
         installation = Installation(destination, backup_directory)
         installation.prepare()
         try:
-            install_and_verify_binaries(installation, extracted_directory, destination, selection["version"])
+            install_and_verify_binaries(
+                installation, extracted_directory, destination, selection["version"]
+            )
         except BaseException:
             preserve_recovery_data = not installation.rollback()
             raise

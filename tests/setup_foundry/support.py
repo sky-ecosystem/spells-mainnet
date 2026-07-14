@@ -1,27 +1,19 @@
-import contextlib
-import importlib.util
-import io
-import json
+"""Shared subprocess fixtures for Foundry setup tests."""
+
 import os
-import platform
-import shutil
-import stat
 import subprocess
 import sys
 import tempfile
 import textwrap
-import unittest
 from pathlib import Path
-from unittest import mock
 
 
-ROOT = Path(__file__).resolve().parents[3]
-CLI = ROOT / "scripts" / "setup-foundry" / "setup-foundry.py"
-sys.path.insert(0, str(CLI.parent))
+ROOT = Path(__file__).resolve().parents[2]
+CLI = ROOT / "scripts" / "setup-foundry.py"
 BINARIES = ("forge", "cast", "anvil", "chisel")
 
 
-FAKE_GH = r'''#!__PYTHON__
+FAKE_GH = r"""#!__PYTHON__
 import io
 import json
 import os
@@ -145,10 +137,10 @@ if args[:2] == ["attestation", "verify"]:
     sys.exit(0)
 
 sys.exit(64)
-'''
+"""
 
 
-FAKE_GIT = r'''#!/bin/sh
+FAKE_GIT = r"""#!/bin/sh
 if [ "$1" = "-C" ] && [ "$3 $4" = "rev-parse --show-toplevel" ]; then
     printf '%s\n' "$FIXTURE/repository"
 elif [ "$1" = "-C" ] && [ "$3 $4" = "rev-parse HEAD" ]; then
@@ -156,7 +148,7 @@ elif [ "$1" = "-C" ] && [ "$3 $4" = "rev-parse HEAD" ]; then
 else
     exit 64
 fi
-'''
+"""
 
 
 class FoundryFixture:
@@ -168,22 +160,42 @@ class FoundryFixture:
         self.path_bin = self.fixture / "foundry-bin"
         self.log = self.fixture / "log"
         self.destination = self.home / ".foundry" / "bin"
-        for directory in (self.destination, self.fake_bin, self.path_bin, self.log, self.fixture / "repository"):
+        for directory in (
+            self.destination,
+            self.fake_bin,
+            self.path_bin,
+            self.log,
+            self.fixture / "repository",
+        ):
             directory.mkdir(parents=True, exist_ok=True)
-        self.write_executable(self.fake_bin / "gh", FAKE_GH.replace("__PYTHON__", sys.executable))
+        self.write_executable(
+            self.fake_bin / "gh", FAKE_GH.replace("__PYTHON__", sys.executable)
+        )
         self.write_executable(self.fake_bin / "git", FAKE_GIT)
         for binary in BINARIES:
             self.write_binary(self.path_bin / binary, binary)
         self.env = os.environ.copy()
-        self.env.update({
-            "FIXTURE": str(self.fixture),
-            "HOME": str(self.home),
-            "TEST_LOG": str(self.log),
-        })
+        self.env.update(
+            {
+                "FIXTURE": str(self.fixture),
+                "HOME": str(self.home),
+                "TEST_LOG": str(self.log),
+            }
+        )
         for name in (
-            "TEST_ARCHIVE_VARIANT", "TEST_ASSET_TAG", "TEST_ATTEST_FAIL", "TEST_ATTEST_STATUS",
-            "TEST_AUTH_STATUS", "TEST_INSTALLED_TAG", "TEST_INVALID_ARCHIVE", "TEST_MIXED_BINARY",
-            "TEST_NO_ELIGIBLE", "TEST_SIGNER", "TEST_SOURCE", "TEST_VERSION_FAIL", "TEST_DOWNLOAD_STATUS",
+            "TEST_ARCHIVE_VARIANT",
+            "TEST_ASSET_TAG",
+            "TEST_ATTEST_FAIL",
+            "TEST_ATTEST_STATUS",
+            "TEST_AUTH_STATUS",
+            "TEST_INSTALLED_TAG",
+            "TEST_INVALID_ARCHIVE",
+            "TEST_MIXED_BINARY",
+            "TEST_NO_ELIGIBLE",
+            "TEST_SIGNER",
+            "TEST_SOURCE",
+            "TEST_VERSION_FAIL",
+            "TEST_DOWNLOAD_STATUS",
         ):
             self.env.pop(name, None)
 
@@ -196,7 +208,9 @@ class FoundryFixture:
         path.chmod(0o755)
 
     def write_binary(self, path, name):
-        self.write_executable(path, f'''\
+        self.write_executable(
+            path,
+            f'''\
             #!{sys.executable}
             import os, sys
             from pathlib import Path
@@ -205,9 +219,23 @@ class FoundryFixture:
             if os.environ.get("TEST_VERSION_FAIL") == "{name}":
                 sys.exit(17)
             print("{name} Version: 2.0.0")
-        ''')
+        ''',
+        )
 
     def run_cli(self, command=None, path_mode="foundry"):
+        return self.run_command(
+            [sys.executable, str(CLI)], command=command, path_mode=path_mode
+        )
+
+    def run_module(self, command=None, path_mode="foundry"):
+        return self.run_command(
+            [sys.executable, "-m", "setup_foundry"],
+            command=command,
+            path_mode=path_mode,
+            cwd=CLI.parent,
+        )
+
+    def run_command(self, argv, command=None, path_mode="foundry", cwd=None):
         env = self.env.copy()
         prefixes = {
             "foundry": [self.path_bin, self.fake_bin],
@@ -215,10 +243,17 @@ class FoundryFixture:
             "none": [self.fake_bin],
         }[path_mode]
         env["PATH"] = os.pathsep.join(str(path) for path in prefixes) + ":/usr/bin:/bin"
-        argv = [sys.executable, str(CLI)]
         if command is not None:
             argv.append(command)
-        return subprocess.run(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env, check=False)
+        return subprocess.run(
+            argv,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            env=env,
+            cwd=cwd,
+            check=False,
+        )
 
     def gh_log(self):
         path = self.log / "gh"
@@ -230,12 +265,6 @@ class FoundryFixture:
 
     @staticmethod
     def load_cli_module():
-        spec = importlib.util.spec_from_file_location("setup_foundry", CLI)
-        module = importlib.util.module_from_spec(spec)
-        previous_bytecode_setting = sys.dont_write_bytecode
-        sys.dont_write_bytecode = True
-        try:
-            spec.loader.exec_module(module)
-        finally:
-            sys.dont_write_bytecode = previous_bytecode_setting
-        return module
+        from setup_foundry import cli
+
+        return cli
