@@ -5,12 +5,10 @@ on:
     paths:
       - "scripts/setup-foundry.py"
       - "scripts/setup-foundry/**"
-      - "tests/setup-foundry/**"
   pull_request:
     paths:
       - "scripts/setup-foundry.py"
       - "scripts/setup-foundry/**"
-      - "tests/setup-foundry/**"
 
 jobs:
   test:

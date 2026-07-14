@@ -21,8 +21,8 @@ class RuntimeHashTests(unittest.TestCase):
             baseline = tooling_sha256(root)
 
             self.assertEqual(tooling_sha256(root), baseline)
-            (root / "tests").mkdir()
-            (root / "tests" / "test_cli.py").write_text("ignored\n")
+            (root / "setup-foundry" / "tests").mkdir()
+            (root / "setup-foundry" / "tests" / "test_cli.py").write_text("ignored\n")
             (root / "setup-foundry" / "__pycache__").mkdir()
             (root / "setup-foundry" / "__pycache__" / "a.pyc").write_bytes(b"ignored")
             self.assertEqual(tooling_sha256(root), baseline)
