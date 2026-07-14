@@ -75,7 +75,7 @@ else
     die 'unexpected release-selection response from GitHub'
 fi
 
-ARCHIVE="foundry_${VERSION}_${PLATFORM}_${ARCH}.tar.gz"
+RELEASE_ASSET="foundry_${VERSION}_${PLATFORM}_${ARCH}.tar.gz"
 DESTINATION="$HOME/.foundry/bin"
 # Preserve the previous installation in temporary state so destination changes can be rolled back.
 TEMP_DIR=$(mktemp -d)
@@ -135,7 +135,7 @@ printf 'Selection policy: %s\n' "$SELECTION_REASON"
 printf 'spells-mainnet commit: %s\n' "$SOURCE_COMMIT"
 printf 'Installer SHA-256: %s\n' "$INSTALLER_SHA256"
 
-gh release download "$VERSION" --repo "$QUALIFIED_REPOSITORY" --pattern "$ARCHIVE" --dir "$TEMP_DIR"
+gh release download "$VERSION" --repo "$QUALIFIED_REPOSITORY" --pattern "$RELEASE_ASSET" --dir "$TEMP_DIR"
 
 verify_attestation() {
     gh attestation verify "$1" \
@@ -147,11 +147,11 @@ verify_attestation() {
 }
 
 printf '\nArchive attestation:\n'
-verify_attestation "$TEMP_DIR/$ARCHIVE"
+verify_attestation "$TEMP_DIR/$RELEASE_ASSET"
 
 EXTRACTED_DIR="$TEMP_DIR/extracted"
 mkdir "$EXTRACTED_DIR"
-tar -xzf "$TEMP_DIR/$ARCHIVE" -C "$EXTRACTED_DIR" "${BINARIES[@]}"
+tar -xzf "$TEMP_DIR/$RELEASE_ASSET" -C "$EXTRACTED_DIR" "${BINARIES[@]}"
 
 if [ -e "$DESTINATION" ] || [ -L "$DESTINATION" ]; then
     [ -d "$DESTINATION" ] || die "installation destination is not a directory: $DESTINATION"
