@@ -26,16 +26,14 @@ BINARIES = ("forge", "cast", "anvil", "chisel")
 
 
 class SetupError(Exception):
-    def __init__(self, message, exit_code=1):
-        super().__init__(message)
-        self.exit_code = 1 if exit_code in (0, 2) else exit_code
+    pass
 
 
 def usage():
     print(f"Usage: {Path(sys.argv[0]).name} {{verify|install}}", file=sys.stderr)
 
 
-def run(command, failure_message, preserve_status=False):
+def run(command, failure_message):
     result = subprocess.run(
         command,
         stdout=subprocess.PIPE,
@@ -46,7 +44,7 @@ def run(command, failure_message, preserve_status=False):
     if result.returncode:
         detail = result.stderr.strip() or result.stdout.strip()
         message = failure_message if not detail else f"{failure_message}: {detail}"
-        raise SetupError(message, result.returncode if preserve_status else 1)
+        raise SetupError(message)
     return result.stdout
 
 
@@ -161,7 +159,6 @@ def attest_path(path):
             "--format", "json",
         ],
         f"attestation verification failed for {path}",
-        preserve_status=True,
     )
     records = parse_json(output, f"attestation for {path}")
     try:
@@ -310,7 +307,7 @@ def path_exists(path):
 
 
 def terminate_installation(_signal_number, _frame):
-    raise SetupError("terminated", 143)
+    raise SetupError("terminated")
 
 
 def copy_entry(source, destination):
@@ -429,7 +426,6 @@ def install_foundry():
                 "--dir", str(temporary_directory),
             ],
             f"could not download Foundry release asset {asset}",
-            preserve_status=True,
         )
         print("\nRelease asset attestation:")
         asset_tag = attest_path(archive)
@@ -441,10 +437,6 @@ def install_foundry():
 
         installation = Installation(destination, backup_directory)
         installation.prepare()
-        previous_sigterm = signal.signal(
-            signal.SIGTERM,
-            terminate_installation,
-        )
         try:
             installation.install(extracted_directory)
             paths = [destination / binary for binary in BINARIES]
@@ -454,8 +446,6 @@ def install_foundry():
         except BaseException:
             installation.rollback()
             raise
-        finally:
-            signal.signal(signal.SIGTERM, previous_sigterm)
 
     print("\nEvidence summary:")
     print(f"  Source: spells-mainnet {source_commit}; setup CLI SHA-256 {cli_sha256}")
@@ -477,6 +467,7 @@ def main(arguments):
     if len(arguments) != 1 or arguments[0] not in ("verify", "install"):
         usage()
         return 1
+    previous_sigterm = signal.signal(signal.SIGTERM, terminate_installation)
     try:
         if arguments[0] == "verify":
             verify_foundry()
@@ -484,10 +475,12 @@ def main(arguments):
         return install_foundry()
     except SetupError as error:
         print(f"Error: {error}", file=sys.stderr)
-        return error.exit_code
+        return 1
     except KeyboardInterrupt:
         print("Error: interrupted", file=sys.stderr)
-        return 130
+        return 1
+    finally:
+        signal.signal(signal.SIGTERM, previous_sigterm)
 
 
 if __name__ == "__main__":

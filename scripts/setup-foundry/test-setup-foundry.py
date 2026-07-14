@@ -81,6 +81,8 @@ if args and args[0] == "api":
         sys.exit(0)
 
 if args[:2] == ["release", "download"]:
+    if os.environ.get("TEST_DOWNLOAD_STATUS"):
+        sys.exit(int(os.environ["TEST_DOWNLOAD_STATUS"]))
     tag = args[2]
     asset = args[args.index("--pattern") + 1]
     directory = Path(args[args.index("--dir") + 1])
@@ -181,7 +183,7 @@ class SetupFoundryTests(unittest.TestCase):
         for name in (
             "TEST_ARCHIVE_VARIANT", "TEST_ASSET_TAG", "TEST_ATTEST_FAIL", "TEST_ATTEST_STATUS",
             "TEST_AUTH_STATUS", "TEST_INSTALLED_TAG", "TEST_INVALID_ARCHIVE", "TEST_MIXED_BINARY",
-            "TEST_NO_ELIGIBLE", "TEST_SIGNER", "TEST_SOURCE", "TEST_VERSION_FAIL",
+            "TEST_NO_ELIGIBLE", "TEST_SIGNER", "TEST_SOURCE", "TEST_VERSION_FAIL", "TEST_DOWNLOAD_STATUS",
         ):
             self.env.pop(name, None)
 
@@ -225,6 +227,18 @@ class SetupFoundryTests(unittest.TestCase):
     def version_log(self):
         path = self.log / "versions"
         return path.read_text().splitlines() if path.exists() else []
+
+    @staticmethod
+    def load_cli_module():
+        spec = importlib.util.spec_from_file_location("setup_foundry", CLI)
+        module = importlib.util.module_from_spec(spec)
+        previous_bytecode_setting = sys.dont_write_bytecode
+        sys.dont_write_bytecode = True
+        try:
+            spec.loader.exec_module(module)
+        finally:
+            sys.dont_write_bytecode = previous_bytecode_setting
+        return module
 
     def test_verify_newest_eligible_toolchain(self):
         result = self.run_cli("verify")
@@ -283,9 +297,56 @@ class SetupFoundryTests(unittest.TestCase):
     def test_failure_never_uses_path_warning_exit_code(self):
         self.env.update({"TEST_ATTEST_FAIL": "cast", "TEST_ATTEST_STATUS": "2"})
         result = self.run_cli("verify")
-        self.assertNotEqual(result.returncode, 0)
-        self.assertNotEqual(result.returncode, 2)
+        self.assertEqual(result.returncode, 1)
         self.assertEqual(self.version_log(), [])
+
+    def test_nonzero_gh_statuses_are_normalized_to_one(self):
+        self.env.update({"TEST_ATTEST_FAIL": "cast", "TEST_ATTEST_STATUS": "42"})
+        result = self.run_cli("verify")
+        self.assertEqual(result.returncode, 1)
+
+        self.env.pop("TEST_ATTEST_FAIL")
+        self.env.pop("TEST_ATTEST_STATUS")
+        self.env["TEST_DOWNLOAD_STATUS"] = "17"
+        result = self.run_cli("install", "none")
+        self.assertEqual(result.returncode, 1)
+
+    def test_main_normalizes_interrupt_and_termination_to_one(self):
+        module = self.load_cli_module()
+        output = io.StringIO()
+        with contextlib.redirect_stderr(output):
+            with mock.patch.object(module, "verify_foundry", side_effect=KeyboardInterrupt):
+                self.assertEqual(module.main(["verify"]), 1)
+            with mock.patch.object(
+                module,
+                "install_foundry",
+                side_effect=lambda: module.terminate_installation(None, None),
+            ):
+                self.assertEqual(module.main(["install"]), 1)
+
+    def test_main_normalizes_process_signals_to_one(self):
+        probe = r'''
+import importlib.util
+import os
+import signal
+import sys
+sys.dont_write_bytecode = True
+spec = importlib.util.spec_from_file_location("setup_foundry_signal_probe", sys.argv[1])
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+module.verify_foundry = lambda: os.kill(os.getpid(), getattr(signal, sys.argv[2]))
+sys.exit(module.main(["verify"]))
+'''
+        for signal_name in ("SIGINT", "SIGTERM"):
+            with self.subTest(signal=signal_name):
+                result = subprocess.run(
+                    [sys.executable, "-c", probe, str(CLI), signal_name],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 1, result.stdout)
 
     def test_verify_rejects_wrong_attestation_signer_and_source(self):
         self.env["TEST_SIGNER"] = "https://github.com/attacker/project/.github/workflows/release.yml@refs/tags/v2.0.0"
@@ -376,7 +437,7 @@ class SetupFoundryTests(unittest.TestCase):
         (self.destination / "cast").chmod(0o600)
         self.env.update({"TEST_ATTEST_FAIL": "cast", "TEST_ATTEST_STATUS": "42"})
         result = self.run_cli("install", "destination")
-        self.assertEqual(result.returncode, 42, result.stdout)
+        self.assertEqual(result.returncode, 1, result.stdout)
         self.assertEqual((self.destination / "forge").read_text(), "old forge\n")
         self.assertEqual(stat.S_IMODE((self.destination / "forge").stat().st_mode), 0o700)
         self.assertEqual((self.destination / "cast").read_text(), "old cast\n")
@@ -386,14 +447,7 @@ class SetupFoundryTests(unittest.TestCase):
         self.assertIn("Previous Foundry installation restored", result.stdout)
 
     def test_mid_install_failure_rolls_back_partial_mutation(self):
-        spec = importlib.util.spec_from_file_location("setup_foundry", CLI)
-        module = importlib.util.module_from_spec(spec)
-        previous_bytecode_setting = sys.dont_write_bytecode
-        sys.dont_write_bytecode = True
-        try:
-            spec.loader.exec_module(module)
-        finally:
-            sys.dont_write_bytecode = previous_bytecode_setting
+        module = self.load_cli_module()
         extracted = self.fixture / "extracted"
         backup = self.fixture / "backup"
         extracted.mkdir()
