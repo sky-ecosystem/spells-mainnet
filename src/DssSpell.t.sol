@@ -40,10 +40,6 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
-interface RwaLiquidationOracleLike {
-    function ilks(bytes32) external view returns (string memory doc, address pip, uint48 tau, uint48 toc);
-}
-
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -1517,7 +1513,7 @@ contract DssSpellTest is DssSpellTestBase {
     // SPELL-SPECIFIC TESTS GO BELOW
 
     function testRWA001AOffboarding() public {
-        RwaLiquidationOracleLike oracle = RwaLiquidationOracleLike(addr.addr("MIP21_LIQUIDATION_ORACLE"));
+        RwaLiquidationOracleAbstract oracle = RwaLiquidationOracleAbstract(addr.addr("MIP21_LIQUIDATION_ORACLE"));
         address RWA001_A_URN = addr.addr("RWA001_A_URN");
 
         bytes32 ilk = bytes32("RWA001-A");

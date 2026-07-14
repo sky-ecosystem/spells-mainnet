@@ -23,6 +23,7 @@ import { JugAbstract } from "dss-interfaces/dss/JugAbstract.sol";
 import { VatAbstract } from "dss-interfaces/dss/VatAbstract.sol";
 // Note: Code matches audited code (https://reports.chainsecurity.com/Sky/ChainSecurity_Sky_EndgameToolkit_Audit.pdf)
 import { TreasuryFundedFarmingInit, FarmingUpdateVestParams } from "./dependencies/endgame-toolkit/treasury-funded-farms/TreasuryFundedFarmingInit.sol";
+import { RwaLiquidationOracleAbstract } from "dss-interfaces/dss/mip21/RwaLiquidationOracleAbstract.sol";
 
 interface AllocatorVaultLike {
     function ilk() external view returns (bytes32);
@@ -34,10 +35,6 @@ interface DaiUsdsLike {
 
 interface DssLitePsmLike {
     function kiss(address usr) external;
-}
-
-interface RwaLiquidationOracleLike {
-    function cull(bytes32 ilk, address urn) external;
 }
 
 interface StarGuardLike {
@@ -174,7 +171,7 @@ contract DssSpellAction is DssAction {
 
         // Call MIP21_LIQUIDATION_ORACLE.cull with:
         // MIP21_LIQUIDATION_ORACLE being 0x88f88Bb9E66241B73B84f3A6E197FbBa487b1E30
-        RwaLiquidationOracleLike(MIP21_LIQUIDATION_ORACLE).cull(
+        RwaLiquidationOracleAbstract(MIP21_LIQUIDATION_ORACLE).cull(
             // bytes32 ilk being "RWA001-A"
             "RWA001-A",
             // address urn being RWA001_A_URN
