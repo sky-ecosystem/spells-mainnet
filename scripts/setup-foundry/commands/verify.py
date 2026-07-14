@@ -13,7 +13,7 @@ from ..toolchain import (
 )
 
 
-TOOL_ROOT = Path(__file__).resolve().parents[2]
+TOOL_ROOT = Path(__file__).resolve().parents[1]
 
 
 def handle() -> int:

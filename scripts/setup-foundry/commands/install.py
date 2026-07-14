@@ -12,7 +12,7 @@ from ..reporting import (
 from ..runtime import collect_source_metadata, validate_environment
 
 
-TOOL_ROOT = Path(__file__).resolve().parents[2]
+TOOL_ROOT = Path(__file__).resolve().parents[1]
 
 
 def handle() -> int:
