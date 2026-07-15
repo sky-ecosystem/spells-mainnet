@@ -131,7 +131,7 @@ contract DssSpellAction is DssAction {
         // Send 2,328,332 USDS from the surplus buffer to the GROVE_SUBPROXY
         _transferUsds(GROVE_SUBPROXY, 2_328_332 * WAD);
 
-        // Send 34,902 USDS from the surplus buffer to the Demand-side Buffer (0x5e2fec3a3c4e63a422e45c1bb83edb3a5ad0543b)
+        // Send 34,902 USDS from the surplus buffer to the Demand-side Buffer (0x5e2fEc3a3C4E63A422e45C1BB83EdB3a5aD0543B)
         _transferUsds(DEMAND_SIDE_BUFFER_MULTISIG, 34_902 * WAD);
 
         // Send 77,284 USDS from the surplus buffer to the KEEL_SUBPROXY
