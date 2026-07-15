@@ -1536,7 +1536,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
 
         _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done());
+        assertTrue(spell.done(), "TestError/spell-not-done");
 
         uint256 totalPayments = 17_288_811 * WAD;
         assertEq(
