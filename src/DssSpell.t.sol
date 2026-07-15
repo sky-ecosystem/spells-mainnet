@@ -1522,6 +1522,7 @@ contract DssSpellTest is DssSpellTestBase {
         (, uint256 urnArtBefore) = vat.urns(ilk, RWA001_A_URN);
         uint256 sinBefore = vat.sin(address(vow));
         uint256 daiUsdsSupplyBefore = dai.totalSupply() + usds.totalSupply();
+        uint256 spellCastTime = _getSpellCastTime();
 
         _vote(address(spell));
 
@@ -1530,7 +1531,7 @@ contract DssSpellTest is DssSpellTestBase {
             assertGt(toc, 0, "testRWA001AOffboarding/invalid-toc");
             assertEq(tau, 30 days, "testRWA001AOffboarding/invalid-tau");
             assertGe(
-                block.timestamp, uint256(toc) + uint256(tau), "testRWA001AOffboarding/remediation-period-not-ended"
+                spellCastTime, uint256(toc) + uint256(tau), "testRWA001AOffboarding/remediation-period-not-ended"
             );
         }
 
