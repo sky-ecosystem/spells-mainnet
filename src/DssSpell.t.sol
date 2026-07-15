@@ -1555,11 +1555,11 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(price, 0, "testRWA001AOffboarding/invalid-price-after-cull");
 
         (uint256 Art,,,,) = vat.ilks(ilk);
-        assertEq(Art, 0, "testRWA001AOffboarding/invalid-art-after-cull");
+        assertEq(Art, 0, "testRWA001AOffboarding/invalid-ilk-art-after-cull");
 
         (uint256 ink, uint256 art) = vat.urns(ilk, RWA001_A_URN);
         assertEq(ink, 0, "testRWA001AOffboarding/invalid-ink-after-cull");
-        assertEq(art, 0, "testRWA001AOffboarding/invalid-art-after-cull");
+        assertEq(art, 0, "testRWA001AOffboarding/invalid-urn-art-after-cull");
     }
 
     function testWhitelistOseroALMProxy() public {
