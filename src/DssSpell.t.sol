@@ -1449,67 +1449,6 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    struct ChainUpdates {
-        string caip2ChainId;
-        SafeHarborAgreementLike.Account[] addedAccounts;
-    }
-
-    function testUpdateSafeHarborAddedAccounts() public { // add the `skipped` modifier to skip
-        SafeHarborAgreementLike agreement = SafeHarborAgreementLike(addr.addr("SAFE_HARBOR_AGREEMENT"));
-
-        ChainUpdates[1] memory chainUpdates;
-
-        // Build array of accounts to be added to Safe Harbor Agreement
-        SafeHarborAgreementLike.Account[] memory addedAccounts = new SafeHarborAgreementLike.Account[](3);
-        addedAccounts[0] = SafeHarborAgreementLike.Account({ accountAddress: "0xb3Fd827F58989cFacFE50d2F8e86A1113b6066D1", ChildContractScope: 2 });
-        addedAccounts[1] = SafeHarborAgreementLike.Account({ accountAddress: "0x768D5Ce639c7E7d51E1244E2634d6149bd0d8096", ChildContractScope: 2 });
-        addedAccounts[2] = SafeHarborAgreementLike.Account({ accountAddress: "0x91808ABeCd82495a4a7bf27d80C8c1e89de9effb", ChildContractScope: 0 });
-
-        // Configure chain updates for eip155:1 with added accounts
-        chainUpdates[0] = ChainUpdates({
-            caip2ChainId: "eip155:1",
-            addedAccounts: addedAccounts
-        });
-
-        // Check that added accounts are not present before spell execution
-        for (uint256 i = 0; i < chainUpdates.length; i++) {
-            SafeHarborAgreementLike.AgreementDetails memory details = agreement.getDetails();
-            SafeHarborAgreementLike.Chain memory chain = _findChain(details, chainUpdates[i].caip2ChainId);
-
-            for (uint256 j = 0; j < chainUpdates[i].addedAccounts.length; j++) {
-                assertFalse(
-                    _accountExistsInChain(chain, chainUpdates[i].addedAccounts[j].accountAddress),
-                    string.concat("testUpdateSafeHarborAddedAccounts/account-already-present-before-spell-execution-", chainUpdates[i].addedAccounts[j].accountAddress)
-                );
-            }
-        }
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        // Check that added accounts are present after spell execution
-        for (uint256 i = 0; i < chainUpdates.length; i++) {
-            SafeHarborAgreementLike.AgreementDetails memory details = agreement.getDetails();
-            SafeHarborAgreementLike.Chain memory chain = _findChain(details, chainUpdates[i].caip2ChainId);
-
-            for (uint256 j = 0; j < chainUpdates[i].addedAccounts.length; j++) {
-                assertTrue(
-                    _accountExistsInChain(chain, chainUpdates[i].addedAccounts[j].accountAddress),
-                    string.concat("testUpdateSafeHarborAddedAccounts/safe-harbor-account-not-found-after-spell-execution-", chainUpdates[i].addedAccounts[j].accountAddress)
-                );
-
-                // Verify the account has the correct ChildContractScope
-                SafeHarborAgreementLike.Account memory account = _findAccountInChain(chain, chainUpdates[i].addedAccounts[j].accountAddress);
-                assertEq(
-                    account.ChildContractScope,
-                    chainUpdates[i].addedAccounts[j].ChildContractScope,
-                    string.concat("testUpdateSafeHarborAddedAccounts/incorrect-scope-for-account-", chainUpdates[i].addedAccounts[j].accountAddress)
-                );
-            }
-        }
-    }
-
     // SPELL-SPECIFIC TESTS GO BELOW
 
     function testRWA001AOffboarding() public {
