@@ -6,8 +6,8 @@ import { getNormalizedDataFromOnchainState } from "./fetchOnchain.js";
 import { generateUpdates } from "./generateUpdates.js";
 import { generateSolidityCode } from "./utils/generateSolidity.js";
 import {
-    CONTRACTS_IN_SCOPE_SHEET_URL,
     CHAIN_DETAILS_SHEET_URL,
+    CONTRACTS_IN_SCOPE_SHEET_URL,
 } from "./constants.js";
 
 /**
