@@ -1610,7 +1610,14 @@ contract DssSpellTest is DssSpellTestBase {
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        (,,, uint256 lineAfter,) = vat.ilks(ilk);
-        assertEq(lineAfter, 1 * MILLION * RAD, "testOseroAutoLineExec/invalid-line-after");
+        (uint256 Art, uint256 rate,, uint256 lineAfter,) = vat.ilks(ilk);
+        (uint256 ilkAutoLine, uint256 ilkGap,,,) = autoLine.ilks(ilk);
+
+        uint256 debt = Art * rate;
+        uint256 debtPlusGap = debt + ilkGap;
+        uint256 expectedLine = debtPlusGap < ilkAutoLine ? debtPlusGap : ilkAutoLine;
+
+        assertEq(lineAfter, expectedLine, "testOseroAutoLineExec/invalid-line-after");
+        assertLe(lineAfter, ilkAutoLine, "testOseroAutoLineExec/line-after-too-big");
     }
 }
