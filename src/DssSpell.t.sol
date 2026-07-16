@@ -1599,4 +1599,18 @@ contract DssSpellTest is DssSpellTestBase {
 
         vm.stopPrank();
     }
+
+    function testOseroAutoLineExec() public {
+        bytes32 ilk = "ALLOCATOR-PRYSM-A";
+
+        (,,, uint256 lineBefore,) = vat.ilks(ilk);
+        assertEq(lineBefore, 10 * MILLION * RAD, "testOseroAutoLineExec/invalid-line-before");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        (,,, uint256 lineAfter,) = vat.ilks(ilk);
+        assertEq(lineAfter, 1 * MILLION * RAD, "testOseroAutoLineExec/invalid-line-after");
+    }
 }

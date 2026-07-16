@@ -19,6 +19,7 @@ pragma solidity 0.8.16;
 import "dss-exec-lib/DssExec.sol";
 import "dss-exec-lib/DssAction.sol";
 import { GemAbstract } from "dss-interfaces/ERC/GemAbstract.sol";
+import { DssAutoLineAbstract } from "dss-interfaces/dss/DssAutoLineAbstract.sol";
 import { JugAbstract } from "dss-interfaces/dss/JugAbstract.sol";
 import { VatAbstract } from "dss-interfaces/dss/VatAbstract.sol";
 // Note: Code matches audited code (https://reports.chainsecurity.com/Sky/ChainSecurity_Sky_EndgameToolkit_Audit.pdf)
@@ -77,6 +78,7 @@ contract DssSpellAction is DssAction {
     address internal immutable DAI                            = DssExecLib.dai();
     address internal immutable DAI_USDS                       = DssExecLib.getChangelogAddress("DAI_USDS");
     address internal immutable MCD_LITE_PSM_USDC_A            = DssExecLib.getChangelogAddress("MCD_LITE_PSM_USDC_A");
+    address internal immutable MCD_IAM_AUTO_LINE              = DssExecLib.getChangelogAddress("MCD_IAM_AUTO_LINE");
     address internal immutable ALLOCATOR_SPARK_A_VAULT        = DssExecLib.getChangelogAddress("ALLOCATOR_SPARK_A_VAULT");
     address internal immutable SPARK_SUBPROXY                 = DssExecLib.getChangelogAddress("SPARK_SUBPROXY");
     address internal immutable ALLOCATOR_BLOOM_A_VAULT        = DssExecLib.getChangelogAddress("ALLOCATOR_BLOOM_A_VAULT");
@@ -217,6 +219,9 @@ contract DssSpellAction is DssAction {
             _ttl: 86_400 seconds
             // Note: This operation does not modify `duty`, as this function does not support updating it.
         });
+
+        // Note: Apply the updated ALLOCATOR-PRYSM-A AutoLine configuration immediately, syncing its live MCD_VAT debt ceiling.
+        DssAutoLineAbstract(MCD_IAM_AUTO_LINE).exec("ALLOCATOR-PRYSM-A");
 
         // ---------- Update SafeHarbor Agreement ----------
         // Atlas: https://sky-atlas.io/#fcd868db-4a91-4ee0-baf5-1ebd40fc651e
