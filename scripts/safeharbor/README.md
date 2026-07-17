@@ -35,9 +35,11 @@ There are a few steps to independently validate that a given agreement can be ad
 1. It has to be deployed via a transaction to known public factory.
 2. The owner of the agreement has to be PauseProxy.
 3. Agreement details (protocol name, agreement URI, contact details and bounty terms) has to match what's described in the Atlas.
-4. The output of `make safeharbor-generate` command, on spells-mainnet repo, has to be "no updates".
+4. The `make safeharbor-verify` command, on spells-mainnet repo, has to pass without updates or validation issues.
 
 If all of these steps are done, the agreement can be adopted by Sky protocol.
+
+For spells that update SafeHarbor, `make cast-on-tenderly-safeharbor spell=<address>` casts the spell on a Tenderly Virtual TestNet and dispatches the post-cast verification workflow. The command requires a clean branch whose current commit has been pushed to its upstream. Ordinary spells should continue to use `make cast-on-tenderly spell=<address>`.
 
 # General Flow of `generatePayload.js`
 
@@ -78,6 +80,12 @@ npm run inspect
 ```
 
 Returns a JSON object containing the individual updates and the solidity snippet.
+
+```bash
+npm run verify
+```
+
+Exits successfully only when the on-chain Agreement matches the source data and no validation issues are found.
 
 In order to obtain machine-readable JSON output of the script, use the following command:
 

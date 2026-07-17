@@ -2,6 +2,11 @@ import 'dotenv/config';
 import axios from 'axios';
 import { Contract, ethers, utils } from 'ethers';
 import { randomUUID } from 'crypto';
+import {
+    dispatchSafeHarborValidation,
+    prepareSafeHarborDispatch,
+    shouldDispatchSafeHarbor,
+} from './safeharborCI.js';
 
 const NETWORK_ID = '1';
 const CHAINLOG_ADDRESS = '0xdA0Ab1e0017DEbCd72Be8599041a2aa3bA7e740F';
@@ -15,7 +20,8 @@ if (REQUIRED_ENV_VARS.some(varName => !process.env[varName])) {
 }
 
 // check process arguments
-const SPELL_ADDRESS = process.argv[2];
+const ARGS = process.argv.slice(2);
+const SPELL_ADDRESS = ARGS[0];
 if (!SPELL_ADDRESS) {
     throw new Error('Please provide address of the spell, e.g.: `node index.js 0x...`');
 }
@@ -204,6 +210,9 @@ const scheduleWarpAndCastSpell = async function (spellAddress, provider) {
 };
 
 const castOnTenderly = async function (spellAddress) {
+    const safeHarborBranch = shouldDispatchSafeHarbor(ARGS)
+        ? prepareSafeHarborDispatch()
+        : null;
     const spellName = await getSpellName(spellAddress);
     console.info(`Preparing to cast spell ${spellAddress} with name "${spellName}"...\n`);
 
@@ -232,6 +241,17 @@ const castOnTenderly = async function (spellAddress) {
         'Public RPC URL': rpcUrlPublic,
         'Public Explorer URL': explorerUrlPublic
     });
+
+    if (safeHarborBranch) {
+        console.info('\nDispatching SafeHarbor post-cast validation...');
+        const runUrl = dispatchSafeHarborValidation({
+            branch: safeHarborBranch,
+            rpcUrlPublic,
+            explorerUrlPublic,
+            spellAddress,
+        });
+        console.info(`SafeHarbor validation dispatched: ${runUrl}`);
+    }
 };
 
 castOnTenderly(utils.getAddress(SPELL_ADDRESS));
