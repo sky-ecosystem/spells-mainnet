@@ -33,7 +33,7 @@ describe("createAgreementInstance", () => {
             "0xdA0Ab1e0017DEbCd72Be8599041a2aa3bA7e740F",
         );
         getChainlogAddress.mockResolvedValue(
-            "0x0000000000000000000000000000000000000529",
+            "0x7000000000000000000000000000000000000001",
         );
 
         const { createAgreementInstance } = await import(
@@ -57,12 +57,12 @@ describe("createAgreementInstance", () => {
         );
         expect(getContractAddress).not.toHaveBeenCalled();
         expect(contractCalls[1]).toEqual({
-            address: "0x0000000000000000000000000000000000000529",
+            address: "0x7000000000000000000000000000000000000001",
             abi: AGREEMENT_V3_ABI,
             provider: { rpcUrl: "https://rpc.example" },
         });
         expect(agreement.address).toBe(
-            "0x0000000000000000000000000000000000000529",
+            "0x7000000000000000000000000000000000000001",
         );
     });
 });
