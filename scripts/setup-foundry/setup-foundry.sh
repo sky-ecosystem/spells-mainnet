@@ -43,6 +43,14 @@ validate_environment() {
     gh auth status --hostname "$GITHUB_HOST" >/dev/null 2>&1 || die "GitHub CLI is not authenticated for $GITHUB_HOST"
 }
 
+is_rosetta() {
+    if [ "$(uname -s)" = Darwin ] && command -v sysctl >/dev/null 2>&1; then
+        [ "$(sysctl -n sysctl.proc_translated 2>/dev/null)" = 1 ]
+        return $?
+    fi
+    return 1
+}
+
 validate_install_platform() {
     case "$(uname -s)" in
         Linux) PLATFORM=linux ;;
@@ -51,7 +59,9 @@ validate_install_platform() {
     esac
 
     case "$(uname -m)" in
-        x86_64 | amd64) ARCH=amd64 ;;
+        x86_64 | amd64)
+            if is_rosetta; then ARCH=arm64; else ARCH=amd64; fi
+            ;;
         arm64 | aarch64) ARCH=arm64 ;;
         *) die "unsupported architecture: $(uname -m)" ;;
     esac

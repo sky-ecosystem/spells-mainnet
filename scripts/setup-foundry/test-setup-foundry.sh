@@ -32,6 +32,7 @@ new_fixture() {
     export TEST_LOG="$FIXTURE/log"
     export TEST_OS=Linux
     export TEST_ARCH=x86_64
+    export TEST_ROSETTA=0
     export TEST_NO_PREVIOUS=0
     export TEST_INSTALLED_TAG=v2.0.0
     export TEST_MIXED_BINARY=
@@ -101,6 +102,13 @@ case "${1:-}" in
     -m) printf "%s\n" "$TEST_ARCH" ;;
     *) exit 64 ;;
 esac'
+
+    apply_stub sysctl '#!/usr/bin/env bash
+if [ "${1:-} ${2:-}" = "-n sysctl.proc_translated" ]; then
+    printf "%s\n" "$TEST_ROSETTA"
+    exit 0
+fi
+exit 64'
 
     apply_stub git '#!/usr/bin/env bash
 if [ "$1" = "-C" ] && [ "$3 $4" = "rev-parse --show-toplevel" ]; then
@@ -282,6 +290,37 @@ test_install_selects_newest_age_eligible() {
     rm -rf "$FIXTURE"
 }
 
+test_install_selects_arm64_under_rosetta() {
+    new_fixture
+    TEST_OS=Darwin
+    TEST_ARCH=x86_64
+    TEST_ROSETTA=1
+    export TEST_OS TEST_ARCH TEST_ROSETTA
+    run_cli destination-path install
+    if [ "$STATUS" -eq 0 ] \
+        && grep -q -- '--pattern foundry_v2.0.0_darwin_arm64.tar.gz' "$TEST_LOG/gh"; then
+        pass 'install selects the native arm64 asset under Rosetta'
+    else
+        fail 'install selects the native arm64 asset under Rosetta'
+    fi
+    rm -rf "$FIXTURE"
+}
+
+test_install_selects_amd64_on_intel_macos() {
+    new_fixture
+    TEST_OS=Darwin
+    TEST_ARCH=x86_64
+    export TEST_OS TEST_ARCH
+    run_cli destination-path install
+    if [ "$STATUS" -eq 0 ] \
+        && grep -q -- '--pattern foundry_v2.0.0_darwin_amd64.tar.gz' "$TEST_LOG/gh"; then
+        pass 'install keeps the amd64 asset on Intel macOS'
+    else
+        fail 'install keeps the amd64 asset on Intel macOS'
+    fi
+    rm -rf "$FIXTURE"
+}
+
 test_install_without_age_eligible_release_fails() {
     new_fixture
     TEST_NO_PREVIOUS=1
@@ -373,6 +412,8 @@ test_verify_rejects_prerelease
 test_verify_reports_version_failure
 test_missing_jq_fails_explicitly
 test_install_selects_newest_age_eligible
+test_install_selects_arm64_under_rosetta
+test_install_selects_amd64_on_intel_macos
 test_install_without_age_eligible_release_fails
 test_install_asset_failure_blocks_mutation
 test_install_missing_path_exits_two
