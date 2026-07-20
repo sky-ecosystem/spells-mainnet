@@ -58,6 +58,7 @@ case "${2:-}" in
         case "$tag" in
             v2.1.0) printf "v2.1.0\t2026-07-12T00:00:00Z\tfalse\tfalse\t%s\n" "$TEST_INSTALLED_IMMUTABLE" ;;
             v2.0.0) printf "v2.0.0\t2026-06-01T00:00:00Z\tfalse\tfalse\t%s\n" "$TEST_INSTALLED_IMMUTABLE" ;;
+            v2.0.0-rc1) printf "v2.0.0-rc1\t2026-05-15T00:00:00Z\tfalse\tfalse\t%s\n" "$TEST_INSTALLED_IMMUTABLE" ;;
             v1.9.0) printf "v1.9.0\t2026-05-01T00:00:00Z\tfalse\tfalse\t%s\n" "$TEST_INSTALLED_IMMUTABLE" ;;
             v1.8.0-rc1) printf "v1.8.0-rc1\t2026-04-01T00:00:00Z\tfalse\ttrue\t%s\n" "$TEST_INSTALLED_IMMUTABLE" ;;
             *) exit 1 ;;
@@ -179,6 +180,7 @@ test_verify_eligible() {
     if [ "$STATUS" -eq 0 ] && [ "$attestations" -eq 4 ] && [ "$versions" -eq 4 ] \
         && grep -q 'api --paginate.*now -' "$TEST_LOG/gh" \
         && grep -q '\.immutable == true' "$TEST_LOG/gh" \
+        && grep -Fq 'test("^v[0-9]+\.[0-9]+\.[0-9]+$")' "$TEST_LOG/gh" \
         && grep -q 'Selection policy: newest immutable stable release published at least seven days ago' "$FIXTURE/out" \
         && grep -q 'Foundry verification completed successfully' "$FIXTURE/out"; then
         pass 'newest age-eligible immutable PATH toolchain is verified'
@@ -210,6 +212,19 @@ test_verify_rejects_prerelease() {
         pass 'prerelease toolchain fails verification before execution'
     else
         fail 'prerelease toolchain fails verification before execution'
+    fi
+    rm -rf "$FIXTURE"
+}
+
+test_verify_rejects_rc_mislabeled_as_stable() {
+    new_fixture
+    TEST_INSTALLED_TAG=v2.0.0-rc1; export TEST_INSTALLED_TAG
+    run_cli
+    if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/versions" ] \
+        && grep -q 'does not use a stable version tag' "$FIXTURE/out"; then
+        pass 'RC mislabeled as stable fails verification before execution'
+    else
+        fail 'RC mislabeled as stable fails verification before execution'
     fi
     rm -rf "$FIXTURE"
 }
@@ -427,6 +442,7 @@ test_verify_older_fails
 test_verify_too_new_fails
 test_verify_rejects_missing_mixed_and_unattested
 test_verify_rejects_prerelease
+test_verify_rejects_rc_mislabeled_as_stable
 test_verify_reports_version_failure
 test_missing_jq_fails_explicitly
 test_install_selects_newest_age_eligible

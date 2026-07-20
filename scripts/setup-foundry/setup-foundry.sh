@@ -81,7 +81,7 @@ select_release() {
     local selected_record
 
     selected_record=$(gh api --paginate "repos/${REPOSITORY}/releases?per_page=100" --hostname "$GITHUB_HOST" \
-        --jq ".[] | select(.draft == false and .prerelease == false and .immutable == true and (now - (.published_at | fromdateiso8601)) >= ${MINIMUM_RELEASE_AGE_SECONDS}) | [.tag_name, .published_at, .html_url] | @tsv" \
+        --jq ".[] | select(.draft == false and .prerelease == false and .immutable == true and (.tag_name | test(\"^v[0-9]+\\.[0-9]+\\.[0-9]+$\")) and (now - (.published_at | fromdateiso8601)) >= ${MINIMUM_RELEASE_AGE_SECONDS}) | [.tag_name, .published_at, .html_url] | @tsv" \
         | sort -k2,2r \
         | sed -n '1p')
     [ -n "$selected_record" ] || die 'no immutable stable Foundry release published at least seven days ago was found'
@@ -180,6 +180,8 @@ validate_installed_release() {
     IFS=$'\t' read -r _ installed_published_at installed_draft installed_prerelease installed_immutable <<< "$record"
     [ "$installed_draft" = false ] && [ "$installed_prerelease" = false ] \
         || die "installed Foundry release is not stable: $INSTALLED_TAG"
+    [[ "$INSTALLED_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] \
+        || die "installed Foundry release does not use a stable version tag: $INSTALLED_TAG"
     [ "$installed_immutable" = true ] || die "installed Foundry release is not immutable: $INSTALLED_TAG"
 
     if [ "$INSTALLED_TAG" = "$VERSION" ]; then
