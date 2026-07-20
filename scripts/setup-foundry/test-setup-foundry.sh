@@ -180,7 +180,7 @@ test_verify_eligible() {
     if [ "$STATUS" -eq 0 ] && [ "$attestations" -eq 4 ] && [ "$versions" -eq 4 ] \
         && grep -q 'api --paginate.*now -' "$TEST_LOG/gh" \
         && grep -q '\.immutable == true' "$TEST_LOG/gh" \
-        && grep -Fq 'test("^v[0-9]+\.[0-9]+\.[0-9]+$")' "$TEST_LOG/gh" \
+        && grep -Fq 'test("^v[0-9]+\\.[0-9]+\\.[0-9]+$")' "$TEST_LOG/gh" \
         && grep -q 'Selection policy: newest immutable stable release published at least seven days ago' "$FIXTURE/out" \
         && grep -q 'Foundry verification completed successfully' "$FIXTURE/out"; then
         pass 'newest age-eligible immutable PATH toolchain is verified'
