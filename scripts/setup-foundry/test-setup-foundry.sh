@@ -35,6 +35,7 @@ new_fixture() {
     export TEST_ROSETTA=0
     export TEST_NO_PREVIOUS=0
     export TEST_INSTALLED_TAG=v2.0.0
+    export TEST_INSTALLED_IMMUTABLE=true
     export TEST_MIXED_BINARY=
     export TEST_ATTEST_FAIL=
     export TEST_BINARY_ATTEST_STATUS=1
@@ -55,10 +56,10 @@ case "${2:-}" in
     repos/foundry-rs/foundry/releases/tags/*)
         tag=${2##*/}
         case "$tag" in
-            v2.1.0) printf "v2.1.0\t2026-07-12T00:00:00Z\tfalse\tfalse\n" ;;
-            v2.0.0) printf "v2.0.0\t2026-06-01T00:00:00Z\tfalse\tfalse\n" ;;
-            v1.9.0) printf "v1.9.0\t2026-05-01T00:00:00Z\tfalse\tfalse\n" ;;
-            v1.8.0-rc1) printf "v1.8.0-rc1\t2026-04-01T00:00:00Z\tfalse\ttrue\n" ;;
+            v2.1.0) printf "v2.1.0\t2026-07-12T00:00:00Z\tfalse\tfalse\t%s\n" "$TEST_INSTALLED_IMMUTABLE" ;;
+            v2.0.0) printf "v2.0.0\t2026-06-01T00:00:00Z\tfalse\tfalse\t%s\n" "$TEST_INSTALLED_IMMUTABLE" ;;
+            v1.9.0) printf "v1.9.0\t2026-05-01T00:00:00Z\tfalse\tfalse\t%s\n" "$TEST_INSTALLED_IMMUTABLE" ;;
+            v1.8.0-rc1) printf "v1.8.0-rc1\t2026-04-01T00:00:00Z\tfalse\ttrue\t%s\n" "$TEST_INSTALLED_IMMUTABLE" ;;
             *) exit 1 ;;
         esac
         exit 0
@@ -177,10 +178,26 @@ test_verify_eligible() {
     if [ -e "$TEST_LOG/versions" ]; then versions=$(wc -l < "$TEST_LOG/versions"); else versions=0; fi
     if [ "$STATUS" -eq 0 ] && [ "$attestations" -eq 4 ] && [ "$versions" -eq 4 ] \
         && grep -q 'api --paginate.*now -' "$TEST_LOG/gh" \
+        && grep -q '\.immutable == true' "$TEST_LOG/gh" \
+        && grep -q 'Selection policy: newest immutable stable release published at least seven days ago' "$FIXTURE/out" \
         && grep -q 'Foundry verification completed successfully' "$FIXTURE/out"; then
-        pass 'newest age-eligible PATH toolchain is verified'
+        pass 'newest age-eligible immutable PATH toolchain is verified'
     else
-        fail 'newest age-eligible PATH toolchain is verified'
+        fail 'newest age-eligible immutable PATH toolchain is verified'
+    fi
+    rm -rf "$FIXTURE"
+}
+
+test_verify_rejects_mutable_release() {
+    new_fixture
+    TEST_INSTALLED_IMMUTABLE=false
+    export TEST_INSTALLED_IMMUTABLE
+    run_cli
+    if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/versions" ] \
+        && grep -q 'is not immutable' "$FIXTURE/out"; then
+        pass 'mutable installed release fails verification before execution'
+    else
+        fail 'mutable installed release fails verification before execution'
     fi
     rm -rf "$FIXTURE"
 }
@@ -229,7 +246,7 @@ test_verify_older_fails() {
     TEST_INSTALLED_TAG=v1.9.0; export TEST_INSTALLED_TAG
     run_cli
     if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/versions" ] \
-        && grep -q 'does not match newest eligible stable v2.0.0' "$FIXTURE/out"; then
+        && grep -q 'does not match newest eligible immutable stable v2.0.0' "$FIXTURE/out"; then
         pass 'older verified stable release fails the version policy'
     else
         fail 'older verified stable release fails the version policy'
@@ -283,9 +300,9 @@ test_install_selects_newest_age_eligible() {
     run_cli destination-path install
     if [ "$STATUS" -eq 0 ] && [ "$(cat "$TEST_LOG/download-version")" = v2.0.0 ] \
         && [ -x "$HOME/.foundry/bin/forge" ]; then
-        pass 'install selects the newest age-eligible stable release'
+        pass 'install selects the newest age-eligible immutable stable release'
     else
-        fail 'install selects the newest age-eligible stable release'
+        fail 'install selects the newest age-eligible immutable stable release'
     fi
     rm -rf "$FIXTURE"
 }
@@ -321,16 +338,16 @@ test_install_selects_amd64_on_intel_macos() {
     rm -rf "$FIXTURE"
 }
 
-test_install_without_age_eligible_release_fails() {
+test_install_without_eligible_immutable_release_fails() {
     new_fixture
     TEST_NO_PREVIOUS=1
     export TEST_NO_PREVIOUS
     run_cli no-foundry install
     if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/download-version" ] \
-        && grep -q 'no stable Foundry release published at least seven days ago was found' "$FIXTURE/out"; then
-        pass 'install fails when no seven-day eligible stable release exists'
+        && grep -q 'no immutable stable Foundry release published at least seven days ago was found' "$FIXTURE/out"; then
+        pass 'install fails when no eligible immutable stable release exists'
     else
-        fail 'install fails when no seven-day eligible stable release exists'
+        fail 'install fails when no eligible immutable stable release exists'
     fi
     rm -rf "$FIXTURE"
 }
@@ -405,6 +422,7 @@ test_missing_command_fails() {
 }
 
 test_verify_eligible
+test_verify_rejects_mutable_release
 test_verify_older_fails
 test_verify_too_new_fails
 test_verify_rejects_missing_mixed_and_unattested
@@ -414,7 +432,7 @@ test_missing_jq_fails_explicitly
 test_install_selects_newest_age_eligible
 test_install_selects_arm64_under_rosetta
 test_install_selects_amd64_on_intel_macos
-test_install_without_age_eligible_release_fails
+test_install_without_eligible_immutable_release_fails
 test_install_asset_failure_blocks_mutation
 test_install_missing_path_exits_two
 test_install_failure_rolls_back

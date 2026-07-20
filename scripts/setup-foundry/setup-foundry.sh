@@ -81,12 +81,12 @@ select_release() {
     local selected_record
 
     selected_record=$(gh api --paginate "repos/${REPOSITORY}/releases?per_page=100" --hostname "$GITHUB_HOST" \
-        --jq ".[] | select(.draft == false and .prerelease == false and (now - (.published_at | fromdateiso8601)) >= ${MINIMUM_RELEASE_AGE_SECONDS}) | [.tag_name, .published_at, .html_url] | @tsv" \
+        --jq ".[] | select(.draft == false and .prerelease == false and .immutable == true and (now - (.published_at | fromdateiso8601)) >= ${MINIMUM_RELEASE_AGE_SECONDS}) | [.tag_name, .published_at, .html_url] | @tsv" \
         | sort -k2,2r \
         | sed -n '1p')
-    [ -n "$selected_record" ] || die 'no stable Foundry release published at least seven days ago was found'
+    [ -n "$selected_record" ] || die 'no immutable stable Foundry release published at least seven days ago was found'
     IFS=$'\t' read -r VERSION PUBLISHED_AT RELEASE_URL <<< "$selected_record"
-    SELECTION_REASON='newest stable release published at least seven days ago'
+    SELECTION_REASON='newest immutable stable release published at least seven days ago'
 }
 
 attest_path() {
@@ -173,20 +173,21 @@ resolve_path_binaries() {
 }
 
 validate_installed_release() {
-    local record installed_published_at installed_draft installed_prerelease
+    local record installed_published_at installed_draft installed_prerelease installed_immutable
 
     record=$(gh api "repos/${REPOSITORY}/releases/tags/${INSTALLED_TAG}" --hostname "$GITHUB_HOST" \
-        --jq '[.tag_name, .published_at, .draft, .prerelease] | @tsv') || die "could not find Foundry release metadata for $INSTALLED_TAG"
-    IFS=$'\t' read -r _ installed_published_at installed_draft installed_prerelease <<< "$record"
+        --jq '[.tag_name, .published_at, .draft, .prerelease, .immutable] | @tsv') || die "could not find Foundry release metadata for $INSTALLED_TAG"
+    IFS=$'\t' read -r _ installed_published_at installed_draft installed_prerelease installed_immutable <<< "$record"
     [ "$installed_draft" = false ] && [ "$installed_prerelease" = false ] \
         || die "installed Foundry release is not stable: $INSTALLED_TAG"
+    [ "$installed_immutable" = true ] || die "installed Foundry release is not immutable: $INSTALLED_TAG"
 
     if [ "$INSTALLED_TAG" = "$VERSION" ]; then
-        VERSION_STATUS="installed release matches eligible stable $VERSION"
+        VERSION_STATUS="installed release matches eligible immutable stable $VERSION"
     elif [ "$(printf '%s\n%s\n' "$installed_published_at" "$PUBLISHED_AT" | sort -r | sed -n '1p')" = "$installed_published_at" ]; then
         die "installed Foundry release $INSTALLED_TAG violates the seven-day policy; eligible release is $VERSION"
     else
-        die "installed Foundry release $INSTALLED_TAG does not match newest eligible stable $VERSION; run make install-foundry"
+        die "installed Foundry release $INSTALLED_TAG does not match newest eligible immutable stable $VERSION; run make install-foundry"
     fi
 }
 
