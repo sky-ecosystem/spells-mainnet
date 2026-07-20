@@ -53,7 +53,6 @@ Run the tool from this Git checkout in a Bash environment with:
 
 - `gh`, authenticated to `github.com`;
 - `git`;
-- `jq`;
 - `sha256sum` or `shasum`; and
 - standard utilities including `tar`, `install`, `mktemp`, `sort`, and `sed`.
 

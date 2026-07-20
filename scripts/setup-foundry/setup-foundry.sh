@@ -34,7 +34,7 @@ sha256() {
 validate_environment() {
     local command
 
-    for command in gh git jq; do
+    for command in gh git; do
         command -v "$command" >/dev/null 2>&1 || die "required command not found: $command"
     done
     if ! command -v sha256sum >/dev/null 2>&1 && ! command -v shasum >/dev/null 2>&1; then
@@ -90,15 +90,15 @@ select_release() {
 }
 
 attest_path() {
-    local path output record signer source subjects
+    local path record signer source subjects
 
     path=$1
-    output=$(gh attestation verify "$path" \
+    record=$(gh attestation verify "$path" \
         --repo "$REPOSITORY" \
         --hostname "$GITHUB_HOST" \
         --signer-workflow "$SIGNER_WORKFLOW" \
-        --format json)
-    record=$(printf '%s\n' "$output" | jq -er '
+        --format json \
+        --jq '
         .[0].verificationResult as $result
         | [
             $result.signature.certificate.buildSignerURI,
@@ -106,7 +106,7 @@ attest_path() {
             ([$result.statement.subject[].name] | join(","))
           ]
         | @tsv
-    ') || die "could not parse attestation for $path"
+    ')
     IFS=$'\t' read -r signer source subjects <<< "$record"
 
     case "$signer" in

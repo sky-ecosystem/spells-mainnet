@@ -93,7 +93,10 @@ if [ "$1 $2" = "attestation verify" ]; then
     if [ -n "${TEST_MIXED_BINARY:-}" ] && [ "$name" = "$TEST_MIXED_BINARY" ]; then
         tag=v1.9.0
     fi
-    printf "[{\"verificationResult\":{\"statement\":{\"subject\":[{\"name\":\"%s\"}]},\"signature\":{\"certificate\":{\"buildSignerURI\":\"https://github.com/foundry-rs/foundry/.github/workflows/release.yml@refs/tags/%s\",\"sourceRepositoryURI\":\"https://github.com/foundry-rs/foundry\"}}}}]\n" "$name" "$tag"
+    case " $* " in
+        *" --jq "*) printf "https://github.com/foundry-rs/foundry/.github/workflows/release.yml@refs/tags/%s\thttps://github.com/foundry-rs/foundry\t%s\n" "$tag" "$name" ;;
+        *) printf "[{\"verificationResult\":{\"statement\":{\"subject\":[{\"name\":\"%s\"}]},\"signature\":{\"certificate\":{\"buildSignerURI\":\"https://github.com/foundry-rs/foundry/.github/workflows/release.yml@refs/tags/%s\",\"sourceRepositoryURI\":\"https://github.com/foundry-rs/foundry\"}}}}]\n" "$name" "$tag" ;;
+    esac
     exit 0
 fi
 exit 64'
@@ -176,8 +179,10 @@ test_verify_eligible() {
     new_fixture
     run_cli
     attestations=$(grep -c '^attestation verify ' "$TEST_LOG/gh" 2>/dev/null || true)
+    formatted_attestations=$(grep -c '^attestation verify .* --jq ' "$TEST_LOG/gh" 2>/dev/null || true)
     if [ -e "$TEST_LOG/versions" ]; then versions=$(wc -l < "$TEST_LOG/versions"); else versions=0; fi
-    if [ "$STATUS" -eq 0 ] && [ "$attestations" -eq 4 ] && [ "$versions" -eq 4 ] \
+    if [ "$STATUS" -eq 0 ] && [ "$attestations" -eq 4 ] && [ "$formatted_attestations" -eq 4 ] \
+        && [ "$versions" -eq 4 ] \
         && grep -q 'api --paginate.*now -' "$TEST_LOG/gh" \
         && grep -q '\.immutable == true' "$TEST_LOG/gh" \
         && grep -Fq 'test("^v[0-9]+\\.[0-9]+\\.[0-9]+$")' "$TEST_LOG/gh" \
@@ -237,21 +242,6 @@ test_verify_reports_version_failure() {
         pass 'binary version failure has a useful diagnostic'
     else
         fail 'binary version failure has a useful diagnostic'
-    fi
-    rm -rf "$FIXTURE"
-}
-
-test_missing_jq_fails_explicitly() {
-    new_fixture
-    mkdir "$FIXTURE/minimal-bin"
-    ln -s "$FIXTURE/bin/gh" "$FIXTURE/minimal-bin/gh"
-    ln -s "$FIXTURE/bin/git" "$FIXTURE/minimal-bin/git"
-    PATH="$FIXTURE/minimal-bin" "$BASH_PATH" "$CLI" verify > "$FIXTURE/out" 2>&1
-    STATUS=$?
-    if [ "$STATUS" -ne 0 ] && grep -q 'required command not found: jq' "$FIXTURE/out"; then
-        pass 'missing jq fails with an explicit prerequisite error'
-    else
-        fail 'missing jq fails with an explicit prerequisite error'
     fi
     rm -rf "$FIXTURE"
 }
@@ -439,12 +429,11 @@ test_missing_command_fails() {
 test_verify_eligible
 test_verify_rejects_mutable_release
 test_verify_older_fails
-test_verify_too_new_fails
+test_verify_newer_fails
 test_verify_rejects_missing_mixed_and_unattested
 test_verify_rejects_prerelease
 test_verify_rejects_rc_mislabeled_as_stable
 test_verify_reports_version_failure
-test_missing_jq_fails_explicitly
 test_install_selects_newest_age_eligible
 test_install_selects_arm64_under_rosetta
 test_install_selects_amd64_on_intel_macos
