@@ -269,7 +269,7 @@ test_verify_older_fails() {
     rm -rf "$FIXTURE"
 }
 
-test_verify_too_new_fails() {
+test_verify_newer_fails() {
     new_fixture
     TEST_INSTALLED_TAG=v2.1.0
     export TEST_INSTALLED_TAG
