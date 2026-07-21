@@ -8,6 +8,10 @@ on:
     paths:
       - "scripts/setup-foundry/**"
 
+permissions:
+  contents: read
+  attestations: read
+
 jobs:
   test:
     name: Test (${{ matrix.os }})
@@ -21,3 +25,16 @@ jobs:
 
       - name: Test Setup Foundry
         run: make test-setup-foundry
+
+      - name: Add Foundry to PATH
+        run: echo "$HOME/.foundry/bin" >> "$GITHUB_PATH"
+
+      - name: Install Foundry
+        run: make install-foundry
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Verify Foundry
+        run: make verify-foundry
+        env:
+          GH_TOKEN: ${{ github.token }}
