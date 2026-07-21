@@ -38,7 +38,7 @@ This tool does not maintain a repository-local revocation list or an allowlist o
 
 ## Urgent security releases
 
-When a Foundry security fix cannot wait for the cooling period, the spell team can explicitly approve an immutable stable release that is less than 14 days old. The override waives only the release-age requirement; tag format, release metadata, workflow provenance, and binary attestation checks remain mandatory.
+The spell team can force an exact immutable stable release when the automatically selected release cannot be used. Force bypasses automatic release selection and, when necessary, the release-age requirement; tag format, release metadata, workflow provenance, and binary attestation checks remain mandatory.
 
 Use `force=1` to install and verify the exact approved release:
 
@@ -47,7 +47,7 @@ make install-foundry release=vMAJOR.MINOR.PATCH force=1
 make verify-foundry release=vMAJOR.MINOR.PATCH force=1
 ```
 
-The `-f` CLI flag, exposed as `force=1` by the Make targets, stands for force and waives only the release-age requirement. Force is rejected after the release completes the cooling period, preventing it from being used as a general version pin or downgrade mechanism. Record the upstream security advisory or incident reference, the spell-team approval, and the complete installer and verifier output.
+The `-f` CLI flag, exposed only as `force=1` by the Make targets, stands for force. It selects the exact approved release regardless of age, including when that release is older than the normal policy selection. Record the upstream security advisory or incident reference, the spell-team approval, and the complete installer and verifier output.
 
 ## Supported platforms
 
@@ -88,6 +88,10 @@ To verify the Foundry binaries currently resolved from `PATH` against the same r
 ```bash
 make verify-foundry
 ```
+
+The verifier exits with status `0` when the installed release is valid, status `3` when installation is required, and status `1` for diagnostic failures that must be resolved without automatically installing. Exit `3` includes both `Desired Foundry release:` and `Installation command:` output fields.
+
+The installer exits with status `0` after successful installation and verification. It exits with status `2` when installation and verification succeeded but `~/.foundry/bin` is not in `PATH`; follow the printed PATH instructions before rerunning the verifier. Any other nonzero installer status is a failure.
 
 ## Test the setup tool
 

@@ -48,6 +48,8 @@ new_fixture() {
     export TEST_ATTEST_FAIL=
     export TEST_BINARY_ATTEST_STATUS=1
     export TEST_VERSION_FAIL=
+    export TEST_AUTH_STATUS=0
+    export TEST_RELEASE_LIST_STATUS=0
     mkdir -p "$HOME/.foundry/bin" "$FIXTURE/bin" "$FIXTURE/foundry-bin" "$TEST_LOG"
 
     cat > "$FIXTURE/releases.json" <<'EOF'
@@ -70,8 +72,9 @@ EOF
     apply_stub gh '#!/usr/bin/env bash
 set -eu
 printf "%s\n" "$*" >> "$TEST_LOG/gh"
-if [ "$1 $2" = "auth status" ]; then exit 0; fi
+if [ "$1 $2" = "auth status" ]; then exit "$TEST_AUTH_STATUS"; fi
 if [ "$1" = api ] && [ "${2:-}" = "--paginate" ]; then
+    [ "$TEST_RELEASE_LIST_STATUS" -eq 0 ] || exit "$TEST_RELEASE_LIST_STATUS"
     shift 2
     query=
     while [ "$#" -gt 0 ]; do
@@ -249,8 +252,9 @@ test_verify_rejects_mutable_release() {
     TEST_INSTALLED_IMMUTABLE=false
     export TEST_INSTALLED_IMMUTABLE
     run_cli
-    if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/versions" ] \
-        && grep -q 'is not immutable.*run make install-foundry' "$FIXTURE/out"; then
+    if [ "$STATUS" -eq 1 ] && [ ! -e "$TEST_LOG/versions" ] \
+        && grep -q 'is not immutable' "$FIXTURE/out" \
+        && ! grep -q '^Installation command:' "$FIXTURE/out"; then
         pass 'mutable installed release fails verification before execution'
     else
         fail 'mutable installed release fails verification before execution'
@@ -288,7 +292,8 @@ test_verify_reports_version_failure() {
     new_fixture
     TEST_VERSION_FAIL=cast; export TEST_VERSION_FAIL
     run_cli
-    if [ "$STATUS" -ne 0 ] && grep -q 'could not read version from' "$FIXTURE/out"; then
+    if [ "$STATUS" -eq 1 ] && grep -q 'could not read version from' "$FIXTURE/out" \
+        && ! grep -q '^Installation command:' "$FIXTURE/out"; then
         pass 'binary version failure has a useful diagnostic'
     else
         fail 'binary version failure has a useful diagnostic'
@@ -300,9 +305,9 @@ test_verify_older_fails() {
     new_fixture
     TEST_INSTALLED_TAG=v1.9.0; export TEST_INSTALLED_TAG
     run_cli
-    if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/versions" ] \
+    if [ "$STATUS" -eq 3 ] && [ ! -e "$TEST_LOG/versions" ] \
         && grep -q 'does not match newest eligible immutable stable v2.0.0' "$FIXTURE/out" \
-        && grep -q 'run make install-foundry release=v2.0.0' "$FIXTURE/out"; then
+        && grep -q '^Installation command: make install-foundry release=v2.0.0$' "$FIXTURE/out"; then
         pass 'older verified stable release reports the exact install command'
     else
         fail 'older verified stable release reports the exact install command'
@@ -315,7 +320,9 @@ test_verify_newer_fails() {
     TEST_INSTALLED_TAG=v2.1.0
     export TEST_INSTALLED_TAG
     run_cli
-    if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/versions" ] && grep -q '14-day' "$FIXTURE/out"; then
+    if [ "$STATUS" -eq 3 ] && [ ! -e "$TEST_LOG/versions" ] \
+        && grep -q '14-day' "$FIXTURE/out" \
+        && grep -q '^Installation command: make install-foundry release=v2.0.0$' "$FIXTURE/out"; then
         pass 'newer stable release fails the 14-day policy'
     else
         fail 'newer stable release fails the 14-day policy'
@@ -329,25 +336,50 @@ test_verify_rejects_missing_mixed_and_unattested() {
     new_fixture
     rm "$FIXTURE/foundry-bin/chisel"
     run_cli
-    [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/versions" ] || ok=0
+    [ "$STATUS" -eq 3 ] && [ ! -e "$TEST_LOG/versions" ] \
+        && grep -q '^Installation command: make install-foundry release=v2.0.0$' "$FIXTURE/out" || ok=0
     rm -rf "$FIXTURE"
 
     new_fixture
     TEST_MIXED_BINARY=cast; export TEST_MIXED_BINARY
     run_cli
-    [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/versions" ] || ok=0
+    [ "$STATUS" -eq 1 ] && [ ! -e "$TEST_LOG/versions" ] \
+        && ! grep -q '^Installation command:' "$FIXTURE/out" || ok=0
     rm -rf "$FIXTURE"
 
     new_fixture
     TEST_ATTEST_FAIL=cast; export TEST_ATTEST_FAIL
     run_cli
-    [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/versions" ] || ok=0
+    [ "$STATUS" -eq 1 ] && [ ! -e "$TEST_LOG/versions" ] \
+        && ! grep -q '^Installation command:' "$FIXTURE/out" || ok=0
     rm -rf "$FIXTURE"
 
     if [ "$ok" -eq 1 ]; then
-        pass 'missing, mixed, and unattested toolchains fail before execution'
+        pass 'only a missing toolchain requires installation'
     else
-        fail 'missing, mixed, and unattested toolchains fail before execution'
+        fail 'only a missing toolchain requires installation'
+    fi
+}
+
+test_verify_remote_failures_stop_without_installation() {
+    ok=1
+
+    new_fixture
+    TEST_AUTH_STATUS=42; export TEST_AUTH_STATUS
+    run_cli
+    [ "$STATUS" -eq 1 ] && ! grep -q '^Installation command:' "$FIXTURE/out" || ok=0
+    rm -rf "$FIXTURE"
+
+    new_fixture
+    TEST_RELEASE_LIST_STATUS=42; export TEST_RELEASE_LIST_STATUS
+    run_cli
+    [ "$STATUS" -eq 1 ] && ! grep -q '^Installation command:' "$FIXTURE/out" || ok=0
+    rm -rf "$FIXTURE"
+
+    if [ "$ok" -eq 1 ]; then
+        pass 'authentication and release API failures stop without installation'
+    else
+        fail 'authentication and release API failures stop without installation'
     fi
 }
 
@@ -431,14 +463,17 @@ test_install_young_release_requires_force() {
     rm -rf "$FIXTURE"
 }
 
-test_force_rejects_age_eligible_release() {
+test_force_accepts_age_eligible_release() {
     new_fixture
     run_cli destination-path install -r v2.0.0 -f
-    if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/download-version" ] \
-        && grep -q 'force is only allowed before the 14-day cooling period ends' "$FIXTURE/out"; then
-        pass 'force cannot pin an age-eligible release'
+    install_status=$STATUS
+    run_cli destination-path verify -r v2.0.0 -f
+    if [ "$install_status" -eq 0 ] && [ "$STATUS" -eq 0 ] \
+        && [ "$(cat "$TEST_LOG/download-version")" = v2.0.0 ] \
+        && grep -q 'explicitly requested approved immutable stable v2.0.0 with force; release is age-eligible' "$FIXTURE/out"; then
+        pass 'force accepts an age-eligible approved release'
     else
-        fail 'force cannot pin an age-eligible release'
+        fail 'force accepts an age-eligible approved release'
     fi
     rm -rf "$FIXTURE"
 }
@@ -507,14 +542,38 @@ test_requested_release_metadata_must_be_valid() {
 test_verify_requested_release_must_match_installed_release() {
     new_fixture
     run_cli foundry-path verify -r v2.1.0 -f
-    if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/versions" ] \
+    if [ "$STATUS" -eq 3 ] && [ ! -e "$TEST_LOG/versions" ] \
         && grep -q 'installed Foundry release v2.0.0 does not match requested release v2.1.0' "$FIXTURE/out" \
-        && grep -q 'run make install-foundry release=v2.1.0 force=1' "$FIXTURE/out"; then
+        && grep -q '^Installation command: make install-foundry release=v2.1.0 force=1$' "$FIXTURE/out"; then
         pass 'installed release must match the requested young release'
     else
         fail 'installed release must match the requested young release'
     fi
     rm -rf "$FIXTURE"
+}
+
+test_make_force_requires_one() {
+    ok=1
+
+    output=$(make -s -n -C "$ROOT" verify-foundry release=v2.0.0 force=1 2>&1)
+    status=$?
+    [ "$status" -eq 0 ] && [[ "$output" = *' -f'* ]] || ok=0
+
+    output=$(make -s -n -C "$ROOT" verify-foundry release=v2.0.0 force= 2>&1)
+    status=$?
+    [ "$status" -eq 0 ] && [[ "$output" != *' -f'* ]] || ok=0
+
+    for force_value in 0 false yes; do
+        output=$(make -s -n -C "$ROOT" verify-foundry release=v2.0.0 force="$force_value" 2>&1)
+        status=$?
+        [ "$status" -ne 0 ] && [[ "$output" = *'force must be 1'* ]] || ok=0
+    done
+
+    if [ "$ok" -eq 1 ]; then
+        pass 'Make force accepts only 1'
+    else
+        fail 'Make force accepts only 1'
+    fi
 }
 
 test_install_platform_matrix() {
@@ -573,7 +632,7 @@ test_install_failure_rolls_back() {
     TEST_BINARY_ATTEST_STATUS=42
     export TEST_ATTEST_FAIL TEST_BINARY_ATTEST_STATUS
     run_cli destination-path install -r v2.0.0
-    if [ "$STATUS" -eq 42 ] \
+    if [ "$STATUS" -eq 1 ] \
         && [ "$(cat "$HOME/.foundry/bin/forge")" = 'old forge' ] \
         && [ "$(cat "$HOME/.foundry/bin/cast")" = 'old cast' ] \
         && [ ! -e "$HOME/.foundry/bin/anvil" ] \
@@ -628,12 +687,14 @@ test_verify_newer_fails
 test_verify_accepts_requested_young_release
 test_requested_release_requires_force
 test_install_young_release_requires_force
-test_force_rejects_age_eligible_release
+test_force_accepts_age_eligible_release
 test_force_requires_release
 test_requested_release_must_be_immutable
 test_requested_release_metadata_must_be_valid
 test_verify_requested_release_must_match_installed_release
 test_verify_rejects_missing_mixed_and_unattested
+test_verify_remote_failures_stop_without_installation
+test_make_force_requires_one
 test_verify_rejects_prerelease
 test_verify_rejects_rc_mislabeled_as_stable
 test_verify_reports_version_failure

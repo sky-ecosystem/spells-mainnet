@@ -26,11 +26,14 @@ jobs:
           status=$?
           set -e
           printf '%s\n' "$output"
-          if [ "$status" -ne 0 ]; then
+          if [ "$status" -eq 3 ]; then
             release=$(printf '%s\n' "$output" | sed -n 's/^Desired Foundry release: //p')
             [[ "$release" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Could not determine the desired Foundry release' >&2; exit 1; }
+            grep -Fxq "Installation command: make install-foundry release=$release" <<< "$output" || { echo 'Verifier did not report the expected installation command' >&2; exit 1; }
             make install-foundry release="$release"
             make verify-foundry
+          elif [ "$status" -ne 0 ]; then
+            exit "$status"
           fi
         env:
           GH_TOKEN: ${{ github.token }}

@@ -13,20 +13,22 @@ SIGNER_PREFIX="https://${GITHUB_HOST}/${SIGNER_WORKFLOW}@refs/tags/"
 SOURCE_REPOSITORY="https://${GITHUB_HOST}/${REPOSITORY}"
 MINIMUM_RELEASE_AGE_SECONDS="1209600"
 BINARIES=("forge" "cast" "anvil" "chisel")
-INSTALL_REMEDIATION=0
 REQUESTED_RELEASE=
 FORCE_RELEASE=0
 
 die() {
-    printf 'Error: %s' "$*" >&2
-    if [ "$INSTALL_REMEDIATION" -eq 1 ] && [ -n "${VERSION:-}" ]; then
-        printf '; run make install-foundry release=%s' "$VERSION" >&2
-        if [ "$FORCE_RELEASE" -eq 1 ]; then
-            printf ' force=1' >&2
-        fi
+    printf 'Error: %s\n' "$*" >&2
+    exit 1
+}
+
+install_required() {
+    printf 'Error: %s\n' "$*" >&2
+    printf 'Installation command: make install-foundry release=%s' "$VERSION" >&2
+    if [ "$FORCE_RELEASE" -eq 1 ]; then
+        printf ' force=1' >&2
     fi
     printf '\n' >&2
-    exit 1
+    exit 3
 }
 
 usage() {
@@ -93,7 +95,7 @@ select_release() {
     selected_record=$(gh api --paginate "repos/${REPOSITORY}/releases?per_page=100" --hostname "$GITHUB_HOST" \
         --jq ".[] | select(.draft == false and .prerelease == false and .immutable == true and (.tag_name | test(\"^v[0-9]+\\\\.[0-9]+\\\\.[0-9]+$\")) and (now - (.published_at | fromdateiso8601)) >= ${MINIMUM_RELEASE_AGE_SECONDS}) | [.tag_name, .published_at, .html_url] | @tsv" \
         | sort -k2,2r \
-        | sed -n '1p')
+        | sed -n '1p') || die 'could not load stable Foundry release metadata'
     [ -n "$selected_record" ] || die 'no immutable stable Foundry release published at least 14 days ago was found'
     IFS=$'\t' read -r VERSION PUBLISHED_AT RELEASE_URL <<< "$selected_record"
     SELECTION_REASON='newest immutable stable release published at least 14 days ago'
@@ -114,9 +116,11 @@ load_requested_release() {
     [ "$requested_immutable" = true ] || die "requested Foundry release is not immutable: $REQUESTED_RELEASE"
     [ "$release_age_seconds" -ge 0 ] || die "requested Foundry release has a future publication date: $REQUESTED_RELEASE"
     if [ "$FORCE_RELEASE" -eq 1 ]; then
-        [ "$release_age_seconds" -lt "$MINIMUM_RELEASE_AGE_SECONDS" ] \
-            || die 'force is only allowed before the 14-day cooling period ends'
-        SELECTION_REASON="explicitly requested $REQUESTED_RELEASE with force; 14-day cooling period waived"
+        if [ "$release_age_seconds" -lt "$MINIMUM_RELEASE_AGE_SECONDS" ]; then
+            SELECTION_REASON="explicitly requested $REQUESTED_RELEASE with force; 14-day cooling period waived"
+        else
+            SELECTION_REASON="explicitly requested approved immutable stable $REQUESTED_RELEASE with force; release is age-eligible"
+        fi
     else
         [ "$release_age_seconds" -ge "$MINIMUM_RELEASE_AGE_SECONDS" ] \
             || die 'release is less than 14 days old; use -f only for an approved release'
@@ -141,7 +145,7 @@ attest_path() {
             ([$result.statement.subject[].name] | join(","))
           ]
         | @tsv
-    ')
+    ') || die "could not verify attestation for $path"
     IFS=$'\t' read -r signer source subjects <<< "$record"
 
     case "$signer" in
@@ -194,7 +198,7 @@ resolve_path_binaries() {
 
     BINARY_PATHS=()
     for binary in "${BINARIES[@]}"; do
-        path=$(command -v "$binary" 2>/dev/null) || die "Foundry binary not found in PATH: $binary"
+        path=$(command -v "$binary" 2>/dev/null) || install_required "Foundry binary not found in PATH: $binary"
         [ -f "$path" ] && [ -x "$path" ] || die "Foundry command is not an executable file: $path"
         BINARY_PATHS+=("$path")
     done
@@ -207,7 +211,7 @@ validate_installed_release() {
         || die "installed Foundry release does not use a stable version tag: $INSTALLED_TAG"
     if [ -n "$REQUESTED_RELEASE" ]; then
         [ "$INSTALLED_TAG" = "$VERSION" ] \
-            || die "installed Foundry release $INSTALLED_TAG does not match requested release $VERSION"
+            || install_required "installed Foundry release $INSTALLED_TAG does not match requested release $VERSION"
         if [ "$FORCE_RELEASE" -eq 1 ]; then
             VERSION_STATUS="installed release matches explicitly requested forced immutable stable $VERSION"
         else
@@ -225,9 +229,9 @@ validate_installed_release() {
     if [ "$INSTALLED_TAG" = "$VERSION" ]; then
         VERSION_STATUS="installed release matches eligible immutable stable $VERSION"
     elif [ "$(printf '%s\n%s\n' "$installed_published_at" "$PUBLISHED_AT" | sort -r | sed -n '1p')" = "$installed_published_at" ]; then
-        die "installed Foundry release $INSTALLED_TAG violates the 14-day policy; eligible release is $VERSION"
+        install_required "installed Foundry release $INSTALLED_TAG violates the 14-day policy; eligible release is $VERSION"
     else
-        die "installed Foundry release $INSTALLED_TAG does not match newest eligible immutable stable $VERSION"
+        install_required "installed Foundry release $INSTALLED_TAG does not match newest eligible immutable stable $VERSION"
     fi
 }
 
@@ -392,7 +396,6 @@ verify_foundry() {
         select_release
     fi
     report_selection
-    INSTALL_REMEDIATION=1
     resolve_path_binaries
     verify_binary_paths
     validate_installed_release
