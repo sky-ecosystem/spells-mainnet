@@ -89,7 +89,7 @@ To verify the Foundry binaries currently resolved from `PATH` against the same r
 make verify-foundry
 ```
 
-The verifier exits with status `0` when the installed release is valid, status `3` when installation is required, and status `1` for diagnostic failures that must be resolved without automatically installing. Exit `3` includes both `Desired Foundry release:` and `Installation command:` output fields.
+The underlying setup CLI exits with status `0` when the installed release is valid, status `3` when installation is required, and status `1` for diagnostic failures that must be resolved without automatically installing. Exit `3` includes both `Desired Foundry release:` and `Installation command:` output fields. GNU Make normalizes failed recipe statuses, so consumers of `make verify-foundry` must use both output fields—not the Make exit value alone—to identify an installation requirement.
 
 The installer exits with status `0` after successful installation and verification. It exits with status `2` when installation and verification succeeded but `~/.foundry/bin` is not in `PATH`; follow the printed PATH instructions before rerunning the verifier. Any other nonzero installer status is a failure.
 
