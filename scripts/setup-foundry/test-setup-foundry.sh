@@ -5,6 +5,11 @@ set -u
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 CLI="$ROOT/scripts/setup-foundry/setup-foundry.sh"
 BASH_PATH=$(command -v bash)
+JQ_PATH=$(command -v jq) || {
+    printf 'test prerequisite not found: jq\n' >&2
+    exit 1
+}
+export JQ_PATH
 PASS=0
 FAIL=0
 
@@ -42,14 +47,43 @@ new_fixture() {
     export TEST_VERSION_FAIL=
     mkdir -p "$HOME/.foundry/bin" "$FIXTURE/bin" "$FIXTURE/foundry-bin" "$TEST_LOG"
 
+    cat > "$FIXTURE/releases.json" <<'EOF'
+[
+  {"tag_name":"v1.9.0","published_at":"2001-01-01T00:00:00Z","html_url":"https://example.test/v1.9.0","draft":false,"prerelease":false,"immutable":true},
+  {"tag_name":"v9.0.0","published_at":"2009-01-01T00:00:00Z","html_url":"https://example.test/v9.0.0","draft":true,"prerelease":false,"immutable":true},
+  {"tag_name":"v8.0.0","published_at":"2008-01-01T00:00:00Z","html_url":"https://example.test/v8.0.0","draft":false,"prerelease":true,"immutable":true},
+  {"tag_name":"v7.0.0","published_at":"2007-01-01T00:00:00Z","html_url":"https://example.test/v7.0.0","draft":false,"prerelease":false,"immutable":false},
+  {"tag_name":"nightly-2006","published_at":"2006-01-01T00:00:00Z","html_url":"https://example.test/nightly-2006","draft":false,"prerelease":false,"immutable":true},
+  {"tag_name":"v6.0.0","published_at":"2999-01-01T00:00:00Z","html_url":"https://example.test/v6.0.0","draft":false,"prerelease":false,"immutable":true},
+  {"tag_name":"v2.0.0","published_at":"2002-01-01T00:00:00Z","html_url":"https://example.test/v2.0.0","draft":false,"prerelease":false,"immutable":true}
+]
+EOF
+    cat > "$FIXTURE/releases-ineligible.json" <<'EOF'
+[
+  {"tag_name":"v3.0.0","published_at":"2003-01-01T00:00:00Z","html_url":"https://example.test/v3.0.0","draft":false,"prerelease":false,"immutable":false}
+]
+EOF
+
     apply_stub gh '#!/usr/bin/env bash
 set -eu
 printf "%s\n" "$*" >> "$TEST_LOG/gh"
 if [ "$1 $2" = "auth status" ]; then exit 0; fi
 if [ "$1" = api ] && [ "${2:-}" = "--paginate" ]; then
-    if [ "${TEST_NO_PREVIOUS:-0}" != 1 ]; then
-        printf "v2.0.0\t2026-06-01T00:00:00Z\thttps://example.test/v2.0.0\n"
+    shift 2
+    query=
+    while [ "$#" -gt 0 ]; do
+        case "$1" in
+            --jq) query=$2; shift 2 ;;
+            *) shift ;;
+        esac
+    done
+    [ -n "$query" ] || exit 64
+    if [ "${TEST_NO_PREVIOUS:-0}" = 1 ]; then
+        releases=$FIXTURE/releases-ineligible.json
+    else
+        releases=$FIXTURE/releases.json
     fi
+    "$JQ_PATH" -r "$query" "$releases"
     exit 0
 fi
 case "${2:-}" in
@@ -57,9 +91,9 @@ case "${2:-}" in
         tag=${2##*/}
         case "$tag" in
             v2.1.0) printf "v2.1.0\t2026-07-12T00:00:00Z\tfalse\tfalse\t%s\n" "$TEST_INSTALLED_IMMUTABLE" ;;
-            v2.0.0) printf "v2.0.0\t2026-06-01T00:00:00Z\tfalse\tfalse\t%s\n" "$TEST_INSTALLED_IMMUTABLE" ;;
+            v2.0.0) printf "v2.0.0\t2002-01-01T00:00:00Z\tfalse\tfalse\t%s\n" "$TEST_INSTALLED_IMMUTABLE" ;;
             v2.0.0-rc1) printf "v2.0.0-rc1\t2026-05-15T00:00:00Z\tfalse\tfalse\t%s\n" "$TEST_INSTALLED_IMMUTABLE" ;;
-            v1.9.0) printf "v1.9.0\t2026-05-01T00:00:00Z\tfalse\tfalse\t%s\n" "$TEST_INSTALLED_IMMUTABLE" ;;
+            v1.9.0) printf "v1.9.0\t2001-01-01T00:00:00Z\tfalse\tfalse\t%s\n" "$TEST_INSTALLED_IMMUTABLE" ;;
             v1.8.0) printf "v1.8.0\t2026-04-01T00:00:00Z\tfalse\ttrue\t%s\n" "$TEST_INSTALLED_IMMUTABLE" ;;
             v1.8.0-rc1) printf "v1.8.0-rc1\t2026-04-01T00:00:00Z\tfalse\ttrue\t%s\n" "$TEST_INSTALLED_IMMUTABLE" ;;
             *) exit 1 ;;

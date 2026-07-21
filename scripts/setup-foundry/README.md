@@ -81,3 +81,5 @@ Run the setup tool's test suite with:
 ```bash
 make test-setup-foundry
 ```
+
+The test harness additionally requires `jq`; the setup tool itself does not.
