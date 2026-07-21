@@ -30,9 +30,9 @@ new_fixture() {
     export FIXTURE
     export HOME="$FIXTURE/home"
     export TEST_LOG="$FIXTURE/log"
-    export TEST_OS=Linux
-    export TEST_ARCH=x86_64
-    export TEST_ROSETTA=0
+    export TEST_OS=${1:-Linux}
+    export TEST_ARCH=${2:-x86_64}
+    export TEST_ROSETTA=${3:-0}
     export TEST_NO_PREVIOUS=0
     export TEST_INSTALLED_TAG=v2.0.0
     export TEST_INSTALLED_IMMUTABLE=true
@@ -312,35 +312,28 @@ test_install_selects_newest_age_eligible() {
     rm -rf "$FIXTURE"
 }
 
-test_install_selects_arm64_under_rosetta() {
-    new_fixture
-    TEST_OS=Darwin
-    TEST_ARCH=x86_64
-    TEST_ROSETTA=1
-    export TEST_OS TEST_ARCH TEST_ROSETTA
-    run_cli destination-path install
-    if [ "$STATUS" -eq 0 ] \
-        && grep -q -- '--pattern foundry_v2.0.0_darwin_arm64.tar.gz' "$TEST_LOG/gh"; then
-        pass 'install selects the native arm64 asset under Rosetta'
-    else
-        fail 'install selects the native arm64 asset under Rosetta'
-    fi
-    rm -rf "$FIXTURE"
-}
-
-test_install_selects_amd64_on_intel_macos() {
-    new_fixture
-    TEST_OS=Darwin
-    TEST_ARCH=x86_64
-    export TEST_OS TEST_ARCH
-    run_cli destination-path install
-    if [ "$STATUS" -eq 0 ] \
-        && grep -q -- '--pattern foundry_v2.0.0_darwin_amd64.tar.gz' "$TEST_LOG/gh"; then
-        pass 'install keeps the amd64 asset on Intel macOS'
-    else
-        fail 'install keeps the amd64 asset on Intel macOS'
-    fi
-    rm -rf "$FIXTURE"
+test_install_platform_matrix() {
+    while IFS='|' read -r os arch rosetta target description; do
+        new_fixture "$os" "$arch" "$rosetta"
+        run_cli destination-path install
+        if [ "$STATUS" -eq 0 ] \
+            && grep -Fq -- "--pattern foundry_v2.0.0_${target}.tar.gz" "$TEST_LOG/gh"; then
+            pass "$description"
+        else
+            fail "$description"
+        fi
+        rm -rf "$FIXTURE"
+    done <<'EOF'
+Linux|x86_64|0|linux_amd64|Linux x86_64 selects the amd64 asset
+Linux|amd64|0|linux_amd64|Linux amd64 selects the amd64 asset
+Linux|arm64|0|linux_arm64|Linux arm64 selects the arm64 asset
+Linux|aarch64|0|linux_arm64|Linux aarch64 selects the arm64 asset
+Darwin|x86_64|0|darwin_amd64|Darwin x86_64 selects the amd64 asset
+Darwin|amd64|0|darwin_amd64|Darwin amd64 selects the amd64 asset
+Darwin|arm64|0|darwin_arm64|Darwin arm64 selects the arm64 asset
+Darwin|aarch64|0|darwin_arm64|Darwin aarch64 selects the arm64 asset
+Darwin|x86_64|1|darwin_arm64|Rosetta selects the native arm64 asset
+EOF
 }
 
 test_install_without_eligible_immutable_release_fails() {
@@ -435,8 +428,7 @@ test_verify_rejects_prerelease
 test_verify_rejects_rc_mislabeled_as_stable
 test_verify_reports_version_failure
 test_install_selects_newest_age_eligible
-test_install_selects_arm64_under_rosetta
-test_install_selects_amd64_on_intel_macos
+test_install_platform_matrix
 test_install_without_eligible_immutable_release_fails
 test_install_asset_failure_blocks_mutation
 test_install_missing_path_exits_two
