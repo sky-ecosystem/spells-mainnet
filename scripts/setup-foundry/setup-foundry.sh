@@ -11,9 +11,10 @@ QUALIFIED_REPOSITORY="${GITHUB_HOST}/${REPOSITORY}"
 SIGNER_WORKFLOW="${REPOSITORY}/.github/workflows/release.yml"
 SIGNER_PREFIX="https://${GITHUB_HOST}/${SIGNER_WORKFLOW}@refs/tags/"
 SOURCE_REPOSITORY="https://${GITHUB_HOST}/${REPOSITORY}"
-MINIMUM_RELEASE_AGE_SECONDS="604800"
+MINIMUM_RELEASE_AGE_SECONDS="1209600"
 BINARIES=("forge" "cast" "anvil" "chisel")
 INSTALL_REMEDIATION=0
+REQUESTED_RELEASE=
 
 die() {
     printf 'Error: %s' "$*" >&2
@@ -25,7 +26,7 @@ die() {
 }
 
 usage() {
-    printf 'Usage: %s {verify|install}\n' "${0##*/}" >&2
+    printf 'Usage: %s {verify|install} [--release vMAJOR.MINOR.PATCH]\n' "${0##*/}" >&2
 }
 
 sha256() {
@@ -85,13 +86,37 @@ collect_source_metadata() {
 select_release() {
     local selected_record
 
+    if [ -n "$REQUESTED_RELEASE" ]; then
+        select_requested_release
+        return
+    fi
+
     selected_record=$(gh api --paginate "repos/${REPOSITORY}/releases?per_page=100" --hostname "$GITHUB_HOST" \
         --jq ".[] | select(.draft == false and .prerelease == false and .immutable == true and (.tag_name | test(\"^v[0-9]+\\\\.[0-9]+\\\\.[0-9]+$\")) and (now - (.published_at | fromdateiso8601)) >= ${MINIMUM_RELEASE_AGE_SECONDS}) | [.tag_name, .published_at, .html_url] | @tsv" \
         | sort -k2,2r \
         | sed -n '1p')
-    [ -n "$selected_record" ] || die 'no immutable stable Foundry release published at least seven days ago was found'
+    [ -n "$selected_record" ] || die 'no immutable stable Foundry release published at least 14 days ago was found'
     IFS=$'\t' read -r VERSION PUBLISHED_AT RELEASE_URL <<< "$selected_record"
-    SELECTION_REASON='newest immutable stable release published at least seven days ago'
+    SELECTION_REASON='newest immutable stable release published at least 14 days ago'
+}
+
+select_requested_release() {
+    local record requested_draft requested_prerelease requested_immutable release_age_seconds
+
+    [[ "$REQUESTED_RELEASE" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] \
+        || die "requested Foundry release does not use a stable version tag: $REQUESTED_RELEASE"
+    record=$(gh api "repos/${REPOSITORY}/releases/tags/${REQUESTED_RELEASE}" --hostname "$GITHUB_HOST" \
+        --jq '[.tag_name, .published_at, .html_url, .draft, .prerelease, .immutable, ((now - (.published_at | fromdateiso8601)) | floor)] | @tsv') \
+        || die "could not find requested Foundry release metadata for $REQUESTED_RELEASE"
+    IFS=$'\t' read -r VERSION PUBLISHED_AT RELEASE_URL requested_draft requested_prerelease requested_immutable release_age_seconds <<< "$record"
+    [ "$VERSION" = "$REQUESTED_RELEASE" ] || die "requested Foundry release metadata does not match $REQUESTED_RELEASE"
+    [ "$requested_draft" = false ] && [ "$requested_prerelease" = false ] \
+        || die "requested Foundry release is not stable: $REQUESTED_RELEASE"
+    [ "$requested_immutable" = true ] || die "requested Foundry release is not immutable: $REQUESTED_RELEASE"
+    [ "$release_age_seconds" -ge 0 ] || die "requested Foundry release has a future publication date: $REQUESTED_RELEASE"
+    [ "$release_age_seconds" -lt "$MINIMUM_RELEASE_AGE_SECONDS" ] \
+        || die 'release override is only allowed before the 14-day cooling period ends'
+    SELECTION_REASON="explicitly requested $REQUESTED_RELEASE; 14-day cooling period waived"
 }
 
 attest_path() {
@@ -175,6 +200,12 @@ validate_installed_release() {
 
     [[ "$INSTALLED_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] \
         || die "installed Foundry release does not use a stable version tag: $INSTALLED_TAG"
+    if [ -n "$REQUESTED_RELEASE" ]; then
+        [ "$INSTALLED_TAG" = "$VERSION" ] \
+            || die "installed Foundry release $INSTALLED_TAG does not match requested release $VERSION"
+        VERSION_STATUS="installed release matches explicitly requested immutable stable $VERSION"
+        return
+    fi
     record=$(gh api "repos/${REPOSITORY}/releases/tags/${INSTALLED_TAG}" --hostname "$GITHUB_HOST" \
         --jq '[.tag_name, .published_at, .draft, .prerelease, .immutable] | @tsv') || die "could not find Foundry release metadata for $INSTALLED_TAG"
     IFS=$'\t' read -r _ installed_published_at installed_draft installed_prerelease installed_immutable <<< "$record"
@@ -185,7 +216,7 @@ validate_installed_release() {
     if [ "$INSTALLED_TAG" = "$VERSION" ]; then
         VERSION_STATUS="installed release matches eligible immutable stable $VERSION"
     elif [ "$(printf '%s\n%s\n' "$installed_published_at" "$PUBLISHED_AT" | sort -r | sed -n '1p')" = "$installed_published_at" ]; then
-        die "installed Foundry release $INSTALLED_TAG violates the seven-day policy; eligible release is $VERSION"
+        die "installed Foundry release $INSTALLED_TAG violates the 14-day policy; eligible release is $VERSION"
     else
         die "installed Foundry release $INSTALLED_TAG does not match newest eligible immutable stable $VERSION"
     fi
@@ -372,8 +403,16 @@ install_foundry() {
 }
 
 main() {
-    [ "$#" -eq 1 ] || { usage; exit 1; }
-    case "$1" in
+    local command
+
+    [ "$#" -ge 1 ] || { usage; exit 1; }
+    command=$1
+    shift
+    if [ "$#" -gt 0 ]; then
+        [ "$#" -eq 2 ] && [ "$1" = --release ] && [ -n "$2" ] || { usage; exit 1; }
+        REQUESTED_RELEASE=$2
+    fi
+    case "$command" in
         verify) verify_foundry ;;
         install) install_foundry ;;
         *) usage; exit 1 ;;
