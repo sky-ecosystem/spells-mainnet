@@ -168,13 +168,13 @@ resolve_path_binaries() {
 validate_installed_release() {
     local record installed_published_at installed_draft installed_prerelease installed_immutable
 
+    [[ "$INSTALLED_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] \
+        || die "installed Foundry release does not use a stable version tag: $INSTALLED_TAG"
     record=$(gh api "repos/${REPOSITORY}/releases/tags/${INSTALLED_TAG}" --hostname "$GITHUB_HOST" \
         --jq '[.tag_name, .published_at, .draft, .prerelease, .immutable] | @tsv') || die "could not find Foundry release metadata for $INSTALLED_TAG"
     IFS=$'\t' read -r _ installed_published_at installed_draft installed_prerelease installed_immutable <<< "$record"
     [ "$installed_draft" = false ] && [ "$installed_prerelease" = false ] \
         || die "installed Foundry release is not stable: $INSTALLED_TAG"
-    [[ "$INSTALLED_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] \
-        || die "installed Foundry release does not use a stable version tag: $INSTALLED_TAG"
     [ "$installed_immutable" = true ] || die "installed Foundry release is not immutable: $INSTALLED_TAG"
 
     if [ "$INSTALLED_TAG" = "$VERSION" ]; then
