@@ -79,7 +79,7 @@ Run the verifier first as described below. If it reports that a different releas
 make install-foundry release=vMAJOR.MINOR.PATCH
 ```
 
-The release parameter is mandatory. The installer validates and installs only that exact release; it does not select another version. The command installs the verified binaries in `~/.foundry/bin`. If that directory is not already in `PATH`, the installation succeeds but exits with status 2 and prints the required `PATH` configuration.
+The release parameter is mandatory. The installer validates and installs only that exact release; it does not select another version. The command installs the verified binaries in `~/.foundry/bin`. If that directory is not already in `PATH`, the installation succeeds and prints `Required action: update-path` with the exact `PATH` configuration to apply before rerunning the verifier.
 
 ## Verify Foundry
 
@@ -89,9 +89,9 @@ To verify the Foundry binaries currently resolved from `PATH` against the same r
 make verify-foundry
 ```
 
-The underlying setup CLI exits with status `0` when the installed release is valid, status `3` when installation is required, and status `1` for diagnostic failures that must be resolved without automatically installing. Exit `3` includes both `Desired Foundry release:` and `Installation command:` output fields. GNU Make normalizes failed recipe statuses, so consumers of `make verify-foundry` must use both output fields—not the Make exit value alone—to identify an installation requirement.
+The verifier succeeds when the installed release is valid. Any nonzero result is a failure. When installation is the required next action, the output includes `Required action: install`, `Desired Foundry release:`, and `Installation command:`. Consumers must require all three fields before installing; any other failure must be diagnosed without automatically installing.
 
-The installer exits with status `0` after successful installation and verification. It exits with status `2` when installation and verification succeeded but `~/.foundry/bin` is not in `PATH`; follow the printed PATH instructions before rerunning the verifier. Any other nonzero installer status is a failure.
+The installer succeeds after installation and verification, including when it reports the `update-path` action. Any nonzero installer result is a failure.
 
 ## Test the setup tool
 

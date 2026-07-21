@@ -23,12 +23,13 @@ die() {
 
 install_required() {
     printf 'Error: %s\n' "$*" >&2
+    printf 'Required action: install\n' >&2
     printf 'Installation command: make install-foundry release=%s' "$VERSION" >&2
     if [ "$FORCE_RELEASE" -eq 1 ]; then
         printf ' force=1' >&2
     fi
     printf '\n' >&2
-    exit 3
+    exit 1
 }
 
 usage() {
@@ -379,9 +380,9 @@ finalize_installation() {
         *":$DESTINATION:"*) ;;
         *)
             printf '\nFoundry was installed and verified, but %s is not in PATH.\n' "$DESTINATION" >&2
+            printf 'Required action: update-path\n' >&2
             printf '%s\n' 'Run: export PATH="$HOME/.foundry/bin:$PATH"' >&2
             printf '%s\n' 'Add the same export to your shell profile, then start a new shell before continuing.' >&2
-            exit 2
             ;;
     esac
     printf '\nFoundry installation and verification completed successfully.\n'

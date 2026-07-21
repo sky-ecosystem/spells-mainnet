@@ -305,8 +305,10 @@ test_verify_older_fails() {
     new_fixture
     TEST_INSTALLED_TAG=v1.9.0; export TEST_INSTALLED_TAG
     run_cli
-    if [ "$STATUS" -eq 3 ] && [ ! -e "$TEST_LOG/versions" ] \
+    if [ "$STATUS" -eq 1 ] && [ ! -e "$TEST_LOG/versions" ] \
         && grep -q 'does not match newest eligible immutable stable v2.0.0' "$FIXTURE/out" \
+        && grep -q '^Required action: install$' "$FIXTURE/out" \
+        && grep -q '^Desired Foundry release: v2.0.0$' "$FIXTURE/out" \
         && grep -q '^Installation command: make install-foundry release=v2.0.0$' "$FIXTURE/out"; then
         pass 'older verified stable release reports the exact install command'
     else
@@ -320,8 +322,9 @@ test_verify_newer_fails() {
     TEST_INSTALLED_TAG=v2.1.0
     export TEST_INSTALLED_TAG
     run_cli
-    if [ "$STATUS" -eq 3 ] && [ ! -e "$TEST_LOG/versions" ] \
+    if [ "$STATUS" -eq 1 ] && [ ! -e "$TEST_LOG/versions" ] \
         && grep -q '14-day' "$FIXTURE/out" \
+        && grep -q '^Required action: install$' "$FIXTURE/out" \
         && grep -q '^Installation command: make install-foundry release=v2.0.0$' "$FIXTURE/out"; then
         pass 'newer stable release fails the 14-day policy'
     else
@@ -336,7 +339,8 @@ test_verify_rejects_missing_mixed_and_unattested() {
     new_fixture
     rm "$FIXTURE/foundry-bin/chisel"
     run_cli
-    [ "$STATUS" -eq 3 ] && [ ! -e "$TEST_LOG/versions" ] \
+    [ "$STATUS" -eq 1 ] && [ ! -e "$TEST_LOG/versions" ] \
+        && grep -q '^Required action: install$' "$FIXTURE/out" \
         && grep -q '^Installation command: make install-foundry release=v2.0.0$' "$FIXTURE/out" || ok=0
     rm -rf "$FIXTURE"
 
@@ -344,6 +348,7 @@ test_verify_rejects_missing_mixed_and_unattested() {
     TEST_MIXED_BINARY=cast; export TEST_MIXED_BINARY
     run_cli
     [ "$STATUS" -eq 1 ] && [ ! -e "$TEST_LOG/versions" ] \
+        && ! grep -q '^Required action:' "$FIXTURE/out" \
         && ! grep -q '^Installation command:' "$FIXTURE/out" || ok=0
     rm -rf "$FIXTURE"
 
@@ -351,6 +356,7 @@ test_verify_rejects_missing_mixed_and_unattested() {
     TEST_ATTEST_FAIL=cast; export TEST_ATTEST_FAIL
     run_cli
     [ "$STATUS" -eq 1 ] && [ ! -e "$TEST_LOG/versions" ] \
+        && ! grep -q '^Required action:' "$FIXTURE/out" \
         && ! grep -q '^Installation command:' "$FIXTURE/out" || ok=0
     rm -rf "$FIXTURE"
 
@@ -367,13 +373,15 @@ test_verify_remote_failures_stop_without_installation() {
     new_fixture
     TEST_AUTH_STATUS=42; export TEST_AUTH_STATUS
     run_cli
-    [ "$STATUS" -eq 1 ] && ! grep -q '^Installation command:' "$FIXTURE/out" || ok=0
+    [ "$STATUS" -eq 1 ] && ! grep -q '^Required action:' "$FIXTURE/out" \
+        && ! grep -q '^Installation command:' "$FIXTURE/out" || ok=0
     rm -rf "$FIXTURE"
 
     new_fixture
     TEST_RELEASE_LIST_STATUS=42; export TEST_RELEASE_LIST_STATUS
     run_cli
-    [ "$STATUS" -eq 1 ] && ! grep -q '^Installation command:' "$FIXTURE/out" || ok=0
+    [ "$STATUS" -eq 1 ] && ! grep -q '^Required action:' "$FIXTURE/out" \
+        && ! grep -q '^Installation command:' "$FIXTURE/out" || ok=0
     rm -rf "$FIXTURE"
 
     if [ "$ok" -eq 1 ]; then
@@ -542,8 +550,9 @@ test_requested_release_metadata_must_be_valid() {
 test_verify_requested_release_must_match_installed_release() {
     new_fixture
     run_cli foundry-path verify -r v2.1.0 -f
-    if [ "$STATUS" -eq 3 ] && [ ! -e "$TEST_LOG/versions" ] \
+    if [ "$STATUS" -eq 1 ] && [ ! -e "$TEST_LOG/versions" ] \
         && grep -q 'installed Foundry release v2.0.0 does not match requested release v2.1.0' "$FIXTURE/out" \
+        && grep -q '^Required action: install$' "$FIXTURE/out" \
         && grep -q '^Installation command: make install-foundry release=v2.1.0 force=1$' "$FIXTURE/out"; then
         pass 'installed release must match the requested young release'
     else
@@ -612,13 +621,15 @@ test_install_asset_failure_blocks_mutation() {
     rm -rf "$FIXTURE"
 }
 
-test_install_missing_path_exits_two() {
+test_install_missing_path_reports_action() {
     new_fixture
     run_cli no-foundry install -r v2.0.0
-    if [ "$STATUS" -eq 2 ] && [ -x "$HOME/.foundry/bin/forge" ] && grep -q 'export PATH=' "$FIXTURE/out"; then
-        pass 'successful install outside PATH exits 2'
+    if [ "$STATUS" -eq 0 ] && [ -x "$HOME/.foundry/bin/forge" ] \
+        && grep -q '^Required action: update-path$' "$FIXTURE/out" \
+        && grep -q 'export PATH=' "$FIXTURE/out"; then
+        pass 'successful install outside PATH reports the required action'
     else
-        fail 'successful install outside PATH exits 2'
+        fail 'successful install outside PATH reports the required action'
     fi
     rm -rf "$FIXTURE"
 }
@@ -703,7 +714,7 @@ test_install_accepts_explicit_age_eligible_release
 test_install_accepts_requested_young_release
 test_install_platform_matrix
 test_install_asset_failure_blocks_mutation
-test_install_missing_path_exits_two
+test_install_missing_path_reports_action
 test_install_failure_rolls_back
 test_invalid_command_fails
 test_release_option_requires_value

@@ -28,7 +28,8 @@ jobs:
           printf '%s\n' "$output"
           if [ "$status" -ne 0 ]; then
             release=$(printf '%s\n' "$output" | sed -n 's/^Desired Foundry release: //p')
-            if [[ "$release" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] \
+            if grep -Fxq 'Required action: install' <<< "$output" \
+              && [[ "$release" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] \
               && grep -Fxq "Installation command: make install-foundry release=$release" <<< "$output"; then
               make install-foundry release="$release"
               make verify-foundry
