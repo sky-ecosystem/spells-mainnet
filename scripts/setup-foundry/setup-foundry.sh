@@ -13,9 +13,14 @@ SIGNER_PREFIX="https://${GITHUB_HOST}/${SIGNER_WORKFLOW}@refs/tags/"
 SOURCE_REPOSITORY="https://${GITHUB_HOST}/${REPOSITORY}"
 MINIMUM_RELEASE_AGE_SECONDS="604800"
 BINARIES=("forge" "cast" "anvil" "chisel")
+INSTALL_REMEDIATION=0
 
 die() {
-    printf 'Error: %s\n' "$*" >&2
+    printf 'Error: %s' "$*" >&2
+    if [ "$INSTALL_REMEDIATION" -eq 1 ]; then
+        printf '; run make install-foundry' >&2
+    fi
+    printf '\n' >&2
     exit 1
 }
 
@@ -182,7 +187,7 @@ validate_installed_release() {
     elif [ "$(printf '%s\n%s\n' "$installed_published_at" "$PUBLISHED_AT" | sort -r | sed -n '1p')" = "$installed_published_at" ]; then
         die "installed Foundry release $INSTALLED_TAG violates the seven-day policy; eligible release is $VERSION"
     else
-        die "installed Foundry release $INSTALLED_TAG does not match newest eligible immutable stable $VERSION; run make install-foundry"
+        die "installed Foundry release $INSTALLED_TAG does not match newest eligible immutable stable $VERSION"
     fi
 }
 
@@ -343,6 +348,7 @@ verify_foundry() {
     collect_source_metadata
     select_release
     report_selection
+    INSTALL_REMEDIATION=1
     resolve_path_binaries
     verify_binary_paths
     validate_installed_release

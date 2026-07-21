@@ -236,7 +236,7 @@ test_verify_rejects_mutable_release() {
     export TEST_INSTALLED_IMMUTABLE
     run_cli
     if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/versions" ] \
-        && grep -q 'is not immutable' "$FIXTURE/out"; then
+        && grep -q 'is not immutable.*run make install-foundry' "$FIXTURE/out"; then
         pass 'mutable installed release fails verification before execution'
     else
         fail 'mutable installed release fails verification before execution'
