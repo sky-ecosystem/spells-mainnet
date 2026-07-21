@@ -301,9 +301,9 @@ test_verify_newer_fails() {
     export TEST_INSTALLED_TAG
     run_cli
     if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/versions" ] && grep -q 'seven-day' "$FIXTURE/out"; then
-        pass 'too-new stable release fails the seven-day policy'
+        pass 'newer stable release fails the seven-day policy'
     else
-        fail 'too-new stable release fails the seven-day policy'
+        fail 'newer stable release fails the seven-day policy'
     fi
     rm -rf "$FIXTURE"
 }
