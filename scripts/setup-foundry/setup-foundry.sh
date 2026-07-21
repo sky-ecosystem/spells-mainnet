@@ -15,18 +15,22 @@ MINIMUM_RELEASE_AGE_SECONDS="1209600"
 BINARIES=("forge" "cast" "anvil" "chisel")
 INSTALL_REMEDIATION=0
 REQUESTED_RELEASE=
+FORCE_RELEASE=0
 
 die() {
     printf 'Error: %s' "$*" >&2
-    if [ "$INSTALL_REMEDIATION" -eq 1 ]; then
-        printf '; run make install-foundry' >&2
+    if [ "$INSTALL_REMEDIATION" -eq 1 ] && [ -n "${VERSION:-}" ]; then
+        printf '; run make install-foundry release=%s' "$VERSION" >&2
+        if [ "$FORCE_RELEASE" -eq 1 ]; then
+            printf ' force=1' >&2
+        fi
     fi
     printf '\n' >&2
     exit 1
 }
 
 usage() {
-    printf 'Usage: %s {verify|install} [-r vMAJOR.MINOR.PATCH]\n' "${0##*/}" >&2
+    printf 'Usage: %s verify | %s verify -r vMAJOR.MINOR.PATCH -f | %s install -r vMAJOR.MINOR.PATCH [-f]\n' "${0##*/}" "${0##*/}" "${0##*/}" >&2
 }
 
 sha256() {
@@ -86,11 +90,6 @@ collect_source_metadata() {
 select_release() {
     local selected_record
 
-    if [ -n "$REQUESTED_RELEASE" ]; then
-        select_requested_release
-        return
-    fi
-
     selected_record=$(gh api --paginate "repos/${REPOSITORY}/releases?per_page=100" --hostname "$GITHUB_HOST" \
         --jq ".[] | select(.draft == false and .prerelease == false and .immutable == true and (.tag_name | test(\"^v[0-9]+\\\\.[0-9]+\\\\.[0-9]+$\")) and (now - (.published_at | fromdateiso8601)) >= ${MINIMUM_RELEASE_AGE_SECONDS}) | [.tag_name, .published_at, .html_url] | @tsv" \
         | sort -k2,2r \
@@ -100,7 +99,7 @@ select_release() {
     SELECTION_REASON='newest immutable stable release published at least 14 days ago'
 }
 
-select_requested_release() {
+load_requested_release() {
     local record requested_draft requested_prerelease requested_immutable release_age_seconds
 
     [[ "$REQUESTED_RELEASE" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] \
@@ -114,9 +113,15 @@ select_requested_release() {
         || die "requested Foundry release is not stable: $REQUESTED_RELEASE"
     [ "$requested_immutable" = true ] || die "requested Foundry release is not immutable: $REQUESTED_RELEASE"
     [ "$release_age_seconds" -ge 0 ] || die "requested Foundry release has a future publication date: $REQUESTED_RELEASE"
-    [ "$release_age_seconds" -lt "$MINIMUM_RELEASE_AGE_SECONDS" ] \
-        || die 'release override is only allowed before the 14-day cooling period ends'
-    SELECTION_REASON="explicitly requested $REQUESTED_RELEASE; 14-day cooling period waived"
+    if [ "$FORCE_RELEASE" -eq 1 ]; then
+        [ "$release_age_seconds" -lt "$MINIMUM_RELEASE_AGE_SECONDS" ] \
+            || die 'force is only allowed before the 14-day cooling period ends'
+        SELECTION_REASON="explicitly requested $REQUESTED_RELEASE with force; 14-day cooling period waived"
+    else
+        [ "$release_age_seconds" -ge "$MINIMUM_RELEASE_AGE_SECONDS" ] \
+            || die 'release is less than 14 days old; use -f only for an approved release'
+        SELECTION_REASON="explicitly requested age-eligible immutable stable $REQUESTED_RELEASE"
+    fi
 }
 
 attest_path() {
@@ -203,7 +208,11 @@ validate_installed_release() {
     if [ -n "$REQUESTED_RELEASE" ]; then
         [ "$INSTALLED_TAG" = "$VERSION" ] \
             || die "installed Foundry release $INSTALLED_TAG does not match requested release $VERSION"
-        VERSION_STATUS="installed release matches explicitly requested immutable stable $VERSION"
+        if [ "$FORCE_RELEASE" -eq 1 ]; then
+            VERSION_STATUS="installed release matches explicitly requested forced immutable stable $VERSION"
+        else
+            VERSION_STATUS="installed release matches explicitly requested age-eligible immutable stable $VERSION"
+        fi
         return
     fi
     record=$(gh api "repos/${REPOSITORY}/releases/tags/${INSTALLED_TAG}" --hostname "$GITHUB_HOST" \
@@ -223,7 +232,7 @@ validate_installed_release() {
 }
 
 report_selection() {
-    printf 'Eligible Foundry release: %s\n' "$VERSION"
+    printf 'Desired Foundry release: %s\n' "$VERSION"
     printf 'Published at: %s\n' "$PUBLISHED_AT"
     printf 'Release URL: %s\n' "$RELEASE_URL"
     printf 'Selection policy: %s\n' "$SELECTION_REASON"
@@ -234,7 +243,7 @@ report_selection() {
 report_verification_summary() {
     printf '\nEvidence summary:\n'
     printf '  Source: spells-mainnet %s; setup CLI SHA-256 %s\n' "$SOURCE_COMMIT" "$CLI_SHA256"
-    printf '  Eligible release: %s; %s; %s\n' "$VERSION" "$PUBLISHED_AT" "$RELEASE_URL"
+    printf '  Desired release: %s; %s; %s\n' "$VERSION" "$PUBLISHED_AT" "$RELEASE_URL"
     printf '  Policy decision: %s\n' "$SELECTION_REASON"
     printf '  Installed release: %s; %s\n' "$INSTALLED_TAG" "$VERSION_STATUS"
     printf '  Binary attestations: forge, cast, anvil, and chisel verified against %s\n' "$SIGNER_WORKFLOW"
@@ -377,7 +386,11 @@ finalize_installation() {
 verify_foundry() {
     validate_environment
     collect_source_metadata
-    select_release
+    if [ "$FORCE_RELEASE" -eq 1 ]; then
+        load_requested_release
+    else
+        select_release
+    fi
     report_selection
     INSTALL_REMEDIATION=1
     resolve_path_binaries
@@ -392,7 +405,7 @@ install_foundry() {
     validate_environment
     validate_install_platform
     collect_source_metadata
-    select_release
+    load_requested_release
     initialize_installation
     report_selection
     download_verify_and_extract_release
@@ -408,8 +421,9 @@ main() {
     [ "$#" -ge 1 ] || { usage; exit 1; }
     command=$1
     shift
-    while getopts ':r:' option; do
+    while getopts ':fr:' option; do
         case "$option" in
+            f) FORCE_RELEASE=1 ;;
             r) [ -n "$OPTARG" ] || { usage; exit 1; }; REQUESTED_RELEASE=$OPTARG ;;
             :) usage; exit 1 ;;
             \?) usage; exit 1 ;;
@@ -418,8 +432,18 @@ main() {
     shift "$((OPTIND - 1))"
     [ "$#" -eq 0 ] || { usage; exit 1; }
     case "$command" in
-        verify) verify_foundry ;;
-        install) install_foundry ;;
+        verify)
+            if { [ -n "$REQUESTED_RELEASE" ] && [ "$FORCE_RELEASE" -eq 0 ]; } \
+                || { [ -z "$REQUESTED_RELEASE" ] && [ "$FORCE_RELEASE" -eq 1 ]; }; then
+                usage
+                exit 1
+            fi
+            verify_foundry
+            ;;
+        install)
+            [ -n "$REQUESTED_RELEASE" ] || { usage; exit 1; }
+            install_foundry
+            ;;
         *) usage; exit 1 ;;
     esac
 }

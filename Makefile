@@ -1,7 +1,7 @@
 all                  :; forge build
 clean                :; forge clean
-install-foundry      :; ./scripts/setup-foundry/setup-foundry.sh install $(if $(release),-r "$(release)")
-verify-foundry       :; ./scripts/setup-foundry/setup-foundry.sh verify $(if $(release),-r "$(release)")
+install-foundry      :; ./scripts/setup-foundry/setup-foundry.sh install $(if $(release),-r "$(release)") $(if $(force),-f)
+verify-foundry       :; ./scripts/setup-foundry/setup-foundry.sh verify $(if $(release),-r "$(release)") $(if $(force),-f)
 test-setup-foundry   :; ./scripts/setup-foundry/test-setup-foundry.sh
                         # Usage example: make test match=SpellIsCast
 test                 :; ./scripts/test-dssspell-forge.sh no-match="$(no-match)" match="$(match)" block="$(block)"

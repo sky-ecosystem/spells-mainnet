@@ -234,6 +234,7 @@ test_verify_eligible() {
         && grep -q 'api --paginate.*now -' "$TEST_LOG/gh" \
         && grep -q '\.immutable == true' "$TEST_LOG/gh" \
         && grep -Fq 'test("^v[0-9]+\\.[0-9]+\\.[0-9]+$")' "$TEST_LOG/gh" \
+        && grep -q 'Desired Foundry release: v2.0.0' "$FIXTURE/out" \
         && grep -q 'Selection policy: newest immutable stable release published at least 14 days ago' "$FIXTURE/out" \
         && grep -q 'Foundry verification completed successfully' "$FIXTURE/out"; then
         pass 'newest age-eligible immutable PATH toolchain is verified'
@@ -300,10 +301,11 @@ test_verify_older_fails() {
     TEST_INSTALLED_TAG=v1.9.0; export TEST_INSTALLED_TAG
     run_cli
     if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/versions" ] \
-        && grep -q 'does not match newest eligible immutable stable v2.0.0' "$FIXTURE/out"; then
-        pass 'older verified stable release fails the version policy'
+        && grep -q 'does not match newest eligible immutable stable v2.0.0' "$FIXTURE/out" \
+        && grep -q 'run make install-foundry release=v2.0.0' "$FIXTURE/out"; then
+        pass 'older verified stable release reports the exact install command'
     else
-        fail 'older verified stable release fails the version policy'
+        fail 'older verified stable release reports the exact install command'
     fi
     rm -rf "$FIXTURE"
 }
@@ -349,14 +351,27 @@ test_verify_rejects_missing_mixed_and_unattested() {
     fi
 }
 
-test_install_selects_newest_age_eligible() {
+test_install_requires_release() {
     new_fixture
     run_cli destination-path install
-    if [ "$STATUS" -eq 0 ] && [ "$(cat "$TEST_LOG/download-version")" = v2.0.0 ] \
-        && [ -x "$HOME/.foundry/bin/forge" ]; then
-        pass 'install selects the newest age-eligible immutable stable release'
+    if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/download-version" ] \
+        && grep -q 'Usage:' "$FIXTURE/out"; then
+        pass 'install requires an explicit release'
     else
-        fail 'install selects the newest age-eligible immutable stable release'
+        fail 'install requires an explicit release'
+    fi
+    rm -rf "$FIXTURE"
+}
+
+test_install_accepts_explicit_age_eligible_release() {
+    new_fixture
+    run_cli destination-path install -r v2.0.0
+    if [ "$STATUS" -eq 0 ] && [ "$(cat "$TEST_LOG/download-version")" = v2.0.0 ] \
+        && [ -x "$HOME/.foundry/bin/forge" ] \
+        && ! grep -q 'api --paginate' "$TEST_LOG/gh"; then
+        pass 'install executes the explicit age-eligible release without selecting one'
+    else
+        fail 'install executes the explicit age-eligible release without selecting one'
     fi
     rm -rf "$FIXTURE"
 }
@@ -365,9 +380,9 @@ test_verify_accepts_requested_young_release() {
     new_fixture
     TEST_INSTALLED_TAG=v2.1.0
     export TEST_INSTALLED_TAG
-    run_cli foundry-path verify -r v2.1.0
+    run_cli foundry-path verify -r v2.1.0 -f
     if [ "$STATUS" -eq 0 ] \
-        && grep -q 'Selection policy: explicitly requested v2.1.0; 14-day cooling period waived' "$FIXTURE/out" \
+        && grep -q 'Selection policy: explicitly requested v2.1.0 with force; 14-day cooling period waived' "$FIXTURE/out" \
         && grep -q 'Installed release: v2.1.0' "$FIXTURE/out"; then
         pass 'explicit young release is verified with the age waiver reported'
     else
@@ -380,10 +395,10 @@ test_install_accepts_requested_young_release() {
     new_fixture
     TEST_INSTALLED_TAG=v2.1.0
     export TEST_INSTALLED_TAG
-    run_cli destination-path install -r v2.1.0
+    run_cli destination-path install -r v2.1.0 -f
     if [ "$STATUS" -eq 0 ] \
         && [ "$(cat "$TEST_LOG/download-version")" = v2.1.0 ] \
-        && grep -q 'Policy decision: explicitly requested v2.1.0; 14-day cooling period waived' "$FIXTURE/out"; then
+        && grep -q 'Policy decision: explicitly requested v2.1.0 with force; 14-day cooling period waived' "$FIXTURE/out"; then
         pass 'explicit young release is installed with the age waiver reported'
     else
         fail 'explicit young release is installed with the age waiver reported'
@@ -391,14 +406,51 @@ test_install_accepts_requested_young_release() {
     rm -rf "$FIXTURE"
 }
 
-test_requested_release_must_be_young() {
+test_requested_release_requires_force() {
     new_fixture
-    run_cli foundry-path verify -r v2.0.0
+    run_cli foundry-path verify -r v2.1.0
     if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/versions" ] \
-        && grep -q 'release override is only allowed before the 14-day cooling period ends' "$FIXTURE/out"; then
-        pass 'release override cannot pin an age-eligible release'
+        && ! grep -q 'releases/tags/v2.1.0' "$TEST_LOG/gh" 2>/dev/null \
+        && grep -q 'Usage:' "$FIXTURE/out"; then
+        pass 'verifying an approved release requires force'
     else
-        fail 'release override cannot pin an age-eligible release'
+        fail 'verifying an approved release requires force'
+    fi
+    rm -rf "$FIXTURE"
+}
+
+test_install_young_release_requires_force() {
+    new_fixture
+    run_cli destination-path install -r v2.1.0
+    if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/download-version" ] \
+        && grep -q 'release is less than 14 days old; use -f only for an approved release' "$FIXTURE/out"; then
+        pass 'installing a young release requires force'
+    else
+        fail 'installing a young release requires force'
+    fi
+    rm -rf "$FIXTURE"
+}
+
+test_force_rejects_age_eligible_release() {
+    new_fixture
+    run_cli destination-path install -r v2.0.0 -f
+    if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/download-version" ] \
+        && grep -q 'force is only allowed before the 14-day cooling period ends' "$FIXTURE/out"; then
+        pass 'force cannot pin an age-eligible release'
+    else
+        fail 'force cannot pin an age-eligible release'
+    fi
+    rm -rf "$FIXTURE"
+}
+
+test_force_requires_release() {
+    new_fixture
+    run_cli foundry-path install -f
+    if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/download-version" ] \
+        && grep -q 'Usage:' "$FIXTURE/out"; then
+        pass 'force requires an explicit release'
+    else
+        fail 'force requires an explicit release'
     fi
     rm -rf "$FIXTURE"
 }
@@ -407,7 +459,7 @@ test_requested_release_must_be_immutable() {
     new_fixture
     TEST_INSTALLED_IMMUTABLE=false
     export TEST_INSTALLED_IMMUTABLE
-    run_cli foundry-path verify -r v2.1.0
+    run_cli foundry-path verify -r v2.1.0 -f
     if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/versions" ] \
         && grep -q 'requested Foundry release is not immutable: v2.1.0' "$FIXTURE/out"; then
         pass 'mutable release cannot bypass the cooling period'
@@ -421,27 +473,27 @@ test_requested_release_metadata_must_be_valid() {
     ok=1
 
     new_fixture
-    run_cli foundry-path verify -r nightly
+    run_cli foundry-path install -r nightly
     [ "$STATUS" -ne 0 ] && ! grep -q 'releases/tags/nightly' "$TEST_LOG/gh" \
         && grep -q 'does not use a stable version tag' "$FIXTURE/out" || ok=0
     rm -rf "$FIXTURE"
 
     new_fixture
-    run_cli foundry-path verify -r v2.2.0
+    run_cli foundry-path install -r v2.2.0
     [ "$STATUS" -ne 0 ] && grep -q 'could not find requested Foundry release metadata' "$FIXTURE/out" || ok=0
     rm -rf "$FIXTURE"
 
     new_fixture
     TEST_REQUESTED_DRAFT=true
     export TEST_REQUESTED_DRAFT
-    run_cli foundry-path verify -r v2.1.0
+    run_cli foundry-path verify -r v2.1.0 -f
     [ "$STATUS" -ne 0 ] && grep -q 'requested Foundry release is not stable' "$FIXTURE/out" || ok=0
     rm -rf "$FIXTURE"
 
     new_fixture
     TEST_REQUESTED_PRERELEASE=true
     export TEST_REQUESTED_PRERELEASE
-    run_cli foundry-path verify -r v2.1.0
+    run_cli foundry-path verify -r v2.1.0 -f
     [ "$STATUS" -ne 0 ] && grep -q 'requested Foundry release is not stable' "$FIXTURE/out" || ok=0
     rm -rf "$FIXTURE"
 
@@ -454,9 +506,10 @@ test_requested_release_metadata_must_be_valid() {
 
 test_verify_requested_release_must_match_installed_release() {
     new_fixture
-    run_cli foundry-path verify -r v2.1.0
+    run_cli foundry-path verify -r v2.1.0 -f
     if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/versions" ] \
-        && grep -q 'installed Foundry release v2.0.0 does not match requested release v2.1.0' "$FIXTURE/out"; then
+        && grep -q 'installed Foundry release v2.0.0 does not match requested release v2.1.0' "$FIXTURE/out" \
+        && grep -q 'run make install-foundry release=v2.1.0 force=1' "$FIXTURE/out"; then
         pass 'installed release must match the requested young release'
     else
         fail 'installed release must match the requested young release'
@@ -467,7 +520,7 @@ test_verify_requested_release_must_match_installed_release() {
 test_install_platform_matrix() {
     while IFS='|' read -r os arch rosetta target description; do
         new_fixture "$os" "$arch" "$rosetta"
-        run_cli destination-path install
+        run_cli destination-path install -r v2.0.0
         if [ "$STATUS" -eq 0 ] \
             && grep -Fq -- "--pattern foundry_v2.0.0_${target}.tar.gz" "$TEST_LOG/gh"; then
             pass "$description"
@@ -488,24 +541,10 @@ Darwin|x86_64|1|darwin_arm64|Rosetta selects the native arm64 asset
 EOF
 }
 
-test_install_without_eligible_immutable_release_fails() {
-    new_fixture
-    TEST_NO_PREVIOUS=1
-    export TEST_NO_PREVIOUS
-    run_cli no-foundry install
-    if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/download-version" ] \
-        && grep -q 'no immutable stable Foundry release published at least 14 days ago was found' "$FIXTURE/out"; then
-        pass 'install fails when no eligible immutable stable release exists'
-    else
-        fail 'install fails when no eligible immutable stable release exists'
-    fi
-    rm -rf "$FIXTURE"
-}
-
 test_install_asset_failure_blocks_mutation() {
     new_fixture
     TEST_ATTEST_FAIL=foundry_v2.0.0_linux_amd64.tar.gz; export TEST_ATTEST_FAIL
-    run_cli no-foundry install
+    run_cli no-foundry install -r v2.0.0
     if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/tar" ] && [ ! -e "$TEST_LOG/install" ]; then
         pass 'release asset failure blocks extraction and installation'
     else
@@ -516,7 +555,7 @@ test_install_asset_failure_blocks_mutation() {
 
 test_install_missing_path_exits_two() {
     new_fixture
-    run_cli no-foundry install
+    run_cli no-foundry install -r v2.0.0
     if [ "$STATUS" -eq 2 ] && [ -x "$HOME/.foundry/bin/forge" ] && grep -q 'export PATH=' "$FIXTURE/out"; then
         pass 'successful install outside PATH exits 2'
     else
@@ -533,7 +572,7 @@ test_install_failure_rolls_back() {
     TEST_ATTEST_FAIL=cast
     TEST_BINARY_ATTEST_STATUS=42
     export TEST_ATTEST_FAIL TEST_BINARY_ATTEST_STATUS
-    run_cli destination-path install
+    run_cli destination-path install -r v2.0.0
     if [ "$STATUS" -eq 42 ] \
         && [ "$(cat "$HOME/.foundry/bin/forge")" = 'old forge' ] \
         && [ "$(cat "$HOME/.foundry/bin/cast")" = 'old cast' ] \
@@ -587,7 +626,10 @@ test_verify_rejects_mutable_release
 test_verify_older_fails
 test_verify_newer_fails
 test_verify_accepts_requested_young_release
-test_requested_release_must_be_young
+test_requested_release_requires_force
+test_install_young_release_requires_force
+test_force_rejects_age_eligible_release
+test_force_requires_release
 test_requested_release_must_be_immutable
 test_requested_release_metadata_must_be_valid
 test_verify_requested_release_must_match_installed_release
@@ -595,10 +637,10 @@ test_verify_rejects_missing_mixed_and_unattested
 test_verify_rejects_prerelease
 test_verify_rejects_rc_mislabeled_as_stable
 test_verify_reports_version_failure
-test_install_selects_newest_age_eligible
+test_install_requires_release
+test_install_accepts_explicit_age_eligible_release
 test_install_accepts_requested_young_release
 test_install_platform_matrix
-test_install_without_eligible_immutable_release_fails
 test_install_asset_failure_blocks_mutation
 test_install_missing_path_exits_two
 test_install_failure_rolls_back

@@ -29,12 +29,19 @@ jobs:
       - name: Add Foundry to PATH
         run: echo "$HOME/.foundry/bin" >> "$GITHUB_PATH"
 
-      - name: Install Foundry
-        run: make install-foundry
-        env:
-          GH_TOKEN: ${{ github.token }}
-
-      - name: Verify Foundry
-        run: make verify-foundry
+      - name: Verify or install Foundry
+        shell: bash
+        run: |
+          set +e
+          output=$(make verify-foundry 2>&1)
+          status=$?
+          set -e
+          printf '%s\n' "$output"
+          if [ "$status" -ne 0 ]; then
+            release=$(printf '%s\n' "$output" | sed -n 's/^Desired Foundry release: //p')
+            [[ "$release" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Could not determine the desired Foundry release' >&2; exit 1; }
+            make install-foundry release="$release"
+            make verify-foundry
+          fi
         env:
           GH_TOKEN: ${{ github.token }}

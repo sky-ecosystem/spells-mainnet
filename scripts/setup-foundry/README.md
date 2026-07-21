@@ -12,7 +12,7 @@ The executed script is not pinned to this repository or reviewable as part of it
 
 Foundry is part of the toolchain used to build, test, and deploy executive spells. This repository therefore keeps its installation and verification logic under source control instead of relying on the remote bootstrap script.
 
-This script provides one auditable process for installing and verifying Foundry. It selects the newest release that:
+This script provides one auditable process for installing and verifying Foundry. The verifier selects the newest release that:
 
 - uses an exact stable tag in the form `vMAJOR.MINOR.PATCH`;
 - is neither a draft nor a prerelease;
@@ -20,9 +20,9 @@ This script provides one auditable process for installing and verifying Foundry.
 - was published at least 14 days ago; and
 - was produced by Foundry's official release workflow, as proven by GitHub attestations.
 
-The script verifies the downloaded archive before extracting it, verifies `forge`, `cast`, `anvil`, and `chisel` before executing them, and requires all four binaries to come from the same release. If an installation fails after modifying the destination, it restores the previous binaries.
+If the installed binaries do not match the desired release, the verifier reports the exact release and installation command. The installer requires that release as an explicit parameter and does not select a release itself. It verifies the downloaded archive before extracting it, verifies `forge`, `cast`, `anvil`, and `chisel` before executing them, and requires all four binaries to come from the same release. If an installation fails after modifying the destination, it restores the previous binaries.
 
-The selected version can change as newer releases satisfy the policy; this tool enforces the policy rather than permanently pinning one Foundry version.
+The selected version can change as newer releases satisfy the policy; the verifier enforces the policy rather than permanently pinning one Foundry version.
 
 The 14-day cooling period follows the current executive spell cadence. It provides time for public detection and response, but it is not a guarantee that every upstream compromise will be discovered within that period.
 
@@ -32,7 +32,7 @@ GitHub attestations establish that an artifact was produced by the expected repo
 
 [Immutable releases](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases) prevent a published release's tag and assets from being modified or replaced in place. GitHub permits maintainers to delete the entire release, but the immutable release's tag name cannot be reused after deletion. A compromised immutable release therefore cannot be replaced by different binaries under the same version tag.
 
-If Foundry deletes a malicious release, this tool will no longer select it for installation, and verification of an installed copy will fail because the release metadata is unavailable. If Foundry leaves the release published, however, this tool can continue accepting it once it satisfies the age policy. Publishing a clean newer release does not immediately revoke the malicious release; without an approved override, the newer release becomes eligible only after completing its own 14-day cooling period.
+If Foundry deletes a malicious release, the verifier will no longer select it, explicit installation will fail because the release metadata is unavailable, and verification of an installed copy will also fail. If Foundry leaves the release published, however, the verifier can continue accepting it once it satisfies the age policy. Publishing a clean newer release does not immediately revoke the malicious release; without an approved force override, the newer release becomes eligible only after completing its own 14-day cooling period.
 
 This tool does not maintain a repository-local revocation list or an allowlist of approved Foundry releases. It therefore depends on upstream deletion, or a subsequent change to this repository, to reject a known-malicious release immediately.
 
@@ -40,14 +40,14 @@ This tool does not maintain a repository-local revocation list or an allowlist o
 
 When a Foundry security fix cannot wait for the cooling period, the spell team can explicitly approve an immutable stable release that is less than 14 days old. The override waives only the release-age requirement; tag format, release metadata, workflow provenance, and binary attestation checks remain mandatory.
 
-Install and verify the exact approved release with:
+Use `force=1` to install and verify the exact approved release:
 
 ```bash
-make install-foundry release=vMAJOR.MINOR.PATCH
-make verify-foundry release=vMAJOR.MINOR.PATCH
+make install-foundry release=vMAJOR.MINOR.PATCH force=1
+make verify-foundry release=vMAJOR.MINOR.PATCH force=1
 ```
 
-The override is rejected after the release completes the cooling period, preventing it from being used as a general version pin or downgrade mechanism. Record the upstream security advisory or incident reference, the spell-team approval, and the complete installer and verifier output.
+The `-f` CLI flag, exposed as `force=1` by the Make targets, stands for force and waives only the release-age requirement. Force is rejected after the release completes the cooling period, preventing it from being used as a general version pin or downgrade mechanism. Record the upstream security advisory or incident reference, the spell-team approval, and the complete installer and verifier output.
 
 ## Supported platforms
 
@@ -73,13 +73,13 @@ Run the tool from this Git checkout in a Bash environment with:
 
 ## Install Foundry
 
-From the repository root, run:
+Run the verifier first as described below. If it reports that a different release is required, review that release and run the exact installation command printed by the verifier:
 
 ```bash
-make install-foundry
+make install-foundry release=vMAJOR.MINOR.PATCH
 ```
 
-The command installs the verified binaries in `~/.foundry/bin`. If that directory is not already in `PATH`, the installation succeeds but exits with status 2 and prints the required `PATH` configuration.
+The release parameter is mandatory. The installer validates and installs only that exact release; it does not select another version. The command installs the verified binaries in `~/.foundry/bin`. If that directory is not already in `PATH`, the installation succeeds but exits with status 2 and prints the required `PATH` configuration.
 
 ## Verify Foundry
 
