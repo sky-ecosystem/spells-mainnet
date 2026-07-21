@@ -28,11 +28,6 @@ import {
  *   - updates: Array of update objects with function calls and calldata
  *   - solidityCode: Generated Solidity code for the updates
  * @throws {Error} If any step in the process fails
- *
- * @example
- * const agreementContract = createAgreementInstance(rpcUrl);
- * const result = await generatePayload(agreementContract);
- * console.log(result.solidityCode);
  */
 export async function generatePayload(agreementContract) {
     try {
