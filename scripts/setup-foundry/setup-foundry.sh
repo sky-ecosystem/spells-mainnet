@@ -26,7 +26,7 @@ die() {
 }
 
 usage() {
-    printf 'Usage: %s {verify|install} [--release vMAJOR.MINOR.PATCH]\n' "${0##*/}" >&2
+    printf 'Usage: %s {verify|install} [-r vMAJOR.MINOR.PATCH]\n' "${0##*/}" >&2
 }
 
 sha256() {
@@ -403,15 +403,20 @@ install_foundry() {
 }
 
 main() {
-    local command
+    local command option
 
     [ "$#" -ge 1 ] || { usage; exit 1; }
     command=$1
     shift
-    if [ "$#" -gt 0 ]; then
-        [ "$#" -eq 2 ] && [ "$1" = --release ] && [ -n "$2" ] || { usage; exit 1; }
-        REQUESTED_RELEASE=$2
-    fi
+    while getopts ':r:' option; do
+        case "$option" in
+            r) [ -n "$OPTARG" ] || { usage; exit 1; }; REQUESTED_RELEASE=$OPTARG ;;
+            :) usage; exit 1 ;;
+            \?) usage; exit 1 ;;
+        esac
+    done
+    shift "$((OPTIND - 1))"
+    [ "$#" -eq 0 ] || { usage; exit 1; }
     case "$command" in
         verify) verify_foundry ;;
         install) install_foundry ;;

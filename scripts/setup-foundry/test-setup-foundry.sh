@@ -365,7 +365,7 @@ test_verify_accepts_requested_young_release() {
     new_fixture
     TEST_INSTALLED_TAG=v2.1.0
     export TEST_INSTALLED_TAG
-    run_cli foundry-path verify --release v2.1.0
+    run_cli foundry-path verify -r v2.1.0
     if [ "$STATUS" -eq 0 ] \
         && grep -q 'Selection policy: explicitly requested v2.1.0; 14-day cooling period waived' "$FIXTURE/out" \
         && grep -q 'Installed release: v2.1.0' "$FIXTURE/out"; then
@@ -380,7 +380,7 @@ test_install_accepts_requested_young_release() {
     new_fixture
     TEST_INSTALLED_TAG=v2.1.0
     export TEST_INSTALLED_TAG
-    run_cli destination-path install --release v2.1.0
+    run_cli destination-path install -r v2.1.0
     if [ "$STATUS" -eq 0 ] \
         && [ "$(cat "$TEST_LOG/download-version")" = v2.1.0 ] \
         && grep -q 'Policy decision: explicitly requested v2.1.0; 14-day cooling period waived' "$FIXTURE/out"; then
@@ -393,7 +393,7 @@ test_install_accepts_requested_young_release() {
 
 test_requested_release_must_be_young() {
     new_fixture
-    run_cli foundry-path verify --release v2.0.0
+    run_cli foundry-path verify -r v2.0.0
     if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/versions" ] \
         && grep -q 'release override is only allowed before the 14-day cooling period ends' "$FIXTURE/out"; then
         pass 'release override cannot pin an age-eligible release'
@@ -407,7 +407,7 @@ test_requested_release_must_be_immutable() {
     new_fixture
     TEST_INSTALLED_IMMUTABLE=false
     export TEST_INSTALLED_IMMUTABLE
-    run_cli foundry-path verify --release v2.1.0
+    run_cli foundry-path verify -r v2.1.0
     if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/versions" ] \
         && grep -q 'requested Foundry release is not immutable: v2.1.0' "$FIXTURE/out"; then
         pass 'mutable release cannot bypass the cooling period'
@@ -421,27 +421,27 @@ test_requested_release_metadata_must_be_valid() {
     ok=1
 
     new_fixture
-    run_cli foundry-path verify --release nightly
+    run_cli foundry-path verify -r nightly
     [ "$STATUS" -ne 0 ] && ! grep -q 'releases/tags/nightly' "$TEST_LOG/gh" \
         && grep -q 'does not use a stable version tag' "$FIXTURE/out" || ok=0
     rm -rf "$FIXTURE"
 
     new_fixture
-    run_cli foundry-path verify --release v2.2.0
+    run_cli foundry-path verify -r v2.2.0
     [ "$STATUS" -ne 0 ] && grep -q 'could not find requested Foundry release metadata' "$FIXTURE/out" || ok=0
     rm -rf "$FIXTURE"
 
     new_fixture
     TEST_REQUESTED_DRAFT=true
     export TEST_REQUESTED_DRAFT
-    run_cli foundry-path verify --release v2.1.0
+    run_cli foundry-path verify -r v2.1.0
     [ "$STATUS" -ne 0 ] && grep -q 'requested Foundry release is not stable' "$FIXTURE/out" || ok=0
     rm -rf "$FIXTURE"
 
     new_fixture
     TEST_REQUESTED_PRERELEASE=true
     export TEST_REQUESTED_PRERELEASE
-    run_cli foundry-path verify --release v2.1.0
+    run_cli foundry-path verify -r v2.1.0
     [ "$STATUS" -ne 0 ] && grep -q 'requested Foundry release is not stable' "$FIXTURE/out" || ok=0
     rm -rf "$FIXTURE"
 
@@ -454,7 +454,7 @@ test_requested_release_metadata_must_be_valid() {
 
 test_verify_requested_release_must_match_installed_release() {
     new_fixture
-    run_cli foundry-path verify --release v2.1.0
+    run_cli foundry-path verify -r v2.1.0
     if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/versions" ] \
         && grep -q 'installed Foundry release v2.0.0 does not match requested release v2.1.0' "$FIXTURE/out"; then
         pass 'installed release must match the requested young release'
@@ -558,6 +558,17 @@ test_invalid_command_fails() {
     rm -rf "$FIXTURE"
 }
 
+test_release_option_requires_value() {
+    new_fixture
+    run_cli foundry-path verify -r
+    if [ "$STATUS" -ne 0 ] && grep -q 'Usage:' "$FIXTURE/out"; then
+        pass 'release option without a value fails with usage'
+    else
+        fail 'release option without a value fails with usage'
+    fi
+    rm -rf "$FIXTURE"
+}
+
 
 test_missing_command_fails() {
     new_fixture
@@ -592,6 +603,7 @@ test_install_asset_failure_blocks_mutation
 test_install_missing_path_exits_two
 test_install_failure_rolls_back
 test_invalid_command_fails
+test_release_option_requires_value
 test_missing_command_fails
 
 printf '%s passed; %s failed\n' "$PASS" "$FAIL"
