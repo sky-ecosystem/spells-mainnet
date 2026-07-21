@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { generatePayload } from "./src/generatePayload.js";
+import { verifyPayload } from "./src/verifyPayload.js";
 
 import { createAgreementInstance } from "./src/utils/contractUtils.js";
 
@@ -52,10 +53,17 @@ try {
             console.warn("No updates to generate");
             process.exit(0);
         }
+    } else if (command === "verify") {
+        const result = await generatePayload(agreementContract);
+        verifyPayload(result);
+        console.warn(
+            "SafeHarbor verification passed: no updates or validation issues.",
+        );
+        process.exit(0);
     } else {
         console.error(`Error: Unknown command '${command}'`);
-        console.error("Available commands: generate, inspect");
-        console.error("Usage: npm run generate");
+        console.error("Available commands: generate, inspect, verify");
+        console.error("Usage: npm run <generate|inspect|verify>");
         process.exit(1);
     }
 } catch (error) {

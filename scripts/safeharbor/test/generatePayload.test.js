@@ -153,6 +153,7 @@ describe("inspectPayload E2E Tests", () => {
             // Assert - should have empty result since no changes needed
             assert.strictEqual(result.updates.length, 0);
             assert.strictEqual(result.solidityCode, "");
+            assert.deepStrictEqual(result.validationIssues, []);
         });
     });
 
@@ -617,7 +618,15 @@ describe("inspectPayload E2E Tests", () => {
             getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
 
             // Act
-            await generatePayload("", false); // No need to return updates
+            const result = await generatePayload("");
+
+            assert.ok(
+                result.validationIssues.some(
+                    (issue) =>
+                        issue.includes("Asset Recovery Address mismatch") &&
+                        issue.includes("ETHEREUM"),
+                ),
+            );
 
             // Assert
             const wasCalledWithMismatchWarning = consoleWarnSpy.mock.calls.some(
@@ -643,7 +652,7 @@ describe("inspectPayload E2E Tests", () => {
             );
         });
 
-        test("should log a warning when unknown chain details are found in on-chain state", async () => {
+        test("should report unknown chain details found in on-chain state", async () => {
             // Arrange
             // Import the actual implementation instead of the mock
             const {
@@ -670,33 +679,56 @@ describe("inspectPayload E2E Tests", () => {
             };
 
             // Act - use the actual implementation
+            const validationIssues = [];
             const result = await actualGetNormalizedDataFromOnchainState(
                 mockAgreementContract,
                 CHAIN_DETAILS,
+                (issue) => validationIssues.push(issue),
             );
 
             // Assert
-            const wasCalledWithUnknownChainWarning =
-                consoleWarnSpy.mock.calls.some(
-                    (call) =>
-                        call[0].includes(
-                            "Unknown chain details in on-chain state",
-                        ) && call[0].includes("caip2ChainId='eip155:999999'"),
-                );
-
             assert.ok(
-                wasCalledWithUnknownChainWarning,
-                "console.warn should be called with a warning about unknown chain in on-chain state",
+                validationIssues.some(
+                    (issue) =>
+                        issue.includes(
+                            "Unknown chain details in on-chain state",
+                        ) && issue.includes("caip2ChainId='eip155:999999'"),
+                ),
+                "unknown on-chain chains should be reported as validation issues",
             );
 
             // Verify that the unknown chain was not included in the result
             assert.ok(!Object.hasOwn(result, "UNKNOWN"));
             assert.ok(Object.hasOwn(result, "ETHEREUM"));
         });
+
+        test("should report unknown chain details found in CSV state", async () => {
+            getNormalizedDataFromOnchainState.mockResolvedValue(
+                INITIAL_ONCHAIN_STATE,
+            );
+            getNormalizedContractsInScopeFromCSV.mockResolvedValue({
+                UNKNOWN: [
+                    {
+                        accountAddress: ACCOUNT.UNKNOWN,
+                        childContractScope: 0,
+                    },
+                ],
+            });
+
+            const result = await generatePayload("");
+
+            assert.ok(
+                result.validationIssues.some(
+                    (issue) =>
+                        issue.includes("Unknown chain details in CSV") &&
+                        issue.includes("UNKNOWN"),
+                ),
+            );
+        });
     });
 
     describe("Chain Details Duplicate Validation", () => {
-        test("should log a warning when duplicate chain names are found in CSV", async () => {
+        test("should report duplicate chain names found in CSV", async () => {
             // Arrange
             // Mock fetch to return CSV data with duplicate chain names
             global.fetch = vi.fn().mockResolvedValue({
@@ -717,29 +749,27 @@ BASE,eip155:8453,${RECOVERY.BASE}`,
                 await vi.importActual("../src/fetchCSV.js");
 
             // Act
+            const validationIssues = [];
             await actualGetChainDetailsFromCSV(
                 "https://example.test/chain-details.csv",
+                (issue) => validationIssues.push(issue),
             );
 
             // Assert
-            const wasCalledWithDuplicateNamesWarning =
-                consoleWarnSpy.mock.calls.some(
-                    (call) =>
-                        call[0].includes(
-                            "⚠️  Warning: Duplicate chain name found in CSV",
-                        ) && call[0].includes("ETHEREUM"),
-                );
-
             assert.ok(
-                wasCalledWithDuplicateNamesWarning,
-                "console.warn should be called with a warning about duplicate chain name",
+                validationIssues.some(
+                    (issue) =>
+                        issue.includes("Duplicate chain name found in CSV") &&
+                        issue.includes("ETHEREUM"),
+                ),
+                "duplicate chain names should be reported as validation issues",
             );
 
             // Clean up
             delete global.fetch;
         });
 
-        test("should log a warning when duplicate chain IDs are found in CSV", async () => {
+        test("should report duplicate chain IDs found in CSV", async () => {
             // Arrange
             // Mock fetch to return CSV data with duplicate chain IDs
             global.fetch = vi.fn().mockResolvedValue({
@@ -760,22 +790,20 @@ BASE,eip155:8453,${RECOVERY.BASE}`,
                 await vi.importActual("../src/fetchCSV.js");
 
             // Act
+            const validationIssues = [];
             await actualGetChainDetailsFromCSV(
                 "https://example.test/chain-details.csv",
+                (issue) => validationIssues.push(issue),
             );
 
             // Assert
-            const wasCalledWithDuplicateChainIdsWarning =
-                consoleWarnSpy.mock.calls.some(
-                    (call) =>
-                        call[0].includes(
-                            "⚠️  Warning: Duplicate chain ID found in CSV",
-                        ) && call[0].includes("eip155:1"),
-                );
-
             assert.ok(
-                wasCalledWithDuplicateChainIdsWarning,
-                "console.warn should be called with a warning about duplicate chain ID",
+                validationIssues.some(
+                    (issue) =>
+                        issue.includes("Duplicate chain ID found in CSV") &&
+                        issue.includes("eip155:1"),
+                ),
+                "duplicate chain IDs should be reported as validation issues",
             );
 
             // Clean up

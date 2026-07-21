@@ -102,7 +102,12 @@ function generateAccountUpdates(
     return updates;
 }
 
-function validateRecoveryAddress(onChainState, csvState, chainDetails) {
+function validateRecoveryAddress(
+    onChainState,
+    csvState,
+    chainDetails,
+    reportValidationIssue,
+) {
     const onChainChains = new Set(Object.keys(onChainState));
     const csvChains = new Set(Object.keys(csvState));
 
@@ -121,14 +126,19 @@ function validateRecoveryAddress(onChainState, csvState, chainDetails) {
             onchainRecoveryAddress.toLowerCase() !==
                 csvRecoveryAddress.toLowerCase()
         ) {
-            console.warn(
+            reportValidationIssue(
                 `\n\n‼️-----‼️ \nAsset Recovery Address mismatch for chain '${chainName}'. \nOn-chain: ${onchainRecoveryAddress} \nCSV:      ${csvRecoveryAddress} \n‼️-----‼️\n\n`,
             );
         }
     }
 }
 
-function generateChainUpdates(onChainState, csvState, chainDetails) {
+function generateChainUpdates(
+    onChainState,
+    csvState,
+    chainDetails,
+    reportValidationIssue,
+) {
     const updates = [];
 
     const currentChainNames = Object.keys(onChainState);
@@ -138,7 +148,7 @@ function generateChainUpdates(onChainState, csvState, chainDetails) {
     // Filter out chains that don't have complete details
     desiredChainNames = desiredChainNames.filter((chainName) => {
         if (!chainDetailsChainNames.includes(chainName)) {
-            console.warn(
+            reportValidationIssue(
                 `\n\n⚠️-----⚠️ \nUnknown chain details in CSV: name='${chainName}' \nInclude chain details to the chain details tab in the Google Sheet to add coverage to it. \n⚠️-----⚠️\n\n`,
             );
             return false;
@@ -212,13 +222,24 @@ function generateChainUpdates(onChainState, csvState, chainDetails) {
     return { updates, chainsToRemove };
 }
 
-export function generateUpdates(onChainState, csvState, chainDetails) {
-    validateRecoveryAddress(onChainState, csvState, chainDetails);
+export function generateUpdates(
+    onChainState,
+    csvState,
+    chainDetails,
+    reportValidationIssue = console.warn,
+) {
+    validateRecoveryAddress(
+        onChainState,
+        csvState,
+        chainDetails,
+        reportValidationIssue,
+    );
 
     const { updates: chainUpdates, chainsToRemove } = generateChainUpdates(
         onChainState,
         csvState,
         chainDetails,
+        reportValidationIssue,
     );
     const accountUpdates = generateAccountUpdates(
         onChainState,

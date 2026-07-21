@@ -7,12 +7,27 @@ on:
   pull_request:
     paths:
       - "scripts/safeharbor/**"
+  workflow_dispatch:
+    inputs:
+      rpc_url:
+        description: Public RPC URL for the post-cast Tenderly VNet
+        required: true
+        type: string
+      spell_address:
+        description: Address of the spell cast on the VNet
+        required: true
+        type: string
+      explorer_url:
+        description: Public Tenderly explorer URL for the VNet
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 jobs:
   tests:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -23,3 +38,29 @@ jobs:
 
       - name: Run SafeHarbor tests
         run: npm test --prefix scripts/safeharbor -- --run --reporter=verbose
+
+  validate:
+    if: github.event_name == 'workflow_dispatch'
+    name: SafeHarbor post-cast validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ETH_RPC_URL: ${{ inputs.rpc_url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: npm ci --prefix scripts/safeharbor
+
+      - name: Record simulation details
+        env:
+          SPELL_ADDRESS: ${{ inputs.spell_address }}
+          EXPLORER_URL: ${{ inputs.explorer_url }}
+        run: |
+          echo "### SafeHarbor post-cast validation" >> "$GITHUB_STEP_SUMMARY"
+          printf -- '- Spell: `%s`\n' "$SPELL_ADDRESS" >> "$GITHUB_STEP_SUMMARY"
+          printf -- '- Tenderly VNet: %s\n' "$EXPLORER_URL" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify post-cast SafeHarbor state
+        run: npm --prefix scripts/safeharbor run --silent verify

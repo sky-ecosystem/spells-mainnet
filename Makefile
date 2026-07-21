@@ -10,6 +10,7 @@ flatten              :; forge flatten src/DssSpell.sol --output out/flat.sol
 diff-deployed-spell  :; ./scripts/diff-deployed-dssspell.sh $(spell)
 check-deployed-spell :; ./scripts/check-deployed-dssspell.sh
 cast-on-tenderly     :; cd ./scripts/cast-on-tenderly/ && npm i && npm start -- $(spell); cd -
+cast-on-tenderly-safeharbor :; cd ./scripts/cast-on-tenderly/ && npm i && npm start -- $(spell) --safeharbor-ci; cd -
 archive-spell        :; ./scripts/archive-dssspell.sh "$(if $(date),$(date),$(shell date +'%Y-%m-%d'))"
 diff-archive-spell   :; ./scripts/diff-archive-dssspell.sh "$(if $(date),$(date),$(shell date +'%Y-%m-%d'))"
 feed                 :; ./scripts/check-oracle-feed.sh $(pip)
@@ -22,3 +23,4 @@ arb-cost             :; ./scripts/get-arb-relay-cost.sh $(spell)
 rates                :; ./scripts/rates.sh $(pct)
 safeharbor-generate  :; cd scripts/safeharbor && npm --silent ci && npm run --silent generate
 safeharbor-inspect   :; cd scripts/safeharbor && npm --silent ci && npm run --silent inspect
+safeharbor-verify    :; cd scripts/safeharbor && npm --silent ci && npm run --silent verify

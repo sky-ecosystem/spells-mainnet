@@ -24,13 +24,20 @@ import {
  * @function generatePayload
  * @param {Object} agreementContract - The ethers.js agreement contract instance
  * @param {string} agreementContract.address - The address of the agreement contract
- * @returns {Promise<{updates: Array<{function: string, args: Array<any>, calldata: string}>, solidityCode: string}>} Object containing:
+ * @returns {Promise<{updates: Array<{function: string, args: Array<any>, calldata: string}>, solidityCode: string, validationIssues: string[]}>} Object containing:
  *   - updates: Array of update objects with function calls and calldata
  *   - solidityCode: Generated Solidity code for the updates
+ *   - validationIssues: Source or on-chain data issues that make reconciliation incomplete
  * @throws {Error} If any step in the process fails
  */
 export async function generatePayload(agreementContract) {
     try {
+        const validationIssues = [];
+        const reportValidationIssue = (issue) => {
+            validationIssues.push(issue);
+            console.warn(issue);
+        };
+
         // 0. Fetch chain information once at the beginning
         console.warn("Fetching chains details CSV...");
         /**
@@ -39,6 +46,7 @@ export async function generatePayload(agreementContract) {
          */
         const chainDetails = await getChainDetailsFromCSV(
             CHAIN_DETAILS_SHEET_URL,
+            reportValidationIssue,
         );
 
         // 1. Download and parse CSV
@@ -60,6 +68,7 @@ export async function generatePayload(agreementContract) {
         const onChainState = await getNormalizedDataFromOnchainState(
             agreementContract,
             chainDetails,
+            reportValidationIssue,
         );
 
         // 3. Generate updates
@@ -68,12 +77,18 @@ export async function generatePayload(agreementContract) {
          * Array of update objects representing differences between CSV and on-chain state
          * @type {Array<{function: string, args: Array<any>, calldata: string}>}
          */
-        const updates = generateUpdates(onChainState, csvState, chainDetails);
+        const updates = generateUpdates(
+            onChainState,
+            csvState,
+            chainDetails,
+            reportValidationIssue,
+        );
 
         if (updates.length === 0) {
             return {
                 updates: [],
                 solidityCode: "",
+                validationIssues,
             };
         }
 
@@ -87,6 +102,7 @@ export async function generatePayload(agreementContract) {
         return {
             updates,
             solidityCode,
+            validationIssues,
         };
     } catch (error) {
         /**
