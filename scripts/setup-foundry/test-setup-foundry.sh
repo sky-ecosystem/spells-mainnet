@@ -92,10 +92,10 @@ case "${2:-}" in
         case "$tag" in
             v2.1.0) printf "v2.1.0\t2026-07-12T00:00:00Z\tfalse\tfalse\t%s\n" "$TEST_INSTALLED_IMMUTABLE" ;;
             v2.0.0) printf "v2.0.0\t2002-01-01T00:00:00Z\tfalse\tfalse\t%s\n" "$TEST_INSTALLED_IMMUTABLE" ;;
-            v2.0.0-rc1) printf "v2.0.0-rc1\t2026-05-15T00:00:00Z\tfalse\tfalse\t%s\n" "$TEST_INSTALLED_IMMUTABLE" ;;
+            v2.0.0-rc1) printf "v2.0.0-rc1\t2001-12-01T00:00:00Z\tfalse\tfalse\t%s\n" "$TEST_INSTALLED_IMMUTABLE" ;;
             v1.9.0) printf "v1.9.0\t2001-01-01T00:00:00Z\tfalse\tfalse\t%s\n" "$TEST_INSTALLED_IMMUTABLE" ;;
-            v1.8.0) printf "v1.8.0\t2026-04-01T00:00:00Z\tfalse\ttrue\t%s\n" "$TEST_INSTALLED_IMMUTABLE" ;;
-            v1.8.0-rc1) printf "v1.8.0-rc1\t2026-04-01T00:00:00Z\tfalse\ttrue\t%s\n" "$TEST_INSTALLED_IMMUTABLE" ;;
+            v1.8.0) printf "v1.8.0\t2000-01-01T00:00:00Z\tfalse\ttrue\t%s\n" "$TEST_INSTALLED_IMMUTABLE" ;;
+            v1.8.0-rc1) printf "v1.8.0-rc1\t1999-12-01T00:00:00Z\tfalse\ttrue\t%s\n" "$TEST_INSTALLED_IMMUTABLE" ;;
             *) exit 1 ;;
         esac
         exit 0
