@@ -121,22 +121,19 @@ attest_path() {
 }
 
 verify_binary_paths() {
-    local expected_tag binary index tag
+    local expected_tag index
 
     expected_tag=${1:-}
     INSTALLED_TAG=
     printf '\nBinary attestations:\n'
-    index=0
-    for binary in "${BINARIES[@]}"; do
-        printf '%s (%s):\n' "$binary" "${BINARY_PATHS[$index]}"
+    for index in "${!BINARIES[@]}"; do
+        printf '%s (%s):\n' "${BINARIES[$index]}" "${BINARY_PATHS[$index]}"
         attest_path "${BINARY_PATHS[$index]}"
-        tag=$ATTESTED_TAG
         if [ -z "$INSTALLED_TAG" ]; then
-            INSTALLED_TAG=$tag
-        elif [ "$tag" != "$INSTALLED_TAG" ]; then
-            die "Foundry binaries come from different releases: $INSTALLED_TAG and $tag"
+            INSTALLED_TAG=$ATTESTED_TAG
+        elif [ "$ATTESTED_TAG" != "$INSTALLED_TAG" ]; then
+            die "Foundry binaries come from different releases: $INSTALLED_TAG and $ATTESTED_TAG"
         fi
-        index=$((index + 1))
     done
 
     if [ -n "$expected_tag" ] && [ "$INSTALLED_TAG" != "$expected_tag" ]; then
@@ -145,19 +142,15 @@ verify_binary_paths() {
 }
 
 run_binary_versions() {
-    local binary index version_output
+    local path version_output
 
-    VERSION_OUTPUTS=()
     printf '\nInstalled versions:\n'
-    index=0
-    for binary in "${BINARIES[@]}"; do
-        if ! version_output=$("${BINARY_PATHS[$index]}" --version); then
-            die "could not read version from ${BINARY_PATHS[$index]}"
+    for path in "${BINARY_PATHS[@]}"; do
+        if ! version_output=$("$path" --version); then
+            die "could not read version from $path"
         fi
-        [ -n "$version_output" ] || die "empty version output from ${BINARY_PATHS[$index]}"
-        VERSION_OUTPUTS+=("$version_output")
+        [ -n "$version_output" ] || die "empty version output from $path"
         printf '%s\n' "$version_output"
-        index=$((index + 1))
     done
 }
 
