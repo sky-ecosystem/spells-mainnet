@@ -17,10 +17,11 @@ This script provides one auditable process for installing and verifying Foundry.
 - uses an exact stable tag in the form `vMAJOR.MINOR.PATCH`;
 - is neither a draft nor a prerelease;
 - is immutable;
-- was published at least 14 days ago; and
-- was produced by Foundry's official release workflow, as proven by GitHub attestations.
+- was published at least 14 days ago.
 
-If the installed binaries do not match the desired release, the verifier reports the exact release and installation command. Without an explicit release, the installer selects the same newest age-eligible release as the verifier; with a release parameter, it installs only that exact release. It verifies the downloaded archive before extracting it, verifies `forge`, `cast`, `anvil`, and `chisel` before executing them, and requires all four binaries to come from the same release. If an installation fails after modifying the destination, it restores the previous binaries.
+The verifier checks that the installed `forge`, `cast`, `anvil`, and `chisel` binaries were produced by Foundry's official release workflow and all come from the desired release. If the installed binaries do not match, it reports the exact release and installation command.
+
+Without an explicit release, the installer selects the same newest age-eligible release as the verifier; with a release parameter, it installs only that exact release. Because installation processes a release archive, it additionally requires the archive itself to be attested before extraction. It then verifies the four installed binaries before executing them. If an installation fails after modifying the destination, it restores the previous binaries.
 
 The selected version can change as newer releases satisfy the policy; the verifier enforces the policy rather than permanently pinning one Foundry version.
 
@@ -38,7 +39,7 @@ This tool does not maintain a repository-local revocation list or an allowlist o
 
 ## Urgent security releases
 
-The spell team can force an exact immutable stable release when the automatically selected release cannot be used. Force bypasses automatic release selection and, when necessary, the release-age requirement; tag format, release metadata, workflow provenance, and binary attestation checks remain mandatory.
+The spell team can force an exact immutable stable release when the automatically selected release cannot be used. Force bypasses automatic release selection and, when necessary, the release-age requirement; it does not bypass any archive or binary attestation requirement.
 
 Use `force=1` to install and verify the exact approved release:
 
@@ -101,9 +102,13 @@ make install-foundry release=vMAJOR.MINOR.PATCH
 make verify-foundry
 ```
 
-Crafter and reviewer workflows must require all three fields before installing. Any other failure must be diagnosed without automatically installing.
+The printed command identifies the desired release but does not guarantee that its release archive satisfies the installer's additional attestation requirement. Crafter and reviewer workflows must require all three fields before installing; any other failure must be diagnosed without automatically installing.
 
 ## Installation and verification behavior
+
+Verification and installation intentionally have different artifact boundaries. `verify-foundry` validates the installed binaries and can succeed for a release that `install-foundry` cannot install. `install-foundry` must process the upstream archive, so it requires both the archive attestation and the binary attestations.
+
+Foundry v1.7.0 is one example: its four binaries are attested, but its release archive is not. An existing v1.7.0 installation can therefore pass `make verify-foundry release=v1.7.0 force=1`, while `make install-foundry release=v1.7.0 force=1` fails before extraction. This is expected behavior, and `force=1` does not weaken either attestation boundary.
 
 Without a release parameter, the installer selects the newest immutable stable release published at least 14 days ago. With a release parameter, it validates and installs only that exact age-eligible release. `force=1` requires an explicit release. The command installs the verified binaries in `~/.foundry/bin`. If that directory is not already in `PATH`, the installation succeeds and prints `Required action: update-path` with the exact `PATH` configuration to apply before rerunning the verifier.
 
