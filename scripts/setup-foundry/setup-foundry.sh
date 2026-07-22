@@ -55,8 +55,8 @@ COMMANDS
         the policy-selected release.
 
     install
-        Download, verify, and install Foundry in \$HOME/.foundry/bin. Without
-        --release, install the policy-selected release.
+        Verify the desired release in \$HOME/.foundry/bin, or download and install
+        it when the existing destination does not match.
 
 OPTIONS
     --release RELEASE
@@ -256,30 +256,26 @@ resolve_path_binaries() {
 }
 
 validate_installed_release() {
-    local record installed_published_at installed_draft installed_prerelease installed_immutable
+    local record installed_tag installed_published_at installed_draft installed_prerelease installed_immutable
 
-    [[ "$INSTALLED_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] \
-        || die "installed Foundry release does not use a stable version tag: $INSTALLED_TAG"
+    if [ "$INSTALLED_TAG" != "$VERSION" ]; then
+        if [ -n "$REQUESTED_RELEASE" ]; then
+            install_required "installed Foundry release $INSTALLED_TAG does not match requested release $VERSION"
+        fi
+        install_required "installed Foundry release $INSTALLED_TAG does not match newest eligible immutable stable $VERSION"
+    fi
     if [ -n "$REQUESTED_RELEASE" ]; then
-        [ "$INSTALLED_TAG" = "$VERSION" ] \
-            || install_required "installed Foundry release $INSTALLED_TAG does not match requested release $VERSION"
         VERSION_STATUS="installed release matches explicitly requested immutable stable $VERSION"
         return
     fi
     record=$(gh api "repos/${REPOSITORY}/releases/tags/${INSTALLED_TAG}" --hostname "$GITHUB_HOST" \
         --jq '[.tag_name, .published_at, .draft, .prerelease, .immutable] | @tsv') || die "could not find Foundry release metadata for $INSTALLED_TAG"
-    IFS=$'\t' read -r _ installed_published_at installed_draft installed_prerelease installed_immutable <<< "$record"
+    IFS=$'\t' read -r installed_tag installed_published_at installed_draft installed_prerelease installed_immutable <<< "$record"
+    [ "$installed_tag" = "$INSTALLED_TAG" ] || die "installed Foundry release metadata does not match $INSTALLED_TAG"
     [ "$installed_draft" = false ] && [ "$installed_prerelease" = false ] \
         || die "installed Foundry release is not stable: $INSTALLED_TAG"
     [ "$installed_immutable" = true ] || die "installed Foundry release is not immutable: $INSTALLED_TAG"
-
-    if [ "$INSTALLED_TAG" = "$VERSION" ]; then
-        VERSION_STATUS="installed release matches eligible immutable stable $VERSION"
-    elif [ "$(printf '%s\n%s\n' "$installed_published_at" "$PUBLISHED_AT" | sort -r | sed -n '1p')" = "$installed_published_at" ]; then
-        install_required "installed Foundry release $INSTALLED_TAG violates the 14-day policy; eligible release is $VERSION"
-    else
-        install_required "installed Foundry release $INSTALLED_TAG does not match newest eligible immutable stable $VERSION"
-    fi
+    VERSION_STATUS="installed release matches eligible immutable stable $VERSION"
 }
 
 report_selection() {
@@ -347,7 +343,6 @@ cleanup() {
 
 initialize_installation() {
     RELEASE_ASSET="foundry_${VERSION}_${PLATFORM}_${ARCH}.tar.gz"
-    DESTINATION="${HOME}/.foundry/bin"
     TEMP_DIR=$(mktemp -d)
     BACKUP_DIR="${TEMP_DIR}/previous-installation"
     ROLLBACK_REQUIRED=0
@@ -414,6 +409,43 @@ verify_installed_binaries() {
     ROLLBACK_REQUIRED=0
 }
 
+verify_existing_destination() {
+    local binary path
+
+    BINARY_PATHS=()
+    for binary in "${BINARIES[@]}"; do
+        path="${DESTINATION}/${binary}"
+        [ -f "$path" ] && [ -x "$path" ] || return 1
+        BINARY_PATHS+=("$path")
+    done
+    verify_binary_paths "$VERSION"
+    validate_installed_release
+    run_binary_versions
+}
+
+report_path_action() {
+    case ":$PATH:" in
+        *":$DESTINATION:"*) ;;
+        *)
+            printf '\nFoundry is verified in %s, but that directory is not in PATH.\n' "$DESTINATION" >&2
+            printf 'Required action: update-path\n' >&2
+            printf '%s\n' 'Run: export PATH="$HOME/.foundry/bin:$PATH"' >&2
+            printf '%s\n' 'Add the same export to your shell profile, then start a new shell before continuing.' >&2
+            ;;
+    esac
+}
+
+finalize_existing_installation() {
+    printf '\nEvidence summary:\n'
+    printf '  Source: spells-mainnet %s; setup CLI SHA-256 %s\n' "$SOURCE_COMMIT" "$CLI_SHA256"
+    printf '  Release: %s; %s; %s\n' "$VERSION" "$PUBLISHED_AT" "$RELEASE_URL"
+    printf '  Policy decision: %s\n' "$SELECTION_REASON"
+    printf '  Installation: skipped; existing destination binaries match desired release\n'
+    printf '  Binary attestations: forge, cast, anvil, and chisel verified against %s\n' "$SIGNER_WORKFLOW"
+    report_path_action
+    printf '\nFoundry installation skipped: %s is already installed and verified in %s.\n' "$VERSION" "$DESTINATION"
+}
+
 finalize_installation() {
     printf '\nEvidence summary:\n'
     printf '  Source: spells-mainnet %s; setup CLI SHA-256 %s\n' "$SOURCE_COMMIT" "$CLI_SHA256"
@@ -422,15 +454,7 @@ finalize_installation() {
     printf '  Release asset attestation: verified against %s\n' "$SIGNER_WORKFLOW"
     printf '  Binary attestations: forge, cast, anvil, and chisel verified against %s\n' "$SIGNER_WORKFLOW"
 
-    case ":$PATH:" in
-        *":$DESTINATION:"*) ;;
-        *)
-            printf '\nFoundry was installed and verified, but %s is not in PATH.\n' "$DESTINATION" >&2
-            printf 'Required action: update-path\n' >&2
-            printf '%s\n' 'Run: export PATH="$HOME/.foundry/bin:$PATH"' >&2
-            printf '%s\n' 'Add the same export to your shell profile, then start a new shell before continuing.' >&2
-            ;;
-    esac
+    report_path_action
     printf '\nFoundry installation and verification completed successfully.\n'
 }
 
@@ -452,6 +476,8 @@ verify_foundry() {
 }
 
 install_foundry() {
+    local existing_output
+
     validate_environment
     validate_install_platform
     collect_source_metadata
@@ -460,8 +486,14 @@ install_foundry() {
     else
         select_release
     fi
-    initialize_installation
+    DESTINATION="${HOME}/.foundry/bin"
     report_selection
+    if existing_output=$(verify_existing_destination 2>&1); then
+        printf '%s\n' "$existing_output"
+        finalize_existing_installation
+        return
+    fi
+    initialize_installation
     download_verify_and_extract_release
     prepare_destination
     install_binaries

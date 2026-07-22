@@ -121,7 +121,11 @@ Verification and installation intentionally have different artifact boundaries. 
 
 Foundry v1.7.0 is one example: its four binaries are attested, but its release archive is not. An existing v1.7.0 installation can therefore pass `make verify-foundry release=v1.7.0`, while `make install-foundry release=v1.7.0` fails before extraction. This is expected behavior; selecting an exact release does not weaken either attestation boundary.
 
-Without a release parameter, the verifier and installer select the newest immutable stable release published at least 14 days ago. With a release parameter, they validate only that exact release and enforce the same age requirement. `ignore-age=1` requires an explicit release and waives only that age requirement. The installer places the verified binaries in `~/.foundry/bin`. If that directory is not already in `PATH`, the installation succeeds and prints `Required action: update-path` with the exact `PATH` configuration to apply before rerunning the verifier.
+Without a release parameter, the verifier and installer select the newest immutable stable release published at least 14 days ago. With a release parameter, they validate only that exact release and enforce the same age requirement. `ignore-age=1` requires an explicit release and waives only that age requirement.
+
+Before downloading an archive, the installer checks `~/.foundry/bin`. It skips installation only when `forge`, `cast`, `anvil`, and `chisel` are executable files whose attestations all match the desired release, the release metadata remains valid, and every version command succeeds. Existing binaries are executed only after their attestations match. If any check fails, the normal transactional installation proceeds.
+
+The installer places the verified binaries in `~/.foundry/bin`. If that directory is not already in `PATH`, either installation path succeeds and prints `Required action: update-path` with the exact `PATH` configuration to apply before rerunning the verifier.
 
 The installer succeeds after installation and verification, including when it reports the `update-path` action. Any nonzero installer result is a failure.
 
