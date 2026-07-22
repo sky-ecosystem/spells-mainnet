@@ -1,9 +1,9 @@
-foundry-force         = $(if $(force),$(if $(filter 1,$(force)),-f,$(error force must be 1)),)
+foundry-ignore-age    = $(if $(ignore-age),$(if $(filter 1,$(ignore-age)),--ignore-age,$(error ignore-age must be 1)),)
 
 all                  :; forge build
 clean                :; forge clean
-install-foundry      :; ./scripts/setup-foundry/setup-foundry.sh install $(if $(release),-r "$(release)") $(foundry-force)
-verify-foundry       :; ./scripts/setup-foundry/setup-foundry.sh verify $(if $(release),-r "$(release)") $(foundry-force)
+install-foundry      :; ./scripts/setup-foundry/setup-foundry.sh install $(if $(release),--release "$(release)") $(foundry-ignore-age)
+verify-foundry       :; ./scripts/setup-foundry/setup-foundry.sh verify $(if $(release),--release "$(release)") $(foundry-ignore-age)
 test-setup-foundry   :; ./scripts/setup-foundry/test-setup-foundry.sh
                         # Usage example: make test match=SpellIsCast
 test                 :; ./scripts/test-dssspell-forge.sh no-match="$(no-match)" match="$(match)" block="$(block)"

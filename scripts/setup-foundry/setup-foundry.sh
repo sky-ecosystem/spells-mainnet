@@ -14,7 +14,7 @@ SOURCE_REPOSITORY="https://${GITHUB_HOST}/${REPOSITORY}"
 MINIMUM_RELEASE_AGE_SECONDS="1209600"
 BINARIES=("forge" "cast" "anvil" "chisel")
 REQUESTED_RELEASE=
-FORCE_RELEASE=0
+IGNORE_RELEASE_AGE=0
 
 die() {
     printf 'Error: %s\n' "$*" >&2
@@ -25,15 +25,15 @@ install_required() {
     printf 'Error: %s\n' "$*" >&2
     printf 'Required action: install\n' >&2
     printf 'Installation command: make install-foundry release=%s' "$VERSION" >&2
-    if [ "$FORCE_RELEASE" -eq 1 ]; then
-        printf ' force=1' >&2
+    if [ "$IGNORE_RELEASE_AGE" -eq 1 ]; then
+        printf ' ignore-age=1' >&2
     fi
     printf '\n' >&2
     exit 1
 }
 
 usage() {
-    printf 'Usage: %s verify | %s verify -r vMAJOR.MINOR.PATCH -f | %s install [-r vMAJOR.MINOR.PATCH [-f]]\n' "${0##*/}" "${0##*/}" "${0##*/}" >&2
+    printf 'Usage: %s verify [--release vMAJOR.MINOR.PATCH [--ignore-age]] | %s install [--release vMAJOR.MINOR.PATCH [--ignore-age]]\n' "${0##*/}" "${0##*/}" >&2
 }
 
 sha256() {
@@ -116,16 +116,13 @@ load_requested_release() {
         || die "requested Foundry release is not stable: $REQUESTED_RELEASE"
     [ "$requested_immutable" = true ] || die "requested Foundry release is not immutable: $REQUESTED_RELEASE"
     [ "$release_age_seconds" -ge 0 ] || die "requested Foundry release has a future publication date: $REQUESTED_RELEASE"
-    if [ "$FORCE_RELEASE" -eq 1 ]; then
-        if [ "$release_age_seconds" -lt "$MINIMUM_RELEASE_AGE_SECONDS" ]; then
-            SELECTION_REASON="explicitly requested $REQUESTED_RELEASE with force; 14-day cooling period waived"
-        else
-            SELECTION_REASON="explicitly requested approved immutable stable $REQUESTED_RELEASE with force; release is age-eligible"
-        fi
+    if [ "$IGNORE_RELEASE_AGE" -eq 1 ] && [ "$release_age_seconds" -lt "$MINIMUM_RELEASE_AGE_SECONDS" ]; then
+        SELECTION_REASON="explicitly requested immutable stable $REQUESTED_RELEASE; 14-day cooling period waived with --ignore-age"
     else
-        [ "$release_age_seconds" -ge "$MINIMUM_RELEASE_AGE_SECONDS" ] \
-            || die 'release is less than 14 days old; use -f only for an approved release'
-        SELECTION_REASON="explicitly requested age-eligible immutable stable $REQUESTED_RELEASE"
+        if [ "$release_age_seconds" -lt "$MINIMUM_RELEASE_AGE_SECONDS" ]; then
+            die 'release is less than 14 days old; use --ignore-age only for an approved release'
+        fi
+        SELECTION_REASON="explicitly requested immutable stable $REQUESTED_RELEASE; release is age-eligible"
     fi
 }
 
@@ -213,11 +210,7 @@ validate_installed_release() {
     if [ -n "$REQUESTED_RELEASE" ]; then
         [ "$INSTALLED_TAG" = "$VERSION" ] \
             || install_required "installed Foundry release $INSTALLED_TAG does not match requested release $VERSION"
-        if [ "$FORCE_RELEASE" -eq 1 ]; then
-            VERSION_STATUS="installed release matches explicitly requested forced immutable stable $VERSION"
-        else
-            VERSION_STATUS="installed release matches explicitly requested age-eligible immutable stable $VERSION"
-        fi
+        VERSION_STATUS="installed release matches explicitly requested immutable stable $VERSION"
         return
     fi
     record=$(gh api "repos/${REPOSITORY}/releases/tags/${INSTALLED_TAG}" --hostname "$GITHUB_HOST" \
@@ -391,7 +384,7 @@ finalize_installation() {
 verify_foundry() {
     validate_environment
     collect_source_metadata
-    if [ "$FORCE_RELEASE" -eq 1 ]; then
+    if [ -n "$REQUESTED_RELEASE" ]; then
         load_requested_release
     else
         select_release
@@ -424,37 +417,45 @@ install_foundry() {
 }
 
 main() {
-    local command option
+    local command
 
     [ "$#" -ge 1 ] || { usage; exit 1; }
     command=$1
     shift
-    while getopts ':fr:' option; do
-        case "$option" in
-            f) FORCE_RELEASE=1 ;;
-            r) [ -n "$OPTARG" ] || { usage; exit 1; }; REQUESTED_RELEASE=$OPTARG ;;
-            :) usage; exit 1 ;;
-            \?) usage; exit 1 ;;
+    while [ "$#" -gt 0 ]; do
+        case "$1" in
+            --ignore-age)
+                IGNORE_RELEASE_AGE=1
+                shift
+                ;;
+            --release)
+                [ "$#" -ge 2 ] && [ -n "$2" ] || { usage; exit 1; }
+                REQUESTED_RELEASE=$2
+                shift 2
+                ;;
+            --release=*)
+                REQUESTED_RELEASE=${1#--release=}
+                [ -n "$REQUESTED_RELEASE" ] || { usage; exit 1; }
+                shift
+                ;;
+            --)
+                shift
+                break
+                ;;
+            *)
+                usage
+                exit 1
+                ;;
         esac
     done
-    shift "$((OPTIND - 1))"
     [ "$#" -eq 0 ] || { usage; exit 1; }
+    if [ -z "$REQUESTED_RELEASE" ] && [ "$IGNORE_RELEASE_AGE" -eq 1 ]; then
+        usage
+        exit 1
+    fi
     case "$command" in
-        verify)
-            if { [ -n "$REQUESTED_RELEASE" ] && [ "$FORCE_RELEASE" -eq 0 ]; } \
-                || { [ -z "$REQUESTED_RELEASE" ] && [ "$FORCE_RELEASE" -eq 1 ]; }; then
-                usage
-                exit 1
-            fi
-            verify_foundry
-            ;;
-        install)
-            if [ -z "$REQUESTED_RELEASE" ] && [ "$FORCE_RELEASE" -eq 1 ]; then
-                usage
-                exit 1
-            fi
-            install_foundry
-            ;;
+        verify) verify_foundry ;;
+        install) install_foundry ;;
         *) usage; exit 1 ;;
     esac
 }

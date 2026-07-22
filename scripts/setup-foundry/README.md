@@ -33,22 +33,27 @@ GitHub attestations establish that an artifact was produced by the expected repo
 
 [Immutable releases](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases) prevent a published release's tag and assets from being modified or replaced in place. GitHub permits maintainers to delete the entire release, but the immutable release's tag name cannot be reused after deletion. A compromised immutable release therefore cannot be replaced by different binaries under the same version tag.
 
-If Foundry deletes a malicious release, the verifier will no longer select it, explicit installation will fail because the release metadata is unavailable, and verification of an installed copy will also fail. If Foundry leaves the release published, however, the verifier can continue accepting it once it satisfies the age policy. Publishing a clean newer release does not immediately revoke the malicious release; without an approved force override, the newer release becomes eligible only after completing its own 14-day cooling period.
+If Foundry deletes a malicious release, the verifier will no longer select it, explicit installation will fail because the release metadata is unavailable, and verification of an installed copy will also fail. If Foundry leaves the release published, however, the verifier can continue accepting it once it satisfies the age policy. Publishing a clean newer release does not immediately revoke the malicious release; without an approved age waiver, the newer release becomes eligible only after completing its own 14-day cooling period.
 
 This tool does not maintain a repository-local revocation list or an allowlist of approved Foundry releases. It therefore depends on upstream deletion, or a subsequent change to this repository, to reject a known-malicious release immediately.
 
-## Urgent security releases
+## Exact releases and urgent age waivers
 
-The spell team can force an exact immutable stable release when the automatically selected release cannot be used. Force bypasses automatic release selection and, when necessary, the release-age requirement; it does not bypass any archive or binary attestation requirement.
-
-Use `force=1` to install and verify the exact approved release:
+Use `release=vMAJOR.MINOR.PATCH` to verify or install an exact immutable stable release while enforcing the normal 14-day cooling period:
 
 ```bash
-make install-foundry release=vMAJOR.MINOR.PATCH force=1
-make verify-foundry release=vMAJOR.MINOR.PATCH force=1
+make verify-foundry release=vMAJOR.MINOR.PATCH
+make install-foundry release=vMAJOR.MINOR.PATCH
 ```
 
-The `-f` CLI flag, exposed only as `force=1` by the Make targets, stands for force. It selects the exact approved release regardless of age, including when that release is older than the normal policy selection. Record the upstream security advisory or incident reference, the spell-team approval, and the complete installer and verifier output.
+For an approved urgent release that is less than 14 days old, add `ignore-age=1`:
+
+```bash
+make verify-foundry release=vMAJOR.MINOR.PATCH ignore-age=1
+make install-foundry release=vMAJOR.MINOR.PATCH ignore-age=1
+```
+
+The corresponding script options are `--release` and `--ignore-age`. They are parsed directly by Bash and do not require GNU `getopt`, including on macOS. `--ignore-age` requires an explicit release and waives only the cooling period. The release must still use an exact stable tag, exist as an immutable release, and satisfy every applicable archive and binary attestation check. Record the upstream security advisory or incident reference, the spell-team approval, and the complete installer and verifier output.
 
 ## Supported platforms
 
@@ -108,9 +113,9 @@ The printed command identifies the desired release but does not guarantee that i
 
 Verification and installation intentionally have different artifact boundaries. `verify-foundry` validates the installed binaries and can succeed for a release that `install-foundry` cannot install. `install-foundry` must process the upstream archive, so it requires both the archive attestation and the binary attestations.
 
-Foundry v1.7.0 is one example: its four binaries are attested, but its release archive is not. An existing v1.7.0 installation can therefore pass `make verify-foundry release=v1.7.0 force=1`, while `make install-foundry release=v1.7.0 force=1` fails before extraction. This is expected behavior, and `force=1` does not weaken either attestation boundary.
+Foundry v1.7.0 is one example: its four binaries are attested, but its release archive is not. An existing v1.7.0 installation can therefore pass `make verify-foundry release=v1.7.0`, while `make install-foundry release=v1.7.0` fails before extraction. This is expected behavior; selecting an exact release does not weaken either attestation boundary.
 
-Without a release parameter, the installer selects the newest immutable stable release published at least 14 days ago. With a release parameter, it validates and installs only that exact age-eligible release. `force=1` requires an explicit release. The command installs the verified binaries in `~/.foundry/bin`. If that directory is not already in `PATH`, the installation succeeds and prints `Required action: update-path` with the exact `PATH` configuration to apply before rerunning the verifier.
+Without a release parameter, the verifier and installer select the newest immutable stable release published at least 14 days ago. With a release parameter, they validate only that exact release and enforce the same age requirement. `ignore-age=1` requires an explicit release and waives only that age requirement. The installer places the verified binaries in `~/.foundry/bin`. If that directory is not already in `PATH`, the installation succeeds and prints `Required action: update-path` with the exact `PATH` configuration to apply before rerunning the verifier.
 
 The installer succeeds after installation and verification, including when it reports the `update-path` action. Any nonzero installer result is a failure.
 
