@@ -50,7 +50,6 @@ new_fixture() {
     export TEST_VERSION_FAIL=
     export TEST_AUTH_STATUS=0
     export TEST_RELEASE_LIST_STATUS=0
-    export TEST_ASSET_DIGEST_OUTPUT=sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
     mkdir -p "$HOME/.foundry/bin" "$FIXTURE/bin" "$FIXTURE/foundry-bin" "$TEST_LOG"
 
     cat > "$FIXTURE/releases.json" <<'EOF'
@@ -96,9 +95,7 @@ fi
 case "${2:-}" in
     repos/foundry-rs/foundry/releases/tags/*)
         tag=${2##*/}
-        if [[ "$*" = *assets* ]]; then
-            printf "%s\n" "$TEST_ASSET_DIGEST_OUTPUT"
-        elif [[ "$*" = *html_url* ]]; then
+        if [[ "$*" = *html_url* ]]; then
             case "$tag" in
                 v2.1.0) printf "v2.1.0\t2026-07-21T00:00:00Z\thttps://example.test/v2.1.0\t%s\t%s\t%s\t%s\n" "$TEST_REQUESTED_DRAFT" "$TEST_REQUESTED_PRERELEASE" "$TEST_INSTALLED_IMMUTABLE" "$TEST_YOUNG_RELEASE_AGE_SECONDS" ;;
                 v2.0.0) printf "v2.0.0\t2002-01-01T00:00:00Z\thttps://example.test/v2.0.0\tfalse\tfalse\t%s\t99999999\n" "$TEST_INSTALLED_IMMUTABLE" ;;
@@ -627,47 +624,16 @@ Darwin|x86_64|1|darwin_arm64|Rosetta selects the native arm64 asset
 EOF
 }
 
-test_install_uses_release_digest_and_binary_attestations() {
+test_install_asset_failure_blocks_mutation() {
     new_fixture
     TEST_ATTEST_FAIL=foundry_v2.0.0_linux_amd64.tar.gz; export TEST_ATTEST_FAIL
     run_cli no-foundry install -r v2.0.0
-    attestations=$(grep -c '^attestation verify ' "$TEST_LOG/gh" 2>/dev/null || true)
-    if [ "$STATUS" -eq 0 ] && [ "$attestations" -eq 4 ] \
-        && ! grep -q '^attestation verify .*\.tar\.gz' "$TEST_LOG/gh" \
-        && grep -q '^api repos/foundry-rs/foundry/releases/tags/v2.0.0 .*assets' "$TEST_LOG/gh" \
-        && grep -q '^  Release asset digest: foundry_v2.0.0_linux_amd64.tar.gz; sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855$' "$FIXTURE/out"; then
-        pass 'release asset digest and binary attestations verify installation'
+    if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/tar" ] && [ ! -e "$TEST_LOG/install" ]; then
+        pass 'release asset failure blocks extraction and installation'
     else
-        fail 'release asset digest and binary attestations verify installation'
+        fail 'release asset failure blocks extraction and installation'
     fi
     rm -rf "$FIXTURE"
-}
-
-test_install_rejects_invalid_release_asset_digests() {
-    ok=1
-
-    new_fixture
-    TEST_ASSET_DIGEST_OUTPUT=sha256:0000000000000000000000000000000000000000000000000000000000000000; export TEST_ASSET_DIGEST_OUTPUT
-    run_cli no-foundry install -r v2.0.0
-    [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/tar" ] && [ ! -e "$TEST_LOG/install" ] \
-        && grep -q 'release asset digest mismatch' "$FIXTURE/out" || ok=0
-    rm -rf "$FIXTURE"
-
-    for digest in '' 'sha256:not-a-digest' $'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\nsha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'; do
-        new_fixture
-        TEST_ASSET_DIGEST_OUTPUT=$digest; export TEST_ASSET_DIGEST_OUTPUT
-        run_cli no-foundry install -r v2.0.0
-        [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/download-version" ] \
-            && [ ! -e "$TEST_LOG/tar" ] && [ ! -e "$TEST_LOG/install" ] \
-            && grep -q 'release asset digest metadata is missing or invalid' "$FIXTURE/out" || ok=0
-        rm -rf "$FIXTURE"
-    done
-
-    if [ "$ok" -eq 1 ]; then
-        pass 'invalid release asset digests block extraction and installation'
-    else
-        fail 'invalid release asset digests block extraction and installation'
-    fi
 }
 
 test_install_missing_path_reports_action() {
@@ -763,8 +729,7 @@ test_install_without_eligible_release_fails
 test_install_accepts_explicit_age_eligible_release
 test_install_accepts_requested_young_release
 test_install_platform_matrix
-test_install_uses_release_digest_and_binary_attestations
-test_install_rejects_invalid_release_asset_digests
+test_install_asset_failure_blocks_mutation
 test_install_missing_path_reports_action
 test_install_failure_rolls_back
 test_invalid_command_fails

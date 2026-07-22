@@ -311,22 +311,11 @@ initialize_installation() {
     trap 'exit 143' TERM
 }
 
-load_release_asset_digest() {
-    RELEASE_ASSET_DIGEST=$(gh api "repos/${REPOSITORY}/releases/tags/${VERSION}" --hostname "$GITHUB_HOST" \
-        --jq ".assets[] | select(.name == \"${RELEASE_ASSET}\") | .digest") \
-        || die "could not load release asset digest for $RELEASE_ASSET"
-    [[ "$RELEASE_ASSET_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] \
-        || die "release asset digest metadata is missing or invalid for $RELEASE_ASSET"
-}
-
 download_verify_and_extract_release() {
-    local downloaded_digest
-
-    load_release_asset_digest
     gh release download "$VERSION" --repo "$QUALIFIED_REPOSITORY" --pattern "$RELEASE_ASSET" --dir "$TEMP_DIR"
-    downloaded_digest="sha256:$(sha256 "${TEMP_DIR}/${RELEASE_ASSET}")"
-    [ "$downloaded_digest" = "$RELEASE_ASSET_DIGEST" ] \
-        || die "release asset digest mismatch for $RELEASE_ASSET: expected $RELEASE_ASSET_DIGEST, got $downloaded_digest"
+    printf '\nRelease asset attestation:\n'
+    attest_path "${TEMP_DIR}/${RELEASE_ASSET}"
+    [ "$ATTESTED_TAG" = "$VERSION" ] || die "release asset attestation tag $ATTESTED_TAG does not match $VERSION"
 
     EXTRACTED_DIR="${TEMP_DIR}/extracted"
     mkdir "$EXTRACTED_DIR"
@@ -384,7 +373,7 @@ finalize_installation() {
     printf '  Source: spells-mainnet %s; setup CLI SHA-256 %s\n' "$SOURCE_COMMIT" "$CLI_SHA256"
     printf '  Release: %s; %s; %s\n' "$VERSION" "$PUBLISHED_AT" "$RELEASE_URL"
     printf '  Policy decision: %s\n' "$SELECTION_REASON"
-    printf '  Release asset digest: %s; %s\n' "$RELEASE_ASSET" "$RELEASE_ASSET_DIGEST"
+    printf '  Release asset attestation: verified against %s\n' "$SIGNER_WORKFLOW"
     printf '  Binary attestations: forge, cast, anvil, and chisel verified against %s\n' "$SIGNER_WORKFLOW"
 
     case ":$PATH:" in

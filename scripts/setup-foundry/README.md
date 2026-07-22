@@ -20,7 +20,7 @@ This script provides one auditable process for installing and verifying Foundry.
 - was published at least 14 days ago; and
 - was produced by Foundry's official release workflow, as proven by GitHub attestations.
 
-If the installed binaries do not match the desired release, the verifier reports the exact release and installation command. Without an explicit release, the installer selects the same newest age-eligible release as the verifier; with a release parameter, it installs only that exact release. It verifies the downloaded archive's SHA-256 against the digest in GitHub's immutable release metadata before extracting it, verifies `forge`, `cast`, `anvil`, and `chisel` against GitHub attestations before executing them, and requires all four binaries to come from the same release. If an installation fails after modifying the destination, it restores the previous binaries.
+If the installed binaries do not match the desired release, the verifier reports the exact release and installation command. Without an explicit release, the installer selects the same newest age-eligible release as the verifier; with a release parameter, it installs only that exact release. It verifies the downloaded archive before extracting it, verifies `forge`, `cast`, `anvil`, and `chisel` before executing them, and requires all four binaries to come from the same release. If an installation fails after modifying the destination, it restores the previous binaries.
 
 The selected version can change as newer releases satisfy the policy; the verifier enforces the policy rather than permanently pinning one Foundry version.
 
@@ -28,7 +28,7 @@ The 14-day cooling period follows the current executive spell cadence. It provid
 
 ## Security model and limitations
 
-Foundry's GitHub attestations cover the four binaries rather than the release archive. The installer therefore checks the archive's SHA-256 against GitHub's immutable release metadata before extraction, then verifies that each binary was produced by the expected repository workflow. These checks prevent a modified archive or an externally built binary without that provenance from passing verification, but they do not establish that Foundry's source code, dependencies, release workflow, or GitHub account were uncompromised when the artifacts were built.
+GitHub attestations establish that an artifact was produced by the expected repository workflow. They prevent an externally built binary without that provenance from passing verification, but they do not establish that Foundry's source code, dependencies, release workflow, or GitHub account were uncompromised when the artifact was built.
 
 [Immutable releases](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases) prevent a published release's tag and assets from being modified or replaced in place. GitHub permits maintainers to delete the entire release, but the immutable release's tag name cannot be reused after deletion. A compromised immutable release therefore cannot be replaced by different binaries under the same version tag.
 
