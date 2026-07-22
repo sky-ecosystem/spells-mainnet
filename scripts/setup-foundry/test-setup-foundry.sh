@@ -814,8 +814,12 @@ test_invalid_invocations_report_specific_errors() {
 
     while IFS='|' read -r expected arguments; do
         new_fixture
-        read -r -a argv <<< "$arguments"
-        PATH="$FIXTURE/bin:/usr/bin:/bin" "$BASH_PATH" "$CLI" "${argv[@]}" > "$FIXTURE/stdout" 2> "$FIXTURE/stderr"
+        if [ -n "$arguments" ]; then
+            read -r -a argv <<< "$arguments"
+            PATH="$FIXTURE/bin:/usr/bin:/bin" "$BASH_PATH" "$CLI" "${argv[@]}" > "$FIXTURE/stdout" 2> "$FIXTURE/stderr"
+        else
+            PATH="$FIXTURE/bin:/usr/bin:/bin" "$BASH_PATH" "$CLI" > "$FIXTURE/stdout" 2> "$FIXTURE/stderr"
+        fi
         status=$?
         [ "$status" -eq 1 ] || ok=0
         [ ! -s "$FIXTURE/stdout" ] || ok=0
