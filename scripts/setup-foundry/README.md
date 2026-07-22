@@ -20,7 +20,7 @@ This script provides one auditable process for installing and verifying Foundry.
 - was published at least 14 days ago; and
 - was produced by Foundry's official release workflow, as proven by GitHub attestations.
 
-If the installed binaries do not match the desired release, the verifier reports the exact release and installation command. The installer requires that release as an explicit parameter and does not select a release itself. It verifies the downloaded archive before extracting it, verifies `forge`, `cast`, `anvil`, and `chisel` before executing them, and requires all four binaries to come from the same release. If an installation fails after modifying the destination, it restores the previous binaries.
+If the installed binaries do not match the desired release, the verifier reports the exact release and installation command. Without an explicit release, the installer selects the same newest age-eligible release as the verifier; with a release parameter, it installs only that exact release. It verifies the downloaded archive before extracting it, verifies `forge`, `cast`, `anvil`, and `chisel` before executing them, and requires all four binaries to come from the same release. If an installation fails after modifying the destination, it restores the previous binaries.
 
 The selected version can change as newer releases satisfy the policy; the verifier enforces the policy rather than permanently pinning one Foundry version.
 
@@ -73,13 +73,20 @@ Run the tool from this Git checkout in a Bash environment with:
 
 ## Install Foundry
 
-Run the verifier first as described below. If it reports that a different release is required, review that release and run the exact installation command printed by the verifier:
+In a clean CI environment, install the policy-selected release and then verify that it is resolved from `PATH`:
+
+```bash
+make install-foundry
+make verify-foundry
+```
+
+For crafter and reviewer workflows, run the verifier first as described below. If it reports that a different release is required, review that release and run the exact installation command printed by the verifier:
 
 ```bash
 make install-foundry release=vMAJOR.MINOR.PATCH
 ```
 
-The release parameter is mandatory. The installer validates and installs only that exact release; it does not select another version. The command installs the verified binaries in `~/.foundry/bin`. If that directory is not already in `PATH`, the installation succeeds and prints `Required action: update-path` with the exact `PATH` configuration to apply before rerunning the verifier.
+Without a release parameter, the installer selects the newest immutable stable release published at least 14 days ago. With a release parameter, it validates and installs only that exact age-eligible release. `force=1` requires an explicit release. The command installs the verified binaries in `~/.foundry/bin`. If that directory is not already in `PATH`, the installation succeeds and prints `Required action: update-path` with the exact `PATH` configuration to apply before rerunning the verifier.
 
 ## Verify Foundry
 
@@ -89,7 +96,7 @@ To verify the Foundry binaries currently resolved from `PATH` against the same r
 make verify-foundry
 ```
 
-The verifier succeeds when the installed release is valid. Any nonzero result is a failure. When installation is the required next action, the output includes `Required action: install`, `Desired Foundry release:`, and `Installation command:`. Consumers must require all three fields before installing; any other failure must be diagnosed without automatically installing.
+The verifier succeeds when the installed release is valid. Any nonzero result is a failure. When installation is the required next action, the output includes `Required action: install`, `Desired Foundry release:`, and `Installation command:`. Crafter and reviewer workflows must require all three fields before installing; any other failure must be diagnosed without automatically installing.
 
 The installer succeeds after installation and verification, including when it reports the `update-path` action. Any nonzero installer result is a failure.
 

@@ -391,14 +391,29 @@ test_verify_remote_failures_stop_without_installation() {
     fi
 }
 
-test_install_requires_release() {
+test_install_selects_newest_age_eligible_release() {
     new_fixture
     run_cli destination-path install
-    if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/download-version" ] \
-        && grep -q 'Usage:' "$FIXTURE/out"; then
-        pass 'install requires an explicit release'
+    if [ "$STATUS" -eq 0 ] && [ "$(cat "$TEST_LOG/download-version")" = v2.0.0 ] \
+        && [ -x "$HOME/.foundry/bin/forge" ] \
+        && grep -q 'api --paginate' "$TEST_LOG/gh"; then
+        pass 'install selects the newest age-eligible immutable stable release'
     else
-        fail 'install requires an explicit release'
+        fail 'install selects the newest age-eligible immutable stable release'
+    fi
+    rm -rf "$FIXTURE"
+}
+
+test_install_without_eligible_release_fails() {
+    new_fixture
+    TEST_NO_PREVIOUS=1
+    export TEST_NO_PREVIOUS
+    run_cli no-foundry install
+    if [ "$STATUS" -eq 1 ] && [ ! -e "$TEST_LOG/download-version" ] \
+        && grep -q 'no immutable stable Foundry release published at least 14 days ago was found' "$FIXTURE/out"; then
+        pass 'install fails when no eligible immutable stable release exists'
+    else
+        fail 'install fails when no eligible immutable stable release exists'
     fi
     rm -rf "$FIXTURE"
 }
@@ -709,7 +724,8 @@ test_make_force_requires_one
 test_verify_rejects_prerelease
 test_verify_rejects_rc_mislabeled_as_stable
 test_verify_reports_version_failure
-test_install_requires_release
+test_install_selects_newest_age_eligible_release
+test_install_without_eligible_release_fails
 test_install_accepts_explicit_age_eligible_release
 test_install_accepts_requested_young_release
 test_install_platform_matrix

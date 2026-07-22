@@ -33,7 +33,7 @@ install_required() {
 }
 
 usage() {
-    printf 'Usage: %s verify | %s verify -r vMAJOR.MINOR.PATCH -f | %s install -r vMAJOR.MINOR.PATCH [-f]\n' "${0##*/}" "${0##*/}" "${0##*/}" >&2
+    printf 'Usage: %s verify | %s verify -r vMAJOR.MINOR.PATCH -f | %s install [-r vMAJOR.MINOR.PATCH [-f]]\n' "${0##*/}" "${0##*/}" "${0##*/}" >&2
 }
 
 sha256() {
@@ -409,7 +409,11 @@ install_foundry() {
     validate_environment
     validate_install_platform
     collect_source_metadata
-    load_requested_release
+    if [ -n "$REQUESTED_RELEASE" ]; then
+        load_requested_release
+    else
+        select_release
+    fi
     initialize_installation
     report_selection
     download_verify_and_extract_release
@@ -445,7 +449,10 @@ main() {
             verify_foundry
             ;;
         install)
-            [ -n "$REQUESTED_RELEASE" ] || { usage; exit 1; }
+            if [ -z "$REQUESTED_RELEASE" ] && [ "$FORCE_RELEASE" -eq 1 ]; then
+                usage
+                exit 1
+            fi
             install_foundry
             ;;
         *) usage; exit 1 ;;
