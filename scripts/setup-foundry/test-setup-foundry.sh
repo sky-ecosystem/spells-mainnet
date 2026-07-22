@@ -23,6 +23,54 @@ fail() {
     printf 'not ok - %s\n' "$1"
 }
 
+expected_usage() {
+    cat <<'EOF'
+NAME
+    setup-foundry.sh - verify or install a policy-compliant Foundry release
+
+SYNOPSIS
+    setup-foundry.sh verify [--release RELEASE [--ignore-age]]
+    setup-foundry.sh install [--release RELEASE [--ignore-age]]
+    setup-foundry.sh --help
+
+DESCRIPTION
+    Verifies or installs immutable stable Foundry releases using the repository's
+    release-age and artifact-attestation policy.
+
+COMMANDS
+    verify
+        Verify the Foundry binaries resolved from PATH. Without --release, verify
+        the policy-selected release.
+
+    install
+        Download, verify, and install Foundry in $HOME/.foundry/bin. Without
+        --release, install the policy-selected release.
+
+OPTIONS
+    --release RELEASE
+        Use an exact immutable stable release. The 14-day cooling period remains
+        enforced.
+
+    --ignore-age
+        Permit an explicitly requested release younger than 14 days. Requires
+        --release and does not bypass any other verification.
+
+    --help
+        Display this help and exit.
+
+EXIT STATUS
+    0     The command completed successfully, or help was displayed.
+    1     The invocation, policy check, verification, or installation failed.
+    130   The command was interrupted.
+    143   The command was terminated.
+
+EXAMPLES
+    setup-foundry.sh verify
+    setup-foundry.sh verify --release v1.7.0
+    setup-foundry.sh install --release v1.7.1 --ignore-age
+EOF
+}
+
 apply_stub() {
     name=$1
     body=$2
@@ -514,7 +562,8 @@ test_ignore_age_requires_release() {
     new_fixture
     run_cli foundry-path install --ignore-age
     if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/download-version" ] \
-        && grep -q 'Usage:' "$FIXTURE/out"; then
+        && grep -Fq 'Error: --ignore-age requires --release' "$FIXTURE/out" \
+        && grep -Fq 'SYNOPSIS' "$FIXTURE/out"; then
         pass '--ignore-age requires an explicit release'
     else
         fail '--ignore-age requires an explicit release'
@@ -683,21 +732,81 @@ test_install_failure_rolls_back() {
 test_invalid_command_fails() {
     new_fixture
     run_cli foundry-path invalid
-    if [ "$STATUS" -ne 0 ] && grep -q 'Usage:' "$FIXTURE/out"; then
-        pass 'invalid subcommand fails with usage'
+    if [ "$STATUS" -ne 0 ] && grep -Fq 'Error: unknown command: invalid' "$FIXTURE/out" \
+        && grep -Fq 'SYNOPSIS' "$FIXTURE/out"; then
+        pass 'invalid subcommand reports a specific error and the manual entry'
     else
-        fail 'invalid subcommand fails with usage'
+        fail 'invalid subcommand reports a specific error and the manual entry'
     fi
     rm -rf "$FIXTURE"
+}
+
+test_help_succeeds_without_environment_checks() {
+    ok=1
+
+    for invocation in top-level verify install; do
+        new_fixture
+        case "$invocation" in
+            top-level) arguments=(--help) ;;
+            *) arguments=("$invocation" --help) ;;
+        esac
+        PATH="$FIXTURE/bin:/usr/bin:/bin" "$BASH_PATH" "$CLI" "${arguments[@]}" > "$FIXTURE/stdout" 2> "$FIXTURE/stderr"
+        status=$?
+        [ "$status" -eq 0 ] || ok=0
+        [ ! -s "$FIXTURE/stderr" ] || ok=0
+        [ ! -e "$TEST_LOG/gh" ] || ok=0
+        diff -u <(expected_usage) "$FIXTURE/stdout" >/dev/null || ok=0
+        rm -rf "$FIXTURE"
+    done
+
+    if [ "$ok" -eq 1 ]; then
+        pass 'top-level and command help print the manual entry without environment checks'
+    else
+        fail 'top-level and command help print the manual entry without environment checks'
+    fi
+}
+
+test_invalid_invocations_report_specific_errors() {
+    ok=1
+
+    while IFS='|' read -r expected arguments; do
+        new_fixture
+        read -r -a argv <<< "$arguments"
+        PATH="$FIXTURE/bin:/usr/bin:/bin" "$BASH_PATH" "$CLI" "${argv[@]}" > "$FIXTURE/stdout" 2> "$FIXTURE/stderr"
+        status=$?
+        [ "$status" -eq 1 ] || ok=0
+        [ ! -s "$FIXTURE/stdout" ] || ok=0
+        grep -Fqx "Error: $expected" "$FIXTURE/stderr" || ok=0
+        grep -Fq 'SYNOPSIS' "$FIXTURE/stderr" || ok=0
+        [ ! -e "$TEST_LOG/gh" ] || ok=0
+        rm -rf "$FIXTURE"
+    done <<'EOF'
+command is required|
+unknown command: invalid|invalid
+unknown option: -r|verify -r v2.0.0
+unexpected argument: extra|verify extra
+--release requires a value|verify --release
+--release requires a value|verify --release=
+--release requires a value|verify --release --ignore-age
+--ignore-age requires --release|verify --ignore-age
+--help cannot be combined with other arguments|verify --help --release v2.0.0
+EOF
+
+    if [ "$ok" -eq 1 ]; then
+        pass 'invalid invocations report specific errors and the manual entry'
+    else
+        fail 'invalid invocations report specific errors and the manual entry'
+    fi
 }
 
 test_release_option_requires_value() {
     new_fixture
     run_cli foundry-path verify --release
-    if [ "$STATUS" -ne 0 ] && grep -q 'Usage:' "$FIXTURE/out"; then
-        pass 'release option without a value fails with usage'
+    if [ "$STATUS" -ne 0 ] && grep -Fq 'Error: --release requires a value' "$FIXTURE/out" \
+        && grep -Fq 'SYNOPSIS' "$FIXTURE/out"; then
+        pass 'release option without a value reports a specific error'
     else
-        fail 'release option without a value fails with usage'
+        fail 'release option without a value reports a specific error'
     fi
     rm -rf "$FIXTURE"
 }
@@ -705,7 +814,8 @@ test_release_option_requires_value() {
 test_release_option_rejects_empty_equals_value() {
     new_fixture
     run_cli foundry-path verify --release=
-    if [ "$STATUS" -ne 0 ] && grep -q 'Usage:' "$FIXTURE/out"; then
+    if [ "$STATUS" -ne 0 ] && grep -Fq 'Error: --release requires a value' "$FIXTURE/out" \
+        && grep -Fq 'SYNOPSIS' "$FIXTURE/out"; then
         pass 'release option rejects an empty equals value'
     else
         fail 'release option rejects an empty equals value'
@@ -716,7 +826,9 @@ test_release_option_rejects_empty_equals_value() {
 test_short_options_are_rejected() {
     new_fixture
     run_cli foundry-path verify -r v2.0.0
-    if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/versions" ] && grep -q 'Usage:' "$FIXTURE/out"; then
+    if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/versions" ] \
+        && grep -Fq 'Error: unknown option: -r' "$FIXTURE/out" \
+        && grep -Fq 'SYNOPSIS' "$FIXTURE/out"; then
         pass 'short options are rejected'
     else
         fail 'short options are rejected'
@@ -729,10 +841,11 @@ test_missing_command_fails() {
     new_fixture
     PATH="$FIXTURE/foundry-bin:$FIXTURE/bin:/usr/bin:/bin" "$BASH_PATH" "$CLI" > "$FIXTURE/out" 2>&1
     STATUS=$?
-    if [ "$STATUS" -ne 0 ] && grep -q 'Usage:' "$FIXTURE/out"; then
-        pass 'missing subcommand fails with usage'
+    if [ "$STATUS" -ne 0 ] && grep -Fq 'Error: command is required' "$FIXTURE/out" \
+        && grep -Fq 'SYNOPSIS' "$FIXTURE/out"; then
+        pass 'missing subcommand reports a specific error and the manual entry'
     else
-        fail 'missing subcommand fails with usage'
+        fail 'missing subcommand reports a specific error and the manual entry'
     fi
     rm -rf "$FIXTURE"
 }
@@ -764,6 +877,8 @@ test_install_asset_failure_blocks_mutation
 test_install_missing_path_reports_action
 test_install_failure_rolls_back
 test_invalid_command_fails
+test_help_succeeds_without_environment_checks
+test_invalid_invocations_report_specific_errors
 test_release_option_requires_value
 test_release_option_rejects_empty_equals_value
 test_short_options_are_rejected

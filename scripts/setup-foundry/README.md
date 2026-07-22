@@ -77,6 +77,12 @@ Run the tool from this Git checkout in a Bash environment with:
 - `sha256sum` or `shasum`; and
 - standard utilities including `tar`, `install`, `mktemp`, `sort`, and `sed`.
 
+Display the built-in command reference without performing environment or network checks:
+
+```bash
+./scripts/setup-foundry/setup-foundry.sh --help
+```
+
 ## CI installation
 
 CI environments are expected to be clean, with no previous Foundry installation. Install the policy-selected release and then verify that it is resolved from `PATH`:

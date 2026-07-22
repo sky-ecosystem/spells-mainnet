@@ -33,7 +33,60 @@ install_required() {
 }
 
 usage() {
-    printf 'Usage: %s verify [--release vMAJOR.MINOR.PATCH [--ignore-age]] | %s install [--release vMAJOR.MINOR.PATCH [--ignore-age]]\n' "${0##*/}" "${0##*/}" >&2
+    local name
+
+    name=${0##*/}
+    cat <<EOF
+NAME
+    $name - verify or install a policy-compliant Foundry release
+
+SYNOPSIS
+    $name verify [--release RELEASE [--ignore-age]]
+    $name install [--release RELEASE [--ignore-age]]
+    $name --help
+
+DESCRIPTION
+    Verifies or installs immutable stable Foundry releases using the repository's
+    release-age and artifact-attestation policy.
+
+COMMANDS
+    verify
+        Verify the Foundry binaries resolved from PATH. Without --release, verify
+        the policy-selected release.
+
+    install
+        Download, verify, and install Foundry in \$HOME/.foundry/bin. Without
+        --release, install the policy-selected release.
+
+OPTIONS
+    --release RELEASE
+        Use an exact immutable stable release. The 14-day cooling period remains
+        enforced.
+
+    --ignore-age
+        Permit an explicitly requested release younger than 14 days. Requires
+        --release and does not bypass any other verification.
+
+    --help
+        Display this help and exit.
+
+EXIT STATUS
+    0     The command completed successfully, or help was displayed.
+    1     The invocation, policy check, verification, or installation failed.
+    130   The command was interrupted.
+    143   The command was terminated.
+
+EXAMPLES
+    $name verify
+    $name verify --release v1.7.0
+    $name install --release v1.7.1 --ignore-age
+EOF
+}
+
+usage_error() {
+    printf 'Error: %s\n\n' "$*" >&2
+    usage >&2
+    exit 1
 }
 
 sha256() {
@@ -419,9 +472,23 @@ install_foundry() {
 main() {
     local command
 
-    [ "$#" -ge 1 ] || { usage; exit 1; }
+    [ "$#" -ge 1 ] || usage_error 'command is required'
+    if [ "$1" = --help ]; then
+        [ "$#" -eq 1 ] || usage_error '--help cannot be combined with other arguments'
+        usage
+        exit 0
+    fi
     command=$1
+    case "$command" in
+        verify | install) ;;
+        *) usage_error "unknown command: $command" ;;
+    esac
     shift
+    if [ "$#" -gt 0 ] && [ "$1" = --help ]; then
+        [ "$#" -eq 1 ] || usage_error '--help cannot be combined with other arguments'
+        usage
+        exit 0
+    fi
     while [ "$#" -gt 0 ]; do
         case "$1" in
             --ignore-age)
@@ -429,34 +496,36 @@ main() {
                 shift
                 ;;
             --release)
-                [ "$#" -ge 2 ] && [ -n "$2" ] || { usage; exit 1; }
+                [ "$#" -ge 2 ] && [ -n "$2" ] || usage_error '--release requires a value'
+                case "$2" in
+                    --*) usage_error '--release requires a value' ;;
+                esac
                 REQUESTED_RELEASE=$2
                 shift 2
                 ;;
             --release=*)
                 REQUESTED_RELEASE=${1#--release=}
-                [ -n "$REQUESTED_RELEASE" ] || { usage; exit 1; }
+                [ -n "$REQUESTED_RELEASE" ] || usage_error '--release requires a value'
                 shift
+                ;;
+            --help)
+                usage_error '--help cannot be combined with other arguments'
                 ;;
             --)
                 shift
                 break
                 ;;
-            *)
-                usage
-                exit 1
-                ;;
+            -*) usage_error "unknown option: $1" ;;
+            *) usage_error "unexpected argument: $1" ;;
         esac
     done
-    [ "$#" -eq 0 ] || { usage; exit 1; }
+    [ "$#" -eq 0 ] || usage_error "unexpected argument: $1"
     if [ -z "$REQUESTED_RELEASE" ] && [ "$IGNORE_RELEASE_AGE" -eq 1 ]; then
-        usage
-        exit 1
+        usage_error '--ignore-age requires --release'
     fi
     case "$command" in
         verify) verify_foundry ;;
         install) install_foundry ;;
-        *) usage; exit 1 ;;
     esac
 }
 
