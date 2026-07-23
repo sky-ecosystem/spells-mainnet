@@ -30,11 +30,11 @@ jobs:
         run: echo "$HOME/.foundry/bin" >> "$GITHUB_PATH"
 
       - name: Install Foundry
-        run: make install-foundry
+        run: make install-foundry release=v1.7.1
         env:
           GH_TOKEN: ${{ github.token }}
 
       - name: Verify Foundry
-        run: make verify-foundry
+        run: make verify-foundry release=v1.7.1
         env:
           GH_TOKEN: ${{ github.token }}
