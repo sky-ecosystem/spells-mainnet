@@ -85,11 +85,21 @@ Display the built-in command reference without performing environment or network
 
 ## CI installation
 
-CI environments are expected to be clean, with no previous Foundry installation. Install the policy-selected release and then verify that it is resolved from `PATH`:
+CI environments are expected to be clean, with no previous Foundry installation. The setup tool requires an authenticated GitHub CLI, and subsequent steps must resolve the installed binaries from `PATH`. In GitHub Actions, expose the workflow token as `GH_TOKEN` and add the installation directory to `GITHUB_PATH` before installing:
 
-```bash
-make install-foundry
-make verify-foundry
+```yaml
+- name: Add Foundry to PATH
+  run: echo "${HOME}/.foundry/bin" >> "${GITHUB_PATH}"
+
+- name: Install Foundry
+  run: make install-foundry
+  env:
+    GH_TOKEN: ${{ github.token }}
+
+- name: Verify Foundry
+  run: make verify-foundry
+  env:
+    GH_TOKEN: ${{ github.token }}
 ```
 
 ## Developer machine setup
