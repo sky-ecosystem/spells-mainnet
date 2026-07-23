@@ -21,7 +21,7 @@ This script provides one auditable process for installing and verifying Foundry.
 
 The verifier checks that the installed `forge`, `cast`, `anvil`, and `chisel` binaries were produced by Foundry's official release workflow and all come from the desired release. If the installed binaries do not match, it reports the exact release and installation command.
 
-Without an explicit release, the installer selects the same newest age-eligible release as the verifier; with a release parameter, it installs only that exact release. Because installation processes a release archive, it additionally requires the archive itself to be attested before extraction. It then verifies the four installed binaries before executing them. If an installation fails after modifying the destination, it restores the previous binaries.
+The installer requires an explicit release and installs only that exact version. Because installation processes a release archive, it additionally requires the archive itself to be attested before extraction. It then verifies the four installed binaries before executing them. If an installation fails after modifying the destination, it restores the previous binaries.
 
 The selected version can change as newer releases satisfy the policy; the verifier enforces the policy rather than permanently pinning one Foundry version.
 
@@ -39,7 +39,7 @@ This tool does not maintain a repository-local revocation list or an allowlist o
 
 ## Exact releases and urgent age waivers
 
-Use `release=vMAJOR.MINOR.PATCH` to verify or install an exact immutable stable release while enforcing the normal 14-day cooling period:
+Installation always requires `release=vMAJOR.MINOR.PATCH`. Verification accepts the same argument when an exact immutable stable release must be checked. Both commands enforce the normal 14-day cooling period:
 
 ```bash
 make verify-foundry release=vMAJOR.MINOR.PATCH
@@ -92,12 +92,12 @@ CI environments are expected to be clean, with no previous Foundry installation.
   run: echo "${HOME}/.foundry/bin" >> "${GITHUB_PATH}"
 
 - name: Install Foundry
-  run: make install-foundry
+  run: make install-foundry release=vMAJOR.MINOR.PATCH
   env:
     GH_TOKEN: ${{ github.token }}
 
 - name: Verify Foundry
-  run: make verify-foundry
+  run: make verify-foundry release=vMAJOR.MINOR.PATCH
   env:
     GH_TOKEN: ${{ github.token }}
 ```
@@ -116,11 +116,11 @@ The verifier succeeds when the installed release is valid. Any nonzero result is
 - `Desired Foundry release:`; and
 - `Installation command:`.
 
-Review the desired release, run the exact installation command printed by the verifier, and then rerun `make verify-foundry`:
+Review the desired release, run the exact installation command printed by the verifier, and then verify the same exact release:
 
 ```bash
 make install-foundry release=vMAJOR.MINOR.PATCH
-make verify-foundry
+make verify-foundry release=vMAJOR.MINOR.PATCH
 ```
 
 The printed command identifies the desired release but does not guarantee that its release archive satisfies the installer's additional attestation requirement. Crafter and reviewer workflows must require all three fields before installing; any other failure must be diagnosed without automatically installing.
@@ -131,7 +131,7 @@ Verification and installation intentionally have different artifact boundaries. 
 
 Foundry v1.7.0 is one example: its four binaries are attested, but its release archive is not. An existing v1.7.0 installation can therefore pass `make verify-foundry release=v1.7.0`, while `make install-foundry release=v1.7.0` fails before extraction. This is expected behavior; selecting an exact release does not weaken either attestation boundary.
 
-Without a release parameter, the verifier and installer select the newest immutable stable release published at least 14 days ago. With a release parameter, they validate only that exact release and enforce the same age requirement. `ignore-age=1` requires an explicit release and waives only that age requirement.
+Without a release parameter, the verifier selects the newest immutable stable release published at least 14 days ago. The installer requires a release parameter. With a release parameter, either command validates only that exact release and enforces the same age requirement. `ignore-age=1` requires an explicit release and waives only that age requirement.
 
 Before downloading an archive, the installer checks `~/.foundry/bin`. It skips installation only when `forge`, `cast`, `anvil`, and `chisel` are executable files whose attestations all match the desired release, the release metadata remains valid, and every version command succeeds. Existing binaries are executed only after their attestations match. If any check fails, the normal transactional installation proceeds.
 
