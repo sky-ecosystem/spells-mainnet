@@ -94,6 +94,7 @@ new_fixture() {
     export TEST_REQUESTED_PRERELEASE=false
     export TEST_MIXED_BINARY=
     export TEST_ATTEST_FAIL=
+    export TEST_ATTEST_SUBJECT_NAME=
     export TEST_BINARY_ATTEST_STATUS=1
     export TEST_VERSION_FAIL=
     export TEST_AUTH_STATUS=0
@@ -190,10 +191,35 @@ if [ "$1 $2" = "attestation verify" ]; then
     if [ -n "${TEST_MIXED_BINARY:-}" ] && [ "$name" = "$TEST_MIXED_BINARY" ]; then
         tag=v1.9.0
     fi
-    case " $* " in
-        *" --jq "*) printf "https://github.com/foundry-rs/foundry/.github/workflows/release.yml@refs/tags/%s\thttps://github.com/foundry-rs/foundry\t%s\n" "$tag" "$name" ;;
-        *) printf "[{\"verificationResult\":{\"statement\":{\"subject\":[{\"name\":\"%s\"}]},\"signature\":{\"certificate\":{\"buildSignerURI\":\"https://github.com/foundry-rs/foundry/.github/workflows/release.yml@refs/tags/%s\",\"sourceRepositoryURI\":\"https://github.com/foundry-rs/foundry\"}}}}]\n" "$name" "$tag" ;;
-    esac
+    if command -v sha256sum >/dev/null 2>&1; then
+        digest=$(sha256sum "$subject" | sed "s/[[:space:]].*$//")
+    else
+        digest=$(shasum -a 256 "$subject" | sed "s/[[:space:]].*$//")
+    fi
+    matching_name=${TEST_ATTEST_SUBJECT_NAME:-$name}
+    payload=$("$JQ_PATH" -cn \
+        --arg name "$matching_name" \
+        --arg digest "$digest" \
+        --arg tag "$tag" \
+        "[{verificationResult:{statement:{subject:[
+            {name:\"unrelated\",digest:{sha256:\"0000000000000000000000000000000000000000000000000000000000000000\"}},
+            {name:\$name,digest:{sha256:\$digest}}
+        ]},signature:{certificate:{
+            buildSignerURI:(\"https://github.com/foundry-rs/foundry/.github/workflows/release.yml@refs/tags/\" + \$tag),
+            sourceRepositoryURI:\"https://github.com/foundry-rs/foundry\"
+        }}}}]")
+    query=
+    while [ "$#" -gt 0 ]; do
+        case "$1" in
+            --jq) query=$2; shift 2 ;;
+            *) shift ;;
+        esac
+    done
+    if [ -n "$query" ]; then
+        printf "%s\n" "$payload" | "$JQ_PATH" -r "$query"
+    else
+        printf "%s\n" "$payload"
+    fi
     exit 0
 fi
 exit 64'
@@ -282,6 +308,9 @@ test_verify_eligible() {
     if [ -e "$TEST_LOG/versions" ]; then versions=$(wc -l < "$TEST_LOG/versions"); else versions=0; fi
     if [ "$STATUS" -eq 0 ] && [ "$attestations" -eq 4 ] && [ "$formatted_attestations" -eq 4 ] \
         && [ "$versions" -eq 4 ] \
+        && [ "$(grep -c '^  Subject: ' "$FIXTURE/out" 2>/dev/null || true)" -eq 4 ] \
+        && ! grep -q 'unrelated' "$FIXTURE/out" \
+        && ! grep -q '^  Subjects:' "$FIXTURE/out" \
         && grep -q 'api --paginate.*now -' "$TEST_LOG/gh" \
         && grep -q '\.immutable == true' "$TEST_LOG/gh" \
         && grep -Fq 'test("^v[0-9]+\\.[0-9]+\\.[0-9]+$")' "$TEST_LOG/gh" \
@@ -291,6 +320,20 @@ test_verify_eligible() {
         pass 'newest age-eligible immutable PATH toolchain is verified'
     else
         fail 'newest age-eligible immutable PATH toolchain is verified'
+    fi
+    rm -rf "$FIXTURE"
+}
+
+test_attestation_subject_must_match_verified_path() {
+    new_fixture
+    TEST_ATTEST_SUBJECT_NAME=renamed-forge
+    export TEST_ATTEST_SUBJECT_NAME
+    run_cli
+    if [ "$STATUS" -eq 1 ] && [ ! -e "$TEST_LOG/versions" ] \
+        && grep -q 'attestation subject does not match path' "$FIXTURE/out"; then
+        pass 'matching-digest attestation subject must match the verified path'
+    else
+        fail 'matching-digest attestation subject must match the verified path'
     fi
     rm -rf "$FIXTURE"
 }
@@ -898,6 +941,7 @@ test_missing_command_fails() {
 }
 
 test_verify_eligible
+test_attestation_subject_must_match_verified_path
 test_verify_rejects_mutable_release
 test_verify_older_fails
 test_verify_newer_fails

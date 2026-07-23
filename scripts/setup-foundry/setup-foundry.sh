@@ -180,9 +180,10 @@ load_requested_release() {
 }
 
 attest_path() {
-    local path record signer source subjects
+    local path digest record signer source subject
 
     path=$1
+    digest=$(sha256 "$path")
     record=$(gh attestation verify "$path" \
         --repo "$REPOSITORY" \
         --hostname "$GITHUB_HOST" \
@@ -190,22 +191,27 @@ attest_path() {
         --format json \
         --jq '
         .[0].verificationResult as $result
+        | ($result.statement.subject[] | select(.digest.sha256 == "'"$digest"'")) as $subject
         | [
             $result.signature.certificate.buildSignerURI,
             $result.signature.certificate.sourceRepositoryURI,
-            ([$result.statement.subject[].name] | join(","))
+            $subject.name
           ]
         | @tsv
     ') || die "could not verify attestation for $path"
-    IFS=$'\t' read -r signer source subjects <<< "$record"
+    IFS=$'\t' read -r signer source subject <<< "$record"
 
     case "$signer" in
         "$SIGNER_PREFIX"*) ATTESTED_TAG=${signer#"$SIGNER_PREFIX"} ;;
         *) die "unexpected attestation signer for $path: $signer" ;;
     esac
     [ "$source" = "$SOURCE_REPOSITORY" ] || die "unexpected attestation source for $path: $source"
+    case "$path" in
+        "$subject" | *"/$subject") ;;
+        *) die "attestation subject does not match path: $subject ($path)" ;;
+    esac
 
-    printf '  Subjects: %s\n' "$subjects"
+    printf '  Subject: %s\n' "$subject"
     printf '  Signer: %s\n' "$signer"
     printf '  Source: %s\n' "$source"
 }
