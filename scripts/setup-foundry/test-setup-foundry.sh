@@ -815,6 +815,38 @@ test_install_failure_rolls_back() {
     rm -rf "$FIXTURE"
 }
 
+test_install_failure_removes_new_destination_parent() {
+    new_fixture
+    rm -rf "$HOME/.foundry"
+    TEST_ATTEST_FAIL=cast
+    TEST_BINARY_ATTEST_STATUS=42
+    export TEST_ATTEST_FAIL TEST_BINARY_ATTEST_STATUS
+    run_cli no-foundry install --release v2.0.0
+    if [ "$STATUS" -eq 1 ] && [ ! -e "$HOME/.foundry" ] \
+        && grep -q 'Previous Foundry installation restored' "$FIXTURE/out"; then
+        pass 'post-install failure removes the destination parent created by the install'
+    else
+        fail 'post-install failure removes the destination parent created by the install'
+    fi
+    rm -rf "$FIXTURE"
+}
+
+test_install_failure_preserves_existing_destination_parent() {
+    new_fixture
+    rmdir "$HOME/.foundry/bin"
+    TEST_ATTEST_FAIL=cast
+    TEST_BINARY_ATTEST_STATUS=42
+    export TEST_ATTEST_FAIL TEST_BINARY_ATTEST_STATUS
+    run_cli no-foundry install --release v2.0.0
+    if [ "$STATUS" -eq 1 ] && [ -d "$HOME/.foundry" ] && [ ! -e "$HOME/.foundry/bin" ] \
+        && grep -q 'Previous Foundry installation restored' "$FIXTURE/out"; then
+        pass 'post-install failure preserves a pre-existing destination parent'
+    else
+        fail 'post-install failure preserves a pre-existing destination parent'
+    fi
+    rm -rf "$FIXTURE"
+}
+
 test_invalid_command_fails() {
     new_fixture
     run_cli foundry-path invalid
@@ -969,6 +1001,8 @@ test_install_platform_matrix
 test_install_asset_failure_blocks_mutation
 test_install_missing_path_reports_action
 test_install_failure_rolls_back
+test_install_failure_removes_new_destination_parent
+test_install_failure_preserves_existing_destination_parent
 test_invalid_command_fails
 test_help_succeeds_without_environment_checks
 test_invalid_invocations_report_specific_errors

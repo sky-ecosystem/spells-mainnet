@@ -326,6 +326,12 @@ rollback_installation() {
             rollback_failed=1
         fi
     fi
+    if [ "$DESTINATION_PARENT_CREATED" -eq 1 ] && { [ -e "${DESTINATION%/*}" ] || [ -L "${DESTINATION%/*}" ]; }; then
+        if ! rmdir "${DESTINATION%/*}"; then
+            printf 'Rollback error: could not remove newly created directory %s\n' "${DESTINATION%/*}" >&2
+            rollback_failed=1
+        fi
+    fi
     if [ "$rollback_failed" -eq 0 ]; then
         printf 'Previous Foundry installation restored.\n' >&2
     else
@@ -353,6 +359,7 @@ initialize_installation() {
     BACKUP_DIR="${TEMP_DIR}/previous-installation"
     ROLLBACK_REQUIRED=0
     DESTINATION_CREATED=0
+    DESTINATION_PARENT_CREATED=0
     trap cleanup EXIT
     trap 'exit 130' INT
     trap 'exit 143' TERM
@@ -378,6 +385,9 @@ prepare_destination() {
         [ -d "$DESTINATION" ] || die "installation destination is not a directory: $DESTINATION"
     else
         DESTINATION_CREATED=1
+        if [ ! -e "${DESTINATION%/*}" ] && [ ! -L "${DESTINATION%/*}" ]; then
+            DESTINATION_PARENT_CREATED=1
+        fi
     fi
 
     mkdir -m 0700 "$BACKUP_DIR"
