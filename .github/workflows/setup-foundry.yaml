@@ -12,6 +12,9 @@ permissions:
   contents: read
   attestations: read
 
+env:
+  FOUNDRY_RELEASE: v1.7.1
+
 jobs:
   test:
     name: Test (${{ matrix.os }})
@@ -30,11 +33,11 @@ jobs:
         run: echo "$HOME/.foundry/bin" >> "$GITHUB_PATH"
 
       - name: Install Foundry
-        run: make install-foundry release=v1.7.1
+        run: make install-foundry release="$FOUNDRY_RELEASE"
         env:
           GH_TOKEN: ${{ github.token }}
 
       - name: Verify Foundry
-        run: make verify-foundry release=v1.7.1
+        run: make verify-foundry release="$FOUNDRY_RELEASE"
         env:
           GH_TOKEN: ${{ github.token }}
