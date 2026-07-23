@@ -42,7 +42,7 @@ NAME
 
 SYNOPSIS
     $name verify [--release RELEASE [--ignore-age]]
-    $name install [--release RELEASE [--ignore-age]]
+    $name install --release RELEASE [--ignore-age]
     $name --help
 
 DESCRIPTION
@@ -55,13 +55,13 @@ COMMANDS
         the policy-selected release.
 
     install
-        Verify the desired release in \$HOME/.foundry/bin, or download and install
-        it when the existing destination does not match.
+        Verify an explicitly requested release in \$HOME/.foundry/bin, or download
+        and install it when the existing destination does not match.
 
 OPTIONS
     --release RELEASE
-        Use an exact immutable stable release. The 14-day cooling period remains
-        enforced.
+        Use an exact immutable stable release. Required by install and optional
+        for verify. The 14-day cooling period remains enforced.
 
     --ignore-age
         Permit an explicitly requested release younger than 14 days. Requires
@@ -497,11 +497,7 @@ install_foundry() {
     validate_environment
     validate_install_platform
     collect_source_metadata
-    if [ -n "$REQUESTED_RELEASE" ]; then
-        load_requested_release
-    else
-        select_release
-    fi
+    load_requested_release
     DESTINATION="${HOME}/.foundry/bin"
     report_selection
     if existing_output=$(verify_existing_destination 2>&1); then
@@ -568,6 +564,9 @@ main() {
         esac
     done
     [ "$#" -eq 0 ] || usage_error "unexpected argument: $1"
+    if [ "$command" = install ] && [ -z "$REQUESTED_RELEASE" ]; then
+        usage_error 'install requires --release'
+    fi
     if [ -z "$REQUESTED_RELEASE" ] && [ "$IGNORE_RELEASE_AGE" -eq 1 ]; then
         usage_error '--ignore-age requires --release'
     fi

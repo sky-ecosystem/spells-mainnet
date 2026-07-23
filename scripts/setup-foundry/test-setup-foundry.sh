@@ -30,7 +30,7 @@ NAME
 
 SYNOPSIS
     setup-foundry.sh verify [--release RELEASE [--ignore-age]]
-    setup-foundry.sh install [--release RELEASE [--ignore-age]]
+    setup-foundry.sh install --release RELEASE [--ignore-age]
     setup-foundry.sh --help
 
 DESCRIPTION
@@ -43,13 +43,13 @@ COMMANDS
         the policy-selected release.
 
     install
-        Verify the desired release in $HOME/.foundry/bin, or download and install
-        it when the existing destination does not match.
+        Verify an explicitly requested release in $HOME/.foundry/bin, or download
+        and install it when the existing destination does not match.
 
 OPTIONS
     --release RELEASE
-        Use an exact immutable stable release. The 14-day cooling period remains
-        enforced.
+        Use an exact immutable stable release. Required by install and optional
+        for verify. The 14-day cooling period remains enforced.
 
     --ignore-age
         Permit an explicitly requested release younger than 14 days. Requires
@@ -506,15 +506,18 @@ test_verify_remote_failures_stop_without_installation() {
     fi
 }
 
-test_install_selects_newest_age_eligible_release() {
+test_install_requires_release() {
     new_fixture
     run_cli destination-path install
-    if [ "$STATUS" -eq 0 ] && [ "$(cat "$TEST_LOG/download-version")" = v2.0.0 ] \
-        && [ -x "$HOME/.foundry/bin/forge" ] \
-        && grep -q 'api --paginate' "$TEST_LOG/gh"; then
-        pass 'install selects the newest age-eligible immutable stable release'
+    if [ "$STATUS" -eq 1 ] \
+        && grep -Fq 'Error: install requires --release' "$FIXTURE/out" \
+        && grep -Fq 'SYNOPSIS' "$FIXTURE/out" \
+        && [ ! -e "$TEST_LOG/gh" ] \
+        && [ ! -e "$TEST_LOG/download-version" ] \
+        && [ ! -e "$TEST_LOG/install" ]; then
+        pass 'install requires an explicit release before environment checks'
     else
-        fail 'install selects the newest age-eligible immutable stable release'
+        fail 'install requires an explicit release before environment checks'
     fi
     rm -rf "$FIXTURE"
 }
@@ -538,16 +541,16 @@ test_install_skips_verified_matching_destination() {
     rm -rf "$FIXTURE"
 }
 
-test_install_without_eligible_release_fails() {
+test_verify_without_eligible_release_fails() {
     new_fixture
     TEST_NO_PREVIOUS=1
     export TEST_NO_PREVIOUS
-    run_cli no-foundry install
+    run_cli no-foundry
     if [ "$STATUS" -eq 1 ] && [ ! -e "$TEST_LOG/download-version" ] \
         && grep -q 'no immutable stable Foundry release published at least 14 days ago was found' "$FIXTURE/out"; then
-        pass 'install fails when no eligible immutable stable release exists'
+        pass 'unpinned verify fails when no eligible immutable stable release exists'
     else
-        fail 'install fails when no eligible immutable stable release exists'
+        fail 'unpinned verify fails when no eligible immutable stable release exists'
     fi
     rm -rf "$FIXTURE"
 }
@@ -646,7 +649,7 @@ test_ignore_age_accepts_age_eligible_release() {
 
 test_ignore_age_requires_release() {
     new_fixture
-    run_cli foundry-path install --ignore-age
+    run_cli foundry-path verify --ignore-age
     if [ "$STATUS" -ne 0 ] && [ ! -e "$TEST_LOG/download-version" ] \
         && grep -Fq 'Error: --ignore-age requires --release' "$FIXTURE/out" \
         && grep -Fq 'SYNOPSIS' "$FIXTURE/out"; then
@@ -992,9 +995,9 @@ test_make_ignore_age_requires_one
 test_verify_replaces_nonrequired_prerelease
 test_verify_replaces_nonrequired_rc
 test_verify_reports_version_failure
-test_install_selects_newest_age_eligible_release
+test_install_requires_release
 test_install_skips_verified_matching_destination
-test_install_without_eligible_release_fails
+test_verify_without_eligible_release_fails
 test_install_accepts_explicit_age_eligible_release
 test_install_accepts_requested_young_release
 test_install_platform_matrix
