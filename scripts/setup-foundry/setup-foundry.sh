@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Verify or install an age-eligible stable Foundry release from GitHub.com.
+# Select, verify, or install an age-eligible stable Foundry release from GitHub.com.
 # GitHub.com and Foundry's official release workflow are the pinned trust roots.
 # Binaries are verified before execution; installation failures restore prior binaries.
 
@@ -38,20 +38,22 @@ usage() {
     name=${0##*/}
     cat <<EOF
 NAME
-    $name - verify or install a policy-compliant Foundry release
+    $name - select, verify, or install a policy-compliant Foundry release
 
 SYNOPSIS
     $name COMMAND [OPTION...]
     $name --help
 
 DESCRIPTION
-    Verifies or installs immutable stable Foundry releases using the repository's
-    release-age and artifact-attestation policy.
+    Selects, verifies, or installs immutable stable Foundry releases using the
+    repository's release-age and artifact-attestation policy.
 
 COMMANDS
+    select
+        Select and report a release using metadata only.
+
     verify
-        Verify the Foundry binaries resolved from PATH. Without --release, verify
-        the policy-selected release.
+        Verify the Foundry binaries resolved from PATH against an exact release.
 
     install
         Verify or install an explicitly requested release in \$HOME/.foundry/bin.
@@ -66,8 +68,42 @@ EXIT STATUS
             complete successfully.
 
 EXAMPLES
+    $name select --help
     $name verify --help
     $name install --help
+EOF
+}
+
+usage_select() {
+    local name
+
+    name=${0##*/}
+    cat <<EOF
+NAME
+    $name select - select a Foundry release using metadata only
+
+SYNOPSIS
+    $name select [--ignore-age]
+
+DESCRIPTION
+    Selects and reports the newest immutable stable Foundry release without
+    resolving, attesting, or executing installed Foundry binaries.
+
+OPTIONS
+    --ignore-age
+        Select the newest immutable stable release without enforcing the 14-day
+        cooling period. No other metadata requirement is bypassed.
+
+    --help
+        Display this help and exit.
+
+EXIT STATUS
+    0       The command completed successfully, or help was displayed.
+    nonzero The invocation or policy check did not complete successfully.
+
+EXAMPLES
+    $name select
+    $name select --ignore-age
 EOF
 }
 
@@ -80,16 +116,16 @@ NAME
     $name verify - verify a policy-compliant Foundry release
 
 SYNOPSIS
-    $name verify [--release RELEASE [--ignore-age]]
+    $name verify --release RELEASE [--ignore-age]
 
 DESCRIPTION
-    Verifies the Foundry binaries resolved from PATH. Without --release, verifies
-    the policy-selected release.
+    Verifies the Foundry binaries resolved from PATH against an exact immutable
+    stable release.
 
 OPTIONS
     --release RELEASE
-        Verify an exact immutable stable release. The 14-day cooling period
-        remains enforced.
+        Verify an exact immutable stable release. This option is required. The
+        14-day cooling period remains enforced.
 
     --ignore-age
         Permit an explicitly requested release younger than 14 days. Requires
@@ -104,7 +140,6 @@ EXIT STATUS
             successfully.
 
 EXAMPLES
-    $name verify
     $name verify --release v1.7.0
     $name verify --release v1.7.1 --ignore-age
 EOF
@@ -213,15 +248,29 @@ collect_source_metadata() {
 }
 
 select_release() {
-    local selected_record
+    local minimum_age_seconds release_age_seconds selected_record
 
+    minimum_age_seconds=$MINIMUM_RELEASE_AGE_SECONDS
+    if [ "$IGNORE_RELEASE_AGE" -eq 1 ]; then
+        minimum_age_seconds=0
+    fi
     selected_record=$(gh api --paginate "repos/${REPOSITORY}/releases?per_page=100" --hostname "$GITHUB_HOST" \
-        --jq ".[] | select(.draft == false and .prerelease == false and .immutable == true and (.tag_name | test(\"^v[0-9]+\\\\.[0-9]+\\\\.[0-9]+$\")) and (now - (.published_at | fromdateiso8601)) >= ${MINIMUM_RELEASE_AGE_SECONDS}) | [.tag_name, .published_at, .html_url] | @tsv" \
+        --jq ".[] | select(.draft == false and .prerelease == false and .immutable == true and (.tag_name | test(\"^v[0-9]+\\\\.[0-9]+\\\\.[0-9]+$\")) and (now - (.published_at | fromdateiso8601)) >= ${minimum_age_seconds}) | [.tag_name, .published_at, .html_url, ((now - (.published_at | fromdateiso8601)) | floor)] | @tsv" \
         | sort -k2,2r \
         | sed -n '1p') || die 'could not load stable Foundry release metadata'
-    [ -n "$selected_record" ] || die 'no immutable stable Foundry release published at least 14 days ago was found'
-    IFS=$'\t' read -r VERSION PUBLISHED_AT RELEASE_URL <<< "$selected_record"
-    SELECTION_REASON='newest immutable stable release published at least 14 days ago'
+    if [ "$IGNORE_RELEASE_AGE" -eq 1 ]; then
+        [ -n "$selected_record" ] || die 'no immutable stable Foundry release was found'
+    else
+        [ -n "$selected_record" ] || die 'no immutable stable Foundry release published at least 14 days ago was found'
+    fi
+    IFS=$'\t' read -r VERSION PUBLISHED_AT RELEASE_URL release_age_seconds <<< "$selected_record"
+    if [ "$IGNORE_RELEASE_AGE" -eq 1 ] && [ "$release_age_seconds" -lt "$MINIMUM_RELEASE_AGE_SECONDS" ]; then
+        SELECTION_REASON='newest immutable stable release; 14-day cooling period waived with --ignore-age'
+    elif [ "$IGNORE_RELEASE_AGE" -eq 1 ]; then
+        SELECTION_REASON='newest immutable stable release; release is age-eligible'
+    else
+        SELECTION_REASON='newest immutable stable release published at least 14 days ago'
+    fi
 }
 
 load_requested_release() {
@@ -331,26 +380,10 @@ resolve_path_binaries() {
 }
 
 validate_installed_release() {
-    local record installed_tag installed_published_at installed_draft installed_prerelease installed_immutable
-
     if [ "$INSTALLED_TAG" != "$VERSION" ]; then
-        if [ -n "$REQUESTED_RELEASE" ]; then
-            install_required "installed Foundry release $INSTALLED_TAG does not match requested release $VERSION"
-        fi
-        install_required "installed Foundry release $INSTALLED_TAG does not match newest eligible immutable stable $VERSION"
+        install_required "installed Foundry release $INSTALLED_TAG does not match requested release $VERSION"
     fi
-    if [ -n "$REQUESTED_RELEASE" ]; then
-        VERSION_STATUS="installed release matches explicitly requested immutable stable $VERSION"
-        return
-    fi
-    record=$(gh api "repos/${REPOSITORY}/releases/tags/${INSTALLED_TAG}" --hostname "$GITHUB_HOST" \
-        --jq '[.tag_name, .published_at, .draft, .prerelease, .immutable] | @tsv') || die "could not find Foundry release metadata for $INSTALLED_TAG"
-    IFS=$'\t' read -r installed_tag installed_published_at installed_draft installed_prerelease installed_immutable <<< "$record"
-    [ "$installed_tag" = "$INSTALLED_TAG" ] || die "installed Foundry release metadata does not match $INSTALLED_TAG"
-    [ "$installed_draft" = false ] && [ "$installed_prerelease" = false ] \
-        || die "installed Foundry release is not stable: $INSTALLED_TAG"
-    [ "$installed_immutable" = true ] || die "installed Foundry release is not immutable: $INSTALLED_TAG"
-    VERSION_STATUS="installed release matches eligible immutable stable $VERSION"
+    VERSION_STATUS="installed release matches explicitly requested immutable stable $VERSION"
 }
 
 report_selection() {
@@ -546,11 +579,7 @@ finalize_installation() {
 verify_foundry() {
     validate_environment
     collect_source_metadata
-    if [ -n "$REQUESTED_RELEASE" ]; then
-        load_requested_release
-    else
-        select_release
-    fi
+    load_requested_release
     report_selection
     resolve_path_binaries
     verify_binary_paths
@@ -558,6 +587,14 @@ verify_foundry() {
     run_binary_versions
     report_verification_summary
     printf '\nFoundry verification completed successfully.\n'
+}
+
+select_foundry() {
+    validate_environment
+    collect_source_metadata
+    select_release
+    report_selection
+    printf '\nFoundry release selection completed successfully.\n'
 }
 
 install_foundry() {
@@ -593,7 +630,7 @@ main() {
     fi
     command=$1
     case "$command" in
-        verify | install) ;;
+        select | verify | install) ;;
         *) usage_error "unknown command: $command" ;;
     esac
     command_usage="usage_$command"
@@ -610,6 +647,7 @@ main() {
                 shift
                 ;;
             --release)
+                [ "$command" != select ] || usage_error 'select does not accept --release' "$command_usage"
                 [ "$#" -ge 2 ] && [ -n "$2" ] || usage_error '--release requires a value' "$command_usage"
                 case "$2" in
                     --*) usage_error '--release requires a value' "$command_usage" ;;
@@ -618,6 +656,7 @@ main() {
                 shift 2
                 ;;
             --release=*)
+                [ "$command" != select ] || usage_error 'select does not accept --release' "$command_usage"
                 REQUESTED_RELEASE=${1#--release=}
                 [ -n "$REQUESTED_RELEASE" ] || usage_error '--release requires a value' "$command_usage"
                 shift
@@ -634,13 +673,11 @@ main() {
         esac
     done
     [ "$#" -eq 0 ] || usage_error "unexpected argument: $1" "$command_usage"
-    if [ "$command" = install ] && [ -z "$REQUESTED_RELEASE" ]; then
-        usage_error 'install requires --release' "$command_usage"
-    fi
-    if [ -z "$REQUESTED_RELEASE" ] && [ "$IGNORE_RELEASE_AGE" -eq 1 ]; then
-        usage_error '--ignore-age requires --release' "$command_usage"
+    if { [ "$command" = verify ] || [ "$command" = install ]; } && [ -z "$REQUESTED_RELEASE" ]; then
+        usage_error "$command requires --release" "$command_usage"
     fi
     case "$command" in
+        select) select_foundry ;;
         verify) verify_foundry ;;
         install) install_foundry ;;
     esac

@@ -3,7 +3,8 @@ foundry-ignore-age    = $(if $(ignore-age),$(if $(filter 1,$(ignore-age)),--igno
 all                  :; forge build
 clean                :; forge clean
 install-foundry      :; ./scripts/setup-foundry/setup-foundry.sh install --release "$(release)" $(foundry-ignore-age)
-verify-foundry       :; ./scripts/setup-foundry/setup-foundry.sh verify $(if $(release),--release "$(release)") $(foundry-ignore-age)
+select-foundry       :; ./scripts/setup-foundry/setup-foundry.sh select $(foundry-ignore-age)
+verify-foundry       :; ./scripts/setup-foundry/setup-foundry.sh verify --release "$(release)" $(foundry-ignore-age)
 test-setup-foundry   :; ./scripts/setup-foundry/test-setup-foundry.sh
                         # Usage example: make test match=SpellIsCast
 test                 :; ./scripts/test-dssspell-forge.sh no-match="$(no-match)" match="$(match)" block="$(block)"
