@@ -908,8 +908,12 @@ test_verify_requested_release_must_match_installed_release() {
     rm -rf "$FIXTURE"
 }
 
-test_make_ignore_age_requires_one() {
+test_make_ignore_age_accepts_zero_or_one() {
     ok=1
+
+    output=$(make -s -n -C "$ROOT" verify-foundry release=v2.0.0 2>&1)
+    status=$?
+    [ "$status" -eq 0 ] && [[ "$output" != *' --ignore-age'* ]] || ok=0
 
     output=$(make -s -n -C "$ROOT" verify-foundry release=v2.0.0 ignore-age=1 2>&1)
     status=$?
@@ -919,16 +923,20 @@ test_make_ignore_age_requires_one() {
     status=$?
     [ "$status" -eq 0 ] && [[ "$output" != *' --ignore-age'* ]] || ok=0
 
-    for ignore_age_value in 0 false yes; do
+    output=$(make -s -n -C "$ROOT" verify-foundry release=v2.0.0 ignore-age=0 2>&1)
+    status=$?
+    [ "$status" -eq 0 ] && [[ "$output" != *' --ignore-age'* ]] || ok=0
+
+    for ignore_age_value in 2 false yes; do
         output=$(make -s -n -C "$ROOT" verify-foundry release=v2.0.0 ignore-age="$ignore_age_value" 2>&1)
         status=$?
-        [ "$status" -ne 0 ] && [[ "$output" = *'ignore-age must be 1'* ]] || ok=0
+        [ "$status" -ne 0 ] && [[ "$output" = *'ignore-age must be 0 or 1'* ]] || ok=0
     done
 
     if [ "$ok" -eq 1 ]; then
-        pass 'Make ignore-age accepts only 1'
+        pass 'Make ignore-age accepts only 0 or 1'
     else
-        fail 'Make ignore-age accepts only 1'
+        fail 'Make ignore-age accepts only 0 or 1'
     fi
 }
 
@@ -1227,7 +1235,7 @@ test_requested_release_metadata_must_be_valid
 test_verify_requested_release_must_match_installed_release
 test_verify_rejects_missing_mixed_and_unattested
 test_verify_remote_failures_stop_without_installation
-test_make_ignore_age_requires_one
+test_make_ignore_age_accepts_zero_or_one
 test_make_install_requires_release
 test_make_verify_requires_release
 test_verify_replaces_nonrequired_prerelease

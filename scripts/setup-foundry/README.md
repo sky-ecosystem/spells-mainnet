@@ -67,7 +67,7 @@ make verify-foundry release=vMAJOR.MINOR.PATCH ignore-age=1
 make install-foundry release=vMAJOR.MINOR.PATCH ignore-age=1
 ```
 
-The corresponding script options are `--release` and `--ignore-age`. They are parsed directly by Bash and do not require GNU `getopt`, including on macOS. The selector does not accept `--release`; verification and installation require it. `--ignore-age` waives only the cooling period. The release must still use an exact stable tag, exist as an immutable release, and satisfy every applicable metadata or attestation check. Record the upstream security advisory or incident reference, the spell-team approval, and the complete selector, installer, and verifier output.
+The Make `ignore-age` setting defaults to `0` when omitted, accepts only `0` or `1`, and passes `--ignore-age` only for `1`. The corresponding script options are `--release` and `--ignore-age`. They are parsed directly by Bash and do not require GNU `getopt`, including on macOS. The selector does not accept `--release`; verification and installation require it. `--ignore-age` waives only the cooling period. The release must still use an exact stable tag, exist as an immutable release, and satisfy every applicable metadata or attestation check. Record the upstream security advisory or incident reference, the spell-team approval, and the complete selector, installer, and verifier output.
 
 ## Supported platforms
 
@@ -99,22 +99,32 @@ Display the built-in command reference without performing environment or network
 
 ## CI installation
 
-CI environments are expected to be clean, with no previous Foundry installation. The setup tool requires an authenticated GitHub CLI, and subsequent steps must resolve the installed binaries from `PATH`. In GitHub Actions, expose the workflow token as `GH_TOKEN` and add the installation directory to `GITHUB_PATH` before installing:
+CI environments are expected to be clean, with no previous Foundry installation. The setup tool requires an authenticated GitHub CLI, and subsequent steps must resolve the installed binaries from `PATH`. Define the pinned release and age-waiver setting at workflow level:
+
+```yaml
+env:
+  FOUNDRY_RELEASE: vMAJOR.MINOR.PATCH
+  FOUNDRY_IGNORE_AGE: "0"
+```
+
+Expose the workflow token as `GH_TOKEN` and add the installation directory to `GITHUB_PATH` before installing:
 
 ```yaml
 - name: Add Foundry to PATH
   run: echo "${HOME}/.foundry/bin" >> "${GITHUB_PATH}"
 
 - name: Install Foundry
-  run: make install-foundry release=vMAJOR.MINOR.PATCH
+  run: make install-foundry release="${FOUNDRY_RELEASE}" ignore-age="${FOUNDRY_IGNORE_AGE}"
   env:
     GH_TOKEN: ${{ github.token }}
 
 - name: Verify Foundry
-  run: make verify-foundry release=vMAJOR.MINOR.PATCH
+  run: make verify-foundry release="${FOUNDRY_RELEASE}" ignore-age="${FOUNDRY_IGNORE_AGE}"
   env:
     GH_TOKEN: ${{ github.token }}
 ```
+
+Keep `FOUNDRY_IGNORE_AGE` set to `"0"` to enforce the 14-day cooling period. Set it to `"1"` only when the pinned release has an approved cooling-period waiver. Any other value fails before the setup script runs.
 
 ## Developer machine setup
 

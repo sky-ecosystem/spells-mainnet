@@ -1,4 +1,5 @@
-foundry-ignore-age    = $(if $(ignore-age),$(if $(filter 1,$(ignore-age)),--ignore-age,$(error ignore-age must be 1)),)
+ignore-age            ?= 0
+foundry-ignore-age    = $(if $(filter-out 0 1,$(ignore-age)),$(error ignore-age must be 0 or 1),$(if $(filter 1,$(ignore-age)),--ignore-age,))
 
 all                  :; forge build
 clean                :; forge clean
