@@ -23,14 +23,13 @@ fail() {
     printf 'not ok - %s\n' "$1"
 }
 
-expected_usage() {
+expected_top_level_usage() {
     cat <<'EOF'
 NAME
     setup-foundry.sh - verify or install a policy-compliant Foundry release
 
 SYNOPSIS
-    setup-foundry.sh verify [--release RELEASE [--ignore-age]]
-    setup-foundry.sh install --release RELEASE [--ignore-age]
+    setup-foundry.sh COMMAND [OPTION...]
     setup-foundry.sh --help
 
 DESCRIPTION
@@ -43,13 +42,75 @@ COMMANDS
         the policy-selected release.
 
     install
-        Verify an explicitly requested release in $HOME/.foundry/bin, or download
-        and install it when the existing destination does not match.
+        Verify or install an explicitly requested release in $HOME/.foundry/bin.
+
+OPTIONS
+    --help
+        Display this help and exit.
+
+EXIT STATUS
+    0       The command completed successfully, or help was displayed.
+    nonzero The invocation, policy check, verification, or installation did not
+            complete successfully.
+
+EXAMPLES
+    setup-foundry.sh verify --help
+    setup-foundry.sh install --help
+EOF
+}
+
+expected_verify_usage() {
+    cat <<'EOF'
+NAME
+    setup-foundry.sh verify - verify a policy-compliant Foundry release
+
+SYNOPSIS
+    setup-foundry.sh verify [--release RELEASE [--ignore-age]]
+
+DESCRIPTION
+    Verifies the Foundry binaries resolved from PATH. Without --release, verifies
+    the policy-selected release.
 
 OPTIONS
     --release RELEASE
-        Use an exact immutable stable release. Required by install and optional
-        for verify. The 14-day cooling period remains enforced.
+        Verify an exact immutable stable release. The 14-day cooling period
+        remains enforced.
+
+    --ignore-age
+        Permit an explicitly requested release younger than 14 days. Requires
+        --release and does not bypass any other verification.
+
+    --help
+        Display this help and exit.
+
+EXIT STATUS
+    0       The command completed successfully, or help was displayed.
+    nonzero The invocation, policy check, or verification did not complete
+            successfully.
+
+EXAMPLES
+    setup-foundry.sh verify
+    setup-foundry.sh verify --release v1.7.0
+    setup-foundry.sh verify --release v1.7.1 --ignore-age
+EOF
+}
+
+expected_install_usage() {
+    cat <<'EOF'
+NAME
+    setup-foundry.sh install - install a policy-compliant Foundry release
+
+SYNOPSIS
+    setup-foundry.sh install --release RELEASE [--ignore-age]
+
+DESCRIPTION
+    Verifies an explicitly requested release in $HOME/.foundry/bin, or downloads
+    and installs it when the existing destination does not match.
+
+OPTIONS
+    --release RELEASE
+        Install an exact immutable stable release. This option is required. The
+        14-day cooling period remains enforced.
 
     --ignore-age
         Permit an explicitly requested release younger than 14 days. Requires
@@ -64,8 +125,7 @@ EXIT STATUS
             complete successfully.
 
 EXAMPLES
-    setup-foundry.sh verify
-    setup-foundry.sh verify --release v1.7.0
+    setup-foundry.sh install --release v1.7.0
     setup-foundry.sh install --release v1.7.1 --ignore-age
 EOF
 }
@@ -877,29 +937,39 @@ test_help_succeeds_without_environment_checks() {
     for invocation in top-level verify install; do
         new_fixture
         case "$invocation" in
-            top-level) arguments=(--help) ;;
-            *) arguments=("$invocation" --help) ;;
+            top-level)
+                arguments=(--help)
+                expected_usage=expected_top_level_usage
+                ;;
+            verify)
+                arguments=(verify --help)
+                expected_usage=expected_verify_usage
+                ;;
+            install)
+                arguments=(install --help)
+                expected_usage=expected_install_usage
+                ;;
         esac
         PATH="$FIXTURE/bin:/usr/bin:/bin" "$BASH_PATH" "$CLI" "${arguments[@]}" > "$FIXTURE/stdout" 2> "$FIXTURE/stderr"
         status=$?
         [ "$status" -eq 0 ] || ok=0
         [ ! -s "$FIXTURE/stderr" ] || ok=0
         [ ! -e "$TEST_LOG/gh" ] || ok=0
-        diff -u <(expected_usage) "$FIXTURE/stdout" >/dev/null || ok=0
+        diff -u <("$expected_usage") "$FIXTURE/stdout" >/dev/null || ok=0
         rm -rf "$FIXTURE"
     done
 
     if [ "$ok" -eq 1 ]; then
-        pass 'top-level and command help print the manual entry without environment checks'
+        pass 'top-level and command help print their manual entries without environment checks'
     else
-        fail 'top-level and command help print the manual entry without environment checks'
+        fail 'top-level and command help print their manual entries without environment checks'
     fi
 }
 
 test_invalid_invocations_report_specific_errors() {
     ok=1
 
-    while IFS='|' read -r expected arguments; do
+    while IFS='|' read -r expected expected_usage arguments; do
         new_fixture
         if [ -n "$arguments" ]; then
             read -r -a argv <<< "$arguments"
@@ -910,20 +980,27 @@ test_invalid_invocations_report_specific_errors() {
         status=$?
         [ "$status" -eq 1 ] || ok=0
         [ ! -s "$FIXTURE/stdout" ] || ok=0
-        grep -Fqx "Error: $expected" "$FIXTURE/stderr" || ok=0
-        grep -Fq 'SYNOPSIS' "$FIXTURE/stderr" || ok=0
+        {
+            printf 'Error: %s\n\n' "$expected"
+            "$expected_usage"
+        } > "$FIXTURE/expected-stderr"
+        diff -u "$FIXTURE/expected-stderr" "$FIXTURE/stderr" >/dev/null || ok=0
         [ ! -e "$TEST_LOG/gh" ] || ok=0
         rm -rf "$FIXTURE"
     done <<'EOF'
-command is required|
-unknown command: invalid|invalid
-unknown option: -r|verify -r v2.0.0
-unexpected argument: extra|verify extra
---release requires a value|verify --release
---release requires a value|verify --release=
---release requires a value|verify --release --ignore-age
---ignore-age requires --release|verify --ignore-age
---help cannot be combined with other arguments|verify --help --release v2.0.0
+command is required|expected_top_level_usage|
+unknown command: invalid|expected_top_level_usage|invalid
+--help cannot be combined with other arguments|expected_top_level_usage|--help verify
+unknown option: -r|expected_verify_usage|verify -r v2.0.0
+unexpected argument: extra|expected_verify_usage|verify extra
+--release requires a value|expected_verify_usage|verify --release
+--release requires a value|expected_verify_usage|verify --release=
+--release requires a value|expected_verify_usage|verify --release --ignore-age
+--ignore-age requires --release|expected_verify_usage|verify --ignore-age
+--help cannot be combined with other arguments|expected_verify_usage|verify --help --release v2.0.0
+install requires --release|expected_install_usage|install
+--release requires a value|expected_install_usage|install --release
+--help cannot be combined with other arguments|expected_install_usage|install --help --release v2.0.0
 EOF
 
     if [ "$ok" -eq 1 ]; then
