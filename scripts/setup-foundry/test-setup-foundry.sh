@@ -59,10 +59,9 @@ OPTIONS
         Display this help and exit.
 
 EXIT STATUS
-    0     The command completed successfully, or help was displayed.
-    1     The invocation, policy check, verification, or installation failed.
-    130   The command was interrupted.
-    143   The command was terminated.
+    0       The command completed successfully, or help was displayed.
+    nonzero The invocation, policy check, verification, or installation did not
+            complete successfully.
 
 EXAMPLES
     setup-foundry.sh verify
