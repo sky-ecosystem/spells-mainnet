@@ -3,9 +3,13 @@ name: Setup Foundry
 on:
   push:
     paths:
+      - ".github/workflows/setup-foundry.yaml"
+      - "Makefile"
       - "scripts/setup-foundry/**"
   pull_request:
     paths:
+      - ".github/workflows/setup-foundry.yaml"
+      - "Makefile"
       - "scripts/setup-foundry/**"
 
 permissions:
