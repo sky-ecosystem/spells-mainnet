@@ -747,6 +747,16 @@ test_make_ignore_age_requires_one() {
     fi
 }
 
+test_make_install_requires_release() {
+    output=$(make -s -C "$ROOT" install-foundry 2>&1)
+    status=$?
+    if [ "$status" -ne 0 ] && [[ "$output" = *'Error: --release requires a value'* ]]; then
+        pass 'Make install requires an explicit release'
+    else
+        fail 'Make install requires an explicit release'
+    fi
+}
+
 test_install_platform_matrix() {
     while IFS='|' read -r os arch rosetta target description; do
         new_fixture "$os" "$arch" "$rosetta"
@@ -992,6 +1002,7 @@ test_verify_requested_release_must_match_installed_release
 test_verify_rejects_missing_mixed_and_unattested
 test_verify_remote_failures_stop_without_installation
 test_make_ignore_age_requires_one
+test_make_install_requires_release
 test_verify_replaces_nonrequired_prerelease
 test_verify_replaces_nonrequired_rc
 test_verify_reports_version_failure
