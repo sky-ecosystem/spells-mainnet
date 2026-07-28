@@ -12,18 +12,18 @@ The executed script is not pinned to this repository or reviewable as part of it
 
 Foundry is part of the toolchain used to build, test, and deploy executive spells. This repository therefore keeps its installation and verification logic under source control instead of relying on the remote bootstrap script.
 
-This script provides one auditable process for installing and verifying Foundry. The verifier selects the newest release that:
+This script provides one auditable process for selecting, installing, and verifying Foundry. The selector chooses the newest release that:
 
 - uses an exact stable tag in the form `vMAJOR.MINOR.PATCH`;
 - is neither a draft nor a prerelease;
 - is immutable;
 - was published at least 14 days ago.
 
-The verifier checks that the installed `forge`, `cast`, `anvil`, and `chisel` binaries were produced by Foundry's official release workflow and all come from the desired release. If the installed binaries do not match, it reports the exact release and installation command.
+After the selected release has been reviewed, the verifier checks that the installed `forge`, `cast`, `anvil`, and `chisel` binaries were produced by Foundry's official release workflow and all come from that exact release. If the installed binaries do not match, it reports the exact installation command.
 
 The installer requires an explicit release and installs only that exact version. Because installation processes a release archive, it additionally requires the archive itself to be attested before extraction. It then verifies the four installed binaries before executing them. If an installation fails after modifying the destination, it restores the previous binaries.
 
-The selected version can change as newer releases satisfy the policy; the verifier enforces the policy rather than permanently pinning one Foundry version.
+The selected version can change as newer releases satisfy the policy. Verification therefore requires the exact version accepted after reviewing the selector output.
 
 The 14-day cooling period follows the current executive spell cadence. It provides time for public detection and response, but it is not a guarantee that every upstream compromise will be discovered within that period.
 
@@ -33,27 +33,39 @@ GitHub attestations establish that an artifact was produced by the expected repo
 
 [Immutable releases](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases) prevent a published release's tag and assets from being modified or replaced in place. GitHub permits maintainers to delete the entire release, but the immutable release's tag name cannot be reused after deletion. A compromised immutable release therefore cannot be replaced by different binaries under the same version tag.
 
-If Foundry deletes a malicious release, the verifier will no longer select it, explicit installation will fail because the release metadata is unavailable, and verification of an installed copy will also fail. If Foundry leaves the release published, however, the verifier can continue accepting it once it satisfies the age policy. Publishing a clean newer release does not immediately revoke the malicious release; without an approved age waiver, the newer release becomes eligible only after completing its own 14-day cooling period.
+If Foundry deletes a malicious release, the selector will no longer choose it, explicit installation will fail because the release metadata is unavailable, and verification of an installed copy will also fail. If Foundry leaves the release published, however, the selector can continue choosing it once it satisfies the age policy, and exact verification can continue accepting it. Publishing a clean newer release does not immediately revoke the malicious release; without an approved age waiver, the newer release becomes eligible only after completing its own 14-day cooling period.
 
 This tool does not maintain a repository-local revocation list or an allowlist of approved Foundry releases. It therefore depends on upstream deletion, or a subsequent change to this repository, to reject a known-malicious release immediately.
 
 ## Exact releases and urgent age waivers
 
-Installation always requires `release=vMAJOR.MINOR.PATCH`. Verification accepts the same argument when an exact immutable stable release must be checked. Both commands enforce the normal 14-day cooling period:
+Select the newest immutable stable release that satisfies the normal 14-day cooling period:
+
+```bash
+make select-foundry
+```
+
+Verification and installation require `release=vMAJOR.MINOR.PATCH` and enforce the same cooling period:
 
 ```bash
 make verify-foundry release=vMAJOR.MINOR.PATCH
 make install-foundry release=vMAJOR.MINOR.PATCH
 ```
 
-For an approved urgent release that is less than 14 days old, add `ignore-age=1`:
+To select the newest immutable stable release without the cooling-period filter, use:
+
+```bash
+make select-foundry ignore-age=1
+```
+
+For an approved exact release that is less than 14 days old, add `ignore-age=1` when verifying or installing it:
 
 ```bash
 make verify-foundry release=vMAJOR.MINOR.PATCH ignore-age=1
 make install-foundry release=vMAJOR.MINOR.PATCH ignore-age=1
 ```
 
-The corresponding script options are `--release` and `--ignore-age`. They are parsed directly by Bash and do not require GNU `getopt`, including on macOS. `--ignore-age` requires an explicit release and waives only the cooling period. The release must still use an exact stable tag, exist as an immutable release, and satisfy every applicable archive and binary attestation check. Record the upstream security advisory or incident reference, the spell-team approval, and the complete installer and verifier output.
+The corresponding script options are `--release` and `--ignore-age`. They are parsed directly by Bash and do not require GNU `getopt`, including on macOS. The selector does not accept `--release`; verification and installation require it. `--ignore-age` waives only the cooling period. The release must still use an exact stable tag, exist as an immutable release, and satisfy every applicable metadata or attestation check. Record the upstream security advisory or incident reference, the spell-team approval, and the complete selector, installer, and verifier output.
 
 ## Supported platforms
 
@@ -104,19 +116,25 @@ CI environments are expected to be clean, with no previous Foundry installation.
 
 ## Developer machine setup
 
-Engineers will usually already have Foundry installed. Run the verifier first to check the binaries currently resolved from `PATH` against the release policy and attestations:
+Engineers will usually already have Foundry installed. Select and report the desired release without resolving or invoking those binaries:
 
 ```bash
-make verify-foundry
+make select-foundry
 ```
 
-The verifier succeeds when the installed release is valid. Any nonzero result is a failure. Install another release only when the output includes all three of these fields:
+Review the reported release before verifying the binaries currently resolved from `PATH` against that exact release:
+
+```bash
+make verify-foundry release=vMAJOR.MINOR.PATCH
+```
+
+The verifier succeeds when the installed release is valid. Any nonzero result is a failure. Install another release only when the verifier output includes all three of these fields:
 
 - `Required action: install`;
 - `Desired Foundry release:`; and
 - `Installation command:`.
 
-Review the desired release, run the exact installation command printed by the verifier, and then verify the same exact release:
+Run the exact installation command printed by the verifier, and then verify the same exact release:
 
 ```bash
 make install-foundry release=vMAJOR.MINOR.PATCH
@@ -131,7 +149,9 @@ Verification and installation intentionally have different artifact boundaries. 
 
 Foundry v1.7.0 is one example: its four binaries are attested, but its release archive is not. An existing v1.7.0 installation can therefore pass `make verify-foundry release=v1.7.0`, while `make install-foundry release=v1.7.0` fails before extraction. This is expected behavior; selecting an exact release does not weaken either attestation boundary.
 
-Without a release parameter, the verifier selects the newest immutable stable release published at least 14 days ago. The installer requires a release parameter. With a release parameter, either command validates only that exact release and enforces the same age requirement. `ignore-age=1` requires an explicit release and waives only that age requirement.
+The selector uses release metadata only and does not resolve, attest, or invoke installed Foundry binaries. Without `ignore-age=1`, it selects the newest immutable stable release published at least 14 days ago. With `ignore-age=1`, it selects the newest immutable stable release regardless of age.
+
+The verifier and installer require a release parameter, validate only that exact release, and enforce the same age requirement. For these commands, `ignore-age=1` accompanies the exact release and waives only that age requirement.
 
 Before downloading an archive, the installer checks `~/.foundry/bin`. It skips installation only when `forge`, `cast`, `anvil`, and `chisel` are executable files whose attestations all match the desired release, the release metadata remains valid, and every version command succeeds. Existing binaries are executed only after their attestations match. If any check fails, the normal transactional installation proceeds.
 
