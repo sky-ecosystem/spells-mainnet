@@ -289,7 +289,7 @@ if [ "$1 $2" = "attestation verify" ]; then
     if command -v sha256sum >/dev/null 2>&1; then
         digest=$(sha256sum "$subject" | sed "s/[[:space:]].*$//")
     else
-        digest=$(shasum -a 256 "$subject" | sed "s/[[:space:]].*$//")
+        digest=$(LC_ALL=C shasum -a 256 "$subject" | sed "s/[[:space:]].*$//")
     fi
     matching_name=${TEST_ATTEST_SUBJECT_NAME:-$name}
     payload=$("$JQ_PATH" -cn \
@@ -495,6 +495,35 @@ test_attestation_subject_must_match_verified_path() {
         pass 'matching-digest attestation subject must match the verified path'
     else
         fail 'matching-digest attestation subject must match the verified path'
+    fi
+    rm -rf "$FIXTURE"
+}
+
+test_shasum_fallback_forces_portable_locale() {
+    new_fixture
+    mkdir "$FIXTURE/fallback-bin"
+    for command in bash dirname sed; do
+        ln -s "$(command -v "$command")" "$FIXTURE/fallback-bin/$command"
+    done
+    apply_stub shasum '#!/usr/bin/env bash
+printf "%s\n" "${LC_ALL:-}" >> "$TEST_LOG/shasum-locales"
+printf "%s  %s\n" "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" "${3:-}"'
+
+    LC_ALL=C.UTF-8 PATH="$FIXTURE/foundry-bin:$FIXTURE/bin:$FIXTURE/fallback-bin" \
+        "$BASH_PATH" "$CLI" verify --release v2.0.0 > "$FIXTURE/out" 2>&1
+    status=$?
+    if [ -e "$TEST_LOG/shasum-locales" ]; then
+        shasum_calls=$(wc -l < "$TEST_LOG/shasum-locales")
+        non_c_calls=$(grep -vc '^C$' "$TEST_LOG/shasum-locales" || true)
+    else
+        shasum_calls=0
+        non_c_calls=0
+    fi
+
+    if [ "$status" -eq 0 ] && [ "$shasum_calls" -eq 9 ] && [ "$non_c_calls" -eq 0 ]; then
+        pass 'shasum fallback uses the portable C locale'
+    else
+        fail 'shasum fallback uses the portable C locale'
     fi
     rm -rf "$FIXTURE"
 }
@@ -1158,6 +1187,7 @@ test_select_rejects_release
 test_make_select_forwards_ignore_age
 test_verify_eligible
 test_attestation_subject_must_match_verified_path
+test_shasum_fallback_forces_portable_locale
 test_verify_rejects_mutable_release
 test_verify_older_fails
 test_verify_newer_fails

@@ -197,7 +197,7 @@ sha256() {
     if command -v sha256sum >/dev/null 2>&1; then
         sha256sum "$1" | sed 's/[[:space:]].*$//'
     else
-        shasum -a 256 "$1" | sed 's/[[:space:]].*$//'
+        LC_ALL=C shasum -a 256 "$1" | sed 's/[[:space:]].*$//'
     fi
 }
 
