@@ -37,11 +37,11 @@ jobs:
         run: echo "$HOME/.foundry/bin" >> "$GITHUB_PATH"
 
       - name: Install Foundry
-        run: make install-foundry release="$FOUNDRY_RELEASE"
+        run: make install-foundry release="${FOUNDRY_RELEASE}"
         env:
           GH_TOKEN: ${{ github.token }}
 
       - name: Verify Foundry
-        run: make verify-foundry release="$FOUNDRY_RELEASE"
+        run: make verify-foundry release="${FOUNDRY_RELEASE}"
         env:
           GH_TOKEN: ${{ github.token }}
