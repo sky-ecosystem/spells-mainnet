@@ -19,6 +19,8 @@ This script provides one auditable process for selecting, installing, and verify
 - is immutable;
 - was published at least 14 days ago.
 
+Before reporting its source commit and CLI SHA-256, the tool confirms that the executed setup script has the same bytes as that file in the reported commit. A locally modified or untracked copy is rejected; unrelated working-tree changes do not block the tool.
+
 After the selected release has been reviewed, the verifier checks that the installed `forge`, `cast`, `anvil`, and `chisel` binaries were produced by Foundry's official release workflow and all come from that exact release. If the installed binaries do not match, it reports the exact installation command.
 
 The installer requires an explicit release and installs only that exact version. Because installation processes a release archive, it additionally requires the archive itself to be attested before extraction. It then verifies the four installed binaries before executing them. If an installation fails after modifying the destination, it restores the previous binaries.

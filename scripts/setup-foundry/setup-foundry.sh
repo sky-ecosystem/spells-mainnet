@@ -195,9 +195,9 @@ usage_error() {
 
 sha256() {
     if command -v sha256sum >/dev/null 2>&1; then
-        sha256sum "$1" | sed 's/[[:space:]].*$//'
+        sha256sum "$@" | sed 's/[[:space:]].*$//'
     else
-        LC_ALL=C shasum -a 256 "$1" | sed 's/[[:space:]].*$//'
+        LC_ALL=C shasum -a 256 "$@" | sed 's/[[:space:]].*$//'
     fi
 }
 
@@ -238,13 +238,22 @@ validate_install_platform() {
 }
 
 collect_source_metadata() {
-    local script_path script_dir repo_root
+    local script_path script_dir repo_root repo_script_path committed_cli_sha256
 
     script_path=${BASH_SOURCE[0]}
     script_dir=$(cd "$(dirname "$script_path")" && pwd)
+    script_path="${script_dir}/${script_path##*/}"
     repo_root=$(git -C "${script_dir}/../.." rev-parse --show-toplevel 2>/dev/null) || die 'setup CLI is not in a Git checkout'
+    case "$script_path" in
+        "$repo_root"/*) repo_script_path=${script_path#"$repo_root"/} ;;
+        *) die 'setup CLI is outside its Git checkout' ;;
+    esac
     SOURCE_COMMIT=$(git -C "$repo_root" rev-parse HEAD)
     CLI_SHA256=$(sha256 "$script_path")
+    committed_cli_sha256=$(git -C "$repo_root" show "${SOURCE_COMMIT}:${repo_script_path}" 2>/dev/null | sha256) \
+        || die 'setup CLI is not tracked in HEAD'
+    [ "$CLI_SHA256" = "$committed_cli_sha256" ] \
+        || die 'setup CLI differs from HEAD; commit or restore it before continuing'
 }
 
 select_release() {

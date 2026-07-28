@@ -9,7 +9,7 @@ JQ_PATH=$(command -v jq) || {
     printf 'test prerequisite not found: jq\n' >&2
     exit 1
 }
-export JQ_PATH
+export ROOT CLI JQ_PATH
 PASS=0
 FAIL=0
 
@@ -192,6 +192,7 @@ new_fixture() {
     export TEST_VERSION_FAIL=
     export TEST_AUTH_STATUS=0
     export TEST_RELEASE_LIST_STATUS=0
+    export TEST_HEAD_CLI_MISMATCH=0
     mkdir -p "$HOME/.foundry/bin" "$FIXTURE/bin" "$FIXTURE/foundry-bin" "$TEST_LOG"
 
     young_published_at=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
@@ -335,9 +336,16 @@ exit 64'
 
     apply_stub git '#!/usr/bin/env bash
 if [ "$1" = "-C" ] && [ "$3 $4" = "rev-parse --show-toplevel" ]; then
-    printf "%s\n" "$FIXTURE/repository"
+    printf "%s\n" "$ROOT"
 elif [ "$1" = "-C" ] && [ "$3 $4" = "rev-parse HEAD" ]; then
     printf "0123456789abcdef0123456789abcdef01234567\n"
+elif [ "$1" = "-C" ] && [ "$3" = "show" ] \
+    && [ "$4" = "0123456789abcdef0123456789abcdef01234567:scripts/setup-foundry/setup-foundry.sh" ]; then
+    if [ "$TEST_HEAD_CLI_MISMATCH" -eq 1 ]; then
+        printf "modified setup CLI\n"
+    else
+        /bin/cat "$CLI"
+    fi
 else
     exit 64
 fi'
@@ -499,6 +507,23 @@ test_attestation_subject_must_match_verified_path() {
     rm -rf "$FIXTURE"
 }
 
+test_modified_cli_is_rejected_before_reporting_source_metadata() {
+    new_fixture
+    TEST_HEAD_CLI_MISMATCH=1
+    export TEST_HEAD_CLI_MISMATCH
+    run_cli foundry-path verify --release v2.0.0
+    gh_calls=$(wc -l < "$TEST_LOG/gh")
+    if [ "$STATUS" -eq 1 ] && [ "$gh_calls" -eq 1 ] \
+        && grep -q 'setup CLI differs from HEAD' "$FIXTURE/out" \
+        && ! grep -q '^Desired Foundry release:' "$FIXTURE/out" \
+        && [ ! -e "$TEST_LOG/versions" ]; then
+        pass 'modified setup CLI is rejected before source metadata is reported'
+    else
+        fail 'modified setup CLI is rejected before source metadata is reported'
+    fi
+    rm -rf "$FIXTURE"
+}
+
 test_shasum_fallback_forces_portable_locale() {
     new_fixture
     mkdir "$FIXTURE/fallback-bin"
@@ -507,6 +532,7 @@ test_shasum_fallback_forces_portable_locale() {
     done
     apply_stub shasum '#!/usr/bin/env bash
 printf "%s\n" "${LC_ALL:-}" >> "$TEST_LOG/shasum-locales"
+[ "$#" -ne 2 ] || /bin/cat >/dev/null
 printf "%s  %s\n" "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" "${3:-}"'
 
     LC_ALL=C.UTF-8 PATH="$FIXTURE/foundry-bin:$FIXTURE/bin:$FIXTURE/fallback-bin" \
@@ -520,7 +546,7 @@ printf "%s  %s\n" "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
         non_c_calls=0
     fi
 
-    if [ "$status" -eq 0 ] && [ "$shasum_calls" -eq 9 ] && [ "$non_c_calls" -eq 0 ]; then
+    if [ "$status" -eq 0 ] && [ "$shasum_calls" -eq 10 ] && [ "$non_c_calls" -eq 0 ]; then
         pass 'shasum fallback uses the portable C locale'
     else
         fail 'shasum fallback uses the portable C locale'
@@ -1187,6 +1213,7 @@ test_select_rejects_release
 test_make_select_forwards_ignore_age
 test_verify_eligible
 test_attestation_subject_must_match_verified_path
+test_modified_cli_is_rejected_before_reporting_source_metadata
 test_shasum_fallback_forces_portable_locale
 test_verify_rejects_mutable_release
 test_verify_older_fails
