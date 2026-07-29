@@ -21,9 +21,9 @@ This script provides one auditable process for selecting, installing, and verify
 
 Before reporting its source commit and CLI SHA-256, the tool confirms that the executed setup script has the same bytes as that file in the reported commit. A locally modified or untracked copy is rejected; unrelated working-tree changes do not block the tool.
 
-After the selected release has been reviewed, the verifier checks that the installed `forge`, `cast`, `anvil`, and `chisel` binaries were produced by Foundry's official release workflow and all come from that exact release. If the installed binaries do not match, it reports the exact installation command.
+After the selected release has been reviewed and installed, the verifier checks that the `forge`, `cast`, `anvil`, and `chisel` binaries resolved from `PATH` were produced by Foundry's official release workflow and all come from that exact release. If the installed binaries do not match, it reports the exact installation command.
 
-The installer requires an explicit release and installs only that exact version. Because installation processes a release archive, it additionally requires the archive itself to be attested before extraction. It then verifies the four installed binaries before executing them. If an installation fails after modifying the destination, it restores the previous binaries.
+The installer requires an explicit release and installs only that exact version. Developer Foundry binaries installed by another method are not trusted, even when they match the requested release, so the installer always replaces the four binaries in `~/.foundry/bin`. Because installation processes a release archive, it requires the archive itself to be attested before extraction. It then verifies the four installed binaries before executing them. If an installation fails after modifying the destination, it restores the previous binaries.
 
 The selected version can change as newer releases satisfy the policy. Verification therefore requires the exact version accepted after reviewing the selector output.
 
@@ -134,40 +134,37 @@ Engineers will usually already have Foundry installed. Select and report the des
 make select-foundry
 ```
 
-Review the reported release before verifying the binaries currently resolved from `PATH` against that exact release:
-
-```bash
-make verify-foundry release=vMAJOR.MINOR.PATCH
-```
-
-The verifier succeeds when the installed release is valid. Any nonzero result is a failure. Install another release only when the verifier output includes all three of these fields:
-
-- `Required action: install`;
-- `Desired Foundry release:`; and
-- `Installation command:`.
-
-Run the exact installation command printed by the verifier, and then verify the same exact release:
+Review the reported release, then install that exact release:
 
 ```bash
 make install-foundry release=vMAJOR.MINOR.PATCH
+```
+
+The installer always replaces `forge`, `cast`, `anvil`, and `chisel` in `~/.foundry/bin`; it does not attest or execute the pre-existing destination binaries. It first attests the release archive, then extracts and installs the replacements transactionally, attests the four installed binaries, and executes their version commands. Any nonzero installer result is a failure.
+
+If the installer prints `Required action: update-path`, apply the printed `PATH` configuration and start a new shell.
+
+Regardless of whether a `PATH` update was required, verify the same exact release:
+
+```bash
 make verify-foundry release=vMAJOR.MINOR.PATCH
 ```
 
-The printed command identifies the desired release but does not guarantee that its release archive satisfies the installer's additional attestation requirement. Crafter and reviewer workflows must require all three fields before installing; any other failure must be diagnosed without automatically installing.
+The verifier succeeds when the installed release is valid. Any nonzero result is a failure and must be diagnosed.
 
 ## Installation and verification behavior
 
 Verification and installation intentionally have different artifact boundaries. `verify-foundry` validates the installed binaries and can succeed for a release that `install-foundry` cannot install. `install-foundry` must process the upstream archive, so it requires both the archive attestation and the binary attestations.
 
-Foundry v1.7.0 is one example: its four binaries are attested, but its release archive is not. An existing v1.7.0 installation can therefore pass `make verify-foundry release=v1.7.0`, while `make install-foundry release=v1.7.0` fails before extraction. This is expected behavior; selecting an exact release does not weaken either attestation boundary.
+Foundry v1.7.0 is one example: its four binaries are attested, but its release archive is not. Standalone verification of a pre-existing v1.7.0 installation can therefore pass `make verify-foundry release=v1.7.0`, while the mandatory developer setup cannot use that release because `make install-foundry release=v1.7.0` fails before extraction. This is expected behavior; selecting an exact release does not weaken either attestation boundary.
 
 The selector uses release metadata only and does not resolve, attest, or invoke installed Foundry binaries. Without `ignore-age=1`, it selects the newest immutable stable release published at least 14 days ago. With `ignore-age=1`, it selects the newest immutable stable release regardless of age.
 
 The verifier and installer require a release parameter, validate only that exact release, and enforce the same age requirement. For these commands, `ignore-age=1` accompanies the exact release and waives only that age requirement.
 
-Before downloading an archive, the installer checks `~/.foundry/bin`. It skips installation only when `forge`, `cast`, `anvil`, and `chisel` are executable files whose attestations all match the desired release, the release metadata remains valid, and every version command succeeds. Existing binaries are executed only after their attestations match. If any check fails, the normal transactional installation proceeds.
+The installer does not trust, attest, or execute pre-existing binaries in `~/.foundry/bin`. After validating the exact release metadata, it always downloads and attests the release archive, backs up any existing destination binaries for rollback, installs all four replacements, attests the installed replacements, and only then executes their version commands.
 
-The installer places the verified binaries in `~/.foundry/bin`. If that directory is not already in `PATH`, either installation path succeeds and prints `Required action: update-path` with the exact `PATH` configuration to apply before rerunning the verifier.
+The installer places the verified binaries in `~/.foundry/bin`. If that directory is not already in `PATH`, installation succeeds and prints `Required action: update-path` with the exact `PATH` configuration to apply before rerunning the verifier.
 
 The installer succeeds after installation and verification, including when it reports the `update-path` action. Any nonzero installer result is a failure.
 
