@@ -44,7 +44,8 @@ COMMANDS
         Verify the Foundry binaries resolved from PATH against an exact release.
 
     install
-        Verify or install an explicitly requested release in $HOME/.foundry/bin.
+        Install an explicitly requested release in $HOME/.foundry/bin, replacing
+        any existing Foundry binaries there.
 
 OPTIONS
     --help
@@ -56,9 +57,9 @@ EXIT STATUS
             complete successfully.
 
 EXAMPLES
-    setup-foundry.sh select --help
-    setup-foundry.sh verify --help
-    setup-foundry.sh install --help
+    setup-foundry.sh select
+    setup-foundry.sh install --release v1.7.1
+    setup-foundry.sh verify --release v1.7.1
 EOF
 }
 
@@ -136,8 +137,8 @@ SYNOPSIS
     setup-foundry.sh install --release RELEASE [--ignore-age]
 
 DESCRIPTION
-    Verifies an explicitly requested release in $HOME/.foundry/bin, or downloads
-    and installs it when the existing destination does not match.
+    Downloads and installs an explicitly requested release in $HOME/.foundry/bin,
+    replacing any existing Foundry binaries there.
 
 OPTIONS
     --release RELEASE
@@ -157,7 +158,7 @@ EXIT STATUS
             complete successfully.
 
 EXAMPLES
-    setup-foundry.sh install --release v1.7.0
+    setup-foundry.sh install --release v1.7.1
     setup-foundry.sh install --release v1.7.1 --ignore-age
 EOF
 }
@@ -277,6 +278,7 @@ fi
 if [ "$1 $2" = "attestation verify" ]; then
     subject=$3
     name=${subject##*/}
+    printf "attest %s\n" "$subject" >> "$TEST_LOG/operations"
     if [ -n "${TEST_ATTEST_FAIL:-}" ] && [ "$name" = "$TEST_ATTEST_FAIL" ]; then
         exit "${TEST_BINARY_ATTEST_STATUS:-1}"
     fi
@@ -334,6 +336,10 @@ if [ "${1:-} ${2:-}" = "-n sysctl.proc_translated" ]; then
 fi
 exit 64'
 
+    apply_stub log-version '#!/usr/bin/env bash
+printf "%s\n" "$1" >> "$TEST_LOG/versions"
+printf "version %s\n" "$1" >> "$TEST_LOG/operations"'
+
     apply_stub git '#!/usr/bin/env bash
 if [ "$1" = "-C" ] && [ "$3 $4" = "rev-parse --show-toplevel" ]; then
     printf "%s\n" "$ROOT"
@@ -353,14 +359,15 @@ fi'
     apply_stub tar '#!/usr/bin/env bash
 set -eu
 printf "%s\n" "$*" >> "$TEST_LOG/tar"
+printf "extract\n" >> "$TEST_LOG/operations"
 while [ "$#" -gt 0 ]; do
     if [ "$1" = "-C" ]; then out=$2; shift 2; else shift; fi
 done
 for binary in forge cast anvil chisel; do
     {
         printf "#!/usr/bin/env bash\n"
-        printf "printf \\\"%%s\\\\n\\\" \\\"%%s\\\" >> \\\"\\$TEST_LOG/versions\\\"\n" "$binary"
-        printf "printf \\\"%%s\\\\n\\\" \\\"%%s Version: 2.0.0\\\"\n" "$binary"
+        printf "log-version %s\n" "$binary"
+        printf "printf \\\"%%s\\\\n\\\" \\\"%s Version: 2.0.0\\\"\n" "$binary"
     } > "$out/$binary"
     chmod +x "$out/$binary"
 done'
@@ -375,6 +382,7 @@ if [ "$1" = "-d" ]; then
     exit 0
 fi
 if [ "$1" = "-m" ]; then shift 2; fi
+printf "replace %s\n" "${2##*/}" >> "$TEST_LOG/operations"
 cp "$1" "$2"
 chmod 0755 "$2"'
 
@@ -720,21 +728,69 @@ test_install_requires_release() {
     rm -rf "$FIXTURE"
 }
 
-test_install_skips_verified_matching_destination() {
+test_install_forces_replacement_of_verified_matching_destination() {
     new_fixture
     for binary in forge cast anvil chisel; do
-        cp "$FIXTURE/foundry-bin/$binary" "$HOME/.foundry/bin/$binary"
+        {
+            printf '#!/usr/bin/env bash\n'
+            printf 'printf "sentinel-%s\\n" >> "$TEST_LOG/sentinel-versions"\n' "$binary"
+            printf 'printf "sentinel-version %s\\n" >> "$TEST_LOG/operations"\n' "$binary"
+            printf 'printf "%s Version: 2.0.0\\n"\n' "$binary"
+        } > "$HOME/.foundry/bin/$binary"
+        chmod +x "$HOME/.foundry/bin/$binary"
     done
     run_cli destination-path install --release v2.0.0
     attestations=$(grep -c '^attestation verify ' "$TEST_LOG/gh" 2>/dev/null || true)
     if [ -e "$TEST_LOG/versions" ]; then versions=$(wc -l < "$TEST_LOG/versions"); else versions=0; fi
-    if [ "$STATUS" -eq 0 ] && [ "$attestations" -eq 4 ] && [ "$versions" -eq 4 ] \
-        && [ ! -e "$TEST_LOG/download-version" ] && [ ! -e "$TEST_LOG/tar" ] && [ ! -e "$TEST_LOG/install" ] \
-        && grep -q 'Foundry installation skipped: v2.0.0 is already installed and verified' "$FIXTURE/out" \
-        && grep -q 'Installation: skipped; existing destination binaries match desired release' "$FIXTURE/out"; then
-        pass 'install skips a verified matching destination without downloading or modifying files'
+    replacements=$(grep -c '^-m 0755 .*/extracted/.* .*/[.]foundry/bin/' "$TEST_LOG/install" 2>/dev/null || true)
+    normalized_operations=$(
+        while IFS=' ' read -r operation subject; do
+            if [ "$operation" = attest ]; then
+                case "$subject" in
+                    *.tar.gz) subject=archive ;;
+                    *) subject=${subject##*/} ;;
+                esac
+            fi
+            printf '%s%s\n' "$operation" "${subject:+ $subject}"
+        done < "$TEST_LOG/operations"
+    )
+    expected_operations=$(cat <<'EOF'
+attest archive
+extract
+replace forge
+replace cast
+replace anvil
+replace chisel
+attest forge
+attest cast
+attest anvil
+attest chisel
+version forge
+version cast
+version anvil
+version chisel
+EOF
+)
+    sentinel_contents=0
+    for binary in forge cast anvil chisel; do
+        if grep -q "sentinel-$binary" "$HOME/.foundry/bin/$binary"; then
+            sentinel_contents=$((sentinel_contents + 1))
+        fi
+    done
+    if [ "$STATUS" -eq 0 ] && [ "$attestations" -eq 5 ] && [ "$versions" -eq 4 ] \
+        && [ "$replacements" -eq 4 ] && [ "$sentinel_contents" -eq 0 ] \
+        && [ "$normalized_operations" = "$expected_operations" ] \
+        && [ "$(cat "$TEST_LOG/download-version")" = v2.0.0 ] \
+        && [ "$(wc -l < "$TEST_LOG/tar")" -eq 1 ] \
+        && [ ! -e "$TEST_LOG/sentinel-versions" ] \
+        && ! grep -q 'attestation verify .*/previous-installation/' "$TEST_LOG/gh" \
+        && ! grep -q '^sentinel-version ' "$TEST_LOG/operations"; then
+        pass 'install replaces a verified matching destination without trusting existing binaries'
     else
-        fail 'install skips a verified matching destination without downloading or modifying files'
+        fail 'install replaces a verified matching destination without trusting existing binaries'
+        printf '  status=%s attestations=%s versions=%s replacements=%s sentinel_contents=%s\n' \
+            "$STATUS" "$attestations" "$versions" "$replacements" "$sentinel_contents"
+        sed 's/^/  operation: /' "$TEST_LOG/operations"
     fi
     rm -rf "$FIXTURE"
 }
@@ -1242,7 +1298,7 @@ test_verify_replaces_nonrequired_prerelease
 test_verify_replaces_nonrequired_rc
 test_verify_reports_version_failure
 test_install_requires_release
-test_install_skips_verified_matching_destination
+test_install_forces_replacement_of_verified_matching_destination
 test_select_without_eligible_release_fails
 test_install_accepts_explicit_age_eligible_release
 test_install_accepts_requested_young_release

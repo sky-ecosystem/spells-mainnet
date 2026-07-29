@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Select, verify, or install an age-eligible stable Foundry release from GitHub.com.
 # GitHub.com and Foundry's official release workflow are the pinned trust roots.
-# Binaries are verified before execution; installation failures restore prior binaries.
+# Installed binaries are verified before execution; installation failures restore prior binaries.
 
 set -euo pipefail
 
@@ -56,7 +56,8 @@ COMMANDS
         Verify the Foundry binaries resolved from PATH against an exact release.
 
     install
-        Verify or install an explicitly requested release in \$HOME/.foundry/bin.
+        Install an explicitly requested release in \$HOME/.foundry/bin, replacing
+        any existing Foundry binaries there.
 
 OPTIONS
     --help
@@ -68,9 +69,9 @@ EXIT STATUS
             complete successfully.
 
 EXAMPLES
-    $name select --help
-    $name verify --help
-    $name install --help
+    $name select
+    $name install --release v1.7.1
+    $name verify --release v1.7.1
 EOF
 }
 
@@ -157,8 +158,8 @@ SYNOPSIS
     $name install --release RELEASE [--ignore-age]
 
 DESCRIPTION
-    Verifies an explicitly requested release in \$HOME/.foundry/bin, or downloads
-    and installs it when the existing destination does not match.
+    Downloads and installs an explicitly requested release in \$HOME/.foundry/bin,
+    replacing any existing Foundry binaries there.
 
 OPTIONS
     --release RELEASE
@@ -178,7 +179,7 @@ EXIT STATUS
             complete successfully.
 
 EXAMPLES
-    $name install --release v1.7.0
+    $name install --release v1.7.1
     $name install --release v1.7.1 --ignore-age
 EOF
 }
@@ -536,20 +537,6 @@ verify_installed_binaries() {
     ROLLBACK_REQUIRED=0
 }
 
-verify_existing_destination() {
-    local binary path
-
-    BINARY_PATHS=()
-    for binary in "${BINARIES[@]}"; do
-        path="${DESTINATION}/${binary}"
-        [ -f "$path" ] && [ -x "$path" ] || return 1
-        BINARY_PATHS+=("$path")
-    done
-    verify_binary_paths "$VERSION"
-    validate_installed_release
-    run_binary_versions
-}
-
 report_path_action() {
     case ":$PATH:" in
         *":$DESTINATION:"*) ;;
@@ -560,17 +547,6 @@ report_path_action() {
             printf '%s\n' 'Add the same export to your shell profile, then start a new shell before continuing.' >&2
             ;;
     esac
-}
-
-finalize_existing_installation() {
-    printf '\nEvidence summary:\n'
-    printf '  Source: spells-mainnet %s; setup CLI SHA-256 %s\n' "$SOURCE_COMMIT" "$CLI_SHA256"
-    printf '  Release: %s; %s; %s\n' "$VERSION" "$PUBLISHED_AT" "$RELEASE_URL"
-    printf '  Policy decision: %s\n' "$SELECTION_REASON"
-    printf '  Installation: skipped; existing destination binaries match desired release\n'
-    printf '  Binary attestations: forge, cast, anvil, and chisel verified against %s\n' "$SIGNER_WORKFLOW"
-    report_path_action
-    printf '\nFoundry installation skipped: %s is already installed and verified in %s.\n' "$VERSION" "$DESTINATION"
 }
 
 finalize_installation() {
@@ -607,19 +583,12 @@ select_foundry() {
 }
 
 install_foundry() {
-    local existing_output
-
     validate_environment
     validate_install_platform
     collect_source_metadata
     load_requested_release
     DESTINATION="${HOME}/.foundry/bin"
     report_selection
-    if existing_output=$(verify_existing_destination 2>&1); then
-        printf '%s\n' "$existing_output"
-        finalize_existing_installation
-        return
-    fi
     initialize_installation
     download_verify_and_extract_release
     prepare_destination
