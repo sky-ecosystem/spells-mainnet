@@ -746,10 +746,11 @@ test_install_forces_replacement_of_verified_matching_destination() {
     normalized_operations=$(
         while IFS=' ' read -r operation subject; do
             if [ "$operation" = attest ]; then
-                case "$subject" in
-                    *.tar.gz) subject=archive ;;
-                    *) subject=${subject##*/} ;;
-                esac
+                if [ "${subject%.tar.gz}" != "$subject" ]; then
+                    subject=archive
+                else
+                    subject=${subject##*/}
+                fi
             fi
             printf '%s%s\n' "$operation" "${subject:+ $subject}"
         done < "$TEST_LOG/operations"
