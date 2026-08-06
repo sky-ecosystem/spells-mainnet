@@ -11,8 +11,6 @@ evm_version  = "osaka"
 optimizer = false
 optimizer_runs = 200
 via_ir = false
-cbor_metadata = true
-bytecode_hash = "ipfs"
 libraries = [
     "./lib/dss-exec-lib/src/DssExecLib.sol:DssExecLib:0x8De6DDbCd5053d32292AAA0D2105A32d108484a6"
 ]
