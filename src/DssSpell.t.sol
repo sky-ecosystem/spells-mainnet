@@ -202,51 +202,10 @@ contract DssSpellTest is DssSpellTestBase {
         //assertEq(OsmAbstract(0xF15993A5C5BE496b8e1c9657Fd2233b579Cd3Bc6).wards(ORACLE_WALLET01), 1);
     }
 
-    function testRemovedChainlogKeys() public skipped { // add the `skipped` modifier to skip
-        string[43] memory removedKeys = [
-            "PIP_MKR",
-            "PIP_AAVE",
-            "PIP_ADAI",
-            "PIP_BAL",
-            "PIP_BAT",
-            "PIP_COMP",
-            "PIP_CRVV1ETHSTETH",
-            "PIP_GNO",
-            "PIP_GUSD",
-            "PIP_KNC",
-            "PIP_LINK",
-            "PIP_LRC",
-            "PIP_MANA",
-            "PIP_MATIC",
-            "PIP_PAX",
-            "PIP_PAXUSD",
-            "PIP_RENBTC",
-            "PIP_RETH",
-            "PIP_RWA003",
-            "PIP_RWA006",
-            "PIP_RWA007",
-            "PIP_RWA008",
-            "PIP_RWA010",
-            "PIP_RWA011",
-            "PIP_RWA012",
-            "PIP_RWA013",
-            "PIP_RWA014",
-            "PIP_RWA015",
-            "PIP_TUSD",
-            "PIP_UNI",
-            "PIP_UNIV2AAVEETH",
-            "PIP_UNIV2DAIETH",
-            "PIP_UNIV2DAIUSDT",
-            "PIP_UNIV2ETHUSDT",
-            "PIP_UNIV2LINKETH",
-            "PIP_UNIV2UNIETH",
-            "PIP_UNIV2USDCETH",
-            "PIP_UNIV2WBTCDAI",
-            "PIP_UNIV2WBTCETH",
-            "PIP_USDC",
-            "PIP_USDT",
-            "PIP_YFI",
-            "PIP_ZRX"
+    function testRemovedChainlogKeys() public { // add the `skipped` modifier to skip
+        string[2] memory removedKeys = [
+            "PRYSM_SUBPROXY",
+            "PRYSM_STARGUARD"
         ];
 
         for (uint256 i = 0; i < removedKeys.length; i++) {
@@ -279,10 +238,11 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
-        string[3] memory addedKeys = [
-            "EMSP_STUSDS_RATE_S_DISS_BUD_FAB",
-            "EMSP_STUSDS_WIPE_PARAM_FAB",
-            "EMSP_STUSDS_RATE_SETTER_HALT"
+        string[4] memory addedKeys = [
+            "MCD_SBEBEAM",
+            "OWNER_REWARDS_LSSKY_USDS",
+            "OSERO_SUBPROXY",
+            "OSERO_STARGUARD"
         ];
 
         for(uint256 i = 0; i < addedKeys.length; i++) {

@@ -164,8 +164,8 @@ contract Config {
         afterSpell.vow_hump_max           = type(uint256).max;                              // In whole Dai units
         afterSpell.kick_kbump             = 6 * THOUSAND;                                   // In whole USDS units
         afterSpell.kick_khump             = -200 * int256(MILLION);                         // In whole USDS units
-        afterSpell.split_hop              = 13_787 seconds;                                 // In seconds
-        afterSpell.split_burn             = 100_00;                                         // In basis points
+        afterSpell.split_hop              = 3_748 seconds;                                  // In seconds
+        afterSpell.split_burn             = 55_00;                                          // In basis points
         afterSpell.split_farm             = "REWARDS_LSSKY_USDS";                           // Farm chainlog key
         afterSpell.flap_want              = 98_00;                                          // In basis points
         afterSpell.dog_Hole               = 150 * MILLION;                                  // In whole Dai units
@@ -187,7 +187,7 @@ contract Config {
         afterSpell.vest_spk_cap           = 2_502_500_000 * WAD / 730 days;                 // In WAD SPK per second
         afterSpell.vest_grove_cap         = (110 * 2_450_000_000 * WAD) / (100 * 730 days); // In WAD GROVE per second
         afterSpell.ilk_count              = 35;                                             // Num expected in system
-        afterSpell.chainlog_version       = "1.20.18";                                      // String expected in system
+        afterSpell.chainlog_version       = "1.20.19";                                      // String expected in system
 
         afterSpell.SP_tau       = 57_600 seconds;                             // In seconds
         afterSpell.SP_bud       = 0xe1c6f81D0c3CD570A77813b81AA064c5fff80309; // Address of SPBEAM Bud
@@ -1177,8 +1177,8 @@ contract Config {
         });
         afterSpell.collaterals["ALLOCATOR-PRYSM-A"] = CollateralValues({
             um:           UpdateMethod.AUTOLINE,
-            aL_line:      5_000_000,
-            aL_gap:       1_000_000,
+            aL_line:      10_000_000,
+            aL_gap:       2_000_000,
             aL_ttl:       86_400,
             line:         0,
             dust:         0,
@@ -1235,8 +1235,8 @@ contract Config {
         });
         afterSpell.collaterals["ALLOCATOR-GROVE-A"] = CollateralValues({
             um:           UpdateMethod.AUTOLINE,
-            aL_line:      5_000_000,
-            aL_gap:       1_000_000,
+            aL_line:      10_000_000,
+            aL_gap:       2_000_000,
             aL_ttl:       86_400,
             line:         0,
             dust:         0,
