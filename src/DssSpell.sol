@@ -16,8 +16,8 @@
 
 pragma solidity 0.8.16;
 
-import "dss-exec-lib/DssExec.sol";
-import "dss-exec-lib/DssAction.sol";
+import { DssExec } from "dss-exec-lib/DssExec.sol";
+import { DssAction, DssExecLib } from "dss-exec-lib/DssAction.sol";
 import { DssInstance, MCD } from "dss-test/MCD.sol";
 import { GemAbstract } from "dss-interfaces/ERC/GemAbstract.sol";
 import { JugAbstract } from "dss-interfaces/dss/JugAbstract.sol";
