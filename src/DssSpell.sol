@@ -22,6 +22,7 @@ import { DssInstance, MCD } from "dss-test/MCD.sol";
 import { GemAbstract } from "dss-interfaces/ERC/GemAbstract.sol";
 import { JugAbstract } from "dss-interfaces/dss/JugAbstract.sol";
 import { VatAbstract } from "dss-interfaces/dss/VatAbstract.sol";
+import { DssAutoLineAbstract } from "dss-interfaces/dss/DssAutoLineAbstract.sol";
 // Copied from https://github.com/sky-ecosystem/dss-flappers/blob/655d2dd2c7000235633fec87b763ee0143e85bab/deploy/FlapperInit.sol
 import { FlapperInit, SBEBeamConfig } from "src/dependencies/dss-flappers/FlapperInit.sol";
 // Copied from https://github.com/sky-ecosystem/endgame-toolkit/blob/4f238f9b23298190150d49482bad56c00f0af825/script/dependencies/treasury-funded-farms/TreasuryFundedFarmingInit.sol
@@ -94,6 +95,7 @@ contract DssSpellAction is DssAction {
     address internal immutable SPARK_STARGUARD         = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
     address internal immutable GROVE_STARGUARD         = DssExecLib.getChangelogAddress("GROVE_STARGUARD");
     address internal immutable SAFE_HARBOR_AGREEMENT   = DssExecLib.getChangelogAddress("SAFE_HARBOR_AGREEMENT");
+    address internal immutable MCD_IAM_AUTO_LINE       = DssExecLib.getChangelogAddress("MCD_IAM_AUTO_LINE");
 
     address internal constant OWNER_REWARDS_LSSKY_USDS = 0xA3d3A2e9Fe5d0901D720D5382E4a7eA12D4E2b0e;
     address internal constant MCD_SBEBEAM              = 0xc8b61d211D3D03A630Fb09199E17953a8c9749a9;
@@ -240,6 +242,9 @@ contract DssSpellAction is DssAction {
             _ttl: 86_400 seconds
         });
 
+        // Note: Apply the updated ALLOCATOR-GROVE-A AutoLine configuration immediately
+        DssAutoLineAbstract(MCD_IAM_AUTO_LINE).exec("ALLOCATOR-GROVE-A");
+
         // ---------- Adjust ALLOCATOR-PRYSM-A DC-IAM Parameters ----------
         // Forum: https://forum.skyeco.com/t/osero-requested-changes-to-allocator-vault-parameters/28147
         // Atlas: https://sky-atlas.io/#41a1ae38-4f5c-468f-b6ba-47e16ecc5aec
@@ -253,6 +258,9 @@ contract DssSpellAction is DssAction {
             _gap: 2 * MILLION,
             _ttl: 86_400 seconds
         });
+
+        // Note: Apply the updated ALLOCATOR-PRYSM-A AutoLine configuration immediately
+        DssAutoLineAbstract(MCD_IAM_AUTO_LINE).exec("ALLOCATOR-PRYSM-A");
 
         // ---------- Rename Chainlog Keys for Osero ----------
         // Forum: https://forum.skyeco.com/t/proposed-housekeeping-item-2026-08-13-executive-vote/28148
