@@ -233,5 +233,8 @@ contract Wallets {
         // Demand Subsidies Multisigs
         addr["USDS_DEMAND_SUBSIDIES_MULTISIG"] = 0x3F32bC09d41eE699844F8296e806417D6bf61Bba;
         addr["DEMAND_SIDE_BUFFER_MULTISIG"]    = 0x5e2fEc3a3C4E63A422e45C1BB83EdB3a5aD0543B;
+
+        // SBEBEAM
+        addr["MCD_SBEBEAM_BUD"]                = 0x869294B42B80f99CF3Bdac0F44abddAd6cD41330;
     }
 }

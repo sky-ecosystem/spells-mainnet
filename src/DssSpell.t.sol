@@ -40,6 +40,24 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
+interface SBEBeamLike {
+    function wards(address) external view returns (uint256);
+    function buds(address) external view returns (uint256);
+    function kicker() external view returns (address);
+    function splitter() external view returns (address);
+    function maxKbump() external view returns (uint256);
+    function minHop() external view returns (uint256);
+    function maxRate() external view returns (uint256);
+    function tau() external view returns (uint64);
+    function toc() external view returns (uint128);
+    function set(uint256 kbump, uint256 burn, uint256 hop) external;
+}
+
+interface FarmOwnerLike {
+    function wards(address) external view returns (uint256);
+    function farm() external view returns (address);
+}
+
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -1454,4 +1472,90 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
+
+    function testSBEBeamInitialisation() public {
+        SBEBeamLike        beam      = SBEBeamLike(addr.addr("MCD_SBEBEAM"));
+        FarmOwnerLike      farmOwner = FarmOwnerLike(addr.addr("OWNER_REWARDS_LSSKY_USDS"));
+        KickerLike         kicker    = KickerLike(addr.addr("MCD_KICK"));
+        SplitLike          splitter  = SplitLike(addr.addr("MCD_SPLIT"));
+        StakingRewardsLike farm      = StakingRewardsLike(addr.addr("REWARDS_LSSKY_USDS"));
+        address            bud       = wallets.addr("MCD_SBEBEAM_BUD");
+
+        // Check constructor arguments
+        assertEq(beam.kicker(),    address(kicker),   "testSBEBeamInitialisation/beam-kicker-mismatch");
+        assertEq(beam.splitter(),  address(splitter), "testSBEBeamInitialisation/beam-splitter-mismatch");
+        assertEq(farmOwner.farm(), address(farm),     "testSBEBeamInitialisation/farm-owner-farm-mismatch");
+
+        // Check roles before spell
+        assertEq(farm.owner(),                   pauseProxy, "testSBEBeamInitialisation/farm-not-owned-by-pause-proxy-before");
+        assertEq(farmOwner.wards(pauseProxy),    1,          "testSBEBeamInitialisation/pause-proxy-not-ward-of-farm-owner");
+        assertEq(farmOwner.wards(address(beam)), 0,          "testSBEBeamInitialisation/beam-already-ward-of-farm-owner");
+        assertEq(kicker.wards(address(beam)),    0,          "testSBEBeamInitialisation/beam-already-ward-of-kicker");
+        assertEq(splitter.wards(address(beam)),  0,          "testSBEBeamInitialisation/beam-already-ward-of-splitter");
+        assertEq(beam.buds(bud),                 0,          "testSBEBeamInitialisation/bud-already-kissed");
+
+        // Execute spell
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // Check roles after spell
+        assertEq(farm.owner(),                   address(farmOwner), "testSBEBeamInitialisation/farm-not-owned-by-farm-owner-after");
+        assertEq(farmOwner.wards(pauseProxy),    1,                  "testSBEBeamInitialisation/pause-proxy-not-longer-ward-of-farm-owner");
+        assertEq(farmOwner.wards(address(beam)), 1,                  "testSBEBeamInitialisation/beam-not-ward-of-farm-owner");
+        assertEq(kicker.wards(address(beam)),    1,                  "testSBEBeamInitialisation/beam-not-ward-of-kicker");
+        assertEq(splitter.wards(address(beam)),  1,                  "testSBEBeamInitialisation/beam-not-ward-of-splitter");
+        assertEq(beam.buds(bud),                 1,                  "testSBEBeamInitialisation/bud-not-kissed");
+
+        // Check parameters set by the spell
+        assertEq(beam.maxKbump(),            12_000 * RAD,                   "testSBEBeamInitialisation/invalid-max-kbump");
+        assertEq(beam.minHop(),              550 seconds,                    "testSBEBeamInitialisation/invalid-min-hop");
+        assertEq(beam.maxRate(),             350 * MILLION * RAD / 365 days, "testSBEBeamInitialisation/invalid-max-rate");
+        assertEq(uint256(beam.tau()),        30 minutes,                     "testSBEBeamInitialisation/invalid-tau");
+    }
+
+    function testSBEBeamIntegration() public {
+        SBEBeamLike        beam     = SBEBeamLike(addr.addr("MCD_SBEBEAM"));
+        KickerLike         kicker   = KickerLike(addr.addr("MCD_KICK"));
+        SplitLike          splitter = SplitLike(addr.addr("MCD_SPLIT"));
+        StakingRewardsLike farm     = StakingRewardsLike(addr.addr("REWARDS_LSSKY_USDS"));
+        address            bud       = wallets.addr("MCD_SBEBEAM_BUD");
+
+        // Execute spell
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // Check initial values
+        assertEq(kicker.kbump(),         6_000 * RAD,    "testSBEBeamSet/invalid-kbump-after-spell");
+        assertEq(splitter.burn(),        55 * WAD / 100, "testSBEBeamSet/invalid-burn-after-spell");
+        assertEq(splitter.hop(),         3_748,          "testSBEBeamSet/invalid-hop-after-spell");
+        assertEq(farm.rewardsDuration(), 3_748,          "testSBEBeamSet/invalid-rewards-duration-after-spell");
+
+        uint256 newKbump = 9_000 * RAD;
+        uint256 newBurn  = 60 * WAD / 100;
+        uint256 newHop   = 4_000 seconds;
+
+        // Sanity check that the new values are different
+        assertLe(newKbump,          beam.maxKbump(), "testSBEBeamSet/kbump-above-max");
+        assertGe(newHop,            beam.minHop(),   "testSBEBeamSet/hop-below-min");
+        assertLe(newKbump / newHop, beam.maxRate(),  "testSBEBeamSet/rate-above-max");
+
+        // Execute and check new values
+        vm.prank(bud);
+        beam.set(newKbump, newBurn, newHop);
+        assertEq(kicker.kbump(),         newKbump,         "testSBEBeamSet/kbump-not-updated");
+        assertEq(splitter.burn(),        newBurn,          "testSBEBeamSet/burn-not-updated");
+        assertEq(splitter.hop(),         newHop,           "testSBEBeamSet/hop-not-updated");
+        assertEq(farm.rewardsDuration(), newHop,           "testSBEBeamSet/rewards-duration-not-updated");
+        assertEq(uint256(beam.toc()),    block.timestamp,  "testSBEBeamSet/toc-not-updated");
+
+        // Sanity check colldown
+        vm.prank(bud);
+        vm.expectRevert("SBEBeam/too-early");
+        beam.set(newKbump, newBurn, newHop);
+        vm.warp(block.timestamp + beam.tau());
+        vm.prank(bud);
+        beam.set(newKbump, newBurn, newHop);
+    }
 }
