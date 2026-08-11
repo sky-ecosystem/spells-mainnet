@@ -289,7 +289,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
+    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
         string[13] memory addedKeys = [
             "PIP_SKY",
             "MKR",
