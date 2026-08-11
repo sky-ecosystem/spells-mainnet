@@ -1550,7 +1550,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(farm.rewardsDuration(), newHop,           "testSBEBeamSet/rewards-duration-not-updated");
         assertEq(uint256(beam.toc()),    block.timestamp,  "testSBEBeamSet/toc-not-updated");
 
-        // Sanity check colldown
+        // Sanity check cooldown
         vm.prank(bud);
         vm.expectRevert("SBEBeam/too-early");
         beam.set(newKbump, newBurn, newHop);
