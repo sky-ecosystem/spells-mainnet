@@ -7,4 +7,4 @@ Executive Sheet: `EXEC_SHEET_URL`
 ## Checklist
 
 - [ ] PR is opened as a draft and titled `Mainnet spell YYYY-MM-DD`
-- [ ] the PR did not modify files unrelated to name / description
+- [ ] the PR did not modify files unrelated to name / description, such as shared/base test infrastructure, deployment scripts, or CI configuration; new spell-specific tests may be added, but existing base tests must not be modified
