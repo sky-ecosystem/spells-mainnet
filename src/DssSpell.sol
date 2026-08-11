@@ -197,7 +197,7 @@ contract DssSpellAction is DssAction {
 
         // ---------- LSSKY->SKY Rewards Normalization ----------
         // Forum: https://forum.skyeco.com/t/treasury-management-function-tmf-configurations/28153/2
-        // Atlas: https://www.sky-atlas.io/#7932c8f3-ce44-49ea-adc4-f6391c621c6e
+        // Atlas: https://sky-atlas.io/#7932c8f3-ce44-49ea-adc4-f6391c621c6e
 
         // Update LSSKY->SKY Farm vest by calling `TreasuryFundedFarmingInit.updateFarmVest()` with params:
         TreasuryFundedFarmingInit.updateFarmVest(FarmingUpdateVestParams({
@@ -213,7 +213,7 @@ contract DssSpellAction is DssAction {
 
         // ---------- Increase Buybacks and Reactivate LSSKY->USDS Farm ----------
         // Forum: https://forum.skyeco.com/t/treasury-management-function-tmf-configurations/28153/2
-        // Atlas: https://www.sky-atlas.io/#7932c8f3-ce44-49ea-adc4-f6391c621c6e
+        // Atlas: https://sky-atlas.io/#7932c8f3-ce44-49ea-adc4-f6391c621c6e
 
         // Decrease splitter.hop by 10,039 seconds from 13,787 seconds to 3,748 seconds
         DssExecLib.setValue(MCD_SPLIT, "hop", 3_748);
@@ -264,7 +264,7 @@ contract DssSpellAction is DssAction {
 
         // ---------- Rename Chainlog Keys for Osero ----------
         // Forum: https://forum.skyeco.com/t/proposed-housekeeping-item-2026-08-13-executive-vote/28148
-        // Atlas: https://www.sky-atlas.io/#0d0e2e1a-0502-4ee3-bc9d-8bd8ddde19ec
+        // Atlas: https://sky-atlas.io/#0d0e2e1a-0502-4ee3-bc9d-8bd8ddde19ec
 
         // Rename PRYSM_STARGUARD to OSERO_STARGUARD in the chainlog
         dss.chainlog.removeAddress("PRYSM_STARGUARD");
