@@ -692,7 +692,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public { // add the `skipped` modifier to skip
+    function testVestSky() public skipped { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
         uint256 SEP_20_2026_14_04_59 = 1789913099;
 
@@ -811,7 +811,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestedRewardsDist() public { // add the `skipped` modifier to skip
+    function testVestedRewardsDist() public skipped { // add the `skipped` modifier to skip
         uint256 expectedVestIdBefore = 14;
         uint256 expectedVestIdAfter = 15;
 
@@ -859,7 +859,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public { // add the `skipped` modifier to skip
+    function testPayments() public skipped { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         // Note: set to true because the RWA001-A cull() also increases vat.sin(vow)
         bool ignoreTotalSupplyDaiUsds = true;
@@ -1321,7 +1321,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 
-    function testMonthlySettlementCycleInflows() public { // add the `skipped` modifier to skip
+    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
         address ALLOCATOR_SPARK_A_VAULT = addr.addr("ALLOCATOR_SPARK_A_VAULT");
         address ALLOCATOR_BLOOM_A_VAULT = addr.addr("ALLOCATOR_BLOOM_A_VAULT");
         address ALLOCATOR_OBEX_A_VAULT = addr.addr("ALLOCATOR_OBEX_A_VAULT");
@@ -1380,7 +1380,7 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
+    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
         PrimeAgentSpell[3] memory primeAgentSpells = [
             PrimeAgentSpell({
                 // Insert Prime Agent StarGuards Chainlog key
@@ -1454,7 +1454,7 @@ contract DssSpellTest is DssSpellTestBase {
         SafeHarborAgreementLike.Account[] addedAccounts;
     }
 
-    function testUpdateSafeHarborAddedAccounts() public { // add the `skipped` modifier to skip
+    function testUpdateSafeHarborAddedAccounts() public skipped { // add the `skipped` modifier to skip
         SafeHarborAgreementLike agreement = SafeHarborAgreementLike(addr.addr("SAFE_HARBOR_AGREEMENT"));
 
         ChainUpdates[1] memory chainUpdates;
@@ -1511,113 +1511,4 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
-
-    function testRWA001AOffboarding() public {
-        RwaLiquidationOracleAbstract oracle = RwaLiquidationOracleAbstract(addr.addr("MIP21_LIQUIDATION_ORACLE"));
-        address RWA001_A_URN = addr.addr("RWA001_A_URN");
-
-        bytes32 ilk = bytes32("RWA001-A");
-
-        (, uint256 rate,,,) = vat.ilks(ilk);
-        (, uint256 urnArtBefore) = vat.urns(ilk, RWA001_A_URN);
-        uint256 sinBefore = vat.sin(address(vow));
-        uint256 daiUsdsSupplyBefore = dai.totalSupply() + usds.totalSupply();
-        uint256 spellCastTime = _getSpellCastTime();
-
-        _vote(address(spell));
-
-        {
-            (,, uint48 tau, uint48 toc) = oracle.ilks(ilk);
-            assertGt(toc, 0, "testRWA001AOffboarding/invalid-toc");
-            assertEq(tau, 30 days, "testRWA001AOffboarding/invalid-tau");
-            assertGe(
-                spellCastTime, uint256(toc) + uint256(tau), "testRWA001AOffboarding/remediation-period-not-ended"
-            );
-        }
-
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        uint256 totalPayments = 17_288_811 * WAD;
-        assertEq(
-            dai.totalSupply() + usds.totalSupply() - daiUsdsSupplyBefore,
-            totalPayments,
-            "testRWA001AOffboarding/invalid-dai-usds-supply-increase"
-        );
-        assertEq(
-            vat.sin(address(vow)) - sinBefore,
-            totalPayments * RAY + urnArtBefore * rate,
-            "testRWA001AOffboarding/invalid-sin-increase"
-        );
-
-        (, address pip,,) = oracle.ilks(ilk);
-        uint256 price = uint256(DSValueAbstract(pip).read());
-        assertEq(price, 0, "testRWA001AOffboarding/invalid-price-after-cull");
-
-        (uint256 Art,,,,) = vat.ilks(ilk);
-        assertEq(Art, 0, "testRWA001AOffboarding/invalid-ilk-art-after-cull");
-
-        (uint256 ink, uint256 art) = vat.urns(ilk, RWA001_A_URN);
-        assertEq(ink, 0, "testRWA001AOffboarding/invalid-ink-after-cull");
-        assertEq(art, 0, "testRWA001AOffboarding/invalid-urn-art-after-cull");
-    }
-
-    function testWhitelistOseroALMProxy() public {
-        address almProxy = addr.addr("OSERO_ALM_PROXY");
-        DssLitePsmLike psmUsdcA = DssLitePsmLike(addr.addr("MCD_LITE_PSM_USDC_A"));
-        GemAbstract usdc = GemAbstract(addr.addr("USDC"));
-
-        // bud is 0 before kiss
-        assertEq(psmUsdcA.bud(almProxy), 0, "testWhitelistOseroALMProxy/invalid-bud");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        // bud is 1 after kiss
-        assertEq(psmUsdcA.bud(almProxy), 1, "testWhitelistOseroALMProxy/invalid-bud");
-
-        // OSERO can call buyGemNoFee() on MCD_LITE_PSM_USDC_A
-        uint256 daiAmount  = 1_000 * WAD;
-        uint256 usdcAmount = 1_000 * 10**6;
-
-        // fund proxy
-        deal(address(dai), almProxy, daiAmount);
-        vm.startPrank(almProxy);
-
-        // buy gem with no fee
-        dai.approve(address(psmUsdcA), daiAmount);
-        psmUsdcA.buyGemNoFee(almProxy, usdcAmount);
-        assertEq(usdc.balanceOf(almProxy), usdcAmount);
-        assertEq(dai.balanceOf(almProxy), 0);
-
-        // now sell it back with no fee
-        usdc.approve(address(psmUsdcA), usdcAmount);
-        psmUsdcA.sellGemNoFee(almProxy, usdcAmount);
-        assertEq(usdc.balanceOf(almProxy), 0);
-        assertEq(dai.balanceOf(almProxy), daiAmount);
-
-        vm.stopPrank();
-    }
-
-    function testOseroAutoLineExec() public {
-        bytes32 ilk = "ALLOCATOR-PRYSM-A";
-
-        (,,, uint256 lineBefore,) = vat.ilks(ilk);
-        assertEq(lineBefore, 10 * MILLION * RAD, "testOseroAutoLineExec/invalid-line-before");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        (uint256 Art, uint256 rate,, uint256 lineAfter,) = vat.ilks(ilk);
-        (uint256 ilkAutoLine, uint256 ilkGap,,,) = autoLine.ilks(ilk);
-
-        uint256 debt = Art * rate;
-        uint256 debtPlusGap = debt + ilkGap;
-        uint256 expectedLine = debtPlusGap < ilkAutoLine ? debtPlusGap : ilkAutoLine;
-
-        assertEq(lineAfter, expectedLine, "testOseroAutoLineExec/invalid-line-after");
-        assertLe(lineAfter, ilkAutoLine, "testOseroAutoLineExec/line-after-too-big");
-    }
 }
