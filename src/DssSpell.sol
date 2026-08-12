@@ -47,8 +47,8 @@ interface StarGuardLike {
 contract DssSpellAction is DssAction {
     // Provides a descriptive tag for bot consumption
     // This should be modified weekly to provide a summary of the actions
-    // Hash: cast keccak -- "$(wget 'TODO' -q -O - 2>/dev/null)"
-    string public constant override description = "2026-08-13 MakerDAO Executive Spell | Hash: TODO";
+    // Hash: cast keccak -- "$(wget 'https://raw.githubusercontent.com/sky-ecosystem/executive-votes/c75f59295640fe8bd53ae87d4bbdd032e24f2c35/2026/executive-vote-2026-08-13-initialize-sbe-beam.md' -q -O - 2>/dev/null)"
+    string public constant override description = "2026-08-13 MakerDAO Executive Spell | Hash: 0xa924d6b2502d15cd95ffd5bb3f910e0de7d30c1d6ee675bbd002ebeed6f805be";
 
     // Set office hours according to the summary
     function officeHours() public pure override returns (bool) {
