@@ -4409,6 +4409,30 @@ contract DssSpellTestBase is Config, DssTest {
         }
         revert("_findAccountInChain/account-not-found");
     }
+
+    function _testAutoLineExecAfterEverySetIlkCall() public { // add the `skipped` modifier to skip
+        vm.recordLogs();
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        for (uint256 i = 0; i < entries.length; i++) {
+            // Find any setIlk calls that emits a Setup event
+            Vm.Log memory logEntry = entries[i];
+            if (logEntry.emitter != address(autoLine)) continue;
+            if (logEntry.topics.length < 2) continue;
+            if (logEntry.topics[0] != keccak256("Setup(bytes32,uint256,uint256,uint256)")) continue;
+
+            // Extract ilk name
+            bytes32 ilk = logEntry.topics[1];
+
+            // Ensure exec is called by checking that the `ilks[ilk].last` is updated to the latest block
+            (,,, uint48 last,) = autoLine.ilks(ilk);
+            assertEq(uint256(last), block.number, _concat("testAutoLineExecAfterParameterChange/autoline-not-executed-for-", ilk));
+        }
+    }
 }
 
 contract MockStarSpell {

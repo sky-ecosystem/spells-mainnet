@@ -122,6 +122,10 @@ contract DssSpellTest is DssSpellTestBase {
         _testSPBEAMTauAndBudValues();
     }
 
+    function testAutoLineExecAfterEverySetIlkCall() public {
+        _testAutoLineExecAfterEverySetIlkCall();
+    }
+
     // Leave this test always enabled as it acts as a config test
     function testPSMs() public {
         _vote(address(spell));
