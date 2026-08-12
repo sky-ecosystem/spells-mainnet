@@ -36,11 +36,13 @@ contract Config {
         uint256 vow_bump;
         uint256 vow_hump_min;
         uint256 vow_hump_max;
-        uint256 kick_kbump;
         int256  kick_khump;
-        uint256 split_hop;
-        uint256 split_burn;
         bytes32 split_farm;
+        uint256 sbebeam_maxKbump;
+        uint256 sbebeam_minHop;
+        uint256 sbebeam_maxRate;
+        uint256 sbebeam_tau;
+        address sbebeam_bud;
         uint256 flap_want;
         uint256 dog_Hole;
         uint256 esm_min;
@@ -162,10 +164,12 @@ contract Config {
         afterSpell.vow_bump               = 0;                                              // In whole Dai units
         afterSpell.vow_hump_min           = type(uint256).max;                              // In whole Dai units
         afterSpell.vow_hump_max           = type(uint256).max;                              // In whole Dai units
-        afterSpell.kick_kbump             = 6 * THOUSAND;                                   // In whole USDS units
         afterSpell.kick_khump             = -200 * int256(MILLION);                         // In whole USDS units
-        afterSpell.split_hop              = 3_748 seconds;                                  // In seconds
-        afterSpell.split_burn             = 55_00;                                          // In basis points
+        afterSpell.sbebeam_maxKbump       = 12_000;                                         // In whole USDS units
+        afterSpell.sbebeam_minHop         = 550 seconds;                                    // In seconds
+        afterSpell.sbebeam_maxRate        = 350 * MILLION * RAD / 365 days;                 // In RAD/second
+        afterSpell.sbebeam_tau            = 30 minutes;                                     // In seconds
+        afterSpell.sbebeam_bud            = 0x869294B42B80f99CF3Bdac0F44abddAd6cD41330;     // SBEBEAM bud address
         afterSpell.split_farm             = "REWARDS_LSSKY_USDS";                           // Farm chainlog key
         afterSpell.flap_want              = 98_00;                                          // In basis points
         afterSpell.dog_Hole               = 150 * MILLION;                                  // In whole Dai units

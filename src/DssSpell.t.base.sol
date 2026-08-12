@@ -193,6 +193,19 @@ interface KickerLike {
     function wards(address) external view returns (uint256);
 }
 
+interface SBEBeamLike {
+    function wards(address) external view returns (uint256);
+    function buds(address) external view returns (uint256);
+    function kicker() external view returns (address);
+    function splitter() external view returns (address);
+    function maxKbump() external view returns (uint256);
+    function minHop() external view returns (uint256);
+    function maxRate() external view returns (uint256);
+    function tau() external view returns (uint64);
+    function toc() external view returns (uint128);
+    function set(uint256 kbump, uint256 burn, uint256 hop) external;
+}
+
 interface FlapOracleLike {
     function read() external view returns (bytes32);
 }
@@ -695,6 +708,7 @@ contract DssSpellTestBase is Config, DssTest {
     IlkRegistryAbstract reg                 = IlkRegistryAbstract(addr.addr("ILK_REGISTRY"));
     SplitLike split                         = SplitLike(addr.addr("MCD_SPLIT"));
     KickerLike kick                         = KickerLike(addr.addr("MCD_KICK"));
+    SBEBeamLike sbebeam                     = SBEBeamLike(addr.addr("MCD_SBEBEAM"));
     FlapUniV2Like flap                      = FlapUniV2Like(addr.addr("MCD_FLAP"));
     CropperLike cropper                     = CropperLike(addr.addr("MCD_CROPPER"));
 
@@ -1146,7 +1160,6 @@ contract DssSpellTestBase is Config, DssTest {
 
         {
         // Kicker parameters
-        assertEq(kick.kbump(), values.kick_kbump * RAD, "TestError/kicker-kbump");
         assertEq(kick.khump(), values.kick_khump * int256(RAD), "TestError/kicker-khump");
         }
 
@@ -1190,15 +1203,18 @@ contract DssSpellTestBase is Config, DssTest {
         // check number of ilks
         assertEq(reg.count(), values.ilk_count, "TestError/ilks-count");
 
+        // sbebeam
+        {
+            assertEq(sbebeam.maxKbump(), values.sbebeam_maxKbump * RAD, "TestError/sbebeam-maxKbump");
+            assertEq(sbebeam.minHop(), values.sbebeam_minHop, "TestError/sbebeam-minHop");
+            assertLt(sbebeam.minHop(), 1 days, "TestError/sbebeam-minHop-too-long"); // sanity check
+            assertEq(sbebeam.maxRate(), values.sbebeam_maxRate, "TestError/sbebeam-maxRate");
+            assertEq(sbebeam.tau(), values.sbebeam_tau, "TestError/sbebeam-tau");
+            assertEq(sbebeam.buds(values.sbebeam_bud), 1, "TestError/sbebeam-bud");
+        }
+
         // split
         {
-            // check split hop and sanity checks
-            assertEq(split.hop(), values.split_hop, "TestError/split-hop");
-            assertTrue(split.hop() > 0 && split.hop() < 86400, "TestError/split-hop-range"); // gt 0 && lt 1 day
-            // check burn value
-            uint256 normalizedTestBurn = values.split_burn * 10**14;
-            assertEq(split.burn(), normalizedTestBurn, "TestError/split-burn");
-            assertTrue(split.burn() >= 25 * WAD / 100 && split.burn() <= 1 * WAD, "TestError/split-burn-range"); // gte 25% and lte 100%
             // check split.farm address to match config
             address split_farm = addr.addr(values.split_farm);
             assertEq(split.farm(), split_farm, "TestError/split-farm");
@@ -1206,8 +1222,10 @@ contract DssSpellTestBase is Config, DssTest {
             if (split_farm != address(0)) {
                 address rewardsDistribution = StakingRewardsLike(split_farm).rewardsDistribution();
                 assertEq(rewardsDistribution, address(split), "TestError/farm-distribution");
-                uint256 rewardsDuration = StakingRewardsLike(split_farm).rewardsDuration();
-                assertEq(rewardsDuration, values.split_hop, "TestError/farm-duration-does-not-match-split-hop");
+                if (split.burn() < 1 * WAD) {
+                    uint256 rewardsDuration = StakingRewardsLike(split_farm).rewardsDuration();
+                    assertEq(rewardsDuration, split.hop(), "TestError/farm-duration-does-not-match-split-hop");
+                }
             }
         }
 
