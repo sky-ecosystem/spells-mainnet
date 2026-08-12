@@ -1501,7 +1501,7 @@ contract DssSpellTest is DssSpellTestBase {
 
         // Check roles after spell
         assertEq(farm.owner(),                   address(farmOwner), "testSBEBeamInitialisation/farm-not-owned-by-farm-owner-after");
-        assertEq(farmOwner.wards(pauseProxy),    1,                  "testSBEBeamInitialisation/pause-proxy-not-longer-ward-of-farm-owner");
+        assertEq(farmOwner.wards(pauseProxy),    1,                  "testSBEBeamInitialisation/pause-proxy-no-longer-ward-of-farm-owner");
         assertEq(farmOwner.wards(address(beam)), 1,                  "testSBEBeamInitialisation/beam-not-ward-of-farm-owner");
         assertEq(kicker.wards(address(beam)),    1,                  "testSBEBeamInitialisation/beam-not-ward-of-kicker");
         assertEq(splitter.wards(address(beam)),  1,                  "testSBEBeamInitialisation/beam-not-ward-of-splitter");

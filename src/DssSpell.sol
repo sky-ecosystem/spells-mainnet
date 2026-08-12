@@ -100,7 +100,7 @@ contract DssSpellAction is DssAction {
     address internal constant OWNER_REWARDS_LSSKY_USDS = 0xA3d3A2e9Fe5d0901D720D5382E4a7eA12D4E2b0e;
     address internal constant MCD_SBEBEAM              = 0xc8b61d211D3D03A630Fb09199E17953a8c9749a9;
 
-    // ---------- Wallets -----------
+    // ---------- Wallets ----------
     address internal constant MCD_SBEBEAM_BUD              = 0x869294B42B80f99CF3Bdac0F44abddAd6cD41330;
     address internal constant CORE_COUNCIL_BUDGET_MULTISIG = 0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364;
 
@@ -308,6 +308,8 @@ contract DssSpellAction is DssAction {
         // Whitelist Grove spell with address 0xb12C687188427d7D1E5253afA5f09A101Fbd9d4b and codehash 0x180fc2de506150de525027a135843e91123578dc1f03945b69a489dce863f85c in GROVE_STARGUARD, direct execution: No
         StarGuardLike(GROVE_STARGUARD).plot(GROVE_SPELL, GROVE_SPELL_HASH);
     }
+
+    // ---------- Helper Functions ----------
 
     /// @notice Wraps the operations required to transfer USDS from the surplus buffer.
     /// @param usr The USDS receiver.
