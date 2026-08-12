@@ -1511,7 +1511,7 @@ contract DssSpellTest is DssSpellTestBase {
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        // Check initial values
+        // Check values after spell execution
         assertEq(kick.kbump(),           6_000 * RAD,    "testSBEBeamSet/invalid-kbump-after-spell");
         assertEq(split.burn(),           55 * WAD / 100, "testSBEBeamSet/invalid-burn-after-spell");
         assertEq(split.hop(),            3_748,          "testSBEBeamSet/invalid-hop-after-spell");
