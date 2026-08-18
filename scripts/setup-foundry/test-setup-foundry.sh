@@ -38,7 +38,7 @@ DESCRIPTION
 
 COMMANDS
     select
-        Select and report a release using metadata only.
+        Select and report a release after archive-attestation availability checks.
 
     verify
         Verify the Foundry binaries resolved from PATH against an exact release.
@@ -66,14 +66,16 @@ EOF
 expected_select_usage() {
     cat <<'EOF'
 NAME
-    setup-foundry.sh select - select a Foundry release using metadata only
+    setup-foundry.sh select - select an installable Foundry release
 
 SYNOPSIS
     setup-foundry.sh select [--ignore-age]
 
 DESCRIPTION
-    Selects and reports the newest immutable stable Foundry release without
-    resolving, attesting, or executing installed Foundry binaries.
+    Selects and reports the newest immutable stable Foundry release whose
+    supported archives publish SHA-256 digests and SLSA provenance attestations.
+    Does not download artifacts or resolve, attest, or execute installed Foundry
+    binaries.
 
 OPTIONS
     --ignore-age
@@ -194,6 +196,8 @@ new_fixture() {
     export TEST_AUTH_STATUS=0
     export TEST_RELEASE_LIST_STATUS=0
     export TEST_HEAD_CLI_MISMATCH=0
+    export TEST_PREFLIGHT_FAILURE_MODE=
+    export TEST_PREFLIGHT_FAILURE_RELEASE=
     mkdir -p "$HOME/.foundry/bin" "$FIXTURE/bin" "$FIXTURE/foundry-bin" "$TEST_LOG"
 
     young_published_at=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
@@ -241,7 +245,36 @@ fi
 case "${2:-}" in
     repos/foundry-rs/foundry/releases/tags/*)
         tag=${2##*/}
-        if [[ "$*" = *html_url* ]]; then
+        if [[ "$*" = *'.assets[]'* ]]; then
+            case "$tag" in
+                v2.1.0) digest_character=a ;;
+                v2.0.0) digest_character=b ;;
+                v1.9.0) digest_character=c ;;
+                *) exit 1 ;;
+            esac
+            for target in linux_amd64 linux_arm64 darwin_amd64 darwin_arm64; do
+                if { [ "$TEST_PREFLIGHT_FAILURE_RELEASE" = "$tag" ] || [ "$TEST_PREFLIGHT_FAILURE_RELEASE" = all ]; } \
+                    && [ "$TEST_PREFLIGHT_FAILURE_MODE" = missing-asset ] \
+                    && [ "$target" = linux_amd64 ]; then
+                    continue
+                fi
+                printf -v digest_value "%63s" ""
+                digest_value=${digest_value// /$digest_character}
+                case "$target" in
+                    linux_amd64) digest_suffix=1 ;;
+                    linux_arm64) digest_suffix=2 ;;
+                    darwin_amd64) digest_suffix=3 ;;
+                    darwin_arm64) digest_suffix=4 ;;
+                esac
+                digest="sha256:${digest_value}${digest_suffix}"
+                if { [ "$TEST_PREFLIGHT_FAILURE_RELEASE" = "$tag" ] || [ "$TEST_PREFLIGHT_FAILURE_RELEASE" = all ]; } \
+                    && [ "$TEST_PREFLIGHT_FAILURE_MODE" = missing-digest ] \
+                    && [ "$target" = linux_amd64 ]; then
+                    digest=
+                fi
+                printf "foundry_%s_%s.tar.gz\t%s\n" "$tag" "$target" "$digest"
+            done
+        elif [[ "$*" = *html_url* ]]; then
             case "$tag" in
                 v2.1.0) printf "v2.1.0\t2026-07-21T00:00:00Z\thttps://example.test/v2.1.0\t%s\t%s\t%s\t%s\n" "$TEST_REQUESTED_DRAFT" "$TEST_REQUESTED_PRERELEASE" "$TEST_INSTALLED_IMMUTABLE" "$TEST_YOUNG_RELEASE_AGE_SECONDS" ;;
                 v2.0.0) printf "v2.0.0\t2002-01-01T00:00:00Z\thttps://example.test/v2.0.0\tfalse\tfalse\t%s\t99999999\n" "$TEST_INSTALLED_IMMUTABLE" ;;
@@ -257,6 +290,25 @@ case "${2:-}" in
                 v1.8.0-rc1) printf "v1.8.0-rc1\t1999-12-01T00:00:00Z\tfalse\ttrue\t%s\n" "$TEST_INSTALLED_IMMUTABLE" ;;
                 *) exit 1 ;;
             esac
+        fi
+        exit 0
+        ;;
+    repos/foundry-rs/foundry/attestations/*)
+        digest=${2##*/}
+        digest=${digest%%\?*}
+        digest_value=${digest#sha256:}
+        digest_character=${digest_value%"${digest_value#?}"}
+        case "$digest_character" in
+            a) tag=v2.1.0 ;;
+            b) tag=v2.0.0 ;;
+            c) tag=v1.9.0 ;;
+            *) exit 1 ;;
+        esac
+        if { [ "$TEST_PREFLIGHT_FAILURE_RELEASE" = "$tag" ] || [ "$TEST_PREFLIGHT_FAILURE_RELEASE" = all ]; } \
+            && [ "$TEST_PREFLIGHT_FAILURE_MODE" = unattested ]; then
+            printf "0\n"
+        else
+            printf "1\n"
         fi
         exit 0
         ;;
@@ -411,19 +463,63 @@ run_cli() {
     STATUS=$?
 }
 
-test_select_is_metadata_only() {
+test_select_preflights_archive_attestations_without_downloading() {
     new_fixture
     run_cli no-foundry select
+    archive_attestation_lookups=$(grep -c '^api repos/foundry-rs/foundry/attestations/' "$TEST_LOG/gh" 2>/dev/null || true)
     if [ "$STATUS" -eq 0 ] \
         && grep -q '^Desired Foundry release: v2.0.0$' "$FIXTURE/out" \
         && grep -q '^Selection policy: newest immutable stable release published at least 14 days ago$' "$FIXTURE/out" \
+        && grep -q '^Archive preflight: SHA-256 digests and SLSA attestations published for all supported archives$' "$FIXTURE/out" \
         && grep -q 'api --paginate' "$TEST_LOG/gh" \
+        && grep -q 'api repos/foundry-rs/foundry/releases/tags/v2.0.0' "$TEST_LOG/gh" \
+        && [ "$archive_attestation_lookups" -eq 4 ] \
         && ! grep -q '^attestation verify ' "$TEST_LOG/gh" \
         && [ ! -e "$TEST_LOG/versions" ] \
         && [ ! -e "$TEST_LOG/download-version" ]; then
-        pass 'selection reports metadata without resolving or invoking Foundry binaries'
+        pass 'selection preflights all supported archives without downloading or invoking Foundry binaries'
     else
-        fail 'selection reports metadata without resolving or invoking Foundry binaries'
+        fail 'selection preflights all supported archives without downloading or invoking Foundry binaries'
+    fi
+    rm -rf "$FIXTURE"
+}
+
+test_select_skips_uninstallable_release_candidates() {
+    ok=1
+    for mode in missing-asset missing-digest unattested; do
+        new_fixture
+        TEST_PREFLIGHT_FAILURE_MODE=$mode
+        TEST_PREFLIGHT_FAILURE_RELEASE=v2.0.0
+        export TEST_PREFLIGHT_FAILURE_MODE TEST_PREFLIGHT_FAILURE_RELEASE
+        run_cli no-foundry select
+        [ "$STATUS" -eq 0 ] \
+            && grep -q '^Skipping Foundry release v2.0.0:' "$FIXTURE/out" \
+            && grep -q '^Desired Foundry release: v1.9.0$' "$FIXTURE/out" \
+            && grep -q '^Archive preflight: SHA-256 digests and SLSA attestations published for all supported archives$' "$FIXTURE/out" \
+            && [ ! -e "$TEST_LOG/download-version" ] \
+            && [ ! -e "$TEST_LOG/versions" ] || ok=0
+        rm -rf "$FIXTURE"
+    done
+    if [ "$ok" -eq 1 ]; then
+        pass 'selection skips candidates missing a supported archive, digest, or attestation'
+    else
+        fail 'selection skips candidates missing a supported archive, digest, or attestation'
+    fi
+}
+
+test_select_fails_without_an_installable_candidate() {
+    new_fixture
+    TEST_PREFLIGHT_FAILURE_MODE=unattested
+    TEST_PREFLIGHT_FAILURE_RELEASE=all
+    export TEST_PREFLIGHT_FAILURE_MODE TEST_PREFLIGHT_FAILURE_RELEASE
+    run_cli no-foundry select
+    if [ "$STATUS" -eq 1 ] \
+        && grep -q '^Error: no immutable stable Foundry release passed archive preflight$' "$FIXTURE/out" \
+        && [ ! -e "$TEST_LOG/download-version" ] \
+        && [ ! -e "$TEST_LOG/versions" ]; then
+        pass 'selection fails when no metadata-eligible release passes archive preflight'
+    else
+        fail 'selection fails when no metadata-eligible release passes archive preflight'
     fi
     rm -rf "$FIXTURE"
 }
@@ -431,9 +527,11 @@ test_select_is_metadata_only() {
 test_select_ignore_age_chooses_newest_stable_release() {
     new_fixture
     run_cli no-foundry select --ignore-age
+    archive_attestation_lookups=$(grep -c '^api repos/foundry-rs/foundry/attestations/' "$TEST_LOG/gh" 2>/dev/null || true)
     if [ "$STATUS" -eq 0 ] \
         && grep -q '^Desired Foundry release: v2.1.0$' "$FIXTURE/out" \
         && grep -q '^Selection policy: newest immutable stable release; 14-day cooling period waived with --ignore-age$' "$FIXTURE/out" \
+        && [ "$archive_attestation_lookups" -eq 4 ] \
         && [ ! -e "$TEST_LOG/versions" ]; then
         pass 'age-waived selection reports the newest immutable stable release'
     else
@@ -1271,7 +1369,9 @@ test_missing_command_fails() {
     rm -rf "$FIXTURE"
 }
 
-test_select_is_metadata_only
+test_select_preflights_archive_attestations_without_downloading
+test_select_skips_uninstallable_release_candidates
+test_select_fails_without_an_installable_candidate
 test_select_ignore_age_chooses_newest_stable_release
 test_verify_requires_release
 test_select_rejects_release

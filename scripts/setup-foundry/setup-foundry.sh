@@ -13,8 +13,10 @@ SIGNER_PREFIX="https://${GITHUB_HOST}/${SIGNER_WORKFLOW}@refs/tags/"
 SOURCE_REPOSITORY="https://${GITHUB_HOST}/${REPOSITORY}"
 MINIMUM_RELEASE_AGE_SECONDS="1209600"
 BINARIES=("forge" "cast" "anvil" "chisel")
+SUPPORTED_ARCHIVE_TARGETS=("linux_amd64" "linux_arm64" "darwin_amd64" "darwin_arm64")
 REQUESTED_RELEASE=
 IGNORE_RELEASE_AGE=0
+ARCHIVE_PREFLIGHT_STATUS=
 
 die() {
     printf 'Error: %s\n' "$*" >&2
@@ -50,7 +52,7 @@ DESCRIPTION
 
 COMMANDS
     select
-        Select and report a release using metadata only.
+        Select and report a release after archive-attestation availability checks.
 
     verify
         Verify the Foundry binaries resolved from PATH against an exact release.
@@ -81,14 +83,16 @@ usage_select() {
     name=${0##*/}
     cat <<EOF
 NAME
-    $name select - select a Foundry release using metadata only
+    $name select - select an installable Foundry release
 
 SYNOPSIS
     $name select [--ignore-age]
 
 DESCRIPTION
-    Selects and reports the newest immutable stable Foundry release without
-    resolving, attesting, or executing installed Foundry binaries.
+    Selects and reports the newest immutable stable Foundry release whose
+    supported archives publish SHA-256 digests and SLSA provenance attestations.
+    Does not download artifacts or resolve, attest, or execute installed Foundry
+    binaries.
 
 OPTIONS
     --ignore-age
@@ -257,23 +261,73 @@ collect_source_metadata() {
         || die 'setup CLI differs from HEAD; commit or restore it before continuing'
 }
 
+preflight_release_archives() {
+    local archive_records asset asset_digest asset_matches attestation_count candidate_digest candidate_name target
+
+    archive_records=$(gh api "repos/${REPOSITORY}/releases/tags/${VERSION}" --hostname "$GITHUB_HOST" \
+        --jq '.assets[] | [.name, (.digest // "")] | @tsv') || {
+        printf 'Skipping Foundry release %s: could not load release assets\n' "$VERSION" >&2
+        return 1
+    }
+
+    for target in "${SUPPORTED_ARCHIVE_TARGETS[@]}"; do
+        asset="foundry_${VERSION}_${target}.tar.gz"
+        asset_digest=
+        asset_matches=0
+        while IFS=$'\t' read -r candidate_name candidate_digest; do
+            if [ "$candidate_name" = "$asset" ]; then
+                asset_matches=$((asset_matches + 1))
+                asset_digest=$candidate_digest
+            fi
+        done <<< "$archive_records"
+
+        if [ "$asset_matches" -ne 1 ]; then
+            printf 'Skipping Foundry release %s: expected exactly one release asset named %s\n' "$VERSION" "$asset" >&2
+            return 1
+        fi
+        if [[ ! "$asset_digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            printf 'Skipping Foundry release %s: release asset has no valid SHA-256 digest: %s\n' "$VERSION" "$asset" >&2
+            return 1
+        fi
+        attestation_count=$(gh api \
+            "repos/${REPOSITORY}/attestations/${asset_digest}?per_page=1&predicate_type=https%3A%2F%2Fslsa.dev%2Fprovenance%2Fv1" \
+            --hostname "$GITHUB_HOST" \
+            --jq '.attestations | length') || {
+            printf 'Skipping Foundry release %s: could not load SLSA attestations for %s\n' "$VERSION" "$asset" >&2
+            return 1
+        }
+        if [[ ! "$attestation_count" =~ ^[1-9][0-9]*$ ]]; then
+            printf 'Skipping Foundry release %s: no SLSA attestation is published for %s\n' "$VERSION" "$asset" >&2
+            return 1
+        fi
+    done
+
+    ARCHIVE_PREFLIGHT_STATUS='SHA-256 digests and SLSA attestations published for all supported archives'
+}
+
 select_release() {
-    local minimum_age_seconds release_age_seconds selected_record
+    local candidate_records minimum_age_seconds release_age_seconds selected
 
     minimum_age_seconds=$MINIMUM_RELEASE_AGE_SECONDS
     if [ "$IGNORE_RELEASE_AGE" -eq 1 ]; then
         minimum_age_seconds=0
     fi
-    selected_record=$(gh api --paginate "repos/${REPOSITORY}/releases?per_page=100" --hostname "$GITHUB_HOST" \
+    candidate_records=$(gh api --paginate "repos/${REPOSITORY}/releases?per_page=100" --hostname "$GITHUB_HOST" \
         --jq ".[] | select(.draft == false and .prerelease == false and .immutable == true and (.tag_name | test(\"^v[0-9]+\\\\.[0-9]+\\\\.[0-9]+$\")) and (now - (.published_at | fromdateiso8601)) >= ${minimum_age_seconds}) | [.tag_name, .published_at, .html_url, ((now - (.published_at | fromdateiso8601)) | floor)] | @tsv" \
-        | sort -k2,2r \
-        | sed -n '1p') || die 'could not load stable Foundry release metadata'
+        | sort -k2,2r) || die 'could not load stable Foundry release metadata'
     if [ "$IGNORE_RELEASE_AGE" -eq 1 ]; then
-        [ -n "$selected_record" ] || die 'no immutable stable Foundry release was found'
+        [ -n "$candidate_records" ] || die 'no immutable stable Foundry release was found'
     else
-        [ -n "$selected_record" ] || die 'no immutable stable Foundry release published at least 14 days ago was found'
+        [ -n "$candidate_records" ] || die 'no immutable stable Foundry release published at least 14 days ago was found'
     fi
-    IFS=$'\t' read -r VERSION PUBLISHED_AT RELEASE_URL release_age_seconds <<< "$selected_record"
+    selected=0
+    while IFS=$'\t' read -r VERSION PUBLISHED_AT RELEASE_URL release_age_seconds; do
+        if preflight_release_archives; then
+            selected=1
+            break
+        fi
+    done <<< "$candidate_records"
+    [ "$selected" -eq 1 ] || die 'no immutable stable Foundry release passed archive preflight'
     if [ "$IGNORE_RELEASE_AGE" -eq 1 ] && [ "$release_age_seconds" -lt "$MINIMUM_RELEASE_AGE_SECONDS" ]; then
         SELECTION_REASON='newest immutable stable release; 14-day cooling period waived with --ignore-age'
     elif [ "$IGNORE_RELEASE_AGE" -eq 1 ]; then
@@ -401,6 +455,9 @@ report_selection() {
     printf 'Published at: %s\n' "$PUBLISHED_AT"
     printf 'Release URL: %s\n' "$RELEASE_URL"
     printf 'Selection policy: %s\n' "$SELECTION_REASON"
+    if [ -n "$ARCHIVE_PREFLIGHT_STATUS" ]; then
+        printf 'Archive preflight: %s\n' "$ARCHIVE_PREFLIGHT_STATUS"
+    fi
     printf 'spells-mainnet commit: %s\n' "$SOURCE_COMMIT"
     printf 'Setup CLI SHA-256: %s\n' "$CLI_SHA256"
 }
