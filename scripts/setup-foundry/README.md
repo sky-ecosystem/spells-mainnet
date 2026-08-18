@@ -17,7 +17,10 @@ This script provides one auditable process for selecting, installing, and verify
 - uses an exact stable tag in the form `vMAJOR.MINOR.PATCH`;
 - is neither a draft nor a prerelease;
 - is immutable;
-- was published at least 14 days ago.
+- was published at least 14 days ago; and
+- publishes the four supported Linux and macOS archives with SHA-256 digests and SLSA provenance attestations.
+
+Selection checks archive and attestation availability through GitHub metadata without downloading an artifact. This is a preflight, not cryptographic verification: the installer still verifies the downloaded archive and the extracted binaries before installation succeeds.
 
 Before reporting its source commit and CLI SHA-256, the tool confirms that the executed setup script has the same bytes as that file in the reported commit. A locally modified or untracked copy is rejected; unrelated working-tree changes do not block the tool.
 
@@ -39,9 +42,11 @@ If Foundry deletes a malicious release, the selector will no longer choose it, e
 
 This tool does not maintain a repository-local revocation list or an allowlist of approved Foundry releases. It therefore depends on upstream deletion, or a subsequent change to this repository, to reject a known-malicious release immediately.
 
+Selection, installation, and verification depend on GitHub for release metadata, assets, authentication, and attestations. They fail closed when the required GitHub service is unavailable. This is a development and deployment tooling dependency; it does not add a GitHub dependency to deployed spells.
+
 ## Exact releases and urgent age waivers
 
-Select the newest immutable stable release that satisfies the normal 14-day cooling period:
+Select the newest immutable stable release that satisfies the normal 14-day cooling period and archive preflight:
 
 ```bash
 make select-foundry
@@ -67,7 +72,7 @@ make verify-foundry release=vMAJOR.MINOR.PATCH ignore-age=1
 make install-foundry release=vMAJOR.MINOR.PATCH ignore-age=1
 ```
 
-The Make `ignore-age` setting defaults to `0` when omitted, accepts only `0` or `1`, and passes `--ignore-age` only for `1`. The corresponding script options are `--release` and `--ignore-age`. They are parsed directly by Bash and do not require GNU `getopt`, including on macOS. The selector does not accept `--release`; verification and installation require it. `--ignore-age` waives only the cooling period. The release must still use an exact stable tag, exist as an immutable release, and satisfy every applicable metadata or attestation check. Record the upstream security advisory or incident reference, the spell-team approval, and the complete selector, installer, and verifier output.
+The Make `ignore-age` setting defaults to `0` when omitted, accepts only `0` or `1`, and passes `--ignore-age` only for `1`. The corresponding script options are `--release` and `--ignore-age`. They are parsed directly by Bash and do not require GNU `getopt`, including on macOS. The selector does not accept `--release`; verification and installation require it. `--ignore-age` waives only the cooling period. The release must still use an exact stable tag, exist as an immutable release, and satisfy every applicable metadata, archive-preflight, or attestation-verification check. Record the upstream security advisory or incident reference, the spell-team approval, and the complete selector, installer, and verifier output.
 
 ## Supported platforms
 
@@ -128,7 +133,7 @@ Keep `FOUNDRY_IGNORE_AGE` set to `"0"` to enforce the 14-day cooling period. Set
 
 ## Developer machine setup
 
-Engineers will usually already have Foundry installed. Select and report the desired release without resolving or invoking those binaries:
+Engineers will usually already have Foundry installed. Select and report the desired installable release without resolving or invoking those binaries:
 
 ```bash
 make select-foundry
@@ -156,9 +161,9 @@ The verifier succeeds when the installed release is valid. Any nonzero result is
 
 Verification and installation intentionally have different artifact boundaries. `verify-foundry` validates the installed binaries and can succeed for a release that `install-foundry` cannot install. `install-foundry` must process the upstream archive, so it requires both the archive attestation and the binary attestations.
 
-Foundry v1.7.0 is one example: its four binaries are attested, but its release archive is not. Standalone verification of a pre-existing v1.7.0 installation can therefore pass `make verify-foundry release=v1.7.0`, while the mandatory developer setup cannot use that release because `make install-foundry release=v1.7.0` fails before extraction. This is expected behavior; selecting an exact release does not weaken either attestation boundary.
+A release can have attested binaries while one or more supported archives lack a published digest or attestation. The selector skips such releases. Its API preflight establishes availability only; the installer remains responsible for cryptographically verifying the downloaded archive's digest, signer, source, subject, and release tag.
 
-The selector uses release metadata only and does not resolve, attest, or invoke installed Foundry binaries. Without `ignore-age=1`, it selects the newest immutable stable release published at least 14 days ago. With `ignore-age=1`, it selects the newest immutable stable release regardless of age.
+The selector examines metadata-eligible releases from newest to oldest and chooses the first whose `linux_amd64`, `linux_arm64`, `darwin_amd64`, and `darwin_arm64` archives publish valid SHA-256 digests and at least one SLSA provenance attestation record. It does not download artifacts or resolve, attest, or invoke installed Foundry binaries. Without `ignore-age=1`, it considers immutable stable releases published at least 14 days ago. With `ignore-age=1`, it also considers younger immutable stable releases.
 
 The verifier and installer require a release parameter, validate only that exact release, and enforce the same age requirement. For these commands, `ignore-age=1` accompanies the exact release and waives only that age requirement.
 
