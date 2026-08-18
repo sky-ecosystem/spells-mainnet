@@ -469,7 +469,7 @@ test_select_preflights_archive_attestations_without_downloading() {
     archive_attestation_lookups=$(grep -c '^api repos/foundry-rs/foundry/attestations/' "$TEST_LOG/gh" 2>/dev/null || true)
     if [ "$STATUS" -eq 0 ] \
         && grep -q '^Desired Foundry release: v2.0.0$' "$FIXTURE/out" \
-        && grep -q '^Selection policy: newest immutable stable release published at least 14 days ago$' "$FIXTURE/out" \
+        && grep -q '^Selection policy: newest immutable stable release; release is age-eligible$' "$FIXTURE/out" \
         && grep -q '^Archive preflight: SHA-256 digests and SLSA attestations published for all supported archives$' "$FIXTURE/out" \
         && grep -q 'api --paginate' "$TEST_LOG/gh" \
         && grep -q 'api repos/foundry-rs/foundry/releases/tags/v2.0.0' "$TEST_LOG/gh" \

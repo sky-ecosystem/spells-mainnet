@@ -329,12 +329,12 @@ select_release() {
         fi
     done <<< "$candidate_records"
     [ "$selected" -eq 1 ] || die 'no immutable stable Foundry release passed archive preflight'
-    if [ "$IGNORE_RELEASE_AGE" -eq 1 ] && [ "$release_age_seconds" -lt "$MINIMUM_RELEASE_AGE_SECONDS" ]; then
+    if [ "$release_age_seconds" -lt "$MINIMUM_RELEASE_AGE_SECONDS" ] && [ "$IGNORE_RELEASE_AGE" -ne 1 ]; then
+        die "selected release is less than ${MINIMUM_RELEASE_AGE_DAYS} days old"
+    elif [ "$release_age_seconds" -lt "$MINIMUM_RELEASE_AGE_SECONDS" ]; then
         SELECTION_REASON="newest immutable stable release; ${MINIMUM_RELEASE_AGE_DAYS}-day cooling period waived with --ignore-age"
-    elif [ "$IGNORE_RELEASE_AGE" -eq 1 ]; then
-        SELECTION_REASON='newest immutable stable release; release is age-eligible'
     else
-        SELECTION_REASON="newest immutable stable release published at least ${MINIMUM_RELEASE_AGE_DAYS} days ago"
+        SELECTION_REASON='newest immutable stable release; release is age-eligible'
     fi
 }
 
@@ -352,12 +352,12 @@ load_requested_release() {
         || die "requested Foundry release is not stable: $REQUESTED_RELEASE"
     [ "$requested_immutable" = true ] || die "requested Foundry release is not immutable: $REQUESTED_RELEASE"
     [ "$release_age_seconds" -ge 0 ] || die "requested Foundry release has a future publication date: $REQUESTED_RELEASE"
-    if [ "$release_age_seconds" -ge "$MINIMUM_RELEASE_AGE_SECONDS" ]; then
-        SELECTION_REASON="explicitly requested immutable stable $REQUESTED_RELEASE; release is age-eligible"
-    elif [ "$IGNORE_RELEASE_AGE" -eq 1 ]; then
+    if [ "$release_age_seconds" -lt "$MINIMUM_RELEASE_AGE_SECONDS" ] && [ "$IGNORE_RELEASE_AGE" -ne 1 ]; then
+        die "release is less than ${MINIMUM_RELEASE_AGE_DAYS} days old; use --ignore-age only for an approved release"
+    elif [ "$release_age_seconds" -lt "$MINIMUM_RELEASE_AGE_SECONDS" ]; then
         SELECTION_REASON="explicitly requested immutable stable $REQUESTED_RELEASE; ${MINIMUM_RELEASE_AGE_DAYS}-day cooling period waived with --ignore-age"
     else
-        die "release is less than ${MINIMUM_RELEASE_AGE_DAYS} days old; use --ignore-age only for an approved release"
+        SELECTION_REASON="explicitly requested immutable stable $REQUESTED_RELEASE; release is age-eligible"
     fi
 }
 
