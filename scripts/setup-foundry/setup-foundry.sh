@@ -24,7 +24,7 @@ die() {
     exit 1
 }
 
-install_required() {
+die_installation_required() {
     printf 'Error: %s\n' "$*" >&2
     printf 'Required action: install\n' >&2
     printf 'Installation command: make install-foundry release=%s' "$VERSION" >&2
@@ -437,7 +437,7 @@ resolve_path_binaries() {
 
     BINARY_PATHS=()
     for binary in "${BINARIES[@]}"; do
-        path=$(command -v "$binary" 2>/dev/null) || install_required "Foundry binary not found in PATH: $binary"
+        path=$(command -v "$binary" 2>/dev/null) || die_installation_required "Foundry binary not found in PATH: $binary"
         [ -f "$path" ] && [ -x "$path" ] || die "Foundry command is not an executable file: $path"
         BINARY_PATHS+=("$path")
     done
@@ -445,7 +445,7 @@ resolve_path_binaries() {
 
 validate_installed_release() {
     if [ "$INSTALLED_TAG" != "$VERSION" ]; then
-        install_required "installed Foundry release $INSTALLED_TAG does not match requested release $VERSION"
+        die_installation_required "installed Foundry release $INSTALLED_TAG does not match requested release $VERSION"
     fi
     VERSION_STATUS="installed release matches explicitly requested immutable stable $VERSION"
 }
