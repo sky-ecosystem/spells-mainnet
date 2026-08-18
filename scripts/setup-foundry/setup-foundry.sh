@@ -12,6 +12,7 @@ SIGNER_WORKFLOW="${REPOSITORY}/.github/workflows/release.yml"
 SIGNER_PREFIX="https://${GITHUB_HOST}/${SIGNER_WORKFLOW}@refs/tags/"
 SOURCE_REPOSITORY="https://${GITHUB_HOST}/${REPOSITORY}"
 MINIMUM_RELEASE_AGE_SECONDS="1209600"
+MINIMUM_RELEASE_AGE_DAYS=$((MINIMUM_RELEASE_AGE_SECONDS / 86400))
 BINARIES=("forge" "cast" "anvil" "chisel")
 SUPPORTED_ARCHIVE_TARGETS=("linux_amd64" "linux_arm64" "darwin_amd64" "darwin_arm64")
 REQUESTED_RELEASE=
@@ -96,7 +97,7 @@ DESCRIPTION
 
 OPTIONS
     --ignore-age
-        Select the newest immutable stable release without enforcing the 14-day
+        Select the newest immutable stable release without enforcing the ${MINIMUM_RELEASE_AGE_DAYS}-day
         cooling period. No other metadata requirement is bypassed.
 
     --help
@@ -130,10 +131,10 @@ DESCRIPTION
 OPTIONS
     --release RELEASE
         Verify an exact immutable stable release. This option is required. The
-        14-day cooling period remains enforced.
+        ${MINIMUM_RELEASE_AGE_DAYS}-day cooling period remains enforced.
 
     --ignore-age
-        Permit an explicitly requested release younger than 14 days. Requires
+        Permit an explicitly requested release younger than ${MINIMUM_RELEASE_AGE_DAYS} days. Requires
         --release and does not bypass any other verification.
 
     --help
@@ -168,10 +169,10 @@ DESCRIPTION
 OPTIONS
     --release RELEASE
         Install an exact immutable stable release. This option is required. The
-        14-day cooling period remains enforced.
+        ${MINIMUM_RELEASE_AGE_DAYS}-day cooling period remains enforced.
 
     --ignore-age
-        Permit an explicitly requested release younger than 14 days. Requires
+        Permit an explicitly requested release younger than ${MINIMUM_RELEASE_AGE_DAYS} days. Requires
         --release and does not bypass any other verification.
 
     --help
@@ -318,7 +319,7 @@ select_release() {
     if [ "$IGNORE_RELEASE_AGE" -eq 1 ]; then
         [ -n "$candidate_records" ] || die 'no immutable stable Foundry release was found'
     else
-        [ -n "$candidate_records" ] || die 'no immutable stable Foundry release published at least 14 days ago was found'
+        [ -n "$candidate_records" ] || die "no immutable stable Foundry release published at least ${MINIMUM_RELEASE_AGE_DAYS} days ago was found"
     fi
     selected=0
     while IFS=$'\t' read -r VERSION PUBLISHED_AT RELEASE_URL release_age_seconds; do
@@ -329,11 +330,11 @@ select_release() {
     done <<< "$candidate_records"
     [ "$selected" -eq 1 ] || die 'no immutable stable Foundry release passed archive preflight'
     if [ "$IGNORE_RELEASE_AGE" -eq 1 ] && [ "$release_age_seconds" -lt "$MINIMUM_RELEASE_AGE_SECONDS" ]; then
-        SELECTION_REASON='newest immutable stable release; 14-day cooling period waived with --ignore-age'
+        SELECTION_REASON="newest immutable stable release; ${MINIMUM_RELEASE_AGE_DAYS}-day cooling period waived with --ignore-age"
     elif [ "$IGNORE_RELEASE_AGE" -eq 1 ]; then
         SELECTION_REASON='newest immutable stable release; release is age-eligible'
     else
-        SELECTION_REASON='newest immutable stable release published at least 14 days ago'
+        SELECTION_REASON="newest immutable stable release published at least ${MINIMUM_RELEASE_AGE_DAYS} days ago"
     fi
 }
 
@@ -351,13 +352,12 @@ load_requested_release() {
         || die "requested Foundry release is not stable: $REQUESTED_RELEASE"
     [ "$requested_immutable" = true ] || die "requested Foundry release is not immutable: $REQUESTED_RELEASE"
     [ "$release_age_seconds" -ge 0 ] || die "requested Foundry release has a future publication date: $REQUESTED_RELEASE"
-    if [ "$IGNORE_RELEASE_AGE" -eq 1 ] && [ "$release_age_seconds" -lt "$MINIMUM_RELEASE_AGE_SECONDS" ]; then
-        SELECTION_REASON="explicitly requested immutable stable $REQUESTED_RELEASE; 14-day cooling period waived with --ignore-age"
-    else
-        if [ "$release_age_seconds" -lt "$MINIMUM_RELEASE_AGE_SECONDS" ]; then
-            die 'release is less than 14 days old; use --ignore-age only for an approved release'
-        fi
+    if [ "$release_age_seconds" -ge "$MINIMUM_RELEASE_AGE_SECONDS" ]; then
         SELECTION_REASON="explicitly requested immutable stable $REQUESTED_RELEASE; release is age-eligible"
+    elif [ "$IGNORE_RELEASE_AGE" -eq 1 ]; then
+        SELECTION_REASON="explicitly requested immutable stable $REQUESTED_RELEASE; ${MINIMUM_RELEASE_AGE_DAYS}-day cooling period waived with --ignore-age"
+    else
+        die "release is less than ${MINIMUM_RELEASE_AGE_DAYS} days old; use --ignore-age only for an approved release"
     fi
 }
 

@@ -972,6 +972,21 @@ test_young_release_requires_ignore_age() {
     rm -rf "$FIXTURE"
 }
 
+test_release_at_minimum_age_is_eligible() {
+    new_fixture
+    TEST_INSTALLED_TAG=v2.1.0
+    TEST_YOUNG_RELEASE_AGE_SECONDS=1209600
+    export TEST_INSTALLED_TAG TEST_YOUNG_RELEASE_AGE_SECONDS
+    run_cli foundry-path verify --release v2.1.0
+    if [ "$STATUS" -eq 0 ] \
+        && grep -q 'Selection policy: explicitly requested immutable stable v2.1.0; release is age-eligible' "$FIXTURE/out"; then
+        pass 'release at the minimum age is eligible without a waiver'
+    else
+        fail 'release at the minimum age is eligible without a waiver'
+    fi
+    rm -rf "$FIXTURE"
+}
+
 test_ignore_age_accepts_age_eligible_release() {
     new_fixture
     run_cli destination-path install --release v2.0.0 --ignore-age
@@ -1385,6 +1400,7 @@ test_verify_older_fails
 test_verify_newer_fails
 test_verify_accepts_requested_young_release
 test_young_release_requires_ignore_age
+test_release_at_minimum_age_is_eligible
 test_ignore_age_accepts_age_eligible_release
 test_verify_ignore_age_requires_release
 test_requested_release_must_be_immutable
