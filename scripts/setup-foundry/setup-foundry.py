@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """CLI for the repository's verified Foundry setup tooling."""
 
+from __future__ import annotations
+
 import signal
 import sys
 from collections.abc import Sequence
