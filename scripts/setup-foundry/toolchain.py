@@ -5,17 +5,22 @@ import subprocess
 from pathlib import Path
 
 from config import BINARIES
-from releases import attest_path, parse_timestamp, release_metadata
-from runtime import SetupError
+from releases import attest_path
+from runtime import InstallationRequired, SetupError
 
 
-def resolve_path_binaries():
+def resolve_path_binaries(release, ignore_age):
     paths = []
     for binary in BINARIES:
         resolved = shutil.which(binary)
         if resolved is None:
-            raise SetupError(f"Foundry binary not found in PATH: {binary}")
-        paths.append(Path(resolved))
+            raise InstallationRequired(
+                f"Foundry binary not found in PATH: {binary}", release, ignore_age
+            )
+        path = Path(resolved)
+        if not path.is_file() or not path.stat().st_mode & 0o111:
+            raise SetupError(f"Foundry command is not an executable file: {path}")
+        paths.append(path)
     return paths
 
 
@@ -43,8 +48,7 @@ def run_binary_versions(paths):
     for path in paths:
         result = subprocess.run(
             [str(path), "--version"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
             check=False,
         )
@@ -56,17 +60,14 @@ def run_binary_versions(paths):
         print(output)
 
 
-def validate_installed_release(installed_tag, selection):
-    metadata = release_metadata(installed_tag)
-    if metadata.get("draft") is not False or metadata.get("prerelease") is not False:
-        raise SetupError(f"installed Foundry release is not stable: {installed_tag}")
-    if installed_tag == selection["version"]:
-        return f"installed release matches eligible stable {selection['version']}"
-    installed_published = parse_timestamp(metadata.get("published_at"))
-    if installed_published > selection["published_time"]:
-        raise SetupError(
-            f"installed Foundry release {installed_tag} violates the seven-day policy; eligible release is {selection['version']}"
+def validate_installed_release(installed_tag, selection, ignore_age):
+    if installed_tag != selection["version"]:
+        raise InstallationRequired(
+            f"installed Foundry release {installed_tag} does not match requested release {selection['version']}",
+            selection["version"],
+            ignore_age,
         )
-    raise SetupError(
-        f"installed Foundry release {installed_tag} does not match newest eligible stable {selection['version']}; run make install-foundry"
+    return (
+        "installed release matches explicitly requested immutable stable "
+        f"{selection['version']}"
     )

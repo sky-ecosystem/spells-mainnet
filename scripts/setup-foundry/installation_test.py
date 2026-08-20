@@ -4,6 +4,8 @@ import os
 import platform
 import shutil
 import stat
+import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -19,6 +21,34 @@ from mocks.cli_environment import (
 
 
 class InstallTests(FoundryFixture, unittest.TestCase):
+    def test_install_platform_matrix_including_rosetta(self):
+        cases = (
+            ("Linux", "x86_64", None, ("linux", "amd64")),
+            ("Linux", "aarch64", None, ("linux", "arm64")),
+            ("Darwin", "arm64", None, ("darwin", "arm64")),
+            ("Darwin", "x86_64", "0", ("darwin", "amd64")),
+            ("Darwin", "x86_64", "1", ("darwin", "arm64")),
+        )
+        for system, machine, translated, expected in cases:
+            with self.subTest(system=system, machine=machine, translated=translated):
+                result = subprocess.CompletedProcess(
+                    ["sysctl"], 0 if translated is not None else 1, translated or "", ""
+                )
+                with (
+                    mock.patch.object(
+                        installation_module.platform, "system", return_value=system
+                    ),
+                    mock.patch.object(
+                        installation_module.platform, "machine", return_value=machine
+                    ),
+                    mock.patch.object(
+                        installation_module.subprocess, "run", return_value=result
+                    ),
+                ):
+                    self.assertEqual(
+                        installation_module.validate_install_platform(), expected
+                    )
+
     def test_install_sets_executable_permissions_on_all_binaries(self):
         result = self.run_cli("install", "destination")
         self.assertEqual(result.returncode, 0, result.stdout)
@@ -28,6 +58,19 @@ class InstallTests(FoundryFixture, unittest.TestCase):
                 for name in BINARIES
             )
         )
+
+    def test_install_replaces_destination_without_running_existing_binaries(self):
+        for binary in BINARIES:
+            self.write_executable(
+                self.destination / binary,
+                f"#!{sys.executable}\nprint('untrusted {binary}')\n",
+            )
+
+        result = self.run_cli("install", "destination")
+
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertNotIn("untrusted", result.stdout)
+        self.assertEqual(self.version_log(), list(BINARIES))
 
     def test_install_asset_attestation_failure_blocks_archive_read_and_mutation(self):
         systems = {"Linux": "linux", "Darwin": "darwin"}
@@ -44,7 +87,7 @@ class InstallTests(FoundryFixture, unittest.TestCase):
         self.env.update({"TEST_ATTEST_FAIL": asset, "TEST_INVALID_ARCHIVE": "1"})
         result = self.run_cli("install", "none")
         self.assertEqual(result.returncode, 1)
-        self.assertIn("attestation verification failed for", result.stdout)
+        self.assertIn("could not verify attestation for", result.stdout)
         self.assertIn(asset, result.stdout)
         self.assertNotIn("could not read Foundry release archive", result.stdout)
         self.assertTrue(self.destination.is_dir())
@@ -71,9 +114,14 @@ class InstallTests(FoundryFixture, unittest.TestCase):
                 )
                 self.assertEqual(list(self.destination.iterdir()), [])
 
-    def test_install_outside_path_exits_two_after_verified_success(self):
+    def test_install_outside_path_reports_action_after_verified_success(self):
         result = self.run_cli("install", "none")
-        self.assertEqual(result.returncode, 2, result.stdout)
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("Required action: update-path", result.stdout)
+        self.assertIn(
+            "Foundry installation and verification completed successfully",
+            result.stdout,
+        )
         self.assertTrue((self.destination / "forge").is_file())
         self.assertEqual(self.version_log(), list(BINARIES))
 
@@ -131,7 +179,9 @@ class InstallTests(FoundryFixture, unittest.TestCase):
                         contextlib.redirect_stdout(output),
                         contextlib.redirect_stderr(output),
                     ):
-                        self.assertEqual(cli_module.main(["install"]), 1)
+                        self.assertEqual(
+                            cli_module.main(["install", "--release", "v2.0.0"]), 1
+                        )
 
         prefix = "Backups preserved at: "
         recovery_lines = [
@@ -164,7 +214,9 @@ class InstallTests(FoundryFixture, unittest.TestCase):
                     contextlib.redirect_stdout(io.StringIO()),
                     contextlib.redirect_stderr(io.StringIO()),
                 ):
-                    self.assertEqual(cli_module.main(["install"]), 0)
+                    self.assertEqual(
+                        cli_module.main(["install", "--release", "v2.0.0"]), 0
+                    )
         self.assertFalse(created[-1].exists())
 
         env["TEST_ATTEST_FAIL"] = "cast"
@@ -176,7 +228,9 @@ class InstallTests(FoundryFixture, unittest.TestCase):
                     contextlib.redirect_stdout(io.StringIO()),
                     contextlib.redirect_stderr(io.StringIO()),
                 ):
-                    self.assertEqual(cli_module.main(["install"]), 1)
+                    self.assertEqual(
+                        cli_module.main(["install", "--release", "v2.0.0"]), 1
+                    )
         self.assertFalse(created[-1].exists())
 
     def test_mid_install_failure_rolls_back_partial_mutation(self):
@@ -241,6 +295,7 @@ class InstallTests(FoundryFixture, unittest.TestCase):
         result = self.run_cli("install", "none")
         self.assertNotEqual(result.returncode, 0)
         self.assertFalse(self.destination.exists())
+        self.assertFalse((self.home / ".foundry").exists())
 
     def test_install_reuses_destination_symlink_to_directory(self):
         real_destination = self.fixture / "real-bin"

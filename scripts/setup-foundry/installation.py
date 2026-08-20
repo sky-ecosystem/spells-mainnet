@@ -9,6 +9,7 @@ restoration.
 import os
 import platform
 import shutil
+import subprocess
 import sys
 import tarfile
 import tempfile
@@ -33,7 +34,18 @@ def validate_install_platform():
         raise SetupError(f"unsupported operating system: {system}")
     if machine not in architectures:
         raise SetupError(f"unsupported architecture: {machine}")
-    return systems[system], architectures[machine]
+    architecture = architectures[machine]
+    if system == "Darwin" and machine in ("x86_64", "amd64"):
+        result = subprocess.run(
+            ["sysctl", "-n", "sysctl.proc_translated"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0 and result.stdout.strip() == "1":
+            architecture = "arm64"
+    return systems[system], architecture
 
 
 def download_and_verify_release_asset(selection, asset, temporary_directory):
@@ -93,6 +105,7 @@ class Installation:
         self.destination = destination
         self.backup_directory = backup_directory
         self.destination_created = False
+        self.destination_parent_created = False
         self.rollback_required = False
 
     def prepare(self):
@@ -103,6 +116,9 @@ class Installation:
                 )
         else:
             self.destination_created = True
+            self.destination_parent_created = not os.path.lexists(
+                self.destination.parent
+            )
         self.backup_directory.mkdir(mode=0o700)
         for binary in BINARIES:
             current = self.destination / binary
@@ -166,6 +182,15 @@ class Installation:
                     file=sys.stderr,
                 )
                 rollback_failed = True
+        if self.destination_parent_created and os.path.lexists(self.destination.parent):
+            try:
+                self.destination.parent.rmdir()
+            except OSError as error:
+                print(
+                    f"Rollback error: could not remove newly created directory {self.destination.parent}: {error}",
+                    file=sys.stderr,
+                )
+                rollback_failed = True
         if rollback_failed:
             print(
                 f"Error: Foundry rollback was incomplete; inspect {self.destination} before continuing.",
@@ -178,8 +203,8 @@ class Installation:
         return not rollback_failed
 
 
-def install_selected_release(selection, destination):
-    system, architecture = validate_install_platform()
+def install_selected_release(selection, destination, platform_target):
+    system, architecture = platform_target
     asset = f"foundry_{selection['version']}_{system}_{architecture}.tar.gz"
 
     # Own this directory explicitly so incomplete rollback can retain recovery data.

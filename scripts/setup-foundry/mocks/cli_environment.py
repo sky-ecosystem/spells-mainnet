@@ -24,6 +24,7 @@ def load_cli_module():
 
 FAKE_GH = r"""#!__PYTHON__
 import io
+import hashlib
 import json
 import os
 import sys
@@ -50,7 +51,8 @@ if args and args[0] == "api":
     endpoint = next((arg for arg in args[1:] if arg.startswith("repos/")), "")
     if endpoint == "repos/foundry-rs/foundry/releases?per_page=100":
         releases = [
-            {"tag_name": "v2.0.0", "published_at": published["selected"], "html_url": "https://example.test/v2.0.0", "draft": False, "prerelease": False},
+            {"tag_name": "v2.1.0", "published_at": published["recent_two"], "html_url": "https://example.test/v2.1.0", "draft": False, "prerelease": False, "immutable": True},
+            {"tag_name": "v2.0.0", "published_at": published["selected"], "html_url": "https://example.test/v2.0.0", "draft": False, "prerelease": False, "immutable": True},
         ]
         print(json.dumps([releases]))
         sys.exit(0)
@@ -66,7 +68,20 @@ if args and args[0] == "api":
         if tag not in metadata:
             sys.exit(1)
         published, draft, prerelease = metadata[tag]
-        print(json.dumps({"tag_name": tag, "published_at": published, "draft": draft, "prerelease": prerelease}))
+        assets = [
+            {
+                "name": f"foundry_{tag}_{target}.tar.gz",
+                "digest": "sha256:" + character * 64,
+            }
+            for target, character in zip(
+                ("linux_amd64", "linux_arm64", "darwin_amd64", "darwin_arm64"),
+                "1234",
+            )
+        ]
+        print(json.dumps({"tag_name": tag, "published_at": published, "html_url": "https://example.test/" + tag, "draft": draft, "prerelease": prerelease, "immutable": True, "assets": assets}))
+        sys.exit(0)
+    if endpoint.startswith("repos/foundry-rs/foundry/attestations/sha256:"):
+        print(json.dumps({"attestations": [{"bundle": "test"}]}))
         sys.exit(0)
 
 if args[:2] == ["release", "download"]:
@@ -123,21 +138,44 @@ if args[:2] == ["attestation", "verify"]:
             tag = "v1.9.0"
     signer = "https://github.com/foundry-rs/foundry/.github/workflows/release.yml@refs/tags/" + tag
     source = "https://github.com/foundry-rs/foundry"
-    print(json.dumps([{"verificationResult": {"statement": {"subject": [{"name": name}]}, "signature": {"certificate": {"buildSignerURI": signer, "sourceRepositoryURI": source}}}}]))
+    digest = hashlib.sha256(subject.read_bytes()).hexdigest()
+    print(json.dumps([{"verificationResult": {"statement": {"subject": [{"name": name, "digest": {"sha256": digest}}]}, "signature": {"certificate": {"buildSignerURI": signer, "sourceRepositoryURI": source}}}}]))
     sys.exit(0)
 
 sys.exit(64)
 """
 
 
-FAKE_GIT = r"""#!/bin/sh
-if [ "$1" = "-C" ] && [ "$3 $4" = "rev-parse --show-toplevel" ]; then
-    printf '%s\n' "$FIXTURE/repository"
-elif [ "$1" = "-C" ] && [ "$3 $4" = "rev-parse HEAD" ]; then
-    printf '%s\n' '0123456789abcdef0123456789abcdef01234567'
-else
-    exit 64
-fi
+FAKE_GIT = r"""#!__PYTHON__
+import os
+import sys
+from pathlib import Path
+
+args = sys.argv[1:]
+root = Path(os.environ["TEST_REPOSITORY_ROOT"])
+commit = "0123456789abcdef0123456789abcdef01234567"
+
+if args and args[0] == "-C":
+    command = args[2:]
+else:
+    command = args
+
+if command == ["rev-parse", "--show-toplevel"]:
+    print(root)
+elif command == ["rev-parse", "HEAD"]:
+    print(commit)
+elif command[:4] == ["ls-tree", "-r", "--name-only", commit]:
+    relative_root = Path(command[-1])
+    for path in sorted((root / relative_root).rglob("*.py")):
+        print(path.relative_to(root))
+elif len(command) == 2 and command[0] == "show" and command[1].startswith(commit + ":"):
+    path = root / command[1].split(":", 1)[1]
+    payload = path.read_bytes()
+    if os.environ.get("TEST_SOURCE_MISMATCH") == "1" and path.name == "setup-foundry.py":
+        payload += b"# modified\n"
+    sys.stdout.buffer.write(payload)
+else:
+    sys.exit(64)
 """
 
 
@@ -161,7 +199,9 @@ class FoundryFixture:
         self.write_executable(
             self.fake_bin / "gh", FAKE_GH.replace("__PYTHON__", sys.executable)
         )
-        self.write_executable(self.fake_bin / "git", FAKE_GIT)
+        self.write_executable(
+            self.fake_bin / "git", FAKE_GIT.replace("__PYTHON__", sys.executable)
+        )
         for binary in BINARIES:
             self.write_binary(self.path_bin / binary, binary)
         self.env = os.environ.copy()
@@ -170,6 +210,7 @@ class FoundryFixture:
                 "FIXTURE": str(self.fixture),
                 "HOME": str(self.home),
                 "TEST_LOG": str(self.log),
+                "TEST_REPOSITORY_ROOT": str(ROOT),
             }
         )
         for name in (
@@ -181,6 +222,7 @@ class FoundryFixture:
             "TEST_INSTALLED_TAG",
             "TEST_INVALID_ARCHIVE",
             "TEST_MIXED_BINARY",
+            "TEST_SOURCE_MISMATCH",
             "TEST_VERSION_FAIL",
         ):
             self.env.pop(name, None)
@@ -208,10 +250,14 @@ class FoundryFixture:
         ''',
         )
 
-    def run_cli(self, command=None, path_mode="foundry"):
-        return self.run_command(
-            [sys.executable, str(CLI)], command=command, path_mode=path_mode
-        )
+    def run_cli(self, command=None, path_mode="foundry", *arguments):
+        argv = [sys.executable, str(CLI)]
+        if command is not None:
+            argv.append(command)
+            if command in ("verify", "install") and "--release" not in arguments:
+                argv.extend(("--release", "v2.0.0"))
+        argv.extend(arguments)
+        return self.run_command(argv, path_mode=path_mode)
 
     def run_command(self, argv, command=None, path_mode="foundry", cwd=None):
         env = self.env.copy()

@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from releases import select_release
+from releases import load_requested_release
 from reporting import report_selection, report_verification_summary
 from runtime import collect_source_metadata, validate_environment
 from toolchain import (
@@ -16,14 +16,14 @@ from toolchain import (
 TOOL_ROOT = Path(__file__).resolve().parents[1]
 
 
-def handle() -> int:
+def handle(release: str, ignore_age: bool) -> int:
     validate_environment()
     source_commit, tooling_hash = collect_source_metadata(TOOL_ROOT)
-    selection = select_release()
+    selection = load_requested_release(release, ignore_age)
     report_selection(selection, source_commit, tooling_hash)
-    paths = resolve_path_binaries()
+    paths = resolve_path_binaries(selection["version"], ignore_age)
     installed_tag = verify_binary_paths(paths)
-    version_status = validate_installed_release(installed_tag, selection)
+    version_status = validate_installed_release(installed_tag, selection, ignore_age)
     run_binary_versions(paths)
     report_verification_summary(
         selection, source_commit, tooling_hash, installed_tag, version_status

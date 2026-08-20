@@ -13,7 +13,8 @@ SELECTION = {
     "version": "v2.0.0",
     "published_at": "2026-01-01T00:00:00Z",
     "release_url": "https://example.test/v2.0.0",
-    "selection_reason": "newest stable release published at least seven days ago",
+    "selection_reason": "newest immutable stable release; release is age-eligible",
+    "archive_preflight_status": "all supported archives are installable",
 }
 
 
@@ -30,12 +31,13 @@ class ReportingTests(unittest.TestCase):
             (
                 reporting.report_selection,
                 (SELECTION, "source-commit", "tooling-hash"),
-                "Eligible Foundry release: v2.0.0\n"
+                "Desired Foundry release: v2.0.0\n"
                 "Published at: 2026-01-01T00:00:00Z\n"
                 "Release URL: https://example.test/v2.0.0\n"
-                "Selection policy: newest stable release published at least seven days ago\n"
+                "Selection policy: newest immutable stable release; release is age-eligible\n"
+                "Archive preflight: all supported archives are installable\n"
                 "spells-mainnet commit: source-commit\n"
-                "Setup tooling SHA-256: tooling-hash\n",
+                "Setup CLI SHA-256: tooling-hash\n",
             ),
             (
                 reporting.report_verification_summary,
@@ -44,13 +46,13 @@ class ReportingTests(unittest.TestCase):
                     "source-commit",
                     "tooling-hash",
                     "v2.0.0",
-                    "matches newest eligible stable v2.0.0",
+                    "installed release matches explicitly requested immutable stable v2.0.0",
                 ),
                 "\nEvidence summary:\n"
-                "  Source: spells-mainnet source-commit; setup tooling SHA-256 tooling-hash\n"
-                "  Eligible release: v2.0.0; 2026-01-01T00:00:00Z; https://example.test/v2.0.0\n"
-                "  Policy decision: newest stable release published at least seven days ago\n"
-                "  Installed release: v2.0.0; matches newest eligible stable v2.0.0\n"
+                "  Source: spells-mainnet source-commit; setup CLI SHA-256 tooling-hash\n"
+                "  Desired release: v2.0.0; 2026-01-01T00:00:00Z; https://example.test/v2.0.0\n"
+                "  Policy decision: newest immutable stable release; release is age-eligible\n"
+                "  Installed release: v2.0.0; installed release matches explicitly requested immutable stable v2.0.0\n"
                 "  Binary attestations: forge, cast, anvil, and chisel verified against "
                 f"{SIGNER_WORKFLOW}\n",
             ),
@@ -58,9 +60,9 @@ class ReportingTests(unittest.TestCase):
                 reporting.report_installation_summary,
                 (SELECTION, "source-commit", "tooling-hash"),
                 "\nEvidence summary:\n"
-                "  Source: spells-mainnet source-commit; setup tooling SHA-256 tooling-hash\n"
+                "  Source: spells-mainnet source-commit; setup CLI SHA-256 tooling-hash\n"
                 "  Release: v2.0.0; 2026-01-01T00:00:00Z; https://example.test/v2.0.0\n"
-                "  Policy decision: newest stable release published at least seven days ago\n"
+                "  Policy decision: newest immutable stable release; release is age-eligible\n"
                 f"  Release asset attestation: verified against {SIGNER_WORKFLOW}\n"
                 "  Binary attestations: forge, cast, anvil, and chisel verified against "
                 f"{SIGNER_WORKFLOW}\n",
@@ -86,14 +88,20 @@ class ReportingTests(unittest.TestCase):
             output, "\nFoundry installation and verification completed successfully.\n"
         )
 
+        output = io.StringIO()
         error = io.StringIO()
         with mock.patch.dict(os.environ, {"PATH": "/usr/bin"}, clear=True):
-            with contextlib.redirect_stderr(error):
+            with contextlib.redirect_stdout(output), contextlib.redirect_stderr(error):
                 result = reporting.report_installation_path_status(destination)
-        self.assertEqual(result, 2)
+        self.assertEqual(result, 0)
+        self.assertEqual(
+            output.getvalue(),
+            "\nFoundry installation and verification completed successfully.\n",
+        )
         self.assertEqual(
             error.getvalue(),
-            f"\nFoundry was installed and verified, but {destination} is not in PATH.\n"
+            f"\nFoundry is verified in {destination}, but that directory is not in PATH.\n"
+            "Required action: update-path\n"
             'Run: export PATH="$HOME/.foundry/bin:$PATH"\n'
             "Add the same export to your shell profile, then start a new shell before continuing.\n",
         )

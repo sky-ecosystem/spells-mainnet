@@ -46,6 +46,46 @@ class RuntimeHashTests(unittest.TestCase):
             (second_root / "ab.py").write_text("c")
             self.assertNotEqual(tooling_sha256(first_root), tooling_sha256(second_root))
 
+    def test_source_metadata_rejects_runtime_bytes_that_differ_from_head(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            tool_root = root / "scripts" / "setup-foundry"
+            tool_root.mkdir(parents=True)
+            (tool_root / "setup-foundry.py").write_text("entry\n")
+            (tool_root / "helper.py").write_text("helper\n")
+            commands = (
+                ["git", "init", "-q"],
+                ["git", "config", "core.fsmonitor", "false"],
+                ["git", "add", "."],
+                [
+                    "git",
+                    "-c",
+                    "user.name=Test",
+                    "-c",
+                    "user.email=test@example.com",
+                    "-c",
+                    "commit.gpgsign=false",
+                    "commit",
+                    "-qm",
+                    "baseline",
+                ],
+            )
+            for command in commands:
+                subprocess.run(command, cwd=root, check=True)
+
+            source_commit, digest = runtime.collect_source_metadata(tool_root)
+            self.assertEqual(len(source_commit), 40)
+            self.assertEqual(digest, tooling_sha256(tool_root))
+
+            (tool_root / "helper.py").write_text("modified\n")
+            with self.assertRaisesRegex(runtime.SetupError, "differs from HEAD"):
+                runtime.collect_source_metadata(tool_root)
+
+            (tool_root / "helper.py").write_text("helper\n")
+            (tool_root / "untracked.py").write_text("untracked\n")
+            with self.assertRaisesRegex(runtime.SetupError, "differs from HEAD"):
+                runtime.collect_source_metadata(tool_root)
+
 
 class RuntimeBehaviorTests(FoundryFixture, unittest.TestCase):
     def test_run_normalizes_nonzero_process_status(self):
@@ -65,7 +105,7 @@ class RuntimeBehaviorTests(FoundryFixture, unittest.TestCase):
         env = self.env.copy()
         env["PATH"] = str(minimal_bin)
         result = subprocess.run(
-            [sys.executable, str(CLI), "verify"],
+            [sys.executable, str(CLI), "verify", "--release", "v2.0.0"],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
@@ -77,7 +117,7 @@ class RuntimeBehaviorTests(FoundryFixture, unittest.TestCase):
         (minimal_bin / "git").unlink()
         (minimal_bin / "gh").symlink_to(self.fake_bin / "gh")
         result = subprocess.run(
-            [sys.executable, str(CLI), "verify"],
+            [sys.executable, str(CLI), "verify", "--release", "v2.0.0"],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
