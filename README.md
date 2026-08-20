@@ -21,7 +21,7 @@ make
 
 #### Prerequisites
 
-Install [Foundry](https://github.com/foundry-rs/foundry) latest stable version.
+Install and verify the repository-selected [Foundry](https://github.com/foundry-rs/foundry) release by following the [verified Foundry setup instructions](scripts/setup-foundry/README.md).
 
 #### Operation
 Set `ETH_RPC_URL` to a Mainnet node.
