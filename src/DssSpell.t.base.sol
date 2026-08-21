@@ -1301,7 +1301,7 @@ contract DssSpellTestBase is Config, DssTest {
     function _checkCollateralValues(SystemValues storage values) internal {
         // Using an array to work around stack depth limitations.
         // sums[0] : sum of all lines
-        // sums[1] : sum over ilks of (line - Art * rate)--i.e. debt that could be drawn at any time
+        // sums[1] : sum of debt that can be drawn at integer Art precision
         // sums[2] : accrued stability fees not yet materialized in vat.debt() after all drawable debt is drawn
         uint256[] memory sums = new uint256[](3);
         bytes32[] memory ilks = reg.list();
@@ -1354,7 +1354,8 @@ contract DssSpellTestBase is Config, DssTest {
             (Art, rate,, line, dust) = vat.ilks(ilk);
             uint256 debt = Art * rate;
             if (debt < line) {
-                sums[1] += line - debt;
+                uint256 maxDrawableArt = line / rate;
+                sums[1] += (maxDrawableArt - Art) * rate;
             }
 
             sums[2] += _getUnmaterializedFees(ilk, Art, rate, line);
