@@ -113,8 +113,8 @@ OPTIONS
         14-day cooling period remains enforced.
 
     --ignore-age
-        Permit an explicitly requested release younger than 14 days. Requires
-        --release and does not bypass any other verification.
+        Permit an explicitly requested release younger than 14 days. Does not
+        bypass any other verification.
 
     --help
         Display this help and exit.
@@ -148,8 +148,8 @@ OPTIONS
         14-day cooling period remains enforced.
 
     --ignore-age
-        Permit an explicitly requested release younger than 14 days. Requires
-        --release and does not bypass any other verification.
+        Permit an explicitly requested release younger than 14 days. Does not
+        bypass any other verification.
 
     --help
         Display this help and exit.

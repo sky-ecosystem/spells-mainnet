@@ -10,7 +10,7 @@ REPOSITORY="foundry-rs/foundry"
 QUALIFIED_REPOSITORY="${GITHUB_HOST}/${REPOSITORY}"
 SIGNER_WORKFLOW="${REPOSITORY}/.github/workflows/release.yml"
 SIGNER_PREFIX="https://${GITHUB_HOST}/${SIGNER_WORKFLOW}@refs/tags/"
-SOURCE_REPOSITORY="https://${GITHUB_HOST}/${REPOSITORY}"
+SOURCE_REPOSITORY="https://${QUALIFIED_REPOSITORY}"
 MINIMUM_RELEASE_AGE_SECONDS="1209600"
 MINIMUM_RELEASE_AGE_DAYS=$((MINIMUM_RELEASE_AGE_SECONDS / 86400))
 BINARIES=("forge" "cast" "anvil" "chisel")
@@ -134,8 +134,8 @@ OPTIONS
         ${MINIMUM_RELEASE_AGE_DAYS}-day cooling period remains enforced.
 
     --ignore-age
-        Permit an explicitly requested release younger than ${MINIMUM_RELEASE_AGE_DAYS} days. Requires
-        --release and does not bypass any other verification.
+        Permit an explicitly requested release younger than ${MINIMUM_RELEASE_AGE_DAYS} days. Does not
+        bypass any other verification.
 
     --help
         Display this help and exit.
@@ -172,8 +172,8 @@ OPTIONS
         ${MINIMUM_RELEASE_AGE_DAYS}-day cooling period remains enforced.
 
     --ignore-age
-        Permit an explicitly requested release younger than ${MINIMUM_RELEASE_AGE_DAYS} days. Requires
-        --release and does not bypass any other verification.
+        Permit an explicitly requested release younger than ${MINIMUM_RELEASE_AGE_DAYS} days. Does not
+        bypass any other verification.
 
     --help
         Display this help and exit.
