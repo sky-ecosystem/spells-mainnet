@@ -2,13 +2,13 @@
 
 ## Why this exists
 
-[Foundry's standard installation procedure](https://getfoundry.sh/getting-started/installation) bootstraps `foundryup` by piping a remotely hosted script directly into Bash:
+[Foundry's standard installation procedure](https://www.getfoundry.sh/introduction/installation) bootstraps `foundryup` by piping a remotely hosted script directly into Bash:
 
 ```bash
-curl -L https://foundry.paradigm.xyz | bash
+curl -L https://getfoundry.sh/install | bash
 ```
 
-The executed script is not pinned to this repository or reviewable as part of its history. Running `foundryup` then installs the release currently labeled stable without the release-age and provenance safeguards introduced by this setup tool.
+The executed script is not pinned to this repository or reviewable as part of its history. Running `foundryup` then installs the latest stable release without the release-age and provenance safeguards introduced by this setup tool.
 
 Foundry is part of the toolchain used to build, test, and deploy executive spells. This repository therefore keeps its installation and verification logic under source control instead of relying on the remote bootstrap script.
 
