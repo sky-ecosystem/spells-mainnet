@@ -261,7 +261,7 @@ contract DssSpellAction is DssAction {
         // Note: Apply the updated ALLOCATOR-PRYSM-A AutoLine configuration immediately
         DssAutoLineAbstract(MCD_IAM_AUTO_LINE).exec("ALLOCATOR-PRYSM-A");
 
-        // ---------- Rename rewards key in chainlog ----------
+        // ---------- Rename rewards key in Chainlog ----------
         // Forum: https://forum.skyeco.com/t/proposed-housekeeping-item-2026-08-27-executive-vote/28194
         // Atlas: https://www.sky-atlas.io/#0d0e2e1a-0502-4ee3-bc9d-8bd8ddde19ec
 

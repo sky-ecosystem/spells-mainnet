@@ -17,6 +17,7 @@
 pragma solidity 0.8.16;
 
 import "./DssSpell.t.base.sol";
+import {BeamStateLike, PASInit} from "./dependencies/pas/PASInit.sol";
 
 interface L2Spell {
     function dstDomain() external returns (bytes32);
@@ -38,6 +39,60 @@ interface SpellActionLike {
 interface LineMomLike {
     function ilks(bytes32 ilk) external view returns (uint256);
     function wipe(bytes32 ilk) external returns (uint256);
+}
+
+interface PASBeamStateLike {
+    function wards(address) external view returns (uint256);
+    function hasUserRole(address, uint8) external view returns (bool);
+    function isActionInRole(bytes4, uint8) external view returns (bool);
+    function rateLimits(address) external view returns (uint256);
+    function controllers(address) external view returns (uint256);
+    function cBeams(address) external view returns (uint256);
+    function rateLimitsCBeams(address, address) external view returns (uint256);
+    function controllersCBeams(address, address) external view returns (uint256);
+    function hop(address) external view returns (uint256);
+    function maxChange(address) external view returns (uint256);
+    function getInitRateLimits(bytes32, address) external view returns (uint256, uint256);
+    function isControllerActionEnabled(bytes32, address) external view returns (bool);
+}
+
+interface PASConfiguratorLike {
+    function beamState() external view returns (address);
+    function zzz(address, bytes32) external view returns (uint256);
+    function setRateLimit(address, bytes32, uint256, uint256) external;
+}
+
+interface PASMomLike {
+    function owner() external view returns (address);
+    function authority() external view returns (address);
+    function beamState() external view returns (address);
+    function timelock() external view returns (address);
+}
+
+interface PASTimelockLike {
+    function DEFAULT_ADMIN_ROLE() external view returns (bytes32);
+    function PROPOSER_ROLE() external view returns (bytes32);
+    function CANCELLER_ROLE() external view returns (bytes32);
+    function EXECUTOR_ROLE() external view returns (bytes32);
+    function PAUSER_ROLE() external view returns (bytes32);
+    function getMinDelay() external view returns (uint256);
+    function hasRole(bytes32, address) external view returns (bool);
+    function paused() external view returns (bool);
+}
+
+interface AccessControlLike {
+    function hasRole(bytes32, address) external view returns (bool);
+}
+
+interface RateLimitsLike {
+    struct RateLimitData {
+        uint256 maxAmount;
+        uint256 slope;
+        uint256 lastAmount;
+        uint256 lastUpdated;
+    }
+
+    function getRateLimitData(bytes32) external view returns (RateLimitData memory);
 }
 
 contract DssSpellTest is DssSpellTestBase {
@@ -1456,4 +1511,157 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
+    function testPASInitialisation() public {
+        PASBeamStateLike    beamState    = PASBeamStateLike(addr.addr("PAS_STATE"));
+        PASConfiguratorLike configurator = PASConfiguratorLike(addr.addr("PAS_CONFIGURATOR"));
+        PASTimelockLike     timelock     = PASTimelockLike(addr.addr("PAS_TIMELOCK"));
+        PASMomLike          mom          = PASMomLike(addr.addr("PAS_MOM"));
+
+        // Check constructor arguments
+        assertEq(configurator.beamState(), address(beamState), "testPASInitialisation/configurator-beam-state-mismatch");
+        assertEq(mom.beamState(),          address(beamState), "testPASInitialisation/mom-beam-state-mismatch");
+        assertEq(mom.timelock(),           address(timelock),  "testPASInitialisation/mom-timelock-mismatch");
+        assertEq(timelock.getMinDelay(),   14 days,            "testPASInitialisation/timelock-delay-mismatch");
+
+        {
+            address coreCouncil   = 0x148eF923d764CBdc1597CcADBbbC66499C1A1432;
+            uint8   delayedRole   = uint8(PASInit.Role.DELAYED);
+            uint8   immediateRole = uint8(PASInit.Role.IMMEDIATE);
+
+            // Check roles before spell
+            assertFalse(beamState.hasUserRole(address(timelock), delayedRole), "testPASInitialisation/timelock-role-set-before-spell");
+            assertFalse(beamState.hasUserRole(coreCouncil, immediateRole),     "testPASInitialisation/core-council-role-set-before-spell");
+            assertEq(beamState.wards(address(mom)), 0,                         "testPASInitialisation/mom-ward-set-before-spell");
+            assertEq(mom.authority(), address(0),                              "testPASInitialisation/mom-authority-set-before-spell");
+
+            // Execute spell
+            _vote(address(spell));
+            _scheduleWaitAndCast(address(spell));
+            assertTrue(spell.done(), "TestError/spell-not-done");
+
+            // Check roles after spell
+            assertTrue(beamState.hasUserRole(address(timelock), delayedRole),    "testPASInitialisation/timelock-role-not-set");
+            assertFalse(beamState.hasUserRole(address(timelock), immediateRole), "testPASInitialisation/timelock-has-wrong-role");
+            assertTrue(beamState.hasUserRole(coreCouncil, immediateRole),        "testPASInitialisation/core-council-role-not-set");
+            assertFalse(beamState.hasUserRole(coreCouncil, delayedRole),         "testPASInitialisation/core-council-has-wrong-role");
+            assertTrue(timelock.hasRole(timelock.PROPOSER_ROLE(), coreCouncil),  "testPASInitialisation/core-council-not-proposer");
+            assertTrue(timelock.hasRole(timelock.CANCELLER_ROLE(), coreCouncil), "testPASInitialisation/core-council-not-canceller");
+
+            // Check representative action roles
+            assertTrue(beamState.isActionInRole(BeamStateLike.start.selector, delayedRole), "testPASInitialisation/start-not-delayed");
+            assertTrue(beamState.isActionInRole(BeamStateLike.addInitRateLimits.selector, delayedRole), "testPASInitialisation/add-init-rate-limits-not-delayed");
+            assertTrue(beamState.isActionInRole(BeamStateLike.stop.selector, immediateRole), "testPASInitialisation/stop-not-immediate");
+            assertTrue(beamState.isActionInRole(BeamStateLike.delInitControllerActions.selector, immediateRole), "testPASInitialisation/del-init-controller-actions-not-immediate");
+        }
+
+        assertEq(mom.owner(),                         pauseProxy,           "testPASInitialisation/mom-owner-changed");
+        assertEq(mom.authority(),                     addr.addr("MCD_ADM"), "testPASInitialisation/mom-authority-not-set");
+        assertEq(beamState.wards(address(mom)),       1,                    "testPASInitialisation/mom-not-ward");
+        assertTrue(timelock.hasRole(timelock.PAUSER_ROLE(), address(mom)),  "testPASInitialisation/mom-not-pauser");
+        assertTrue(timelock.hasRole(timelock.DEFAULT_ADMIN_ROLE(), pauseProxy), "testPASInitialisation/pause-proxy-not-admin");
+        assertTrue(timelock.hasRole(timelock.EXECUTOR_ROLE(), address(0)),  "testPASInitialisation/executor-not-open");
+        assertFalse(timelock.hasRole(timelock.PAUSER_ROLE(), pauseProxy),   "testPASInitialisation/temporary-pauser-not-revoked");
+        assertTrue(timelock.paused(),                                          "testPASInitialisation/timelock-not-paused");
+
+        // Check parameters set by the spell
+        address groveRateLimits = 0xE016Ae733A77Ba77E7907aAA749394Fc5e75C0e1;
+        address groveController = 0xbf83F5974B932c7D842254042717D6A2706CE5eE;
+        address groveCBeam      = 0x91dC2F6DbB8Adf76d373A54D408EDd7D736046C4;
+
+        assertEq(beamState.rateLimits(groveRateLimits),                    1,              "testPASInitialisation/rate-limits-not-added");
+        assertEq(beamState.controllers(groveController),                   1,              "testPASInitialisation/controller-not-added");
+        assertEq(beamState.cBeams(groveCBeam),                             1,              "testPASInitialisation/cbeam-not-added");
+        assertEq(beamState.rateLimitsCBeams(groveRateLimits, groveCBeam),  1,              "testPASInitialisation/rate-limits-pairing-not-set");
+        assertEq(beamState.controllersCBeams(groveController, groveCBeam), 1,              "testPASInitialisation/controller-pairing-not-set");
+        assertEq(beamState.hop(address(0)),                                 16 hours,       "testPASInitialisation/invalid-hop");
+        assertEq(beamState.maxChange(address(0)),                           120 * WAD / 100, "testPASInitialisation/invalid-max-change");
+
+        // Check that no optional defaults or Controller actions were enabled
+        bytes32 limitUsdsMint = 0xcb0537d5e5dba65a8edbac12555995860e5b8e1b70996011edb1ca8173e56d3c;
+        (uint256 defaultMaxAmount, uint256 defaultSlope) = beamState.getInitRateLimits(limitUsdsMint, groveRateLimits);
+        assertEq(defaultMaxAmount, 0, "testPASInitialisation/unexpected-default-max-amount");
+        assertEq(defaultSlope, 0,     "testPASInitialisation/unexpected-default-slope");
+        assertFalse(beamState.isControllerActionEnabled(keccak256(abi.encodeWithSignature("notEnabled()")), groveController), "testPASInitialisation/unexpected-controller-action-enabled");
+    }
+
+    function testPASGroveIntegration() public {
+        PASConfiguratorLike configurator        = PASConfiguratorLike(addr.addr("PAS_CONFIGURATOR"));
+        address             groveAccessControls = 0x4F6d1704700cd494DD4cd9bF59c0C39DA1Bc9164;
+        address             groveRateLimits     = 0xE016Ae733A77Ba77E7907aAA749394Fc5e75C0e1;
+        bytes32             defaultAdminRole    = bytes32(0);
+
+        // Check roles before spell
+        assertFalse(AccessControlLike(groveAccessControls).hasRole(defaultAdminRole, address(configurator)), "testPASGroveIntegration/access-controls-role-set-before-spell");
+        assertFalse(AccessControlLike(groveRateLimits).hasRole(defaultAdminRole, address(configurator)),     "testPASGroveIntegration/rate-limits-role-set-before-spell");
+
+        // Execute Core spell
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // Execute Grove spell through StarGuard
+        {
+            StarGuardLike groveStarGuard = StarGuardLike(addr.addr("GROVE_STARGUARD"));
+            (,, uint256 deadline) = groveStarGuard.spellData();
+
+            while (block.timestamp <= deadline) {
+                if (!groveStarGuard.prob()) {
+                    skip(1 hours);
+                } else {
+                    groveStarGuard.exec();
+                    break;
+                }
+            }
+        }
+
+        // Check roles after both spells
+        assertTrue(AccessControlLike(groveAccessControls).hasRole(defaultAdminRole, address(configurator)), "testPASGroveIntegration/access-controls-role-not-set");
+        assertTrue(AccessControlLike(groveRateLimits).hasRole(defaultAdminRole, address(configurator)),     "testPASGroveIntegration/rate-limits-role-not-set");
+
+        // Check cBEAM happy path
+        bytes32 limitUsdsMint = 0xcb0537d5e5dba65a8edbac12555995860e5b8e1b70996011edb1ca8173e56d3c;
+        address groveCBeam = 0x91dC2F6DbB8Adf76d373A54D408EDd7D736046C4;
+
+        RateLimitsLike rateLimits = RateLimitsLike(groveRateLimits);
+        RateLimitsLike.RateLimitData memory beforeData = rateLimits.getRateLimitData(limitUsdsMint);
+        uint256 newMaxAmount = beforeData.maxAmount * 110 / 100;
+
+        assertGt(beforeData.maxAmount, 0, "testPASGroveIntegration/rate-limit-max-is-zero");
+        assertLt(beforeData.maxAmount, type(uint256).max, "testPASGroveIntegration/rate-limit-max-is-unlimited");
+        assertEq(configurator.zzz(groveRateLimits, limitUsdsMint), 0, "testPASGroveIntegration/cooldown-set-before-call");
+
+        vm.prank(groveCBeam);
+        configurator.setRateLimit(groveRateLimits, limitUsdsMint, newMaxAmount, beforeData.slope);
+
+        RateLimitsLike.RateLimitData memory afterData = rateLimits.getRateLimitData(limitUsdsMint);
+        assertEq(afterData.maxAmount, newMaxAmount, "testPASGroveIntegration/rate-limit-max-not-updated");
+        assertEq(afterData.slope, beforeData.slope, "testPASGroveIntegration/rate-limit-slope-changed");
+        assertEq(configurator.zzz(groveRateLimits, limitUsdsMint), block.timestamp, "testPASGroveIntegration/cooldown-not-updated");
+    }
+
+    function testTransferUSDSFromOzoneSubProxy() public {
+        address ozoneSubProxy         = addr.addr("OZONE_SUBPROXY");
+        address skyFrontierFoundation = wallets.addr("SKY_FRONTIER_FOUNDATION");
+        uint256 transferAmount        = 16_000_000 * WAD;
+
+        assertGe(usds.balanceOf(ozoneSubProxy), transferAmount);
+
+        uint256 subProxyUsdsBefore = usds.balanceOf(ozoneSubProxy);
+        uint256 skyFrontierFoundationBefore = usds.balanceOf(skyFrontierFoundation);
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done());
+
+        assertEq(
+            usds.balanceOf(ozoneSubProxy),
+            subProxyUsdsBefore - transferAmount,
+            "testTransferUSDSFromOzoneSubProxy/subproxy-balance-mismatch"
+        );
+        assertEq(
+            usds.balanceOf(skyFrontierFoundation),
+            skyFrontierFoundationBefore + transferAmount,
+            "testTransferUSDSFromOzoneSubProxy/sky-frontier-foundation-balance-mismatch"
+        );
+    }
 }
