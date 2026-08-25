@@ -206,7 +206,7 @@ contract DssSpellTest is DssSpellTestBase {
         //assertEq(OsmAbstract(0xF15993A5C5BE496b8e1c9657Fd2233b579Cd3Bc6).wards(ORACLE_WALLET01), 1);
     }
 
-    function testRemovedChainlogKeys() public skipped { // add the `skipped` modifier to skip
+    function testRemovedChainlogKeys() public { // add the `skipped` modifier to skip
         string[1] memory removedKeys = ["OWNER_REWARDS_LSSKY_USDS"];
 
         for (uint256 i = 0; i < removedKeys.length; i++) {
@@ -238,7 +238,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
+    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
         string[5] memory addedKeys = [
             "PAS_STATE",
             "PAS_CONFIGURATOR",
@@ -1336,7 +1336,7 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
+    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
         PrimeAgentSpell[2] memory primeAgentSpells = [
             PrimeAgentSpell({
                 // Insert Prime Agent StarGuards Chainlog key
