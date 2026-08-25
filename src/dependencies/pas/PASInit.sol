@@ -16,8 +16,8 @@
 
 pragma solidity >=0.8.0;
 
-import {DssInstance} from "dss-test/MCD.sol";
-import {PASInstance} from "./PASInstance.sol";
+import { DssInstance } from "dss-test/MCD.sol";
+import { PASInstance } from "./PASInstance.sol";
 
 interface BeamStateLike {
     function rely(address) external;
@@ -64,7 +64,7 @@ interface PASMomLike {
 }
 
 struct InitCBeamConfig {
-    address cBeam;
+    address   cBeam;
     address[] rateLimits;
     address[] controllers;
 }
@@ -77,66 +77,67 @@ struct InitRateLimitConfig {
 }
 
 struct InitControllerActionConfig {
-    bytes data;
+    bytes   data;
     address controller;
 }
 
 library PASInit {
+
     // It is noted that delayed and immediate operations order is non deterministic.
     // The relevant operators of each role are assumed to communicate and track timelock and configurator executions.
     enum Role {
-        _UNSET, // 0 (unused)
-        DELAYED, // 1
+        _UNSET,   // 0 (unused)
+        DELAYED,  // 1
         IMMEDIATE // 2
     }
 
     function init(
         PASInstance memory pasInstance,
-        uint256 minDelay,
-        address coreCouncil,
-        address[] memory cancellers,
-        address[] memory pausers
+        uint256            minDelay,
+        address            coreCouncil,
+        address[]   memory cancellers,
+        address[]   memory pausers
     ) internal {
-        BeamStateLike beamState = BeamStateLike(pasInstance.beamState);
+        BeamStateLike    beamState    = BeamStateLike(pasInstance.beamState);
         ConfiguratorLike configurator = ConfiguratorLike(pasInstance.configurator);
-        TimelockLike timelock = TimelockLike(pasInstance.timelock);
+        TimelockLike     timelock     = TimelockLike(pasInstance.timelock);
 
         // --- Sanity checks ---
 
         require(configurator.beamState() == address(beamState), "PASInit/configurator-beamState-mismatch");
-        require(timelock.getMinDelay() == minDelay, "PASInit/timelock-minDelay-mismatch");
+        require(timelock.getMinDelay()   == minDelay,           "PASInit/timelock-minDelay-mismatch");
 
         // --- Configure BeamState ---
 
         // Define Beam actions that are accessed through timelock (DELAYED) and directly (IMMEDIATE)
-        beamState.setRoleAction(uint8(Role.DELAYED), BeamStateLike.start.selector, true);
-        beamState.setRoleAction(uint8(Role.DELAYED), BeamStateLike.setHop.selector, true);
-        beamState.setRoleAction(uint8(Role.DELAYED), BeamStateLike.setMaxChange.selector, true);
-        beamState.setRoleAction(uint8(Role.DELAYED), BeamStateLike.addRateLimits.selector, true);
-        beamState.setRoleAction(uint8(Role.DELAYED), BeamStateLike.addController.selector, true);
-        beamState.setRoleAction(uint8(Role.DELAYED), BeamStateLike.addCBeam.selector, true);
-        beamState.setRoleAction(uint8(Role.DELAYED), BeamStateLike.addInitRateLimits.selector, true);
-        beamState.setRoleAction(uint8(Role.DELAYED), BeamStateLike.addInitControllerActions.selector, true);
-        beamState.setRoleAction(uint8(Role.IMMEDIATE), BeamStateLike.stop.selector, true);
-        beamState.setRoleAction(uint8(Role.IMMEDIATE), BeamStateLike.delRateLimits.selector, true);
-        beamState.setRoleAction(uint8(Role.IMMEDIATE), BeamStateLike.delController.selector, true);
-        beamState.setRoleAction(uint8(Role.IMMEDIATE), BeamStateLike.delCBeam.selector, true);
-        beamState.setRoleAction(uint8(Role.IMMEDIATE), BeamStateLike.setCBeamForRateLimits.selector, true);
-        beamState.setRoleAction(uint8(Role.IMMEDIATE), BeamStateLike.unsetCBeamForRateLimits.selector, true);
-        beamState.setRoleAction(uint8(Role.IMMEDIATE), BeamStateLike.setCBeamForController.selector, true);
-        beamState.setRoleAction(uint8(Role.IMMEDIATE), BeamStateLike.unsetCBeamForController.selector, true);
-        beamState.setRoleAction(uint8(Role.IMMEDIATE), BeamStateLike.delInitRateLimits.selector, true);
+        beamState.setRoleAction(uint8(Role.DELAYED),   BeamStateLike.start.selector,                    true);
+        beamState.setRoleAction(uint8(Role.DELAYED),   BeamStateLike.setHop.selector,                   true);
+        beamState.setRoleAction(uint8(Role.DELAYED),   BeamStateLike.setMaxChange.selector,             true);
+        beamState.setRoleAction(uint8(Role.DELAYED),   BeamStateLike.addRateLimits.selector,            true);
+        beamState.setRoleAction(uint8(Role.DELAYED),   BeamStateLike.addController.selector,            true);
+        beamState.setRoleAction(uint8(Role.DELAYED),   BeamStateLike.addCBeam.selector,                 true);
+        beamState.setRoleAction(uint8(Role.DELAYED),   BeamStateLike.addInitRateLimits.selector,        true);
+        beamState.setRoleAction(uint8(Role.DELAYED),   BeamStateLike.addInitControllerActions.selector, true);
+        beamState.setRoleAction(uint8(Role.IMMEDIATE), BeamStateLike.stop.selector,                     true);
+        beamState.setRoleAction(uint8(Role.IMMEDIATE), BeamStateLike.delRateLimits.selector,            true);
+        beamState.setRoleAction(uint8(Role.IMMEDIATE), BeamStateLike.delController.selector,            true);
+        beamState.setRoleAction(uint8(Role.IMMEDIATE), BeamStateLike.delCBeam.selector,                 true);
+        beamState.setRoleAction(uint8(Role.IMMEDIATE), BeamStateLike.setCBeamForRateLimits.selector,    true);
+        beamState.setRoleAction(uint8(Role.IMMEDIATE), BeamStateLike.unsetCBeamForRateLimits.selector,  true);
+        beamState.setRoleAction(uint8(Role.IMMEDIATE), BeamStateLike.setCBeamForController.selector,    true);
+        beamState.setRoleAction(uint8(Role.IMMEDIATE), BeamStateLike.unsetCBeamForController.selector,  true);
+        beamState.setRoleAction(uint8(Role.IMMEDIATE), BeamStateLike.delInitRateLimits.selector,        true);
         beamState.setRoleAction(uint8(Role.IMMEDIATE), BeamStateLike.delInitControllerActions.selector, true);
 
         // Set timelock as the user with DELAYED role and coreCouncil with IMMEDIATE role
-        beamState.setUserRole(address(timelock), uint8(Role.DELAYED), true);
-        beamState.setUserRole(coreCouncil, uint8(Role.IMMEDIATE), true);
+        beamState.setUserRole(address(timelock), uint8(Role.DELAYED),   true);
+        beamState.setUserRole(coreCouncil,       uint8(Role.IMMEDIATE), true);
 
         // --- Configure Timelock ---
 
         // Grant the coreCouncil as the proposer in the timelock directly
         // Grant cancellers and pausers in timelock with their respective roles
-        timelock.grantRole(timelock.PROPOSER_ROLE(), coreCouncil);
+        timelock.grantRole(timelock.PROPOSER_ROLE(),  coreCouncil);
         timelock.grantRole(timelock.CANCELLER_ROLE(), coreCouncil);
         for (uint256 i = 0; i < cancellers.length; ++i) {
             timelock.grantRole(timelock.CANCELLER_ROLE(), cancellers[i]);
@@ -148,7 +149,10 @@ library PASInit {
 
     // Call after `init` for starting with spell-only configurations of `DELAYED` actions
     // The admin is assumed not to be listed in the pausers array, so we do not mistakenly revoke its role
-    function pauseTimelock(address timelock_, address admin) internal {
+    function pauseTimelock(
+        address timelock_,
+        address admin
+    ) internal {
         TimelockLike timelock = TimelockLike(timelock_);
 
         timelock.grantRole(timelock.PAUSER_ROLE(), admin);
@@ -170,27 +174,27 @@ library PASInit {
 
         beamState.setHop(address(0), hop);
         beamState.setMaxChange(address(0), maxChange);
-        for (uint256 i; i < rateLimits.length; i++) {
+        for(uint256 i; i < rateLimits.length; i++) {
             beamState.addRateLimits(rateLimits[i]);
         }
-        for (uint256 i; i < controllers.length; i++) {
+        for(uint256 i; i < controllers.length; i++) {
             beamState.addController(controllers[i]);
         }
-        for (uint256 i; i < cBeamConfigs.length; i++) {
+        for(uint256 i; i < cBeamConfigs.length; i++) {
             InitCBeamConfig memory c = cBeamConfigs[i];
             beamState.addCBeam(c.cBeam);
-            for (uint256 j; j < c.rateLimits.length; j++) {
+            for(uint256 j; j < c.rateLimits.length; j++) {
                 beamState.setCBeamForRateLimits(c.rateLimits[j], c.cBeam);
             }
-            for (uint256 j; j < c.controllers.length; j++) {
+            for(uint256 j; j < c.controllers.length; j++) {
                 beamState.setCBeamForController(c.controllers[j], c.cBeam);
             }
         }
     }
 
     function initLimitsAndControllerData(
-        PASInstance memory pasInstance,
-        InitRateLimitConfig[] memory rateLimitConfigs,
+        PASInstance                  memory pasInstance,
+        InitRateLimitConfig[]        memory rateLimitConfigs,
         InitControllerActionConfig[] memory controllerActionConfigs
     ) internal {
         BeamStateLike beamState = BeamStateLike(pasInstance.beamState);
@@ -204,7 +208,10 @@ library PASInit {
             );
         }
         for (uint256 i; i < controllerActionConfigs.length; i++) {
-            beamState.addInitControllerActions(controllerActionConfigs[i].data, controllerActionConfigs[i].controller);
+            beamState.addInitControllerActions(
+                controllerActionConfigs[i].data,
+                controllerActionConfigs[i].controller
+            );
         }
     }
 
@@ -215,20 +222,25 @@ library PASInit {
         bytes32 configuratorKey,
         bytes32 timelockKey
     ) internal {
-        dss.chainlog.setAddress(stateKey, pasInstance.beamState);
+        dss.chainlog.setAddress(stateKey,        pasInstance.beamState);
         dss.chainlog.setAddress(configuratorKey, pasInstance.configurator);
-        dss.chainlog.setAddress(timelockKey, pasInstance.timelock);
+        dss.chainlog.setAddress(timelockKey,     pasInstance.timelock);
     }
 
-    function initMom(DssInstance memory dss, PASInstance memory pasInstance, address mom_, bytes32 key) internal {
+    function initMom(
+        DssInstance memory dss,
+        PASInstance memory pasInstance,
+        address mom_,
+        bytes32 key
+    ) internal {
         BeamStateLike beamState = BeamStateLike(pasInstance.beamState);
-        TimelockLike timelock = TimelockLike(pasInstance.timelock);
-        PASMomLike mom = PASMomLike(mom_);
+        TimelockLike  timelock  = TimelockLike(pasInstance.timelock);
+        PASMomLike    mom       = PASMomLike(mom_);
 
         // --- Sanity checks ---
 
         require(mom.beamState() == address(beamState), "PASInit/mom-beamState-mismatch");
-        require(mom.timelock() == address(timelock), "PASInit/mom-timelock-mismatch");
+        require(mom.timelock()  == address(timelock),  "PASInit/mom-timelock-mismatch");
 
         // --- Set permissions ---
 

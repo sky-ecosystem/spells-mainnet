@@ -196,7 +196,7 @@ contract DssSpellAction is DssAction {
             // Argument value: 16 hours (or 57600 seconds)
             16 hours,
             // uint256 maxChange
-            // Argument value: 1.20 WAD (i.e. a maximum increase of 20% per eligible step)
+            // Argument value: 1.20 (i.e. a maximum increase of 20% per eligible step)
             120 * WAD / 100,
             // address[] memory rateLimits
             // Argument value: A single address 0xE016Ae733A77Ba77E7907aAA749394Fc5e75C0e1
@@ -220,7 +220,7 @@ contract DssSpellAction is DssAction {
 
         // ---------- Funds transfer from Ozone to SFF ----------
         // Forum: https://forum.skyeco.com/t/technical-scope-for-transferring-funds-from-the-subproxy/28004/7
-        // Forum: https://forum.skyeco.com/t/technical-scope-for-transferring-funds-from-the-subproxy/28004/8
+        // Atlas: https://sky-atlas.io/#9bb85c21-96a3-4f0a-baab-1c3fe340871d
 
         // Execute SUBPROXY_METHODS in OZONE_SUBPROXY to transfer 16 million USDS to SFF at 0xca5183FB9997046fbd9bA8113139bf5a5Af122A0
         SubProxyLike(OZONE_SUBPROXY).exec(
