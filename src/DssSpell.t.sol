@@ -40,11 +40,6 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
-interface FarmOwnerLike {
-    function wards(address) external view returns (uint256);
-    function farm() external view returns (address);
-}
-
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -211,7 +206,7 @@ contract DssSpellTest is DssSpellTestBase {
         //assertEq(OsmAbstract(0xF15993A5C5BE496b8e1c9657Fd2233b579Cd3Bc6).wards(ORACLE_WALLET01), 1);
     }
 
-    function testRemovedChainlogKeys() public { // add the `skipped` modifier to skip
+    function testRemovedChainlogKeys() public skipped { // add the `skipped` modifier to skip
         string[2] memory removedKeys = [
             "PRYSM_SUBPROXY",
             "PRYSM_STARGUARD"
@@ -246,7 +241,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
         string[4] memory addedKeys = [
             "MCD_SBEBEAM",
             "OWNER_REWARDS_LSSKY_USDS",
@@ -661,7 +656,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public { // add the `skipped` modifier to skip
+    function testVestSky() public skipped { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
         uint256 OCT_18_2026_14_21_59_UTC = 1792333319;
 
@@ -780,7 +775,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestedRewardsDist() public { // add the `skipped` modifier to skip
+    function testVestedRewardsDist() public skipped { // add the `skipped` modifier to skip
         uint256 expectedVestIdBefore = 15;
         uint256 expectedVestIdAfter = 16;
 
@@ -828,7 +823,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public { // add the `skipped` modifier to skip
+    function testPayments() public skipped { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -1289,7 +1284,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 
-    function testMonthlySettlementCycleInflows() public { // add the `skipped` modifier to skip
+    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
         AllocatorPayment[] memory payments = new AllocatorPayment[](4);
         payments[0] = AllocatorPayment(addr.addr("ALLOCATOR_SPARK_A_VAULT"), 9_465_419 * WAD);
         payments[1] = AllocatorPayment(addr.addr("ALLOCATOR_BLOOM_A_VAULT"), 9_685_438 * WAD);
@@ -1343,7 +1338,7 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
+    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
         PrimeAgentSpell[2] memory primeAgentSpells = [
             PrimeAgentSpell({
                 // Insert Prime Agent StarGuards Chainlog key
@@ -1407,7 +1402,7 @@ contract DssSpellTest is DssSpellTestBase {
         SafeHarborAgreementLike.Account[] addedAccounts;
     }
 
-    function testUpdateSafeHarborAddedAccounts() public { // add the `skipped` modifier to skip
+    function testUpdateSafeHarborAddedAccounts() public skipped { // add the `skipped` modifier to skip
         SafeHarborAgreementLike agreement = SafeHarborAgreementLike(addr.addr("SAFE_HARBOR_AGREEMENT"));
 
         ChainUpdates[1] memory chainUpdates;
@@ -1463,84 +1458,4 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
-
-    function testSBEBeamInitialisation() public {
-        FarmOwnerLike      farmOwner = FarmOwnerLike(addr.addr("OWNER_REWARDS_LSSKY_USDS"));
-        StakingRewardsLike farm      = StakingRewardsLike(addr.addr("REWARDS_LSSKY_USDS"));
-        address            bud       = wallets.addr("MCD_SBEBEAM_BUD");
-
-        // Check constructor arguments
-        assertEq(sbebeam.kicker(),   address(kick),  "testSBEBeamInitialisation/sbebeam-kicker-mismatch");
-        assertEq(sbebeam.splitter(), address(split), "testSBEBeamInitialisation/sbebeam-splitter-mismatch");
-        assertEq(farmOwner.farm(),   address(farm),  "testSBEBeamInitialisation/farm-owner-farm-mismatch");
-
-        // Check roles before spell
-        assertEq(farm.owner(),                      pauseProxy, "testSBEBeamInitialisation/farm-not-owned-by-pause-proxy-before");
-        assertEq(farmOwner.wards(pauseProxy),       1,          "testSBEBeamInitialisation/pause-proxy-not-ward-of-farm-owner");
-        assertEq(farmOwner.wards(address(sbebeam)), 0,          "testSBEBeamInitialisation/sbebeam-already-ward-of-farm-owner");
-        assertEq(kick.wards(address(sbebeam)),      0,          "testSBEBeamInitialisation/sbebeam-already-ward-of-kicker");
-        assertEq(split.wards(address(sbebeam)),     0,          "testSBEBeamInitialisation/sbebeam-already-ward-of-splitter");
-        assertEq(sbebeam.buds(bud),                 0,          "testSBEBeamInitialisation/bud-already-kissed");
-
-        // Execute spell
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        // Check roles after spell
-        assertEq(farm.owner(),                      address(farmOwner), "testSBEBeamInitialisation/farm-not-owned-by-farm-owner-after");
-        assertEq(farmOwner.wards(pauseProxy),       1,                  "testSBEBeamInitialisation/pause-proxy-no-longer-ward-of-farm-owner");
-        assertEq(farmOwner.wards(address(sbebeam)), 1,                  "testSBEBeamInitialisation/sbebeam-not-ward-of-farm-owner");
-        assertEq(kick.wards(address(sbebeam)),      1,                  "testSBEBeamInitialisation/sbebeam-not-ward-of-kicker");
-        assertEq(split.wards(address(sbebeam)),     1,                  "testSBEBeamInitialisation/sbebeam-not-ward-of-splitter");
-        assertEq(sbebeam.buds(bud),                 1,                  "testSBEBeamInitialisation/bud-not-kissed");
-
-        // Check parameters set by the spell
-        assertEq(sbebeam.maxKbump(),     12_000 * RAD,                   "testSBEBeamInitialisation/invalid-max-kbump");
-        assertEq(sbebeam.minHop(),       550 seconds,                    "testSBEBeamInitialisation/invalid-min-hop");
-        assertEq(sbebeam.maxRate(),      350 * MILLION * RAD / 365 days, "testSBEBeamInitialisation/invalid-max-rate");
-        assertEq(uint256(sbebeam.tau()), 30 minutes,                     "testSBEBeamInitialisation/invalid-tau");
-    }
-
-    function testSBEBeamIntegration() public {
-        StakingRewardsLike farm = StakingRewardsLike(addr.addr("REWARDS_LSSKY_USDS"));
-        address            bud  = wallets.addr("MCD_SBEBEAM_BUD");
-
-        // Execute spell
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        // Check values after spell execution
-        assertEq(kick.kbump(),           6_000 * RAD,    "testSBEBeamSet/invalid-kbump-after-spell");
-        assertEq(split.burn(),           55 * WAD / 100, "testSBEBeamSet/invalid-burn-after-spell");
-        assertEq(split.hop(),            3_748,          "testSBEBeamSet/invalid-hop-after-spell");
-        assertEq(farm.rewardsDuration(), 3_748,          "testSBEBeamSet/invalid-rewards-duration-after-spell");
-
-        uint256 newKbump = 9_000 * RAD;
-        uint256 newBurn  = 60 * WAD / 100;
-        uint256 newHop   = 4_000 seconds;
-
-        // Sanity check that the new values are different
-        assertLe(newKbump,          sbebeam.maxKbump(), "testSBEBeamSet/kbump-above-max");
-        assertGe(newHop,            sbebeam.minHop(),   "testSBEBeamSet/hop-below-min");
-        assertLe(newKbump / newHop, sbebeam.maxRate(),  "testSBEBeamSet/rate-above-max");
-
-        // Execute and check new values
-        vm.prank(bud);
-        sbebeam.set(newKbump, newBurn, newHop);
-        assertEq(kick.kbump(),           newKbump,        "testSBEBeamSet/kbump-not-updated");
-        assertEq(split.burn(),           newBurn,         "testSBEBeamSet/burn-not-updated");
-        assertEq(split.hop(),            newHop,          "testSBEBeamSet/hop-not-updated");
-        assertEq(farm.rewardsDuration(), newHop,          "testSBEBeamSet/rewards-duration-not-updated");
-        assertEq(uint256(sbebeam.toc()), block.timestamp, "testSBEBeamSet/toc-not-updated");
-
-        // Sanity check cooldown
-        vm.prank(bud);
-        vm.expectRevert("SBEBeam/too-early");
-        sbebeam.set(newKbump, newBurn, newHop);
-        vm.warp(block.timestamp + sbebeam.tau());
-        vm.prank(bud);
-        sbebeam.set(newKbump, newBurn, newHop);
-    }
 }
