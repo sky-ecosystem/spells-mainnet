@@ -1455,15 +1455,18 @@ contract DssSpellTest is DssSpellTestBase {
         SafeHarborAgreementLike.Account[] addedAccounts;
     }
 
-    function testUpdateSafeHarborAddedAccounts() public skipped { // add the `skipped` modifier to skip
+    function testUpdateSafeHarborAddedAccounts() public { // add the `skipped` modifier to skip
         SafeHarborAgreementLike agreement = SafeHarborAgreementLike(addr.addr("SAFE_HARBOR_AGREEMENT"));
 
         ChainUpdates[1] memory chainUpdates;
 
         // Build array of accounts to be added to Safe Harbor Agreement
-        SafeHarborAgreementLike.Account[] memory addedAccounts = new SafeHarborAgreementLike.Account[](2);
-        addedAccounts[0] = SafeHarborAgreementLike.Account({ accountAddress: "0xc8b61d211D3D03A630Fb09199E17953a8c9749a9", ChildContractScope: 0 });
-        addedAccounts[1] = SafeHarborAgreementLike.Account({ accountAddress: "0xA3d3A2e9Fe5d0901D720D5382E4a7eA12D4E2b0e", ChildContractScope: 0 });
+        SafeHarborAgreementLike.Account[] memory addedAccounts = new SafeHarborAgreementLike.Account[](5);
+        addedAccounts[0] = SafeHarborAgreementLike.Account({ accountAddress: "0x38E4254bD82ED5Ee97CD1C4278FAae748d998865", ChildContractScope: 0 });
+        addedAccounts[1] = SafeHarborAgreementLike.Account({ accountAddress: "0x1A1879E66547F90bfF87D45A5b0335950E019E02", ChildContractScope: 0 });
+        addedAccounts[2] = SafeHarborAgreementLike.Account({ accountAddress: "0xb7E61Df6CAb0A51E9A5dab1A7DD3f942dDe5b929", ChildContractScope: 0 });
+        addedAccounts[3] = SafeHarborAgreementLike.Account({ accountAddress: "0xB50a06Af02dDE44dB6EA7ee729403848c2B35293", ChildContractScope: 0 });
+        addedAccounts[4] = SafeHarborAgreementLike.Account({ accountAddress: "0xD44B8d01D5207aA792C666d0A712A1A161CD6171", ChildContractScope: 0 });
 
         // Configure chain updates for eip155:1 with added accounts
         chainUpdates[0] = ChainUpdates({
