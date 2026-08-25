@@ -16,8 +16,26 @@
 
 pragma solidity 0.8.16;
 
-import {DssExec} from "dss-exec-lib/DssExec.sol";
-import {DssAction} from "dss-exec-lib/DssAction.sol";
+import { DssExec } from "dss-exec-lib/DssExec.sol";
+import { DssAction, DssExecLib } from "dss-exec-lib/DssAction.sol";
+import { DssInstance, MCD } from "dss-test/MCD.sol";
+import { DssAutoLineAbstract } from "dss-interfaces/dss/DssAutoLineAbstract.sol";
+// Copied from https://github.com/sky-ecosystem/pas/blob/947e71cd5dbaaf9c5b3840dd1b23e8e99d9a564d/deploy/PASInit.sol
+import { InitCBeamConfig, PASInit } from "./dependencies/pas/PASInit.sol";
+// Copied from https://github.com/sky-ecosystem/pas/blob/947e71cd5dbaaf9c5b3840dd1b23e8e99d9a564d/deploy/PASInstance.sol
+import { PASInstance } from "./dependencies/pas/PASInstance.sol";
+
+interface SubProxyMethodsLike {
+    function transfer(address token, address to, uint256 amount) external;
+}
+
+interface SubProxyLike {
+    function exec(address target, bytes calldata args) external payable returns (bytes memory out);
+}
+
+interface StarGuardLike {
+    function plot(address addr_, bytes32 tag_) external;
+}
 
 contract DssSpellAction is DssAction {
     // Provides a descriptive tag for bot consumption
@@ -42,112 +60,217 @@ contract DssSpellAction is DssAction {
     //
     // uint256 internal constant X_PCT_RATE = ;
 
+    // ---------- Math ----------
+    uint256 internal constant MILLION = 10 ** 6;
+    uint256 internal constant WAD     = 10 ** 18;
+
+    // ---------- Contracts ----------
+    address internal immutable USDS                       = DssExecLib.getChangelogAddress("USDS");
+    address internal immutable MCD_PAUSE_PROXY            = DssExecLib.pauseProxy();
+    address internal immutable MCD_IAM_AUTO_LINE          = DssExecLib.getChangelogAddress("MCD_IAM_AUTO_LINE");
+    address internal immutable OWNER_REWARDS_LSSKY_USDS   = DssExecLib.getChangelogAddress("OWNER_REWARDS_LSSKY_USDS");
+    address internal immutable SPARK_STARGUARD            = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
+    address internal immutable GROVE_STARGUARD            = DssExecLib.getChangelogAddress("GROVE_STARGUARD");
+    address internal immutable OZONE_SUBPROXY             = DssExecLib.getChangelogAddress("OZONE_SUBPROXY");
+    address internal immutable SUBPROXY_METHODS           = DssExecLib.getChangelogAddress("SUBPROXY_METHODS");
+
+    // ---------- PAS ----------
+    address internal constant PAS_STATE          = 0x1A1879E66547F90bfF87D45A5b0335950E019E02;
+    address internal constant PAS_CONFIGURATOR   = 0xb7E61Df6CAb0A51E9A5dab1A7DD3f942dDe5b929;
+    address internal constant PAS_TIMELOCK       = 0xB50a06Af02dDE44dB6EA7ee729403848c2B35293;
+    address internal constant PAS_MOM            = 0xD44B8d01D5207aA792C666d0A712A1A161CD6171;
+    address internal constant PAS_CORE_COUNCIL   = 0x148eF923d764CBdc1597CcADBbbC66499C1A1432;
+    address internal constant GROVE_RATE_LIMITS  = 0xE016Ae733A77Ba77E7907aAA749394Fc5e75C0e1;
+    address internal constant GROVE_CONTROLLER   = 0xbf83F5974B932c7D842254042717D6A2706CE5eE;
+    address internal constant GROVE_CBEAM        = 0x91dC2F6DbB8Adf76d373A54D408EDd7D736046C4;
+
+    // ---------- Wallets ----------
+    address internal constant SKY_FRONTIER_FOUNDATION = 0xca5183FB9997046fbd9bA8113139bf5a5Af122A0;
+
+    // ---------- Spark Spell ----------
+    address internal constant SPARK_SPELL      = 0xbE35b15Cda9002C1719A9D254B158613BDdE72af;
+    bytes32 internal constant SPARK_SPELL_HASH = 0xd3d82d87849aa5a7df3105bac5e97518999288f8ce91ed80c83031a058a2fcf8;
+
+    // ---------- Grove Spell ----------
+    address internal constant GROVE_SPELL      = 0xF3d4F600640a87F4203DF0A554642228a119711e;
+    bytes32 internal constant GROVE_SPELL_HASH = 0x89f28b693c551c87c8dbd632484c39e8e5e1ac040696ed7839776ba3beae23c5;
+
     function actions() public override {
         // ---------- PAS Initialization ----------
         // Forum: https://forum.skyeco.com/t/technical-scope-of-the-parallelized-allocation-system-pas-module/28188
         // Poll: https://vote.sky.money/polling/Qmas6XKB
 
+        // Note: We need a DssInstance as an input parameter for PASInit.addCoreToChainlog and PASInit.initMom
+        DssInstance memory dss = MCD.loadFromChainlog(DssExecLib.LOG);
+
+        // Note: We need to declare a PASInstance for the PASInit calls below
+        PASInstance memory pasInstance = PASInstance({
+            // address pasInstance.beamState
+            // Argument value: 0x1A1879E66547F90bfF87D45A5b0335950E019E02
+            beamState: PAS_STATE,
+            // address pasInstance.configurator
+            // Argument value: 0xb7E61Df6CAb0A51E9A5dab1A7DD3f942dDe5b929
+            configurator: PAS_CONFIGURATOR,
+            // address pasInstance.timelock
+            // Argument value: 0xB50a06Af02dDE44dB6EA7ee729403848c2B35293
+            timelock: PAS_TIMELOCK
+        });
+
         // Call PASInit.init with the following arguments
-        // address pasInstance.beamState
-        // Argument value: 0x1A1879E66547F90bfF87D45A5b0335950E019E02
-        // address pasInstance.configurator
-        // Argument value: 0xb7E61Df6CAb0A51E9A5dab1A7DD3f942dDe5b929
-        // address pasInstance.timelock
-        // Argument value: 0xB50a06Af02dDE44dB6EA7ee729403848c2B35293
-        // uint256 minDelay
-        // Argument value: 14 days (or 1209600 seconds)
-        // address coreCouncil
-        // Argument value: 0x148eF923d764CBdc1597CcADBbbC66499C1A1432
-        // address[] cancellers
-        // Argument value: []
-        // address[] pausers
-        // Argument value: []
+        PASInit.init(
+            // Note: Use PASInstance initialised above
+            pasInstance,
+            // uint256 minDelay
+            // Argument value: 14 days (or 1209600 seconds)
+            14 days,
+            // address coreCouncil
+            // Argument value: 0x148eF923d764CBdc1597CcADBbbC66499C1A1432
+            PAS_CORE_COUNCIL,
+            // address[] cancellers
+            // Argument value: []
+            new address[](0),
+            // address[] pausers
+            // Argument value: []
+            new address[](0)
+        );
 
         // Call PASInit.addCoreToChainlog with the following arguments
-        // address pasInstance.beamState
-        // Argument value: 0x1A1879E66547F90bfF87D45A5b0335950E019E02
-        // address pasInstance.configurator
-        // Argument value: 0xb7E61Df6CAb0A51E9A5dab1A7DD3f942dDe5b929
-        // address pasInstance.timelock
-        // Argument value: 0xB50a06Af02dDE44dB6EA7ee729403848c2B35293
-        // bytes32 stateKey
-        // Argument value: PAS_STATE
-        // bytes32 configuratorKey
-        // Argument value: PAS_CONFIGURATOR
-        // bytes32 timelockKey
-        // Argument value: PAS_TIMELOCK
+        PASInit.addCoreToChainlog(
+            // Note: Use DssInstance initialised above
+            dss,
+            // Note: Use PASInstance initialised above
+            pasInstance,
+            // bytes32 stateKey
+            // Argument value: PAS_STATE
+            "PAS_STATE",
+            // bytes32 configuratorKey
+            // Argument value: PAS_CONFIGURATOR
+            "PAS_CONFIGURATOR",
+            // bytes32 timelockKey
+            // Argument value: PAS_TIMELOCK
+            "PAS_TIMELOCK"
+        );
 
         // Call PASInit.initMom with the following arguments
-        // address pasInstance.beamState
-        // Argument value: 0x1A1879E66547F90bfF87D45A5b0335950E019E02
-        // address pasInstance.configurator
-        // Argument value: 0xb7E61Df6CAb0A51E9A5dab1A7DD3f942dDe5b929
-        // address pasInstance.timelock
-        // Argument value: 0xB50a06Af02dDE44dB6EA7ee729403848c2B35293
-        // address mom_
-        // Argument value: 0xD44B8d01D5207aA792C666d0A712A1A161CD6171
-        // bytes32 key
-        // Argument value: PAS_MOM
+        PASInit.initMom(
+            // Note: Use DssInstance initialised above
+            dss,
+            // Note: Use PASInstance initialised above
+            pasInstance,
+            // address mom_
+            // Argument value: 0xD44B8d01D5207aA792C666d0A712A1A161CD6171
+            PAS_MOM,
+            // bytes32 key
+            // Argument value: PAS_MOM
+            "PAS_MOM"
+        );
+
+        // Note: We need to declare an array of rate limits for PAS configuration
+        address[] memory rateLimits = new address[](1);
+        rateLimits[0] = GROVE_RATE_LIMITS;
+
+        // Note: We need to declare an array of controllers for PAS configuration
+        address[] memory controllers = new address[](1);
+        controllers[0] = GROVE_CONTROLLER;
+
+        // Note: We need to declare an array of cBeamConfigs for PAS configuration
+        InitCBeamConfig[] memory cBeamConfigs = new InitCBeamConfig[](1);
+        cBeamConfigs[0] = InitCBeamConfig({
+            // address cBeamConfigs[0].cBeam
+            // Argument value: 0x91dC2F6DbB8Adf76d373A54D408EDd7D736046C4
+            cBeam: GROVE_CBEAM,
+            // address[] cBeamConfigs[0].rateLimits
+            // Argument value: A single address 0xE016Ae733A77Ba77E7907aAA749394Fc5e75C0e1
+            rateLimits: rateLimits,
+            // address[] cBeamConfigs[0].controllers
+            // Argument value: A single address 0xbf83F5974B932c7D842254042717D6A2706CE5eE
+            controllers: controllers
+        });
 
         // Call PASInit.initExtras with the following arguments
-        // address pasInstance.beamState
-        // Argument value: 0x1A1879E66547F90bfF87D45A5b0335950E019E02
-        // address pasInstance.configurator
-        // Argument value: 0xb7E61Df6CAb0A51E9A5dab1A7DD3f942dDe5b929
-        // address pasInstance.timelock
-        // Argument value: 0xB50a06Af02dDE44dB6EA7ee729403848c2B35293
-        // uint256 hop
-        // Argument value: 16 hours (or 57600 seconds)
-        // uint256 maxChange
-        // Argument value: 1.20 (i.e. a maximum increase of 20% per eligible step)
-        // address[] memory rateLimits
-        // Argument value: A single address 0xE016Ae733A77Ba77E7907aAA749394Fc5e75C0e1
-        // address[] memory controllers
-        // Argument value: A single address 0xbf83F5974B932c7D842254042717D6A2706CE5eE
-        // An array of cBeamConfigs with a single item
-        // address cBeamConfigs[0].cBeam
-        // Argument value: 0x91dC2F6DbB8Adf76d373A54D408EDd7D736046C4
-        // address[] cBeamConfigs[0].rateLimits
-        // Argument value: A single address 0xE016Ae733A77Ba77E7907aAA749394Fc5e75C0e1
-        // address[] cBeamConfigs[0].controllers
-        // Argument value: A single address 0xbf83F5974B932c7D842254042717D6A2706CE5eE
+        PASInit.initExtras(
+            // Note: Use PASInstance initialised above
+            pasInstance,
+            // uint256 hop
+            // Argument value: 16 hours (or 57600 seconds)
+            16 hours,
+            // uint256 maxChange
+            // Argument value: 1.20 WAD (i.e. a maximum increase of 20% per eligible step)
+            120 * WAD / 100,
+            // address[] memory rateLimits
+            // Argument value: A single address 0xE016Ae733A77Ba77E7907aAA749394Fc5e75C0e1
+            rateLimits,
+            // address[] memory controllers
+            // Argument value: A single address 0xbf83F5974B932c7D842254042717D6A2706CE5eE
+            controllers,
+            // An array of cBeamConfigs with a single item
+            cBeamConfigs
+        );
 
         // Call PASInit.pauseTimelock with the following arguments
-        // address timelock_
-        // Argument value: 0xB50a06Af02dDE44dB6EA7ee729403848c2B35293
-        // address admin
-        // Argument value: 0xBE8E3e3618f7474F8cB1d074A26afFef007E98FB
+        PASInit.pauseTimelock(
+            // address timelock_
+            // Argument value: 0xB50a06Af02dDE44dB6EA7ee729403848c2B35293
+            PAS_TIMELOCK,
+            // address admin
+            // Argument value: 0xBE8E3e3618f7474F8cB1d074A26afFef007E98FB
+            MCD_PAUSE_PROXY
+        );
 
         // ---------- Funds transfer from Ozone to SFF ----------
         // Forum: https://forum.skyeco.com/t/technical-scope-for-transferring-funds-from-the-subproxy/28004/7
         // Forum: https://forum.skyeco.com/t/technical-scope-for-transferring-funds-from-the-subproxy/28004/8
 
         // Execute SUBPROXY_METHODS in OZONE_SUBPROXY to transfer 16 million USDS to SFF at 0xca5183FB9997046fbd9bA8113139bf5a5Af122A0
+        SubProxyLike(OZONE_SUBPROXY).exec(
+            SUBPROXY_METHODS,
+            abi.encodeWithSelector(SubProxyMethodsLike.transfer.selector, USDS, SKY_FRONTIER_FOUNDATION, 16 * MILLION * WAD)
+        );
 
         // ---------- Increase ALLOCATOR-GROVE-A DC-IAM Parameters ----------
         // Forum: https://forum.skyeco.com/t/august-27-2026-proposed-changes-to-grove-for-upcoming-spell/28164/10
         // Atlas: https://sky-atlas.io/#41a1ae38-4f5c-468f-b6ba-47e16ecc5aec
 
-        // Increase the Maximum Debt Ceiling (line) by 15,000,000 USDS from 10,000,000 USDS to 25,000,000 USDS
-        // Increase the Target Available Debt (gap) by 3,000,000 USDS from 2,000,000 USDS to 5,000,000 USDS
-        // Leave the Ceiling Increase Cooldown (ttl) unchanged at 86,400 seconds (24 hours)
+        DssExecLib.setIlkAutoLineParameters({
+            _ilk: "ALLOCATOR-GROVE-A",
+            // Increase the Maximum Debt Ceiling (line) by 15,000,000 USDS from 10,000,000 USDS to 25,000,000 USDS
+            _amount: 25 * MILLION,
+            // Increase the Target Available Debt (gap) by 3,000,000 USDS from 2,000,000 USDS to 5,000,000 USDS
+            _gap: 5 * MILLION,
+            // Leave the Ceiling Increase Cooldown (ttl) unchanged at 86,400 seconds (24 hours)
+            _ttl: 86_400 seconds
+        });
+
+        // Note: Apply the updated ALLOCATOR-GROVE-A AutoLine configuration immediately
+        DssAutoLineAbstract(MCD_IAM_AUTO_LINE).exec("ALLOCATOR-GROVE-A");
 
         // ---------- Increase ALLOCATOR-PRYSM-A DC-IAM Parameters ----------
         // Forum: https://forum.skyeco.com/t/aug-27-2026-osero-requested-changes-to-allocator-vault-parameters/28186
         // Atlas: https://sky-atlas.io/#41a1ae38-4f5c-468f-b6ba-47e16ecc5aec
 
-        // Increase the Maximum Debt Ceiling (line) by 15,000,000 USDS from 10,000,000 USDS to 25,000,000 USDS
-        // Increase the Target Available Debt (gap) by 3,000,000 USDS from 2,000,000 USDS to 5,000,000 USDS
-        // Leave the Ceiling Increase Cooldown (ttl) unchanged at 86,400 seconds (24 hours)
+        DssExecLib.setIlkAutoLineParameters({
+            _ilk: "ALLOCATOR-PRYSM-A",
+            // Increase the Maximum Debt Ceiling (line) by 15,000,000 USDS from 10,000,000 USDS to 25,000,000 USDS
+            _amount: 25 * MILLION,
+            // Increase the Target Available Debt (gap) by 3,000,000 USDS from 2,000,000 USDS to 5,000,000 USDS
+            _gap: 5 * MILLION,
+            // Leave the Ceiling Increase Cooldown (ttl) unchanged at 86,400 seconds (24 hours)
+            _ttl: 86_400 seconds
+        });
+
+        // Note: Apply the updated ALLOCATOR-PRYSM-A AutoLine configuration immediately
+        DssAutoLineAbstract(MCD_IAM_AUTO_LINE).exec("ALLOCATOR-PRYSM-A");
 
         // ---------- Rename rewards key in chainlog ----------
         // Forum: https://forum.skyeco.com/t/proposed-housekeeping-item-2026-08-27-executive-vote/28194
         // Atlas: https://www.sky-atlas.io/#0d0e2e1a-0502-4ee3-bc9d-8bd8ddde19ec
 
         // Rename OWNER_REWARDS_LSSKY_USDS to REWARDS_OWNER_LSSKY_USDS in chainlog.
+        dss.chainlog.removeAddress("OWNER_REWARDS_LSSKY_USDS");
+        DssExecLib.setChangelogAddress("REWARDS_OWNER_LSSKY_USDS", OWNER_REWARDS_LSSKY_USDS);
 
         // Note: bump chainlog version
-        // TODO
+        DssExecLib.setChangelogVersion("1.20.20");
 
         // ---------- Update SafeHarbor Agreement ----------
         // Atlas: https://sky-atlas.io/#fcd868db-4a91-4ee0-baf5-1ebd40fc651e
@@ -163,6 +286,7 @@ contract DssSpellAction is DssAction {
         // Atlas: https://sky-atlas.io/#ea73f176-0b94-4e93-b1ee-ca498ac5a6c6
 
         // Whitelist Spark spell with address 0xbE35b15Cda9002C1719A9D254B158613BDdE72af and codehash 0xd3d82d87849aa5a7df3105bac5e97518999288f8ce91ed80c83031a058a2fcf8 in SPARK_STARGUARD, direct execution: No
+        StarGuardLike(SPARK_STARGUARD).plot(SPARK_SPELL, SPARK_SPELL_HASH);
 
         // ---------- Grove Proxy Spell ----------
         // Forum: https://forum.skyeco.com/t/august-27-2026-proposed-changes-to-grove-for-upcoming-spell/28164
@@ -171,6 +295,7 @@ contract DssSpellAction is DssAction {
         // Poll: https://snapshot.box/#/s:grovefinance.eth/proposal/0x760f15647c7ac433a8378b07655e6ab5f48c610f9efd8a925b239f959032d6a6
 
         // Whitelist Grove spell with address 0xF3d4F600640a87F4203DF0A554642228a119711e and codehash 0x89f28b693c551c87c8dbd632484c39e8e5e1ac040696ed7839776ba3beae23c5 in GROVE_STARGUARD, direct execution: No
+        StarGuardLike(GROVE_STARGUARD).plot(GROVE_SPELL, GROVE_SPELL_HASH);
     }
 }
 

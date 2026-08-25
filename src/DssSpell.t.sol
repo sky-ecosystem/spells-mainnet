@@ -207,10 +207,7 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     function testRemovedChainlogKeys() public skipped { // add the `skipped` modifier to skip
-        string[2] memory removedKeys = [
-            "PRYSM_SUBPROXY",
-            "PRYSM_STARGUARD"
-        ];
+        string[1] memory removedKeys = ["OWNER_REWARDS_LSSKY_USDS"];
 
         for (uint256 i = 0; i < removedKeys.length; i++) {
             try chainLog.getAddress(_stringToBytes32(removedKeys[i])) {
@@ -242,11 +239,12 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
-        string[4] memory addedKeys = [
-            "MCD_SBEBEAM",
-            "OWNER_REWARDS_LSSKY_USDS",
-            "OSERO_SUBPROXY",
-            "OSERO_STARGUARD"
+        string[5] memory addedKeys = [
+            "PAS_STATE",
+            "PAS_CONFIGURATOR",
+            "PAS_TIMELOCK",
+            "PAS_MOM",
+            "REWARDS_OWNER_LSSKY_USDS"
         ];
 
         for(uint256 i = 0; i < addedKeys.length; i++) {
@@ -1344,9 +1342,9 @@ contract DssSpellTest is DssSpellTestBase {
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "SPARK_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0xc827237CB91Fa8E78B8dfA4F77838eDf924C04e9,
+                addr: 0xbE35b15Cda9002C1719A9D254B158613BDdE72af,
                 // Insert Prime Agent spell codehash
-                codehash: 0x74f56d9a7a918f0410aaf2ecf9ec9023970ec01acb3f83f4f14633a6ffd3454b,
+                codehash: 0xd3d82d87849aa5a7df3105bac5e97518999288f8ce91ed80c83031a058a2fcf8,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             }),
@@ -1354,9 +1352,9 @@ contract DssSpellTest is DssSpellTestBase {
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "GROVE_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0xb12C687188427d7D1E5253afA5f09A101Fbd9d4b,
+                addr: 0xF3d4F600640a87F4203DF0A554642228a119711e,
                 // Insert Prime Agent spell codehash
-                codehash: 0x180fc2de506150de525027a135843e91123578dc1f03945b69a489dce863f85c,
+                codehash: 0x89f28b693c551c87c8dbd632484c39e8e5e1ac040696ed7839776ba3beae23c5,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             })
