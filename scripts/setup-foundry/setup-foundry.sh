@@ -9,7 +9,6 @@ GITHUB_HOST="github.com"
 REPOSITORY="foundry-rs/foundry"
 QUALIFIED_REPOSITORY="${GITHUB_HOST}/${REPOSITORY}"
 SIGNER_WORKFLOW="${REPOSITORY}/.github/workflows/release.yml"
-SIGNER_PREFIX="https://${GITHUB_HOST}/${SIGNER_WORKFLOW}@refs/tags/"
 SOURCE_REPOSITORY="https://${QUALIFIED_REPOSITORY}"
 MINIMUM_RELEASE_AGE_SECONDS="1209600"
 MINIMUM_RELEASE_AGE_DAYS=$((MINIMUM_RELEASE_AGE_SECONDS / 86400))
@@ -362,40 +361,54 @@ load_requested_release() {
 }
 
 attest_path() {
-    local path digest record signer source subject
+    local path expected_tag digest records signer source source_ref subject
+    local attestation_args
 
     path=$1
+    expected_tag=${2:-}
     digest=$(sha256 "$path")
-    record=$(gh attestation verify "$path" \
-        --repo "$REPOSITORY" \
-        --hostname "$GITHUB_HOST" \
-        --signer-workflow "$SIGNER_WORKFLOW" \
+    attestation_args=(
+        --repo "$REPOSITORY"
+        --hostname "$GITHUB_HOST"
+        --signer-workflow "$SIGNER_WORKFLOW"
+    )
+    if [ -n "$expected_tag" ]; then
+        attestation_args+=(--source-ref "refs/tags/$expected_tag")
+    fi
+    records=$(gh attestation verify "$path" \
+        "${attestation_args[@]}" \
         --format json \
         --jq '
-        .[0].verificationResult as $result
+        .[].verificationResult as $result
         | ($result.statement.subject[] | select(.digest.sha256 == "'"$digest"'")) as $subject
         | [
             $result.signature.certificate.buildSignerURI,
             $result.signature.certificate.sourceRepositoryURI,
+            $result.signature.certificate.sourceRepositoryRef,
             $subject.name
           ]
         | @tsv
-    ') || die "could not verify attestation for $path"
-    IFS=$'\t' read -r signer source subject <<< "$record"
-
-    case "$signer" in
-        "$SIGNER_PREFIX"*) ATTESTED_TAG=${signer#"$SIGNER_PREFIX"} ;;
-        *) die "unexpected attestation signer for $path: $signer" ;;
-    esac
-    [ "$source" = "$SOURCE_REPOSITORY" ] || die "unexpected attestation source for $path: $source"
-    case "$path" in
-        "$subject" | *"/$subject") ;;
-        *) die "attestation subject does not match path: $subject ($path)" ;;
-    esac
-
-    printf '  Subject: %s\n' "$subject"
-    printf '  Signer: %s\n' "$signer"
-    printf '  Source: %s\n' "$source"
+    ') || {
+        ATTESTATION_ERROR="could not verify attestation for $path"
+        return 1
+    }
+    while IFS=$'\t' read -r signer source source_ref subject; do
+        [ "$source" = "$SOURCE_REPOSITORY" ] || continue
+        case "$path" in
+            "$subject" | *"/$subject")
+                case "$source_ref" in
+                    refs/tags/*) ATTESTED_TAG=${source_ref#refs/tags/} ;;
+                    *) continue ;;
+                esac
+                printf '  Subject: %s\n' "$subject"
+                printf '  Signer: %s\n' "$signer"
+                printf '  Source: %s\n' "$source"
+                return
+                ;;
+        esac
+    done <<< "$records"
+    ATTESTATION_ERROR="attestation subject does not match path: $path"
+    return 1
 }
 
 verify_binary_paths() {
@@ -406,17 +419,14 @@ verify_binary_paths() {
     printf '\nBinary attestations:\n'
     for index in "${!BINARIES[@]}"; do
         printf '%s (%s):\n' "${BINARIES[$index]}" "${BINARY_PATHS[$index]}"
-        attest_path "${BINARY_PATHS[$index]}"
+        attest_path "${BINARY_PATHS[$index]}" "$expected_tag" || return 1
         if [ -z "$INSTALLED_TAG" ]; then
             INSTALLED_TAG=$ATTESTED_TAG
         elif [ "$ATTESTED_TAG" != "$INSTALLED_TAG" ]; then
-            die "Foundry binaries come from different releases: $INSTALLED_TAG and $ATTESTED_TAG"
+            ATTESTATION_ERROR="Foundry binaries come from different releases: $INSTALLED_TAG and $ATTESTED_TAG"
+            return 1
         fi
     done
-
-    if [ -n "$expected_tag" ] && [ "$INSTALLED_TAG" != "$expected_tag" ]; then
-        die "installed Foundry release $INSTALLED_TAG does not match expected release $expected_tag"
-    fi
 }
 
 run_binary_versions() {
@@ -537,8 +547,7 @@ initialize_installation() {
 download_verify_and_extract_release() {
     gh release download "$VERSION" --repo "$QUALIFIED_REPOSITORY" --pattern "$RELEASE_ASSET" --dir "$TEMP_DIR"
     printf '\nRelease asset attestation:\n'
-    attest_path "${TEMP_DIR}/${RELEASE_ASSET}"
-    [ "$ATTESTED_TAG" = "$VERSION" ] || die "release asset attestation tag $ATTESTED_TAG does not match $VERSION"
+    attest_path "${TEMP_DIR}/${RELEASE_ASSET}" "$VERSION" || die "$ATTESTATION_ERROR"
 
     EXTRACTED_DIR="${TEMP_DIR}/extracted"
     mkdir "$EXTRACTED_DIR"
@@ -589,7 +598,7 @@ verify_installed_binaries() {
     for binary in "${BINARIES[@]}"; do
         BINARY_PATHS+=("${DESTINATION}/${binary}")
     done
-    verify_binary_paths "$VERSION"
+    verify_binary_paths "$VERSION" || die "$ATTESTATION_ERROR"
     run_binary_versions
     ROLLBACK_REQUIRED=0
 }
@@ -619,12 +628,18 @@ finalize_installation() {
 }
 
 verify_foundry() {
+    local exact_attestation_error
+
     validate_environment
     collect_source_metadata
     load_requested_release
     report_selection
     resolve_path_binaries
-    verify_binary_paths
+    if ! verify_binary_paths "$VERSION"; then
+        exact_attestation_error=$ATTESTATION_ERROR
+        verify_binary_paths || die "$ATTESTATION_ERROR"
+        [ "$INSTALLED_TAG" != "$VERSION" ] || die "$exact_attestation_error"
+    fi
     validate_installed_release
     run_binary_versions
     report_verification_summary

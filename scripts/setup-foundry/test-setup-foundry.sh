@@ -191,6 +191,7 @@ new_fixture() {
     export TEST_MIXED_BINARY=
     export TEST_ATTEST_FAIL=
     export TEST_ATTEST_SUBJECT_NAME=
+    export TEST_VALID_ATTESTATION_INDEX=0
     export TEST_BINARY_ATTEST_STATUS=1
     export TEST_VERSION_FAIL=
     export TEST_AUTH_STATUS=0
@@ -351,20 +352,25 @@ if [ "$1 $2" = "attestation verify" ]; then
         --arg name "$matching_name" \
         --arg digest "$digest" \
         --arg tag "$tag" \
-        "[{verificationResult:{statement:{subject:[
+        --argjson valid_index "$TEST_VALID_ATTESTATION_INDEX" \
+        "[range(0; \$valid_index + 1) as \$index | {verificationResult:{statement:{subject:[
             {name:\"unrelated\",digest:{sha256:\"0000000000000000000000000000000000000000000000000000000000000000\"}},
-            {name:\$name,digest:{sha256:\$digest}}
+            {name:(if \$index == \$valid_index then \$name else \"wrong-subject\" end),digest:{sha256:\$digest}}
         ]},signature:{certificate:{
             buildSignerURI:(\"https://github.com/foundry-rs/foundry/.github/workflows/release.yml@refs/tags/\" + \$tag),
-            sourceRepositoryURI:\"https://github.com/foundry-rs/foundry\"
+            sourceRepositoryURI:\"https://github.com/foundry-rs/foundry\",
+            sourceRepositoryRef:(\"refs/tags/\" + \$tag)
         }}}}]")
     query=
+    source_ref=
     while [ "$#" -gt 0 ]; do
         case "$1" in
             --jq) query=$2; shift 2 ;;
+            --source-ref) source_ref=$2; shift 2 ;;
             *) shift ;;
         esac
     done
+    [ -z "$source_ref" ] || [ "$source_ref" = "refs/tags/$tag" ] || exit 1
     if [ -n "$query" ]; then
         printf "%s\n" "$payload" | "$JQ_PATH" -r "$query"
     else
@@ -582,8 +588,10 @@ test_verify_eligible() {
     run_cli foundry-path verify --release v2.0.0
     attestations=$(grep -c '^attestation verify ' "$TEST_LOG/gh" 2>/dev/null || true)
     formatted_attestations=$(grep -c '^attestation verify .* --jq ' "$TEST_LOG/gh" 2>/dev/null || true)
+    source_ref_attestations=$(grep -c -- '--source-ref refs/tags/v2.0.0' "$TEST_LOG/gh" 2>/dev/null || true)
     if [ -e "$TEST_LOG/versions" ]; then versions=$(wc -l < "$TEST_LOG/versions"); else versions=0; fi
     if [ "$STATUS" -eq 0 ] && [ "$attestations" -eq 4 ] && [ "$formatted_attestations" -eq 4 ] \
+        && [ "$source_ref_attestations" -eq 4 ] \
         && [ "$versions" -eq 4 ] \
         && [ "$(grep -c '^  Subject: ' "$FIXTURE/out" 2>/dev/null || true)" -eq 4 ] \
         && ! grep -q 'unrelated' "$FIXTURE/out" \
@@ -595,6 +603,20 @@ test_verify_eligible() {
         pass 'exact age-eligible immutable PATH toolchain is verified'
     else
         fail 'exact age-eligible immutable PATH toolchain is verified'
+    fi
+    rm -rf "$FIXTURE"
+}
+
+test_valid_later_attestation_is_accepted() {
+    new_fixture
+    TEST_VALID_ATTESTATION_INDEX=1
+    export TEST_VALID_ATTESTATION_INDEX
+    run_cli foundry-path verify --release v2.0.0
+    if [ "$STATUS" -eq 0 ] && [ "$(grep -c '^  Subject: ' "$FIXTURE/out" 2>/dev/null || true)" -eq 4 ] \
+        && [ "$(wc -l < "$TEST_LOG/versions")" -eq 4 ]; then
+        pass 'a matching subject in a later verified attestation is accepted'
+    else
+        fail 'a matching subject in a later verified attestation is accepted'
     fi
     rm -rf "$FIXTURE"
 }
@@ -1392,6 +1414,7 @@ test_verify_requires_release
 test_select_rejects_release
 test_make_select_forwards_ignore_age
 test_verify_eligible
+test_valid_later_attestation_is_accepted
 test_attestation_subject_must_match_verified_path
 test_modified_cli_is_rejected_before_reporting_source_metadata
 test_shasum_fallback_forces_portable_locale
