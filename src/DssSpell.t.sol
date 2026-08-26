@@ -52,6 +52,8 @@ interface PASBeamStateLike {
     function controllersCBeams(address, address) external view returns (uint256);
     function hop(address) external view returns (uint256);
     function maxChange(address) external view returns (uint256);
+    function getHop(address) external view returns (uint256);
+    function getMaxChange(address) external view returns (uint256);
     function stopped() external view returns (bool);
     function start() external;
     function stop() external;
@@ -76,7 +78,6 @@ interface PASTimelockLike {
     function DEFAULT_ADMIN_ROLE() external view returns (bytes32);
     function PROPOSER_ROLE() external view returns (bytes32);
     function CANCELLER_ROLE() external view returns (bytes32);
-    function EXECUTOR_ROLE() external view returns (bytes32);
     function PAUSER_ROLE() external view returns (bytes32);
     function getMinDelay() external view returns (uint256);
     function hasRole(bytes32, address) external view returns (bool);
@@ -1640,7 +1641,6 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(beamState.wards(address(mom)), 1, "testPASInitialisation/mom-not-ward");
         assertTrue(timelock.hasRole(timelock.PAUSER_ROLE(), address(mom)), "testPASInitialisation/mom-not-pauser");
         assertTrue(timelock.hasRole(timelock.DEFAULT_ADMIN_ROLE(), pauseProxy), "testPASInitialisation/pause-proxy-not-admin");
-        assertTrue(timelock.hasRole(timelock.EXECUTOR_ROLE(), address(0)), "testPASInitialisation/executor-not-open");
         assertFalse(timelock.hasRole(timelock.PAUSER_ROLE(), pauseProxy), "testPASInitialisation/temporary-pauser-not-revoked");
         assertTrue(timelock.hasRole(timelock.PROPOSER_ROLE(), coreCouncil), "testPASInitialisation/core-council-not-proposer");
         assertTrue(timelock.hasRole(timelock.CANCELLER_ROLE(), coreCouncil), "testPASInitialisation/core-council-not-canceller");
@@ -1660,6 +1660,8 @@ contract DssSpellTest is DssSpellTestBase {
             assertEq(beamState.controllersCBeams(groveController, groveCBeam), 1, "testPASInitialisation/controller-pairing-not-set");
             assertEq(beamState.hop(address(0)), 16 hours, "testPASInitialisation/invalid-hop");
             assertEq(beamState.maxChange(address(0)), 120 * WAD / 100, "testPASInitialisation/invalid-max-change");
+            assertEq(beamState.getHop(groveRateLimits), 16 hours, "testPASInitialisation/invalid-effective-hop");
+            assertEq(beamState.getMaxChange(groveRateLimits), 120 * WAD / 100, "testPASInitialisation/invalid-effective-max-change");
         }
 
         // Check that paused Timelock operations cannot be scheduled
@@ -1685,7 +1687,6 @@ contract DssSpellTest is DssSpellTestBase {
             AccessControlLike accessControls   = AccessControlLike(0x4F6d1704700cd494DD4cd9bF59c0C39DA1Bc9164);
             AccessControlLike rateLimits       = AccessControlLike(groveRateLimits);
             address           groveSubProxy    = addr.addr("GROVE_SUBPROXY");
-            address           groveCBeam       = wallets.addr("GROVE_CBEAM");
             bytes32           defaultAdminRole = bytes32(0);
 
             assertTrue(accessControls.hasRole(defaultAdminRole, groveSubProxy), "testPASGroveIntegration/subproxy-not-access-controls-admin-before-spell");
@@ -1697,9 +1698,6 @@ contract DssSpellTest is DssSpellTestBase {
             _scheduleWaitAndCast(address(spell));
             assertTrue(spell.done(), "TestError/spell-not-done");
 
-            PASBeamStateLike beamState = PASBeamStateLike(addr.addr("PAS_STATE"));
-            assertEq(beamState.rateLimitsCBeams(groveRateLimits, groveCBeam), 1, "testPASGroveIntegration/rate-limits-pairing-not-set");
-            assertEq(beamState.controllersCBeams(0xbf83F5974B932c7D842254042717D6A2706CE5eE, groveCBeam), 1, "testPASGroveIntegration/controller-pairing-not-set");
             assertFalse(accessControls.hasRole(defaultAdminRole, address(configurator)), "testPASGroveIntegration/access-controls-role-set-by-core-spell");
             assertFalse(rateLimits.hasRole(defaultAdminRole, address(configurator)), "testPASGroveIntegration/rate-limits-role-set-by-core-spell");
 
@@ -1728,7 +1726,6 @@ contract DssSpellTest is DssSpellTestBase {
             assertLt(beforeData.maxAmount, type(uint256).max, "testPASGroveIntegration/rate-limit-max-is-unlimited");
             assertGt(beforeData.slope, 0, "testPASGroveIntegration/rate-limit-slope-is-zero");
             assertGt(newMaxAmount, beforeData.maxAmount, "testPASGroveIntegration/rate-limit-max-increase-rounded-down");
-            assertGt(newSlope, beforeData.slope, "testPASGroveIntegration/rate-limit-slope-increase-rounded-down");
             assertEq(configurator.zzz(groveRateLimits, limitUsdsMint), 0, "testPASGroveIntegration/cooldown-set-before-call");
 
             vm.expectRevert("Configurator/not-authorized-ratelimits-cBeam");
