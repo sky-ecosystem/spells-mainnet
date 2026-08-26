@@ -264,7 +264,7 @@ contract DssSpellAction is DssAction {
 
         // ---------- Rename rewards key in Chainlog ----------
         // Forum: https://forum.skyeco.com/t/proposed-housekeeping-item-2026-08-27-executive-vote/28194
-        // Atlas: https://www.sky-atlas.io/#0d0e2e1a-0502-4ee3-bc9d-8bd8ddde19ec
+        // Atlas: https://sky-atlas.io/#0d0e2e1a-0502-4ee3-bc9d-8bd8ddde19ec
 
         // Rename OWNER_REWARDS_LSSKY_USDS to REWARDS_OWNER_LSSKY_USDS in Chainlog.
         dss.chainlog.removeAddress("OWNER_REWARDS_LSSKY_USDS");
