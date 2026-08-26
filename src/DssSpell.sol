@@ -266,7 +266,7 @@ contract DssSpellAction is DssAction {
         // Forum: https://forum.skyeco.com/t/proposed-housekeeping-item-2026-08-27-executive-vote/28194
         // Atlas: https://www.sky-atlas.io/#0d0e2e1a-0502-4ee3-bc9d-8bd8ddde19ec
 
-        // Rename OWNER_REWARDS_LSSKY_USDS to REWARDS_OWNER_LSSKY_USDS in chainlog.
+        // Rename OWNER_REWARDS_LSSKY_USDS to REWARDS_OWNER_LSSKY_USDS in Chainlog.
         dss.chainlog.removeAddress("OWNER_REWARDS_LSSKY_USDS");
         DssExecLib.setChangelogAddress("REWARDS_OWNER_LSSKY_USDS", OWNER_REWARDS_LSSKY_USDS);
 
