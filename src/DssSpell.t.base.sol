@@ -615,6 +615,43 @@ interface ArbL2GovernanceRelayLike {
     function relay(address target, bytes calldata targetData) external;
 }
 
+interface SafeHarborAgreementLike {
+    struct Account {
+        string accountAddress;
+        uint8 childContractScope;
+    }
+
+    struct Contact {
+        string name;
+        string contact;
+    }
+
+    struct Chain {
+        string assetRecoveryAddress;
+        Account[] accounts;
+        string caip2ChainId;
+    }
+
+    struct BountyTerms {
+        uint256 bountyPercentage;
+        uint256 bountyCapUSD;
+        bool retainable;
+        uint8 identity;
+        string diligenceRequirements;
+        uint256 aggregateBountyCapUSD;
+    }
+
+    struct AgreementDetails {
+        string protocolName;
+        Contact[] contactDetails;
+        Chain[] chains;
+        BountyTerms bountyTerms;
+        string agreementURI;
+    }
+
+    function getDetails() external view returns (AgreementDetails memory details);
+}
+
 contract DssSpellTestBase is Config, DssTest {
     using stdStorage for StdStorage;
 
@@ -3362,6 +3399,60 @@ contract DssSpellTestBase is Config, DssTest {
         _checkSystemValues(afterSpell);
 
         _checkCollateralValues(afterSpell);
+    }
+
+    function _testSafeHarborRecoveryAddresses() internal {
+        address agreementAddress = addr.addr("SAFE_HARBOR_AGREEMENT");
+        assertEq(
+            chainLog.getAddress("SAFE_HARBOR_AGREEMENT"),
+            agreementAddress,
+            "TestError/safe-harbor-chainlog-address-before"
+        );
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        assertEq(
+            chainLog.getAddress("SAFE_HARBOR_AGREEMENT"),
+            agreementAddress,
+            "TestError/safe-harbor-chainlog-address-after"
+        );
+
+        SafeHarborAgreementLike.AgreementDetails memory details =
+            SafeHarborAgreementLike(agreementAddress).getDetails();
+        SafeHarborChainValues[] storage expectedChains = afterSpell.safe_harbor_chains;
+
+        assertEq(
+            details.chains.length,
+            expectedChains.length,
+            "TestError/safe-harbor-chain-count"
+        );
+
+        for (uint256 i = 0; i < expectedChains.length; i++) {
+            bool found;
+            for (uint256 j = 0; j < details.chains.length; j++) {
+                if (_cmpStr(details.chains[j].caip2ChainId, expectedChains[i].caip2_chain_id)) {
+                    assertEq(
+                        details.chains[j].assetRecoveryAddress,
+                        expectedChains[i].asset_recovery_address,
+                        string.concat(
+                            "TestError/safe-harbor-recovery-address-",
+                            expectedChains[i].caip2_chain_id
+                        )
+                    );
+                    found = true;
+                    break;
+                }
+            }
+            assertTrue(
+                found,
+                string.concat(
+                    "TestError/safe-harbor-chain-not-found-",
+                    expectedChains[i].caip2_chain_id
+                )
+            );
+        }
     }
 
     function _testOfficeHours() internal {

@@ -27,6 +27,11 @@ contract Config {
         uint256   expiration_threshold;
     }
 
+    struct SafeHarborChainValues {
+        string caip2_chain_id;
+        string asset_recovery_address;
+    }
+
     struct SystemValues {
         uint256 max_global_line_offset;
         uint256 pause_delay;
@@ -83,6 +88,7 @@ contract Config {
         uint16  stusds_rate_setter_maxDuty;
         uint16  stusds_rate_setter_dutyStep;
         address[] stusds_rate_setter_buds;
+        SafeHarborChainValues[] safe_harbor_chains;
     }
 
     enum UpdateMethod {
@@ -213,6 +219,36 @@ contract Config {
         address[] memory buds = new address[](1);
         buds[0] = 0xBB865F94B8A92E57f79fCc89Dfd4dcf0D3fDEA16;
         afterSpell.stusds_rate_setter_buds = buds; // Array of address
+
+        delete afterSpell.safe_harbor_chains;
+        afterSpell.safe_harbor_chains.push(SafeHarborChainValues({
+            caip2_chain_id: "eip155:1",
+            asset_recovery_address: "0xBE8E3e3618f7474F8cB1d074A26afFef007E98FB"
+        }));
+        afterSpell.safe_harbor_chains.push(SafeHarborChainValues({
+            caip2_chain_id: "eip155:8453",
+            asset_recovery_address: "0xdD0BCc201C9E47c6F6eE68E4dB05b652Bb6aC255"
+        }));
+        afterSpell.safe_harbor_chains.push(SafeHarborChainValues({
+            caip2_chain_id: "eip155:42161",
+            asset_recovery_address: "0x10E6593CDda8c58a1d0f14C5164B376352a55f2F"
+        }));
+        afterSpell.safe_harbor_chains.push(SafeHarborChainValues({
+            caip2_chain_id: "eip155:10",
+            asset_recovery_address: "0x10E6593CDda8c58a1d0f14C5164B376352a55f2F"
+        }));
+        afterSpell.safe_harbor_chains.push(SafeHarborChainValues({
+            caip2_chain_id: "eip155:130",
+            asset_recovery_address: "0x3510a7F16F549EcD0Ef018DE0B3c2ad7c742990f"
+        }));
+        afterSpell.safe_harbor_chains.push(SafeHarborChainValues({
+            caip2_chain_id: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+            asset_recovery_address: "AYPtjx4Hc8us1ikULUedkmZ3wtiD6tmL7gK3qe4V3oHt"
+        }));
+        afterSpell.safe_harbor_chains.push(SafeHarborChainValues({
+            caip2_chain_id: "eip155:43114",
+            asset_recovery_address: "0xe928885BCe799Ed933651715608155F01abA23cA"
+        }));
 
         //
         // Values for all collateral
