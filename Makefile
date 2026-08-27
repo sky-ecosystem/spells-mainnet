@@ -22,3 +22,4 @@ arb-cost             :; ./scripts/get-arb-relay-cost.sh $(spell)
 rates                :; ./scripts/rates.sh $(pct)
 safeharbor-generate  :; cd scripts/safeharbor && npm --silent ci && npm run --silent generate
 safeharbor-inspect   :; cd scripts/safeharbor && npm --silent ci && npm run --silent inspect
+safeharbor-test-spell :; ./scripts/safeharbor-anvil.sh "$(block)"
