@@ -67,7 +67,7 @@ contract DssSpellAction is DssAction {
     // ---------- Contracts ----------
     address internal immutable USDS                       = DssExecLib.getChangelogAddress("USDS");
     address internal immutable MCD_PAUSE_PROXY            = DssExecLib.pauseProxy();
-    address internal immutable MCD_IAM_AUTO_LINE          = DssExecLib.getChangelogAddress("MCD_IAM_AUTO_LINE");
+    address internal immutable MCD_IAM_AUTO_LINE          = DssExecLib.autoLine();
     address internal immutable OWNER_REWARDS_LSSKY_USDS   = DssExecLib.getChangelogAddress("OWNER_REWARDS_LSSKY_USDS");
     address internal immutable SPARK_STARGUARD            = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
     address internal immutable GROVE_STARGUARD            = DssExecLib.getChangelogAddress("GROVE_STARGUARD");

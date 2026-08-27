@@ -645,5 +645,8 @@ contract Addresses {
         addr["PAS_CONFIGURATOR"]                 = 0xb7E61Df6CAb0A51E9A5dab1A7DD3f942dDe5b929;
         addr["PAS_TIMELOCK"]                     = 0xB50a06Af02dDE44dB6EA7ee729403848c2B35293;
         addr["PAS_MOM"]                          = 0xD44B8d01D5207aA792C666d0A712A1A161CD6171;
+        addr["GROVE_ACCESS_CONTROLS"]            = 0x4F6d1704700cd494DD4cd9bF59c0C39DA1Bc9164;
+        addr["GROVE_RATE_LIMITS"]                = 0xE016Ae733A77Ba77E7907aAA749394Fc5e75C0e1;
+        addr["GROVE_CONTROLLER"]                 = 0xbf83F5974B932c7D842254042717D6A2706CE5eE;
     }
 }
