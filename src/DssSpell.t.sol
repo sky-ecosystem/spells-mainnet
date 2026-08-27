@@ -1749,40 +1749,56 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testPASPauseFromPauseProxy() public {
-        PASTimelockLike timelock = PASTimelockLike(addr.addr("PAS_TIMELOCK"));
-        PASMomLike      mom      = PASMomLike(addr.addr("PAS_MOM"));
-
-        // Execute spell
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        // Unpause Timelock as PauseProxy
-        vm.prank(pauseProxy);
-        timelock.unpause();
-        assertFalse(timelock.paused(), "testPASPauseFromPauseProxy/timelock-not-unpaused-by-pause-proxy");
-
-        // Pause Timelock through PASMom as owner
-        vm.prank(pauseProxy);
-        mom.pause();
-        assertTrue(timelock.paused(), "testPASPauseFromPauseProxy/timelock-not-paused-by-mom-owner");
-    }
-
-    function testPASStopFromHat() public {
+    function testPASMomExecutionProxy() public {
         PASBeamStateLike beamState = PASBeamStateLike(addr.addr("PAS_STATE"));
+        PASTimelockLike  timelock  = PASTimelockLike(addr.addr("PAS_TIMELOCK"));
         PASMomLike       mom       = PASMomLike(addr.addr("PAS_MOM"));
 
         // Execute spell
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
-        assertFalse(beamState.stopped(), "testPASStopFromHat/beam-state-stopped-after-spell");
+        assertFalse(beamState.stopped(), "testPASMomExecutionProxy/beam-state-stopped-after-spell");
 
-        // Stop BeamState through PASMom as hat
-        vm.prank(chief.hat());
+        // Unpause Timelock as PauseProxy
+        vm.prank(pauseProxy);
+        timelock.unpause();
+        assertFalse(timelock.paused(), "testPASMomExecutionProxy/timelock-not-unpaused-by-pause-proxy");
+
+        // Execute PASMom emergency actions as PauseProxy
+        vm.startPrank(pauseProxy);
+        mom.pause();
         mom.stop();
-        assertTrue(beamState.stopped(), "testPASStopFromHat/beam-state-not-stopped-by-mom-authority");
+        vm.stopPrank();
+
+        assertTrue(timelock.paused(), "testPASMomExecutionProxy/timelock-not-paused-by-mom-owner");
+        assertTrue(beamState.stopped(), "testPASMomExecutionProxy/beam-state-not-stopped-by-mom-owner");
+    }
+
+    function testPASMomExecutionByHat() public {
+        PASBeamStateLike beamState = PASBeamStateLike(addr.addr("PAS_STATE"));
+        PASTimelockLike  timelock  = PASTimelockLike(addr.addr("PAS_TIMELOCK"));
+        PASMomLike       mom       = PASMomLike(addr.addr("PAS_MOM"));
+
+        // Execute spell
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+        assertFalse(beamState.stopped(), "testPASMomExecutionByHat/beam-state-stopped-after-spell");
+
+        // Unpause Timelock as PauseProxy
+        vm.prank(pauseProxy);
+        timelock.unpause();
+        assertFalse(timelock.paused(), "testPASMomExecutionByHat/timelock-not-unpaused-by-pause-proxy");
+
+        // Execute PASMom emergency actions as hat
+        vm.startPrank(chief.hat());
+        mom.pause();
+        mom.stop();
+        vm.stopPrank();
+
+        assertTrue(timelock.paused(), "testPASMomExecutionByHat/timelock-not-paused-by-mom-authority");
+        assertTrue(beamState.stopped(), "testPASMomExecutionByHat/beam-state-not-stopped-by-mom-authority");
     }
 
     function testPASStopFromCoreCouncil() public {

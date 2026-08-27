@@ -83,7 +83,7 @@ contract DssSpellAction is DssAction {
     address internal constant PAS_CORE_COUNCIL   = 0x148eF923d764CBdc1597CcADBbbC66499C1A1432;
     address internal constant GROVE_RATE_LIMITS  = 0xE016Ae733A77Ba77E7907aAA749394Fc5e75C0e1;
     address internal constant GROVE_CONTROLLER   = 0xbf83F5974B932c7D842254042717D6A2706CE5eE;
-    address internal constant GROVE_CBEAM        = 0x91dC2F6DbB8Adf76d373A54D408EDd7D736046C4;
+    address internal constant GROVE_PAS_CBEAM    = 0x91dC2F6DbB8Adf76d373A54D408EDd7D736046C4;
 
     // ---------- Wallets ----------
     address internal constant SKY_FRONTIER_FOUNDATION = 0xca5183FB9997046fbd9bA8113139bf5a5Af122A0;
@@ -179,7 +179,7 @@ contract DssSpellAction is DssAction {
         cBeamConfigs[0] = InitCBeamConfig({
             // address cBeamConfigs[0].cBeam
             // Argument value: 0x91dC2F6DbB8Adf76d373A54D408EDd7D736046C4
-            cBeam: GROVE_CBEAM,
+            cBeam: GROVE_PAS_CBEAM,
             // address[] cBeamConfigs[0].rateLimits
             // Argument value: A single address 0xE016Ae733A77Ba77E7907aAA749394Fc5e75C0e1
             rateLimits: rateLimits,
