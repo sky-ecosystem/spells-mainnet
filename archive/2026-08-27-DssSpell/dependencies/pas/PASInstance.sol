@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2023 Dai Foundation <www.daifoundation.org>
+// SPDX-FileCopyrightText: © 2026 Dai Foundation <www.daifoundation.org>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //
 // This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,8 @@
 
 pragma solidity >=0.8.0;
 
-struct SplitterInstance {
-    address splitter;
-    address mom;
+struct PASInstance {
+    address beamState;
+    address configurator;
+    address timelock;
 }
