@@ -1,5 +1,15 @@
+ignore-age           ?= 0
+foundry-ignore-age    = $(if $(filter-out 0 1,$(ignore-age)),$(error ignore-age must be 0 or 1),$(if $(filter 1,$(ignore-age)),--ignore-age,))
+
 all                  :; forge build
 clean                :; forge clean
+install-foundry      :; python3 ./scripts/setup-foundry/setup-foundry.py install --release "$(release)" $(foundry-ignore-age)
+select-foundry       :; python3 ./scripts/setup-foundry/setup-foundry.py select $(foundry-ignore-age)
+verify-foundry       :; python3 ./scripts/setup-foundry/setup-foundry.py verify --release "$(release)" $(foundry-ignore-age)
+test-setup-foundry   :; PYTHONPATH=./scripts/setup-foundry python3 -m unittest discover \
+	--start-directory ./scripts/setup-foundry \
+	--top-level-directory ./scripts/setup-foundry \
+	--pattern '*_test.py' -v
                         # Usage example: make test match=SpellIsCast
 test                 :; ./scripts/test-dssspell-forge.sh no-match="$(no-match)" match="$(match)" block="$(block)"
 estimate             :; forge build --quiet; BYTECODE=$$(jq -r '.bytecode.object' out/DssSpell.sol/DssSpell.json); GAS=$$(cast estimate --create $$BYTECODE); echo "Estimated gas: $$GAS"
