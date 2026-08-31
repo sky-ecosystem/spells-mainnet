@@ -17,7 +17,6 @@
 pragma solidity 0.8.16;
 
 import "./DssSpell.t.base.sol";
-import {BeamStateLike, PASInit} from "./dependencies/pas/PASInit.sol";
 
 interface L2Spell {
     function dstDomain() external returns (bytes32);
@@ -39,69 +38,6 @@ interface SpellActionLike {
 interface LineMomLike {
     function ilks(bytes32 ilk) external view returns (uint256);
     function wipe(bytes32 ilk) external returns (uint256);
-}
-
-interface PASBeamStateLike {
-    function wards(address) external view returns (uint256);
-    function userRoles(address) external view returns (bytes32);
-    function actionsRoles(bytes4) external view returns (bytes32);
-    function rateLimits(address) external view returns (uint256);
-    function controllers(address) external view returns (uint256);
-    function cBeams(address) external view returns (uint256);
-    function rateLimitsCBeams(address, address) external view returns (uint256);
-    function controllersCBeams(address, address) external view returns (uint256);
-    function hop(address) external view returns (uint256);
-    function maxChange(address) external view returns (uint256);
-    function getHop(address) external view returns (uint256);
-    function getMaxChange(address) external view returns (uint256);
-    function stopped() external view returns (bool);
-    function setHop(address, uint256) external;
-    function start() external;
-    function stop() external;
-}
-
-interface PASConfiguratorLike {
-    function beamState() external view returns (address);
-    function zzz(address, bytes32) external view returns (uint256);
-    function setRateLimit(address, bytes32, uint256, uint256) external;
-}
-
-interface PASMomLike {
-    function owner() external view returns (address);
-    function authority() external view returns (address);
-    function beamState() external view returns (address);
-    function timelock() external view returns (address);
-    function stop() external;
-    function pause() external;
-}
-
-interface PASTimelockLike {
-    function DEFAULT_ADMIN_ROLE() external view returns (bytes32);
-    function PROPOSER_ROLE() external view returns (bytes32);
-    function CANCELLER_ROLE() external view returns (bytes32);
-    function PAUSER_ROLE() external view returns (bytes32);
-    function getMinDelay() external view returns (uint256);
-    function hasRole(bytes32, address) external view returns (bool);
-    function paused() external view returns (bool);
-    function unpause() external;
-    function scheduleBatch(address[] calldata, uint256[] calldata, bytes[] calldata, bytes32, bytes32, uint256) external;
-    function executeBatch(address[] calldata, uint256[] calldata, bytes[] calldata, bytes32, bytes32) external payable;
-}
-
-interface AccessControlLike {
-    function hasRole(bytes32, address) external view returns (bool);
-    function grantRole(bytes32, address) external;
-}
-
-interface RateLimitsLike {
-    struct RateLimitData {
-        uint256 maxAmount;
-        uint256 slope;
-        uint256 lastAmount;
-        uint256 lastUpdated;
-    }
-
-    function getRateLimitData(bytes32) external view returns (RateLimitData memory);
 }
 
 contract DssSpellTest is DssSpellTestBase {
@@ -166,10 +102,6 @@ contract DssSpellTest is DssSpellTestBase {
 
     function testSPBEAMTauAndBudValues() public {
         _testSPBEAMTauAndBudValues();
-    }
-
-    function testAutoLineExecAfterEverySetIlkCall() public {
-        _testAutoLineExecAfterEverySetIlkCall();
     }
 
     // Leave this test always enabled as it acts as a config test
@@ -270,8 +202,52 @@ contract DssSpellTest is DssSpellTestBase {
         //assertEq(OsmAbstract(0xF15993A5C5BE496b8e1c9657Fd2233b579Cd3Bc6).wards(ORACLE_WALLET01), 1);
     }
 
-    function testRemovedChainlogKeys() public { // add the `skipped` modifier to skip
-        string[1] memory removedKeys = ["OWNER_REWARDS_LSSKY_USDS"];
+    function testRemovedChainlogKeys() public skipped { // add the `skipped` modifier to skip
+        string[43] memory removedKeys = [
+            "PIP_MKR",
+            "PIP_AAVE",
+            "PIP_ADAI",
+            "PIP_BAL",
+            "PIP_BAT",
+            "PIP_COMP",
+            "PIP_CRVV1ETHSTETH",
+            "PIP_GNO",
+            "PIP_GUSD",
+            "PIP_KNC",
+            "PIP_LINK",
+            "PIP_LRC",
+            "PIP_MANA",
+            "PIP_MATIC",
+            "PIP_PAX",
+            "PIP_PAXUSD",
+            "PIP_RENBTC",
+            "PIP_RETH",
+            "PIP_RWA003",
+            "PIP_RWA006",
+            "PIP_RWA007",
+            "PIP_RWA008",
+            "PIP_RWA010",
+            "PIP_RWA011",
+            "PIP_RWA012",
+            "PIP_RWA013",
+            "PIP_RWA014",
+            "PIP_RWA015",
+            "PIP_TUSD",
+            "PIP_UNI",
+            "PIP_UNIV2AAVEETH",
+            "PIP_UNIV2DAIETH",
+            "PIP_UNIV2DAIUSDT",
+            "PIP_UNIV2ETHUSDT",
+            "PIP_UNIV2LINKETH",
+            "PIP_UNIV2UNIETH",
+            "PIP_UNIV2USDCETH",
+            "PIP_UNIV2WBTCDAI",
+            "PIP_UNIV2WBTCETH",
+            "PIP_USDC",
+            "PIP_USDT",
+            "PIP_YFI",
+            "PIP_ZRX"
+        ];
 
         for (uint256 i = 0; i < removedKeys.length; i++) {
             try chainLog.getAddress(_stringToBytes32(removedKeys[i])) {
@@ -303,12 +279,10 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
-        string[5] memory addedKeys = [
-            "PAS_STATE",
-            "PAS_CONFIGURATOR",
-            "PAS_TIMELOCK",
-            "PAS_MOM",
-            "REWARDS_OWNER_LSSKY_USDS"
+        string[3] memory addedKeys = [
+            "EMSP_STUSDS_RATE_S_DISS_BUD_FAB",
+            "EMSP_STUSDS_WIPE_PARAM_FAB",
+            "EMSP_STUSDS_RATE_SETTER_HALT"
         ];
 
         for(uint256 i = 0; i < addedKeys.length; i++) {
@@ -718,16 +692,16 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public skipped { // add the `skipped` modifier to skip
+    function testVestSky() public { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
-        uint256 OCT_18_2026_14_21_59_UTC = 1792333319;
+        uint256 SEP_20_2026_14_04_59 = 1789913099;
 
         uint256 spellCastTime = _getSpellCastTime();
 
         // Build expected new stream
         NewVestStream[] memory newStreams = new NewVestStream[](1);
         newStreams[0] = NewVestStream({
-            id:  16,
+            id:  15,
             usr: addr.addr("REWARDS_DIST_LSSKY_SKY"),
             bgn: spellCastTime,
             clf: spellCastTime,
@@ -735,15 +709,15 @@ contract DssSpellTest is DssSpellTestBase {
             tau: 90 days,
             mgr: address(0),
             res: 1,
-            tot: 96_903_706 * WAD,
+            tot: 286_714_697 * WAD,
             rxd: 0 // Amount already claimed
         });
 
         // For each yanked stream, provide Stream object and initialize the array with the current number of yanked streams
         YankedVestStream[] memory yankedStreams = new YankedVestStream[](1);
         yankedStreams[0] = YankedVestStream({
-            id:  15,
-            fin: OCT_18_2026_14_21_59_UTC,
+            id:  14,
+            fin: SEP_20_2026_14_04_59,
             end: spellCastTime
         });
 
@@ -837,9 +811,9 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestedRewardsDist() public skipped { // add the `skipped` modifier to skip
-        uint256 expectedVestIdBefore = 15;
-        uint256 expectedVestIdAfter = 16;
+    function testVestedRewardsDist() public { // add the `skipped` modifier to skip
+        uint256 expectedVestIdBefore = 14;
+        uint256 expectedVestIdAfter = 15;
 
         address rewardsDist = addr.addr("REWARDS_DIST_LSSKY_SKY");
         address stakingRewards = addr.addr("REWARDS_LSSKY_SKY");
@@ -885,9 +859,10 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public skipped { // add the `skipped` modifier to skip
+    function testPayments() public { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
-        bool ignoreTotalSupplyDaiUsds = false;
+        // Note: set to true because the RWA001-A cull() also increases vat.sin(vow)
+        bool ignoreTotalSupplyDaiUsds = true;
         bool ignoreTotalSupplyMkrSky = true;
 
         // For each payment, create a Payee object with:
@@ -896,20 +871,20 @@ contract DssSpellTest is DssSpellTestBase {
         //    the amount to be paid
         // Initialize the array with the number of payees
         Payee[7] memory payees = [
-            Payee(address(usds), addr.addr("SPARK_SUBPROXY"),                  4_442_924 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("GROVE_SUBPROXY"),                  1_808_084 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("KEEL_SUBPROXY"),                   35_328 ether),    // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("OBEX_SUBPROXY"),                   916_736 ether),   // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("SKYBASE_SUBPROXY"),                327_407 ether),   // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("OSERO_SUBPROXY"),                  12_043 ether),    // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG"), 2_103_484 ether)  // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("SPARK_SUBPROXY"),                  9_746_443 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("GROVE_SUBPROXY"),                  2_328_332 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("KEEL_SUBPROXY"),                   77_284 ether),    // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("OBEX_SUBPROXY"),                   1_519_539 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("SKYBASE_SUBPROXY"),                204_242 ether),   // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG"), 3_378_069 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("DEMAND_SIDE_BUFFER_MULTISIG"),  34_902 ether)     // Note: ether is only a keyword helper
         ];
 
         // Fill the total values from exec sheet
         PaymentAmounts memory expectedTotalPayments = PaymentAmounts({
             dai:           0  ether, // Note: ether is only a keyword helper
             mkr:           0  ether, // Note: ether is only a keyword helper
-            usds:  9_646_006  ether, // Note: ether is only a keyword helper
+            usds:  17_288_811 ether, // Note: ether is only a keyword helper
             sky:           0  ether  // Note: ether is only a keyword helper
         });
 
@@ -1331,7 +1306,7 @@ contract DssSpellTest is DssSpellTestBase {
         uint256 ilkArt;
     }
 
-    function _testExpectedMscValues(AllocatorPayment[] memory payments, MscIlkValues[] memory expectedValues, uint256 expectedDaiVow) internal view {
+    function _testExpectedMscValues(AllocatorPayment[3] memory payments, MscIlkValues[] memory expectedValues, uint256 expectedDaiVow) internal view {
         for(uint256 i = 0; i < payments.length; i++) {
             bytes32 ilk = AllocatorVaultLike(payments[i].vault).ilk();
             (, uint256 urnArt) = vat.urns(ilk, address(payments[i].vault));
@@ -1346,13 +1321,18 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 
-    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
-        AllocatorPayment[] memory payments = new AllocatorPayment[](4);
-        payments[0] = AllocatorPayment(addr.addr("ALLOCATOR_SPARK_A_VAULT"), 9_465_419 * WAD);
-        payments[1] = AllocatorPayment(addr.addr("ALLOCATOR_BLOOM_A_VAULT"), 9_685_438 * WAD);
-        payments[2] = AllocatorPayment(addr.addr("ALLOCATOR_OBEX_A_VAULT"),  2_535_968 * WAD);
-        payments[3] = AllocatorPayment(addr.addr("ALLOCATOR_PRYSM_A_VAULT"), 497 * WAD);
-        uint256 expectedTotalAmount = 21_687_322 * WAD;
+    function testMonthlySettlementCycleInflows() public { // add the `skipped` modifier to skip
+        address ALLOCATOR_SPARK_A_VAULT = addr.addr("ALLOCATOR_SPARK_A_VAULT");
+        address ALLOCATOR_BLOOM_A_VAULT = addr.addr("ALLOCATOR_BLOOM_A_VAULT");
+        address ALLOCATOR_OBEX_A_VAULT = addr.addr("ALLOCATOR_OBEX_A_VAULT");
+
+        AllocatorPayment[3] memory payments = [
+            AllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 16_923_682 * WAD),
+            AllocatorPayment(ALLOCATOR_BLOOM_A_VAULT, 12_342_158 * WAD),
+            AllocatorPayment(ALLOCATOR_OBEX_A_VAULT,  3_450_783 * WAD)
+        ];
+
+        uint256 expectedTotalAmount = 32_716_623 * WAD;
 
         MscIlkValues[] memory expectedValues = new MscIlkValues[](payments.length);
         uint256 totalDtab = 0;
@@ -1401,14 +1381,14 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
-        PrimeAgentSpell[2] memory primeAgentSpells = [
+        PrimeAgentSpell[3] memory primeAgentSpells = [
             PrimeAgentSpell({
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "SPARK_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0xbE35b15Cda9002C1719A9D254B158613BDdE72af,
+                addr: 0xC1090e8fEE666868622a2F1e870185F944108Ee2,
                 // Insert Prime Agent spell codehash
-                codehash: 0xd3d82d87849aa5a7df3105bac5e97518999288f8ce91ed80c83031a058a2fcf8,
+                codehash: 0xa7b0b6c470169f40016d354a8944f9e5f3f787159fec5192694e8f1ddbc7f26f,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             }),
@@ -1416,9 +1396,19 @@ contract DssSpellTest is DssSpellTestBase {
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "GROVE_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0xF3d4F600640a87F4203DF0A554642228a119711e,
+                addr: 0x4f1318bC0490dC7C7F8230F1dd91A4A2e4694134,
                 // Insert Prime Agent spell codehash
-                codehash: 0x89f28b693c551c87c8dbd632484c39e8e5e1ac040696ed7839776ba3beae23c5,
+                codehash: 0x38dd6399490f19d7a7e17a6eafda5d2ad92f9395c08efe2fdbacfda3b6d36a89,
+                // Set to true if the Prime Agent spell is executed directly from core spell
+                directExecutionEnabled: false
+            }),
+            PrimeAgentSpell({
+                // Insert Prime Agent StarGuards Chainlog key
+                starGuardKey: "PRYSM_STARGUARD",
+                // Insert Prime Agent spell address
+                addr: 0x5D9311fcDda62c08EB9F1115Ca804881a6660445,
+                // Insert Prime Agent spell codehash
+                codehash: 0x7dca6bc3a3097897198698a674bc824fd3bbb1c9b94c655cd0d78c49db2b9f3e,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             })
@@ -1470,12 +1460,10 @@ contract DssSpellTest is DssSpellTestBase {
         ChainUpdates[1] memory chainUpdates;
 
         // Build array of accounts to be added to Safe Harbor Agreement
-        SafeHarborAgreementLike.Account[] memory addedAccounts = new SafeHarborAgreementLike.Account[](5);
-        addedAccounts[0] = SafeHarborAgreementLike.Account({ accountAddress: "0x38E4254bD82ED5Ee97CD1C4278FAae748d998865", ChildContractScope: 0 });
-        addedAccounts[1] = SafeHarborAgreementLike.Account({ accountAddress: "0x1A1879E66547F90bfF87D45A5b0335950E019E02", ChildContractScope: 0 });
-        addedAccounts[2] = SafeHarborAgreementLike.Account({ accountAddress: "0xb7E61Df6CAb0A51E9A5dab1A7DD3f942dDe5b929", ChildContractScope: 0 });
-        addedAccounts[3] = SafeHarborAgreementLike.Account({ accountAddress: "0xB50a06Af02dDE44dB6EA7ee729403848c2B35293", ChildContractScope: 0 });
-        addedAccounts[4] = SafeHarborAgreementLike.Account({ accountAddress: "0xD44B8d01D5207aA792C666d0A712A1A161CD6171", ChildContractScope: 0 });
+        SafeHarborAgreementLike.Account[] memory addedAccounts = new SafeHarborAgreementLike.Account[](3);
+        addedAccounts[0] = SafeHarborAgreementLike.Account({ accountAddress: "0xb3Fd827F58989cFacFE50d2F8e86A1113b6066D1", ChildContractScope: 2 });
+        addedAccounts[1] = SafeHarborAgreementLike.Account({ accountAddress: "0x768D5Ce639c7E7d51E1244E2634d6149bd0d8096", ChildContractScope: 2 });
+        addedAccounts[2] = SafeHarborAgreementLike.Account({ accountAddress: "0x91808ABeCd82495a4a7bf27d80C8c1e89de9effb", ChildContractScope: 0 });
 
         // Configure chain updates for eip155:1 with added accounts
         chainUpdates[0] = ChainUpdates({
@@ -1483,13 +1471,10 @@ contract DssSpellTest is DssSpellTestBase {
             addedAccounts: addedAccounts
         });
 
-        uint256[] memory previousAccountCounts = new uint256[](chainUpdates.length);
-
         // Check that added accounts are not present before spell execution
         for (uint256 i = 0; i < chainUpdates.length; i++) {
             SafeHarborAgreementLike.AgreementDetails memory details = agreement.getDetails();
             SafeHarborAgreementLike.Chain memory chain = _findChain(details, chainUpdates[i].caip2ChainId);
-            previousAccountCounts[i] = chain.accounts.length;
 
             for (uint256 j = 0; j < chainUpdates[i].addedAccounts.length; j++) {
                 assertFalse(
@@ -1507,12 +1492,6 @@ contract DssSpellTest is DssSpellTestBase {
         for (uint256 i = 0; i < chainUpdates.length; i++) {
             SafeHarborAgreementLike.AgreementDetails memory details = agreement.getDetails();
             SafeHarborAgreementLike.Chain memory chain = _findChain(details, chainUpdates[i].caip2ChainId);
-
-            assertEq(
-                chain.accounts.length,
-                previousAccountCounts[i] + chainUpdates[i].addedAccounts.length,
-                "testUpdateSafeHarborAddedAccounts/unexpected-account-count"
-            );
 
             for (uint256 j = 0; j < chainUpdates[i].addedAccounts.length; j++) {
                 assertTrue(
@@ -1532,355 +1511,113 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
-    function testPASInitialization() public {
-        PASBeamStateLike beamState   = PASBeamStateLike(addr.addr("PAS_STATE"));
-        PASTimelockLike  timelock    = PASTimelockLike(addr.addr("PAS_TIMELOCK"));
-        PASMomLike       mom         = PASMomLike(addr.addr("PAS_MOM"));
-        address          coreCouncil = wallets.addr("PAS_CORE_COUNCIL");
 
-        // Check constructor arguments
-        assertEq(PASConfiguratorLike(addr.addr("PAS_CONFIGURATOR")).beamState(), address(beamState), "testPASInitialization/configurator-beam-state-mismatch");
-        assertEq(mom.beamState(), address(beamState), "testPASInitialization/mom-beam-state-mismatch");
-        assertEq(mom.timelock(), address(timelock), "testPASInitialization/mom-timelock-mismatch");
-        assertEq(timelock.getMinDelay(), 14 days, "testPASInitialization/timelock-delay-mismatch");
+    function testRWA001AOffboarding() public {
+        RwaLiquidationOracleAbstract oracle = RwaLiquidationOracleAbstract(addr.addr("MIP21_LIQUIDATION_ORACLE"));
+        address RWA001_A_URN = addr.addr("RWA001_A_URN");
 
-        // Check roles and state before spell
-        assertEq(mom.owner(), pauseProxy, "testPASInitialization/invalid-mom-owner-before-spell");
-        assertFalse(beamState.stopped(), "testPASInitialization/beam-state-stopped-before-spell");
-        assertEq(beamState.userRoles(address(timelock)), bytes32(0), "testPASInitialization/timelock-role-set-before-spell");
-        assertEq(beamState.userRoles(coreCouncil), bytes32(0), "testPASInitialization/core-council-role-set-before-spell");
-        assertEq(beamState.wards(address(mom)), 0, "testPASInitialization/mom-ward-set-before-spell");
-        assertEq(mom.authority(), address(0), "testPASInitialization/mom-authority-set-before-spell");
-        assertFalse(timelock.hasRole(timelock.PROPOSER_ROLE(), coreCouncil), "testPASInitialization/core-council-proposer-before-spell");
-        assertFalse(timelock.hasRole(timelock.CANCELLER_ROLE(), coreCouncil), "testPASInitialization/core-council-canceller-before-spell");
-        assertFalse(timelock.hasRole(timelock.PAUSER_ROLE(), address(mom)), "testPASInitialization/mom-pauser-before-spell");
-        assertFalse(timelock.hasRole(timelock.PAUSER_ROLE(), pauseProxy), "testPASInitialization/pause-proxy-pauser-before-spell");
+        bytes32 ilk = bytes32("RWA001-A");
 
-        // Execute spell and record PAS authorization events
-        {
-            _vote(address(spell));
-            vm.recordLogs();
-            _scheduleWaitAndCast(address(spell));
-            assertTrue(spell.done(), "TestError/spell-not-done");
+        (, uint256 rate,,,) = vat.ilks(ilk);
+        (, uint256 urnArtBefore) = vat.urns(ilk, RWA001_A_URN);
+        uint256 sinBefore = vat.sin(address(vow));
+        uint256 daiUsdsSupplyBefore = dai.totalSupply() + usds.totalSupply();
+        uint256 spellCastTime = _getSpellCastTime();
 
-            Vm.Log[] memory entries = vm.getRecordedLogs();
-
-            {
-                uint256 roleActions;
-                uint256 userRoles;
-                uint256 relies;
-                uint256 denies;
-                uint256 initRateLimits;
-                uint256 initControllerActions;
-
-                for (uint256 i = 0; i < entries.length; i++) {
-                    if (entries[i].emitter != address(beamState) || entries[i].topics.length == 0) continue;
-
-                    bytes32 topic = entries[i].topics[0];
-                    if (topic == keccak256("SetRoleAction(uint8,bytes4,bool)")) roleActions++;
-                    else if (topic == keccak256("SetUserRole(address,uint8,bool)")) userRoles++;
-                    else if (topic == keccak256("Rely(address)")) relies++;
-                    else if (topic == keccak256("Deny(address)")) denies++;
-                    else if (topic == keccak256("AddInitRateLimits(bytes32,address,uint256,uint256)")) initRateLimits++;
-                    else if (topic == keccak256("AddInitControllerActions(bytes32,address)")) initControllerActions++;
-                }
-
-                assertEq(roleActions, 18, "testPASInitialization/invalid-role-action-event-count");
-                assertEq(userRoles, 2, "testPASInitialization/invalid-user-role-event-count");
-                assertEq(relies, 1, "testPASInitialization/invalid-rely-event-count");
-                assertEq(denies, 0, "testPASInitialization/invalid-deny-event-count");
-                assertEq(initRateLimits, 0, "testPASInitialization/unexpected-init-rate-limits-event");
-                assertEq(initControllerActions, 0, "testPASInitialization/unexpected-init-controller-action-event");
-            }
-
-            {
-                uint256 roleGrants;
-                uint256 roleRevocations;
-
-                for (uint256 i = 0; i < entries.length; i++) {
-                    if (entries[i].emitter != address(timelock) || entries[i].topics.length == 0) continue;
-
-                    bytes32 topic = entries[i].topics[0];
-                    if (topic == keccak256("RoleGranted(bytes32,address,address)")) roleGrants++;
-                    else if (topic == keccak256("RoleRevoked(bytes32,address,address)")) roleRevocations++;
-                }
-
-                assertEq(roleGrants, 4, "testPASInitialization/invalid-role-granted-event-count");
-                assertEq(roleRevocations, 1, "testPASInitialization/invalid-role-revoked-event-count");
-            }
-        }
-
-        // Check exact role masks after spell
-        {
-            bytes32 delayedRole   = bytes32(uint256(1) << uint8(PASInit.Role.DELAYED));
-            bytes32 immediateRole = bytes32(uint256(1) << uint8(PASInit.Role.IMMEDIATE));
-
-            assertEq(beamState.userRoles(address(timelock)), delayedRole, "testPASInitialization/invalid-timelock-role-mask");
-            assertEq(beamState.userRoles(coreCouncil), immediateRole, "testPASInitialization/invalid-core-council-role-mask");
-
-            assertEq(beamState.actionsRoles(BeamStateLike.start.selector), delayedRole, "testPASInitialization/invalid-start-role");
-            assertEq(beamState.actionsRoles(BeamStateLike.setHop.selector), delayedRole, "testPASInitialization/invalid-set-hop-role");
-            assertEq(beamState.actionsRoles(BeamStateLike.setMaxChange.selector), delayedRole, "testPASInitialization/invalid-set-max-change-role");
-            assertEq(beamState.actionsRoles(BeamStateLike.addRateLimits.selector), delayedRole, "testPASInitialization/invalid-add-rate-limits-role");
-            assertEq(beamState.actionsRoles(BeamStateLike.addController.selector), delayedRole, "testPASInitialization/invalid-add-controller-role");
-            assertEq(beamState.actionsRoles(BeamStateLike.addCBeam.selector), delayedRole, "testPASInitialization/invalid-add-cbeam-role");
-            assertEq(beamState.actionsRoles(BeamStateLike.addInitRateLimits.selector), delayedRole, "testPASInitialization/invalid-add-init-rate-limits-role");
-            assertEq(beamState.actionsRoles(BeamStateLike.addInitControllerActions.selector), delayedRole, "testPASInitialization/invalid-add-init-controller-actions-role");
-            assertEq(beamState.actionsRoles(BeamStateLike.stop.selector), immediateRole, "testPASInitialization/invalid-stop-role");
-            assertEq(beamState.actionsRoles(BeamStateLike.delRateLimits.selector), immediateRole, "testPASInitialization/invalid-del-rate-limits-role");
-            assertEq(beamState.actionsRoles(BeamStateLike.delController.selector), immediateRole, "testPASInitialization/invalid-del-controller-role");
-            assertEq(beamState.actionsRoles(BeamStateLike.delCBeam.selector), immediateRole, "testPASInitialization/invalid-del-cbeam-role");
-            assertEq(beamState.actionsRoles(BeamStateLike.setCBeamForRateLimits.selector), immediateRole, "testPASInitialization/invalid-set-cbeam-for-rate-limits-role");
-            assertEq(beamState.actionsRoles(BeamStateLike.unsetCBeamForRateLimits.selector), immediateRole, "testPASInitialization/invalid-unset-cbeam-for-rate-limits-role");
-            assertEq(beamState.actionsRoles(BeamStateLike.setCBeamForController.selector), immediateRole, "testPASInitialization/invalid-set-cbeam-for-controller-role");
-            assertEq(beamState.actionsRoles(BeamStateLike.unsetCBeamForController.selector), immediateRole, "testPASInitialization/invalid-unset-cbeam-for-controller-role");
-            assertEq(beamState.actionsRoles(BeamStateLike.delInitRateLimits.selector), immediateRole, "testPASInitialization/invalid-del-init-rate-limits-role");
-            assertEq(beamState.actionsRoles(BeamStateLike.delInitControllerActions.selector), immediateRole, "testPASInitialization/invalid-del-init-controller-actions-role");
-        }
-
-        assertEq(mom.owner(), pauseProxy, "testPASInitialization/mom-owner-changed");
-        assertEq(mom.authority(), addr.addr("MCD_ADM"), "testPASInitialization/mom-authority-not-set");
-        assertEq(beamState.wards(address(mom)), 1, "testPASInitialization/mom-not-ward");
-        assertTrue(timelock.hasRole(timelock.PAUSER_ROLE(), address(mom)), "testPASInitialization/mom-not-pauser");
-        assertTrue(timelock.hasRole(timelock.DEFAULT_ADMIN_ROLE(), pauseProxy), "testPASInitialization/pause-proxy-not-admin");
-        assertFalse(timelock.hasRole(timelock.PAUSER_ROLE(), pauseProxy), "testPASInitialization/temporary-pauser-not-revoked");
-        assertTrue(timelock.hasRole(timelock.PROPOSER_ROLE(), coreCouncil), "testPASInitialization/core-council-not-proposer");
-        assertTrue(timelock.hasRole(timelock.CANCELLER_ROLE(), coreCouncil), "testPASInitialization/core-council-not-canceller");
-        assertFalse(beamState.stopped(), "testPASInitialization/beam-state-stopped-after-spell");
-        assertTrue(timelock.paused(), "testPASInitialization/timelock-not-paused");
-
-        // Check parameters set by the spell
-        {
-            address groveRateLimits = addr.addr("GROVE_RATE_LIMITS");
-            address groveController = addr.addr("GROVE_CONTROLLER");
-            address groveCBeam      = wallets.addr("GROVE_PAS_CBEAM");
-
-            assertEq(beamState.rateLimits(groveRateLimits), 1, "testPASInitialization/rate-limits-not-added");
-            assertEq(beamState.controllers(groveController), 1, "testPASInitialization/controller-not-added");
-            assertEq(beamState.cBeams(groveCBeam), 1, "testPASInitialization/cbeam-not-added");
-            assertEq(beamState.rateLimitsCBeams(groveRateLimits, groveCBeam), 1, "testPASInitialization/rate-limits-pairing-not-set");
-            assertEq(beamState.controllersCBeams(groveController, groveCBeam), 1, "testPASInitialization/controller-pairing-not-set");
-            assertEq(beamState.hop(address(0)), 16 hours, "testPASInitialization/invalid-hop");
-            assertEq(beamState.maxChange(address(0)), 120 * WAD / 100, "testPASInitialization/invalid-max-change");
-            assertEq(beamState.getHop(groveRateLimits), 16 hours, "testPASInitialization/invalid-effective-hop");
-            assertEq(beamState.getMaxChange(groveRateLimits), 120 * WAD / 100, "testPASInitialization/invalid-effective-max-change");
-        }
-
-        // Check that paused Timelock operations cannot be scheduled
-        {
-            address[] memory targets = new address[](1);
-            targets[0] = address(beamState);
-            uint256[] memory values  = new uint256[](1);
-            bytes[] memory payloads  = new bytes[](1);
-            payloads[0] = abi.encodeCall(BeamStateLike.start, ());
-
-            vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
-            vm.prank(coreCouncil);
-            timelock.scheduleBatch(targets, values, payloads, bytes32(0), keccak256("testPASInitialization"), 14 days);
-        }
-    }
-
-    function testPASGroveIntegration() public {
-        PASConfiguratorLike configurator    = PASConfiguratorLike(addr.addr("PAS_CONFIGURATOR"));
-        address             groveRateLimits = addr.addr("GROVE_RATE_LIMITS");
-
-        // Check PAS authorization in Grove
-        {
-            AccessControlLike accessControls   = AccessControlLike(addr.addr("GROVE_ACCESS_CONTROLS"));
-            AccessControlLike rateLimits       = AccessControlLike(groveRateLimits);
-            address           groveSubProxy    = addr.addr("GROVE_SUBPROXY");
-            bytes32           defaultAdminRole = bytes32(0);
-
-            assertTrue(accessControls.hasRole(defaultAdminRole, groveSubProxy), "testPASGroveIntegration/subproxy-not-access-controls-admin-before-spell");
-            assertTrue(rateLimits.hasRole(defaultAdminRole, groveSubProxy), "testPASGroveIntegration/subproxy-not-rate-limits-admin-before-spell");
-            assertFalse(accessControls.hasRole(defaultAdminRole, address(configurator)), "testPASGroveIntegration/access-controls-role-set-before-spell");
-            assertFalse(rateLimits.hasRole(defaultAdminRole, address(configurator)), "testPASGroveIntegration/rate-limits-role-set-before-spell");
-
-            _vote(address(spell));
-            _scheduleWaitAndCast(address(spell));
-            assertTrue(spell.done(), "TestError/spell-not-done");
-
-            assertFalse(accessControls.hasRole(defaultAdminRole, address(configurator)), "testPASGroveIntegration/access-controls-role-set-by-core-spell");
-            assertFalse(rateLimits.hasRole(defaultAdminRole, address(configurator)), "testPASGroveIntegration/rate-limits-role-set-by-core-spell");
-
-            vm.startPrank(groveSubProxy);
-            accessControls.grantRole(defaultAdminRole, address(configurator));
-            rateLimits.grantRole(defaultAdminRole, address(configurator));
-            vm.stopPrank();
-
-            assertTrue(accessControls.hasRole(defaultAdminRole, address(configurator)), "testPASGroveIntegration/access-controls-role-not-set");
-            assertTrue(rateLimits.hasRole(defaultAdminRole, address(configurator)), "testPASGroveIntegration/rate-limits-role-not-set");
-            assertTrue(accessControls.hasRole(defaultAdminRole, groveSubProxy), "testPASGroveIntegration/subproxy-lost-access-controls-role");
-            assertTrue(rateLimits.hasRole(defaultAdminRole, groveSubProxy), "testPASGroveIntegration/subproxy-lost-rate-limits-role");
-        }
-
-        // Check cBEAM happy path
-        {
-            bytes32 limitUsdsMint = keccak256("LIMIT_USDS_MINT");
-            address groveCBeam    = wallets.addr("GROVE_PAS_CBEAM");
-
-            RateLimitsLike rateLimits = RateLimitsLike(groveRateLimits);
-            RateLimitsLike.RateLimitData memory beforeData = rateLimits.getRateLimitData(limitUsdsMint);
-            uint256 newMaxAmount = beforeData.maxAmount * 110 / 100;
-            uint256 newSlope     = beforeData.slope * 110 / 100;
-
-            assertGt(beforeData.maxAmount, 0, "testPASGroveIntegration/rate-limit-max-is-zero");
-            assertLt(beforeData.maxAmount, type(uint256).max, "testPASGroveIntegration/rate-limit-max-is-unlimited");
-            assertGt(beforeData.slope, 0, "testPASGroveIntegration/rate-limit-slope-is-zero");
-            assertEq(configurator.zzz(groveRateLimits, limitUsdsMint), 0, "testPASGroveIntegration/cooldown-set-before-call");
-
-            vm.expectRevert("Configurator/not-authorized-ratelimits-cBeam");
-            configurator.setRateLimit(groveRateLimits, limitUsdsMint, newMaxAmount, newSlope);
-
-            vm.prank(groveCBeam);
-            configurator.setRateLimit(groveRateLimits, limitUsdsMint, newMaxAmount, newSlope);
-
-            RateLimitsLike.RateLimitData memory afterIncrease = rateLimits.getRateLimitData(limitUsdsMint);
-            assertEq(afterIncrease.maxAmount, newMaxAmount, "testPASGroveIntegration/rate-limit-max-not-increased");
-            assertEq(afterIncrease.slope, newSlope, "testPASGroveIntegration/rate-limit-slope-not-increased");
-            assertEq(configurator.zzz(groveRateLimits, limitUsdsMint), block.timestamp, "testPASGroveIntegration/cooldown-not-updated");
-
-            vm.prank(groveCBeam);
-            configurator.setRateLimit(groveRateLimits, limitUsdsMint, beforeData.maxAmount, beforeData.slope);
-
-            RateLimitsLike.RateLimitData memory afterDecrease = rateLimits.getRateLimitData(limitUsdsMint);
-            assertEq(afterDecrease.maxAmount, beforeData.maxAmount, "testPASGroveIntegration/rate-limit-max-not-restored");
-            assertEq(afterDecrease.slope, beforeData.slope, "testPASGroveIntegration/rate-limit-slope-not-restored");
-        }
-    }
-
-    function testPASMomExecutionProxy() public {
-        PASBeamStateLike beamState = PASBeamStateLike(addr.addr("PAS_STATE"));
-        PASTimelockLike  timelock  = PASTimelockLike(addr.addr("PAS_TIMELOCK"));
-        PASMomLike       mom       = PASMomLike(addr.addr("PAS_MOM"));
-
-        // Execute spell
         _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-        assertFalse(beamState.stopped(), "testPASMomExecutionProxy/beam-state-stopped-after-spell");
 
-        // Unpause Timelock as PauseProxy
-        vm.prank(pauseProxy);
-        timelock.unpause();
-        assertFalse(timelock.paused(), "testPASMomExecutionProxy/timelock-not-unpaused-by-pause-proxy");
+        {
+            (,, uint48 tau, uint48 toc) = oracle.ilks(ilk);
+            assertGt(toc, 0, "testRWA001AOffboarding/invalid-toc");
+            assertEq(tau, 30 days, "testRWA001AOffboarding/invalid-tau");
+            assertGe(
+                spellCastTime, uint256(toc) + uint256(tau), "testRWA001AOffboarding/remediation-period-not-ended"
+            );
+        }
 
-        // Execute PASMom emergency actions as PauseProxy
-        vm.startPrank(pauseProxy);
-        mom.pause();
-        mom.stop();
-        vm.stopPrank();
-
-        assertTrue(timelock.paused(), "testPASMomExecutionProxy/timelock-not-paused-by-mom-owner");
-        assertTrue(beamState.stopped(), "testPASMomExecutionProxy/beam-state-not-stopped-by-mom-owner");
-    }
-
-    function testPASMomExecutionByHat() public {
-        PASBeamStateLike beamState = PASBeamStateLike(addr.addr("PAS_STATE"));
-        PASTimelockLike  timelock  = PASTimelockLike(addr.addr("PAS_TIMELOCK"));
-        PASMomLike       mom       = PASMomLike(addr.addr("PAS_MOM"));
-
-        // Execute spell
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-        assertFalse(beamState.stopped(), "testPASMomExecutionByHat/beam-state-stopped-after-spell");
-
-        // Unpause Timelock as PauseProxy
-        vm.prank(pauseProxy);
-        timelock.unpause();
-        assertFalse(timelock.paused(), "testPASMomExecutionByHat/timelock-not-unpaused-by-pause-proxy");
-
-        // Execute PASMom emergency actions as hat
-        vm.startPrank(chief.hat());
-        mom.pause();
-        mom.stop();
-        vm.stopPrank();
-
-        assertTrue(timelock.paused(), "testPASMomExecutionByHat/timelock-not-paused-by-mom-authority");
-        assertTrue(beamState.stopped(), "testPASMomExecutionByHat/beam-state-not-stopped-by-mom-authority");
-    }
-
-    function testPASStopFromCoreCouncil() public {
-        PASBeamStateLike beamState = PASBeamStateLike(addr.addr("PAS_STATE"));
-
-        // Execute spell
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-        assertFalse(beamState.stopped(), "testPASStopFromCoreCouncil/beam-state-stopped-after-spell");
-
-        // Stop BeamState as Core Council
-        vm.prank(wallets.addr("PAS_CORE_COUNCIL"));
-        beamState.stop();
-        assertTrue(beamState.stopped(), "testPASStopFromCoreCouncil/beam-state-not-stopped-by-core-council");
-    }
-
-    function testPASTimelockDelayedAction() public {
-        PASBeamStateLike beamState       = PASBeamStateLike(addr.addr("PAS_STATE"));
-        PASTimelockLike  timelock        = PASTimelockLike(addr.addr("PAS_TIMELOCK"));
-        address          coreCouncil     = wallets.addr("PAS_CORE_COUNCIL");
-        address          groveRateLimits = addr.addr("GROVE_RATE_LIMITS");
-
-        // Execute spell
-        _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        // Enable delayed governance
-        vm.prank(pauseProxy);
-        timelock.unpause();
-
-        address[] memory targets = new address[](1);
-        targets[0] = address(beamState);
-        uint256[] memory values = new uint256[](1);
-        bytes[] memory payloads = new bytes[](1);
-        payloads[0] = abi.encodeCall(PASBeamStateLike.setHop, (groveRateLimits, 12 hours));
-        uint256 delay = timelock.getMinDelay();
-        bytes32 salt = keccak256("testPASTimelockDelayedAction");
-
-        // Schedule delayed setHop action as Core Council
-        vm.prank(coreCouncil);
-        timelock.scheduleBatch(targets, values, payloads, bytes32(0), salt, delay);
-
-        assertEq(beamState.hop(groveRateLimits), 0, "testPASTimelockDelayedAction/hop-set-before-execution");
-        assertEq(beamState.getHop(groveRateLimits), 16 hours, "testPASTimelockDelayedAction/invalid-effective-hop-before-execution");
-
-        vm.warp(block.timestamp + delay);
-
-        // Execute through the open executor role
-        timelock.executeBatch(targets, values, payloads, bytes32(0), salt);
-
-        assertEq(beamState.hop(groveRateLimits), 12 hours, "testPASTimelockDelayedAction/hop-not-set-after-execution");
-        assertEq(beamState.getHop(groveRateLimits), 12 hours, "testPASTimelockDelayedAction/invalid-effective-hop-after-execution");
-    }
-
-    function testTransferUSDSFromOzoneSubProxy() public {
-        address ozoneSubProxy         = addr.addr("OZONE_SUBPROXY");
-        address skyFrontierFoundation = wallets.addr("SKY_FRONTIER_FOUNDATION");
-        uint256 transferAmount        = 16_000_000 * WAD;
-
-        // Check source balance
-        assertGe(usds.balanceOf(ozoneSubProxy), transferAmount, "testTransferUSDSFromOzoneSubProxy/insufficient-subproxy-usds-balance");
-
-        uint256 subProxyUsdsBefore          = usds.balanceOf(ozoneSubProxy);
-        uint256 skyFrontierFoundationBefore = usds.balanceOf(skyFrontierFoundation);
-
-        // Execute spell
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        // Check balance changes
+        uint256 totalPayments = 17_288_811 * WAD;
         assertEq(
-            usds.balanceOf(ozoneSubProxy),
-            subProxyUsdsBefore - transferAmount,
-            "testTransferUSDSFromOzoneSubProxy/subproxy-balance-mismatch"
+            dai.totalSupply() + usds.totalSupply() - daiUsdsSupplyBefore,
+            totalPayments,
+            "testRWA001AOffboarding/invalid-dai-usds-supply-increase"
         );
         assertEq(
-            usds.balanceOf(skyFrontierFoundation),
-            skyFrontierFoundationBefore + transferAmount,
-            "testTransferUSDSFromOzoneSubProxy/sky-frontier-foundation-balance-mismatch"
+            vat.sin(address(vow)) - sinBefore,
+            totalPayments * RAY + urnArtBefore * rate,
+            "testRWA001AOffboarding/invalid-sin-increase"
         );
+
+        (, address pip,,) = oracle.ilks(ilk);
+        uint256 price = uint256(DSValueAbstract(pip).read());
+        assertEq(price, 0, "testRWA001AOffboarding/invalid-price-after-cull");
+
+        (uint256 Art,,,,) = vat.ilks(ilk);
+        assertEq(Art, 0, "testRWA001AOffboarding/invalid-ilk-art-after-cull");
+
+        (uint256 ink, uint256 art) = vat.urns(ilk, RWA001_A_URN);
+        assertEq(ink, 0, "testRWA001AOffboarding/invalid-ink-after-cull");
+        assertEq(art, 0, "testRWA001AOffboarding/invalid-urn-art-after-cull");
+    }
+
+    function testWhitelistOseroALMProxy() public {
+        address almProxy = addr.addr("OSERO_ALM_PROXY");
+        DssLitePsmLike psmUsdcA = DssLitePsmLike(addr.addr("MCD_LITE_PSM_USDC_A"));
+        GemAbstract usdc = GemAbstract(addr.addr("USDC"));
+
+        // bud is 0 before kiss
+        assertEq(psmUsdcA.bud(almProxy), 0, "testWhitelistOseroALMProxy/invalid-bud");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // bud is 1 after kiss
+        assertEq(psmUsdcA.bud(almProxy), 1, "testWhitelistOseroALMProxy/invalid-bud");
+
+        // OSERO can call buyGemNoFee() on MCD_LITE_PSM_USDC_A
+        uint256 daiAmount  = 1_000 * WAD;
+        uint256 usdcAmount = 1_000 * 10**6;
+
+        // fund proxy
+        deal(address(dai), almProxy, daiAmount);
+        vm.startPrank(almProxy);
+
+        // buy gem with no fee
+        dai.approve(address(psmUsdcA), daiAmount);
+        psmUsdcA.buyGemNoFee(almProxy, usdcAmount);
+        assertEq(usdc.balanceOf(almProxy), usdcAmount);
+        assertEq(dai.balanceOf(almProxy), 0);
+
+        // now sell it back with no fee
+        usdc.approve(address(psmUsdcA), usdcAmount);
+        psmUsdcA.sellGemNoFee(almProxy, usdcAmount);
+        assertEq(usdc.balanceOf(almProxy), 0);
+        assertEq(dai.balanceOf(almProxy), daiAmount);
+
+        vm.stopPrank();
+    }
+
+    function testOseroAutoLineExec() public {
+        bytes32 ilk = "ALLOCATOR-PRYSM-A";
+
+        (,,, uint256 lineBefore,) = vat.ilks(ilk);
+        assertEq(lineBefore, 10 * MILLION * RAD, "testOseroAutoLineExec/invalid-line-before");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        (uint256 Art, uint256 rate,, uint256 lineAfter,) = vat.ilks(ilk);
+        (uint256 ilkAutoLine, uint256 ilkGap,,,) = autoLine.ilks(ilk);
+
+        uint256 debt = Art * rate;
+        uint256 debtPlusGap = debt + ilkGap;
+        uint256 expectedLine = debtPlusGap < ilkAutoLine ? debtPlusGap : ilkAutoLine;
+
+        assertEq(lineAfter, expectedLine, "testOseroAutoLineExec/invalid-line-after");
+        assertLe(lineAfter, ilkAutoLine, "testOseroAutoLineExec/line-after-too-big");
     }
 }
