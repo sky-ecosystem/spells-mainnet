@@ -69,10 +69,31 @@ function generateAccountUpdates(
         const currentAccounts = onChainState[chainName] || [];
         const desiredAccounts = csvState[chainName] || [];
 
+        if (desiredAccounts.length === 0) {
+            throw new Error(
+                `Chain '${chainName}' must be removed instead of configured without accounts`,
+            );
+        }
+
         const { toAdd, toRemove } = calculateAccountDifferences(
             currentAccounts.accounts,
             desiredAccounts,
         );
+
+        const removesAllCurrentAccounts =
+            toRemove.length === currentAccounts.accounts.length;
+
+        // Add replacements first if removing first would leave the chain empty.
+        if (removesAllCurrentAccounts && toAdd.length > 0) {
+            updates.push({
+                function: "addAccounts",
+                args: [chainId, toAdd],
+                calldata: agreementInterface.encodeFunctionData("addAccounts", [
+                    chainId,
+                    toAdd,
+                ]),
+            });
+        }
 
         // Handle removals - removeAccounts now takes addresses directly
         if (toRemove.length > 0) {
@@ -87,7 +108,7 @@ function generateAccountUpdates(
         }
 
         // Handle additions
-        if (toAdd.length > 0) {
+        if (!removesAllCurrentAccounts && toAdd.length > 0) {
             updates.push({
                 function: "addAccounts",
                 args: [chainId, toAdd],
@@ -102,7 +123,12 @@ function generateAccountUpdates(
     return updates;
 }
 
-function validateRecoveryAddress(onChainState, csvState, chainDetails) {
+function validateRecoveryAddress(
+    onChainState,
+    csvState,
+    chainDetails,
+    reportWarning,
+) {
     const onChainChains = new Set(Object.keys(onChainState));
     const csvChains = new Set(Object.keys(csvState));
 
@@ -121,14 +147,19 @@ function validateRecoveryAddress(onChainState, csvState, chainDetails) {
             onchainRecoveryAddress.toLowerCase() !==
                 csvRecoveryAddress.toLowerCase()
         ) {
-            console.warn(
+            reportWarning(
                 `\n\n‼️-----‼️ \nAsset Recovery Address mismatch for chain '${chainName}'. \nOn-chain: ${onchainRecoveryAddress} \nCSV:      ${csvRecoveryAddress} \n‼️-----‼️\n\n`,
             );
         }
     }
 }
 
-function generateChainUpdates(onChainState, csvState, chainDetails) {
+function generateChainUpdates(
+    onChainState,
+    csvState,
+    chainDetails,
+    reportWarning,
+) {
     const updates = [];
 
     const currentChainNames = Object.keys(onChainState);
@@ -138,7 +169,7 @@ function generateChainUpdates(onChainState, csvState, chainDetails) {
     // Filter out chains that don't have complete details
     desiredChainNames = desiredChainNames.filter((chainName) => {
         if (!chainDetailsChainNames.includes(chainName)) {
-            console.warn(
+            reportWarning(
                 `\n\n⚠️-----⚠️ \nUnknown chain details in CSV: name='${chainName}' \nInclude chain details to the chain details tab in the Google Sheet to add coverage to it. \n⚠️-----⚠️\n\n`,
             );
             return false;
@@ -174,6 +205,12 @@ function generateChainUpdates(onChainState, csvState, chainDetails) {
         const newChains = chainsToAdd.map((chainName) => {
             const chainId = chainDetails.caip2ChainId[chainName];
             const accounts = csvState[chainName] || [];
+
+            if (accounts.length === 0) {
+                throw new Error(
+                    `Cannot add chain '${chainName}' without accounts`,
+                );
+            }
 
             return {
                 assetRecoveryAddress:
@@ -212,13 +249,24 @@ function generateChainUpdates(onChainState, csvState, chainDetails) {
     return { updates, chainsToRemove };
 }
 
-export function generateUpdates(onChainState, csvState, chainDetails) {
-    validateRecoveryAddress(onChainState, csvState, chainDetails);
+export function generateUpdates(
+    onChainState,
+    csvState,
+    chainDetails,
+    reportWarning = console.warn,
+) {
+    validateRecoveryAddress(
+        onChainState,
+        csvState,
+        chainDetails,
+        reportWarning,
+    );
 
     const { updates: chainUpdates, chainsToRemove } = generateChainUpdates(
         onChainState,
         csvState,
         chainDetails,
+        reportWarning,
     );
     const accountUpdates = generateAccountUpdates(
         onChainState,
