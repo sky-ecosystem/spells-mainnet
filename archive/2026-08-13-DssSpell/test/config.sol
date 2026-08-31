@@ -145,9 +145,9 @@ contract Config {
         // Values for spell-specific parameters
         //
         spellValues = SpellValues({
-            deployed_spell:         address(0x2bf5132EC2F21B079D7591c86D9817f1f18a2E05), // populate with deployed spell if deployed
-            deployed_spell_created: 1787846711,          // use `make deploy-info tx=<deployment-tx>` to obtain the timestamp
-            deployed_spell_block:   25847641,          // use `make deploy-info tx=<deployment-tx>` to obtain the block number
+            deployed_spell:         address(0xB26b9d89776aa9E74ddA0e86e916413def03F59b), // populate with deployed spell if deployed
+            deployed_spell_created: 1786629347,          // use `make deploy-info tx=<deployment-tx>` to obtain the timestamp
+            deployed_spell_block:   25746534,          // use `make deploy-info tx=<deployment-tx>` to obtain the block number
             previous_spells:        prevSpells, // older spells to ensure are executed first
             office_hours_enabled:   true,       // true if officehours is expected to be enabled in the spell
             expiration_threshold:   30 days     // Amount of time before spell expires
@@ -191,7 +191,7 @@ contract Config {
         afterSpell.vest_spk_cap           = 2_502_500_000 * WAD / 730 days;                 // In WAD SPK per second
         afterSpell.vest_grove_cap         = (110 * 2_450_000_000 * WAD) / (100 * 730 days); // In WAD GROVE per second
         afterSpell.ilk_count              = 35;                                             // Num expected in system
-        afterSpell.chainlog_version       = "1.20.20";                                      // String expected in system
+        afterSpell.chainlog_version       = "1.20.19";                                      // String expected in system
 
         afterSpell.SP_tau       = 57_600 seconds;                             // In seconds
         afterSpell.SP_bud       = 0xe1c6f81D0c3CD570A77813b81AA064c5fff80309; // Address of SPBEAM Bud
@@ -1181,8 +1181,8 @@ contract Config {
         });
         afterSpell.collaterals["ALLOCATOR-PRYSM-A"] = CollateralValues({
             um:           UpdateMethod.AUTOLINE,
-            aL_line:      25_000_000,
-            aL_gap:       5_000_000,
+            aL_line:      10_000_000,
+            aL_gap:       2_000_000,
             aL_ttl:       86_400,
             line:         0,
             dust:         0,
@@ -1239,8 +1239,8 @@ contract Config {
         });
         afterSpell.collaterals["ALLOCATOR-GROVE-A"] = CollateralValues({
             um:           UpdateMethod.AUTOLINE,
-            aL_line:      25_000_000,
-            aL_gap:       5_000_000,
+            aL_line:      10_000_000,
+            aL_gap:       2_000_000,
             aL_ttl:       86_400,
             line:         0,
             dust:         0,
