@@ -1119,7 +1119,7 @@ test_make_ignore_age_accepts_zero_or_one() {
     status=$?
     [ "$status" -eq 0 ] && [[ "$output" != *' --ignore-age'* ]] || ok=0
 
-    for ignore_age_value in 2 false yes; do
+    for ignore_age_value in 2 false yes '0 0' '0 1' '1 0' '1 1'; do
         output=$(make -s -n -C "$ROOT" verify-foundry release=v2.0.0 ignore-age="$ignore_age_value" 2>&1)
         status=$?
         [ "$status" -ne 0 ] && [[ "$output" = *'ignore-age must be 0 or 1'* ]] || ok=0
