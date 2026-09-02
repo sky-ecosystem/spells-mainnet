@@ -36,13 +36,11 @@ contract Config {
         uint256 vow_bump;
         uint256 vow_hump_min;
         uint256 vow_hump_max;
+        uint256 kick_kbump;
         int256  kick_khump;
+        uint256 split_hop;
+        uint256 split_burn;
         bytes32 split_farm;
-        uint256 sbebeam_maxKbump;
-        uint256 sbebeam_minHop;
-        uint256 sbebeam_maxRate;
-        uint256 sbebeam_tau;
-        address sbebeam_bud;
         uint256 flap_want;
         uint256 dog_Hole;
         uint256 esm_min;
@@ -145,9 +143,9 @@ contract Config {
         // Values for spell-specific parameters
         //
         spellValues = SpellValues({
-            deployed_spell:         address(0x2bf5132EC2F21B079D7591c86D9817f1f18a2E05), // populate with deployed spell if deployed
-            deployed_spell_created: 1787846711,          // use `make deploy-info tx=<deployment-tx>` to obtain the timestamp
-            deployed_spell_block:   25847641,          // use `make deploy-info tx=<deployment-tx>` to obtain the block number
+            deployed_spell:         address(0xfffc346976c53757BcF7a536be340bc0Ce1d9163), // populate with deployed spell if deployed
+            deployed_spell_created: 1784215871,          // use `make deploy-info tx=<deployment-tx>` to obtain the timestamp
+            deployed_spell_block:   25546139,          // use `make deploy-info tx=<deployment-tx>` to obtain the block number
             previous_spells:        prevSpells, // older spells to ensure are executed first
             office_hours_enabled:   true,       // true if officehours is expected to be enabled in the spell
             expiration_threshold:   30 days     // Amount of time before spell expires
@@ -164,12 +162,10 @@ contract Config {
         afterSpell.vow_bump               = 0;                                              // In whole Dai units
         afterSpell.vow_hump_min           = type(uint256).max;                              // In whole Dai units
         afterSpell.vow_hump_max           = type(uint256).max;                              // In whole Dai units
+        afterSpell.kick_kbump             = 6 * THOUSAND;                                   // In whole USDS units
         afterSpell.kick_khump             = -200 * int256(MILLION);                         // In whole USDS units
-        afterSpell.sbebeam_maxKbump       = 12_000;                                         // In whole USDS units
-        afterSpell.sbebeam_minHop         = 550 seconds;                                    // In seconds
-        afterSpell.sbebeam_maxRate        = 350 * MILLION * RAD / 365 days;                 // In RAD/second
-        afterSpell.sbebeam_tau            = 30 minutes;                                     // In seconds
-        afterSpell.sbebeam_bud            = 0x869294B42B80f99CF3Bdac0F44abddAd6cD41330;     // SBEBEAM bud address
+        afterSpell.split_hop              = 13_787 seconds;                                 // In seconds
+        afterSpell.split_burn             = 100_00;                                         // In basis points
         afterSpell.split_farm             = "REWARDS_LSSKY_USDS";                           // Farm chainlog key
         afterSpell.flap_want              = 98_00;                                          // In basis points
         afterSpell.dog_Hole               = 150 * MILLION;                                  // In whole Dai units
@@ -191,7 +187,7 @@ contract Config {
         afterSpell.vest_spk_cap           = 2_502_500_000 * WAD / 730 days;                 // In WAD SPK per second
         afterSpell.vest_grove_cap         = (110 * 2_450_000_000 * WAD) / (100 * 730 days); // In WAD GROVE per second
         afterSpell.ilk_count              = 35;                                             // Num expected in system
-        afterSpell.chainlog_version       = "1.20.20";                                      // String expected in system
+        afterSpell.chainlog_version       = "1.20.18";                                      // String expected in system
 
         afterSpell.SP_tau       = 57_600 seconds;                             // In seconds
         afterSpell.SP_bud       = 0xe1c6f81D0c3CD570A77813b81AA064c5fff80309; // Address of SPBEAM Bud
@@ -1181,8 +1177,8 @@ contract Config {
         });
         afterSpell.collaterals["ALLOCATOR-PRYSM-A"] = CollateralValues({
             um:           UpdateMethod.AUTOLINE,
-            aL_line:      25_000_000,
-            aL_gap:       5_000_000,
+            aL_line:      5_000_000,
+            aL_gap:       1_000_000,
             aL_ttl:       86_400,
             line:         0,
             dust:         0,
@@ -1239,8 +1235,8 @@ contract Config {
         });
         afterSpell.collaterals["ALLOCATOR-GROVE-A"] = CollateralValues({
             um:           UpdateMethod.AUTOLINE,
-            aL_line:      25_000_000,
-            aL_gap:       5_000_000,
+            aL_line:      5_000_000,
+            aL_gap:       1_000_000,
             aL_ttl:       86_400,
             line:         0,
             dust:         0,

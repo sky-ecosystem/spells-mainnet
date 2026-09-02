@@ -223,10 +223,6 @@ contract Wallets {
         // SPBEAM
         addr["SPBEAM_BUD"]                   = 0xe1c6f81D0c3CD570A77813b81AA064c5fff80309;
 
-        // PAS
-        addr["PAS_CORE_COUNCIL"]             = 0x148eF923d764CBdc1597CcADBbbC66499C1A1432;
-        addr["GROVE_PAS_CBEAM"]              = 0x91dC2F6DbB8Adf76d373A54D408EDd7D736046C4;
-
         // Core Council Multisigs
         addr["CORE_COUNCIL_BUDGET_MULTISIG"]    = 0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364;
         addr["CORE_COUNCIL_DELEGATE_MULTISIG"]  = 0x37FC5d447c8c54326C62b697f674c93eaD2A93A3;
