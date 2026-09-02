@@ -24,13 +24,20 @@ import {
  * @function generatePayload
  * @param {Object} agreementContract - The ethers.js agreement contract instance
  * @param {string} agreementContract.address - The address of the agreement contract
- * @returns {Promise<{updates: Array<{function: string, args: Array<any>, calldata: string}>, solidityCode: string}>} Object containing:
+ * @returns {Promise<{updates: Array<{function: string, args: Array<any>, calldata: string}>, solidityCode: string, validationWarnings: string[]}>} Object containing:
  *   - updates: Array of update objects with function calls and calldata
  *   - solidityCode: Generated Solidity code for the updates
+ *   - validationWarnings: Validation warnings found while comparing states
  * @throws {Error} If any step in the process fails
  */
 export async function generatePayload(agreementContract) {
     try {
+        const validationWarnings = [];
+        const reportWarning = (message) => {
+            validationWarnings.push(message);
+            console.warn(message);
+        };
+
         // 0. Fetch chain information once at the beginning
         console.warn("Fetching chains details CSV...");
         /**
@@ -39,6 +46,7 @@ export async function generatePayload(agreementContract) {
          */
         const chainDetails = await getChainDetailsFromCSV(
             CHAIN_DETAILS_SHEET_URL,
+            reportWarning,
         );
 
         // 1. Download and parse CSV
@@ -60,6 +68,7 @@ export async function generatePayload(agreementContract) {
         const onChainState = await getNormalizedDataFromOnchainState(
             agreementContract,
             chainDetails,
+            reportWarning,
         );
 
         // 3. Generate updates
@@ -68,12 +77,18 @@ export async function generatePayload(agreementContract) {
          * Array of update objects representing differences between CSV and on-chain state
          * @type {Array<{function: string, args: Array<any>, calldata: string}>}
          */
-        const updates = generateUpdates(onChainState, csvState, chainDetails);
+        const updates = generateUpdates(
+            onChainState,
+            csvState,
+            chainDetails,
+            reportWarning,
+        );
 
         if (updates.length === 0) {
             return {
                 updates: [],
                 solidityCode: "",
+                validationWarnings,
             };
         }
 
@@ -87,6 +102,7 @@ export async function generatePayload(agreementContract) {
         return {
             updates,
             solidityCode,
+            validationWarnings,
         };
     } catch (error) {
         /**
