@@ -9,7 +9,7 @@ verify               :; ./scripts/verification/verify.py DssSpell $(addr)
 flatten              :; forge flatten src/DssSpell.sol --output out/flat.sol
 diff-deployed-spell  :; ./scripts/diff-deployed-dssspell.sh $(spell)
 check-deployed-spell :; ./scripts/check-deployed-dssspell.sh
-cast-on-tenderly     :; cd ./scripts/cast-on-tenderly/ && npm i && npm start -- $(spell); cd -
+cast-on-tenderly     :; cd ./scripts/cast-on-tenderly/ && npm --silent ci && npm start -- $(spell); cd -
 archive-spell        :; ./scripts/archive-dssspell.sh "$(if $(date),$(date),$(shell date +'%Y-%m-%d'))"
 diff-archive-spell   :; ./scripts/diff-archive-dssspell.sh "$(if $(date),$(date),$(shell date +'%Y-%m-%d'))"
 feed                 :; ./scripts/check-oracle-feed.sh $(pip)
