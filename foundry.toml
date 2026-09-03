@@ -7,7 +7,7 @@ fs_permissions = [
     { access = "read", path = "./out/ArbitrumDomain.sol/ArbSysOverride.json"}
 ]
 solc_version = "0.8.16"
-evm_version  = "cancun"
+evm_version  = "osaka"
 optimizer = false
 optimizer_runs = 200
 via_ir = false
