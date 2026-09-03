@@ -1,10 +1,26 @@
 # Description
 
-Implements the `YYYY-MM-DD` mainnet executive spell.
+_Explain what the PR does_
 
-Executive Sheet: `EXEC_SHEET_URL`
+## Reason behind the update (Maintenance PR)
+
+_Explain why the update is needed or any relevant context_
+
+## How to test (Maintenance PR)
+
+_Explain how the PR can be tested_
+
+## Scope and risks (Maintenance PR)
+
+_Expain any risks or limitation_
+
+## Relevant links (Maintenance PR)
+
+_Provide links to relevant issues, previous PRs, incidents, documentation, or discussions_
 
 ## Checklist
-
-- [ ] PR is opened as a draft and titled `Mainnet spell YYYY-MM-DD`
-- [ ] the PR did not modify files unrelated to name / description, such as shared/base test infrastructure, deployment scripts, or CI configuration; new spell-specific tests may be added, but existing base tests must not be modified
+- [ ] PR title clearly shows what the PR implements; IF it is a spell PR follows format of `YYYY-MM-DD Spell`;
+- [ ] PR doesn't update any files that are not related to the current PR scope;
+- [ ] All required information for the current PR type (Maintenence or Spell) has been filled in above;
+- [ ] If this is a Spell PR, remove the Maingenance PR sections;
+- [ ] If this is a Spell PR, the execution sheet link is included in the Description.
