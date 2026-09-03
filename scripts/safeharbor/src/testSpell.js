@@ -1,7 +1,5 @@
 import { spawn } from "node:child_process";
-import { once } from "node:events";
 import { dirname, resolve } from "node:path";
-import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import {
     Contract,
@@ -12,8 +10,13 @@ import {
     zeroPadValue,
 } from "ethers";
 import { CHAINLOG_ABI } from "./abis.js";
-import { runCommand } from "./cli.js";
 import { CHAINLOG_ADDRESS } from "./constants.js";
+import {
+    assertPortAvailable,
+    startAnvil,
+    stopAnvil,
+    waitForAnvil,
+} from "./utils/anvil.js";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const DEFAULT_ANVIL_PORT = 8545;
@@ -21,7 +24,6 @@ const ANVIL_SENDER = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
 const CHIEF_CHAINLOG_KEY = "MCD_ADM";
 const CHIEF_HAT_SLOT =
     "0x0000000000000000000000000000000000000000000000000000000000000001";
-const MAX_LOG_LENGTH = 64 * 1024;
 
 const CHIEF_ABI = ["function hat() view returns (address)"];
 const SPELL_ABI = [
@@ -34,7 +36,7 @@ const SPELL_ABI = [
 /**
  * Runs the SafeHarbor spell preflight and handles process interruption.
  */
-export async function testSpell({ rpcUrl, forkBlock, port } = {}) {
+export async function testSpell({ rpcUrl, forkBlock, port, verify } = {}) {
     // Handle SIGINT and SIGTERM to gracefully close the
     // anvil instance launched by the command
     const abortController = new AbortController();
@@ -52,12 +54,15 @@ export async function testSpell({ rpcUrl, forkBlock, port } = {}) {
     process.on("SIGTERM", handleSigterm);
 
     try {
-        await runTestSpell({
+        const exitCode = await runTestSpell({
             rpcUrl,
             forkBlock,
             port,
+            verify,
             signal: abortController.signal,
         });
+        if (interrupt) throw interrupt;
+        return exitCode;
     } catch (error) {
         if (interrupt) throw interrupt;
         throw error;
@@ -70,7 +75,7 @@ export async function testSpell({ rpcUrl, forkBlock, port } = {}) {
 /**
  * Deploys and casts the local spell on an Anvil fork, then verifies SafeHarbor state.
  */
-async function runTestSpell({ rpcUrl, forkBlock, port, signal }) {
+async function runTestSpell({ rpcUrl, forkBlock, port, verify, signal }) {
     const parsedForkBlock = parsePositiveInteger(
         forkBlock,
         "SAFEHARBOR_FORK_BLOCK",
@@ -85,11 +90,18 @@ async function runTestSpell({ rpcUrl, forkBlock, port, signal }) {
     );
     const localRpcUrl = `http://127.0.0.1:${parsedPort}`;
 
+    if (typeof verify !== "function") {
+        throw new TypeError("verify function was not provided");
+    }
+
     await assertMainnetRpc(rpcUrl);
+    signal.throwIfAborted();
+    await assertPortAvailable(parsedPort);
     signal.throwIfAborted();
 
     console.log(`Starting Anvil fork at ${localRpcUrl}...`);
     const anvil = startAnvil({
+        cwd: REPO_ROOT,
         rpcUrl,
         forkBlock: parsedForkBlock,
         port: parsedPort,
@@ -117,20 +129,17 @@ async function runTestSpell({ rpcUrl, forkBlock, port, signal }) {
         signal.throwIfAborted();
 
         console.log("Checking SafeHarbor state...");
-        const verificationStatus = await runCommand("verify", {
-            rpcUrl: localRpcUrl,
-        });
+        const verificationStatus = await verify(localRpcUrl);
         signal.throwIfAborted();
         if (verificationStatus !== 0) {
-            throw new Error(
-                `SafeHarbor verification failed with status ${verificationStatus}`,
-            );
+            return verificationStatus;
         }
 
         console.log("SafeHarbor spell preflight passed");
+        return 0;
     } finally {
         provider?.destroy();
-        await stopAnvil(anvil.child);
+        await stopAnvil(anvil);
     }
 }
 
@@ -148,77 +157,6 @@ async function assertMainnetRpc(rpcUrl) {
     } finally {
         provider.destroy();
     }
-}
-
-/**
- * Starts an Anvil mainnet fork that remains alive until explicit cleanup.
- */
-function startAnvil({ rpcUrl, forkBlock, port }) {
-    const args = [
-        "--fork-url",
-        rpcUrl,
-        "--chain-id",
-        "1",
-        "--hardfork",
-        "cancun",
-        "--host",
-        "127.0.0.1",
-        "--port",
-        String(port),
-        "--gas-limit",
-        "1000000000",
-    ];
-    if (forkBlock !== undefined) {
-        args.push("--fork-block-number", String(forkBlock));
-    }
-
-    const child = spawn("anvil", args, {
-        cwd: REPO_ROOT,
-        env: process.env,
-        stdio: ["ignore", "pipe", "pipe"],
-    });
-    let output = "";
-
-    child.stdout.on("data", (data) => {
-        output = appendLog(output, data);
-    });
-    child.stderr.on("data", (data) => {
-        output = appendLog(output, data);
-    });
-    child.on("error", (error) => {
-        if (error.name !== "AbortError") {
-            output = appendLog(output, error.message);
-        }
-    });
-
-    return { child, getOutput: () => output.trim() };
-}
-
-async function waitForAnvil(anvil, rpcUrl, signal) {
-    for (let attempt = 0; attempt < 60; attempt += 1) {
-        if (anvil.child.exitCode !== null) {
-            const output = anvil.getOutput();
-            throw new Error(
-                `Anvil exited before becoming ready${output ? `:\n${output}` : ""}`,
-            );
-        }
-
-        let chainId;
-        try {
-            chainId = await requestRpc(rpcUrl, "eth_chainId", [], signal);
-        } catch (error) {
-            if (signal?.aborted) throw error;
-            await delay(500, undefined, { signal });
-            continue;
-        }
-
-        if (BigInt(chainId) !== 1n) {
-            throw new Error("Anvil fork did not start with chain ID 1");
-        }
-        return;
-    }
-
-    throw new Error("Anvil did not become ready within 30 seconds");
 }
 
 async function deploySpell(rpcUrl, signal) {
@@ -291,28 +229,6 @@ async function authorizeAndCast(provider, spellAddress) {
 }
 
 /**
- * Stops Anvil gracefully and uses SIGKILL only if it does not exit in time.
- */
-async function stopAnvil(child) {
-    if (child.exitCode !== null || child.signalCode !== null) return;
-
-    child.kill("SIGTERM");
-    await new Promise((resolvePromise) => {
-        const timeout = setTimeout(resolvePromise, 3000);
-        timeout.unref();
-        child.once("close", () => {
-            clearTimeout(timeout);
-            resolvePromise();
-        });
-    });
-
-    if (child.exitCode === null && child.signalCode === null) {
-        child.kill("SIGKILL");
-        await once(child, "close").catch(() => undefined);
-    }
-}
-
-/**
  * Runs a child process and captures its output for parsing or error reporting.
  */
 function runProcess(command, args, { cwd = REPO_ROOT, signal } = {}) {
@@ -357,37 +273,12 @@ function runProcess(command, args, { cwd = REPO_ROOT, signal } = {}) {
     });
 }
 
-async function requestRpc(rpcUrl, method, params = [], signal) {
-    const timeoutSignal = AbortSignal.timeout(1000);
-    const requestSignal = signal
-        ? AbortSignal.any([signal, timeoutSignal])
-        : timeoutSignal;
-    const response = await fetch(rpcUrl, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-        signal: requestSignal,
-    });
-    const result = await response.json();
-
-    if (!response.ok || result.error) {
-        throw new Error(
-            result.error?.message || `RPC request failed: ${method}`,
-        );
-    }
-    return result.result;
-}
-
 class InterruptError extends Error {
     constructor(signal) {
         super(`Interrupted by ${signal}`);
         this.interrupted = true;
         this.exitCode = signal === "SIGINT" ? 130 : 143;
     }
-}
-
-function appendLog(current, chunk) {
-    return `${current}${chunk}`.slice(-MAX_LOG_LENGTH);
 }
 
 function parsePositiveInteger(value, name, fallback, maximum) {
