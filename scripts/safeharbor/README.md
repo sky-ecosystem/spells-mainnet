@@ -87,6 +87,16 @@ npm run verify
 
 From the repository root, `make safeharbor-verify` provides the same verification as a convenience command. Use `npm run verify` directly when the distinct non-zero exit codes are required.
 
+Test the actual local spell on an Anvil fork and verify the resulting SafeHarbor state:
+
+```bash
+make safeharbor-test-spell
+SAFEHARBOR_FORK_BLOCK=<block-number> make safeharbor-test-spell
+ANVIL_PORT=<port> make safeharbor-test-spell
+```
+
+`ETH_RPC_URL` must point to Ethereum mainnet. `SAFEHARBOR_FORK_BLOCK` is optional and defaults to the latest state. `ANVIL_PORT` defaults to `8545`. The command requires `anvil` and `forge`.
+
 All commands use the following exit codes:
 
 | Exit code | Meaning                                                                                                                          |

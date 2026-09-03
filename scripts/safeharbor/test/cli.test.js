@@ -13,7 +13,10 @@ function commandContext(result = CLEAN_RESULT) {
         agreementContract,
         createAgreement: vi.fn().mockResolvedValue(agreementContract),
         generate: vi.fn().mockResolvedValue(result),
+        testSpell: vi.fn().mockResolvedValue(0),
         rpcUrl: "https://rpc.example",
+        forkBlock: "25847641",
+        port: "18545",
         stdout: vi.fn(),
         stderr: vi.fn(),
         warn: vi.fn(),
@@ -101,6 +104,94 @@ describe("runCommand", () => {
         expect(context.stdout).toHaveBeenCalledWith(
             `SafeHarbor verification failed: ${updates.length} update(s), ${warnings.length} validation warning(s).`,
         );
+    });
+
+    test("routes testSpell with its command context", async () => {
+        const context = commandContext();
+
+        const exitCode = await runCommand("testSpell", context);
+
+        expect(exitCode).toBe(0);
+        expect(context.testSpell).toHaveBeenCalledWith({
+            rpcUrl: context.rpcUrl,
+            forkBlock: context.forkBlock,
+            port: context.port,
+            verify: expect.any(Function),
+        });
+        expect(context.createAgreement).not.toHaveBeenCalled();
+        expect(context.generate).not.toHaveBeenCalled();
+    });
+
+    test("testSpell preserves verification status 2", async () => {
+        const context = commandContext({
+            updates: [],
+            solidityCode: "",
+            validationWarnings: ["recovery address mismatch"],
+        });
+        context.testSpell.mockImplementation(({ verify }) =>
+            verify("http://127.0.0.1:18545"),
+        );
+
+        const exitCode = await runCommand("testSpell", context);
+
+        expect(exitCode).toBe(2);
+        expect(context.createAgreement).toHaveBeenCalledWith(
+            "http://127.0.0.1:18545",
+        );
+    });
+
+    test("testSpell exits 1 for an operational failure", async () => {
+        const context = commandContext();
+        const failure = new Error("Anvil failed to start");
+        context.testSpell.mockRejectedValue(failure);
+
+        const exitCode = await runCommand("testSpell", context);
+
+        expect(exitCode).toBe(1);
+        expect(context.stderr).toHaveBeenCalledWith(
+            "Failed to execute command:",
+            failure,
+        );
+    });
+
+    test.each([
+        ["forkBlock", "invalid", "SAFEHARBOR_FORK_BLOCK"],
+        ["port", "0", "ANVIL_PORT"],
+    ])("testSpell exits 1 for invalid %s", async (field, value, name) => {
+        const context = commandContext();
+        delete context.testSpell;
+        context[field] = value;
+
+        const exitCode = await runCommand("testSpell", context);
+
+        expect(exitCode).toBe(1);
+        expect(context.stderr).toHaveBeenCalledWith(
+            "Failed to execute command:",
+            expect.objectContaining({ message: expect.stringContaining(name) }),
+        );
+    });
+
+    test.each([
+        ["SIGINT", 130],
+        ["SIGTERM", 143],
+    ])("testSpell preserves %s cleanup status", async (signal, exitCode) => {
+        const context = commandContext();
+        const cleanup = vi.fn();
+        const interruption = Object.assign(
+            new Error(`Interrupted by ${signal}`),
+            { interrupted: true, exitCode },
+        );
+        context.testSpell.mockImplementation(async () => {
+            try {
+                throw interruption;
+            } finally {
+                cleanup();
+            }
+        });
+
+        expect(await runCommand("testSpell", context)).toBe(exitCode);
+        expect(cleanup).toHaveBeenCalledOnce();
+        expect(context.stderr).not.toHaveBeenCalled();
     });
 
     test("defaults to generate when no command is provided", async () => {

@@ -1,14 +1,18 @@
 import { generatePayload } from "./generatePayload.js";
+import { testSpell as testSpellCommand } from "./testSpell.js";
 import { createAgreementInstance } from "./utils/contractUtils.js";
 
-const COMMANDS = new Set(["generate", "inspect", "verify"]);
+const COMMANDS = ["generate", "inspect", "verify", "testSpell"];
 
 export async function runCommand(
     command,
     {
         rpcUrl,
+        forkBlock,
+        port,
         createAgreement = createAgreementInstance,
         generate = generatePayload,
+        testSpell = testSpellCommand,
         stdout = console.log,
         stderr = console.error,
         warn = console.warn,
@@ -16,9 +20,9 @@ export async function runCommand(
 ) {
     const selectedCommand = command || "generate";
 
-    if (!COMMANDS.has(selectedCommand)) {
+    if (!COMMANDS.includes(selectedCommand)) {
         stderr(`Error: Unknown command '${selectedCommand}'`);
-        stderr("Available commands: generate, inspect, verify");
+        stderr(`Available commands: ${COMMANDS.join(", ")}`);
         stderr("Usage: npm run <command>");
         return 1;
     }
@@ -35,6 +39,23 @@ export async function runCommand(
     }
 
     try {
+        if (selectedCommand === "testSpell") {
+            return await testSpell({
+                rpcUrl,
+                forkBlock,
+                port,
+                verify: (verificationRpcUrl) =>
+                    runCommand("verify", {
+                        rpcUrl: verificationRpcUrl,
+                        createAgreement,
+                        generate,
+                        stderr,
+                        stdout,
+                        warn,
+                    }),
+            });
+        }
+
         const agreementContract = await createAgreement(rpcUrl);
         const result = await generate(agreementContract);
 
@@ -71,6 +92,14 @@ export async function runCommand(
         );
         return 2;
     } catch (error) {
+        // Interrupt is not a failure, return the given exit code instead
+        if (
+            error?.interrupted &&
+            (error.exitCode === 130 || error.exitCode === 143)
+        ) {
+            return error.exitCode;
+        }
+
         stderr("Failed to execute command:", error);
         return 1;
     }
