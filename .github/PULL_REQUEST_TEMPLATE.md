@@ -1,22 +1,29 @@
 # Description
 
-# Contribution Checklist
+_Explain what the PR does_
 
-- [ ] PR title starts with `(PE-<TICKET_NUMBER>)`
-- [ ] Code approved
-- [ ] Tests approved
-- [ ] CI Tests pass
+## Reason behind the update (Maintenance PR)
 
-# Checklist
+_Explain why the update is needed or any relevant context_
 
-- [ ] Every contract variable/method declared as public/external private/internal
-- [ ] Consider if this PR needs the `officeHours` modifier override
-- [ ] Verify expiration (`30 days` unless otherwise specified)
-- [ ] Verify hash in the description matches [here](https://emn178.github.io/online-tools/keccak_256.html)
-- [ ] Validate all addresses used are in changelog or known
-- [ ] Notify any external teams affected by the spell so they have the opportunity to review
-- [ ] Deploy spell `ETH_GAS_LIMIT="XXX" ETH_GAS_PRICE="YYY" make deploy`
-- [ ] Verify `mainnet` contract on etherscan
-- [ ] Change test to use mainnet spell address and deploy timestamp
-- [ ] Run `make archive-spell` or `make date="YYYY-MM-DD" archive-spell` to make an archive directory and copy `DssSpell.sol`, `DssSpell.t.sol`, `DssSpell.t.base.sol`, and `DssSpellCollateralOnboarding.sol`
-- [ ] `squash and merge` this PR
+## How to test (Maintenance PR)
+
+_Explain how the PR can be tested_
+
+## Scope and risks (Maintenance PR)
+
+_Expain any risks or limitations_
+
+## Relevant links (Maintenance PR)
+
+_Provide links to relevant issues, previous PRs, incidents, documentation, or discussions_
+
+## Checklist
+
+- [ ] PR title clearly shows what the PR implements; IF it is a spell PR follows format of `YYYY-MM-DD Spell`;
+- [ ] PR doesn't update any files that are not related to the current PR scope;
+- [ ] All required information for the current PR type has been filled in above;
+- [ ] IF this is a Maintenance PR, remove the “(Maintenance PR)” labels from the section headings;
+- [ ] IF this is a Spell PR, remove the Maintenance PR sections;
+- [ ] IF this is a Spell PR, only the current spell-related contracts and tests have been updated and archived; no existing base test has been modified;
+- [ ] IF this is a Spell PR, the execution sheet link is included in the Description.
