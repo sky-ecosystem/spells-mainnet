@@ -22,5 +22,6 @@ _Provide links to relevant issues, previous PRs, incidents, documentation, or di
 - [ ] PR title clearly shows what the PR implements; IF it is a spell PR follows format of `YYYY-MM-DD Spell`;
 - [ ] PR doesn't update any files that are not related to the current PR scope;
 - [ ] All required information for the current PR type (Maintenence or Spell) has been filled in above;
+- [ ] IF this is a Spell PR, only the current spell related contracts and test has been updated and archived; no eixsting base test has been modified;
 - [ ] If this is a Spell PR, remove the Maingenance PR sections;
 - [ ] If this is a Spell PR, the execution sheet link is included in the Description.
