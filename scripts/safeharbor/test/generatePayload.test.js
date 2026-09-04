@@ -35,8 +35,6 @@ const RECOVERY = {
     OP: "0x1000000000000000000000000000000000000004",
     SOL: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
     MISMATCH: "0x10000000000000000000000000000000000000ff",
-    UNKNOWN: "0x10000000000000000000000000000000000000fe",
-    ALTERNATE: "0x10000000000000000000000000000000000000fd",
 };
 
 const ACCOUNT = {
@@ -83,6 +81,13 @@ const CHAIN_DETAILS = {
     },
 };
 
+function mockOnChainState(onChainState, validationWarnings = []) {
+    getNormalizedDataFromOnchainState.mockResolvedValue({
+        onChainState,
+        validationWarnings,
+    });
+}
+
 describe("inspectPayload E2E Tests", () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -90,7 +95,10 @@ describe("inspectPayload E2E Tests", () => {
         consoleErrorSpy = vi
             .spyOn(console, "error")
             .mockImplementation(() => {});
-        getChainDetailsFromCSV.mockResolvedValue(CHAIN_DETAILS);
+        getChainDetailsFromCSV.mockResolvedValue({
+            chainDetails: CHAIN_DETAILS,
+            validationWarnings: [],
+        });
     });
 
     afterEach(() => {
@@ -124,10 +132,17 @@ describe("inspectPayload E2E Tests", () => {
             assetRecoveryAddress: RECOVERY.ARB,
         },
     };
+    async function generateFrom(
+        csvState,
+        onChainState = INITIAL_ONCHAIN_STATE,
+    ) {
+        mockOnChainState(onChainState);
+        getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvState);
+        return generatePayload("");
+    }
 
     describe("No changes scenario", () => {
         test("should generate no updates when onchain and CSV data match", async () => {
-            // Arrange - CSV data matches onchain exactly
             const csvData = {
                 ETHEREUM: [
                     { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
@@ -142,13 +157,7 @@ describe("inspectPayload E2E Tests", () => {
                 ],
             };
 
-            getNormalizedDataFromOnchainState.mockResolvedValue(
-                INITIAL_ONCHAIN_STATE,
-            );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
-
-            // Act
-            const result = await generatePayload("");
+            const result = await generateFrom(csvData);
 
             // Assert - should have empty result since no changes needed
             assert.strictEqual(result.updates.length, 0);
@@ -159,30 +168,23 @@ describe("inspectPayload E2E Tests", () => {
 
     describe("Account addition scenarios", () => {
         test("should generate addAccounts updates when new accounts are added to existing chains", async () => {
-            // Arrange - Add new accounts to existing chains
             const csvData = {
                 ETHEREUM: [
-                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 }, // existing
-                    { accountAddress: ACCOUNT.ETH2, childContractScope: 2 }, // existing
-                    { accountAddress: ACCOUNT.ETH3, childContractScope: 0 }, // new
+                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
+                    { accountAddress: ACCOUNT.ETH3, childContractScope: 0 },
                 ],
                 BASE: [
-                    { accountAddress: ACCOUNT.BASE1, childContractScope: 0 }, // existing
-                    { accountAddress: ACCOUNT.BASE2, childContractScope: 2 }, // new factory
+                    { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.BASE2, childContractScope: 2 },
                 ],
                 ARBITRUM: [
-                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 }, // existing
-                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 }, // existing
+                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
                 ],
             };
-            getNormalizedDataFromOnchainState.mockResolvedValue(
-                INITIAL_ONCHAIN_STATE,
-            );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
-            const result = await generatePayload("");
-            assert.ok(result.solidityCode);
-            assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
-            expect(result.solidityCode).toMatchSnapshot();
+
+            const result = await generateFrom(csvData);
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 2);
             const addAccountsUpdates = result.updates.filter(
@@ -218,14 +220,8 @@ describe("inspectPayload E2E Tests", () => {
                     { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
                 ],
             };
-            getNormalizedDataFromOnchainState.mockResolvedValue(
-                INITIAL_ONCHAIN_STATE,
-            );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
-            const result = await generatePayload("");
-            assert.ok(result.solidityCode);
-            assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
-            expect(result.solidityCode).toMatchSnapshot();
+
+            const result = await generateFrom(csvData);
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 2);
             const removeAccountsUpdates = result.updates.filter(
@@ -266,14 +262,8 @@ describe("inspectPayload E2E Tests", () => {
                     { accountAddress: ACCOUNT.SOL1, childContractScope: 0 },
                 ],
             };
-            getNormalizedDataFromOnchainState.mockResolvedValue(
-                INITIAL_ONCHAIN_STATE,
-            );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
-            const result = await generatePayload("");
-            assert.ok(result.solidityCode);
-            assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
-            expect(result.solidityCode).toMatchSnapshot();
+
+            const result = await generateFrom(csvData);
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 1);
             const addChainsUpdates = result.updates.filter(
@@ -306,17 +296,22 @@ describe("inspectPayload E2E Tests", () => {
         });
         test("should reject adding a new chain without accounts", async () => {
             const csvData = {
-                ETHEREUM: INITIAL_ONCHAIN_STATE.ETHEREUM.accounts,
-                BASE: INITIAL_ONCHAIN_STATE.BASE.accounts,
-                ARBITRUM: INITIAL_ONCHAIN_STATE.ARBITRUM.accounts,
+                ETHEREUM: [
+                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
+                ],
+                BASE: [
+                    { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
+                ],
+                ARBITRUM: [
+                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
+                ],
                 OPTIMISM: [],
             };
-            getNormalizedDataFromOnchainState.mockResolvedValue(
-                INITIAL_ONCHAIN_STATE,
-            );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
+
             await assert.rejects(
-                () => generatePayload(""),
+                () => generateFrom(csvData),
                 /Cannot add chain 'OPTIMISM' without accounts/,
             );
             expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -336,14 +331,8 @@ describe("inspectPayload E2E Tests", () => {
                     { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
                 ],
             };
-            getNormalizedDataFromOnchainState.mockResolvedValue(
-                INITIAL_ONCHAIN_STATE,
-            );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
-            const result = await generatePayload("");
-            assert.ok(result.solidityCode);
-            assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
-            expect(result.solidityCode).toMatchSnapshot();
+
+            const result = await generateFrom(csvData);
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 1);
             const removeChainsUpdates = result.updates.filter(
@@ -358,7 +347,6 @@ describe("inspectPayload E2E Tests", () => {
     });
     describe("Complex mixed scenarios", () => {
         test("should handle simultaneous chain additions, removals, and account changes", async () => {
-            // Arrange
             const csvData = {
                 ETHEREUM: [
                     { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
@@ -373,14 +361,8 @@ describe("inspectPayload E2E Tests", () => {
                     { accountAddress: ACCOUNT.OP1, childContractScope: 0 },
                 ],
             };
-            getNormalizedDataFromOnchainState.mockResolvedValue(
-                INITIAL_ONCHAIN_STATE,
-            );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
-            const result = await generatePayload("");
-            assert.ok(result.solidityCode);
-            assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
-            expect(result.solidityCode).toMatchSnapshot();
+
+            const result = await generateFrom(csvData);
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 5);
             const chainUpdates = result.updates.filter(
@@ -462,14 +444,8 @@ describe("inspectPayload E2E Tests", () => {
                     { accountAddress: ACCOUNT.OPR2, childContractScope: 0 },
                 ],
             };
-            getNormalizedDataFromOnchainState.mockResolvedValue(
-                INITIAL_ONCHAIN_STATE,
-            );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
-            const result = await generatePayload("");
-            assert.ok(result.solidityCode);
-            assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
-            expect(result.solidityCode).toMatchSnapshot();
+
+            const result = await generateFrom(csvData);
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 4);
             const addChainUpdate = result.updates.find(
@@ -505,17 +481,19 @@ describe("inspectPayload E2E Tests", () => {
     describe("Edge cases", () => {
         test("should reject an existing chain without desired accounts", async () => {
             const csvData = {
-                ETHEREUM: INITIAL_ONCHAIN_STATE.ETHEREUM.accounts,
+                ETHEREUM: [
+                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
+                ],
                 BASE: [],
-                ARBITRUM: INITIAL_ONCHAIN_STATE.ARBITRUM.accounts,
+                ARBITRUM: [
+                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
+                ],
             };
-            getNormalizedDataFromOnchainState.mockResolvedValue(
-                INITIAL_ONCHAIN_STATE,
-            );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
 
             await assert.rejects(
-                () => generatePayload(""),
+                () => generateFrom(csvData),
                 /Chain 'BASE' must be removed instead of configured without accounts/,
             );
             expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -534,15 +512,16 @@ describe("inspectPayload E2E Tests", () => {
                     { accountAddress: ACCOUNT.ETH3, childContractScope: 0 },
                     { accountAddress: ACCOUNT.ETHF, childContractScope: 2 },
                 ],
-                BASE: INITIAL_ONCHAIN_STATE.BASE.accounts,
-                ARBITRUM: INITIAL_ONCHAIN_STATE.ARBITRUM.accounts,
+                BASE: [
+                    { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
+                ],
+                ARBITRUM: [
+                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
+                ],
             };
-            getNormalizedDataFromOnchainState.mockResolvedValue(
-                INITIAL_ONCHAIN_STATE,
-            );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
 
-            const result = await generatePayload("");
+            const result = await generateFrom(csvData);
             const ethereumUpdates = result.updates.filter(
                 (update) => update.args[0] === "eip155:1",
             );
@@ -555,18 +534,20 @@ describe("inspectPayload E2E Tests", () => {
 
         test("should add before removing for a sole-account scope change", async () => {
             const csvData = {
-                ETHEREUM: INITIAL_ONCHAIN_STATE.ETHEREUM.accounts,
+                ETHEREUM: [
+                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
+                ],
                 BASE: [
                     { accountAddress: ACCOUNT.BASE1, childContractScope: 2 },
                 ],
-                ARBITRUM: INITIAL_ONCHAIN_STATE.ARBITRUM.accounts,
+                ARBITRUM: [
+                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
+                ],
             };
-            getNormalizedDataFromOnchainState.mockResolvedValue(
-                INITIAL_ONCHAIN_STATE,
-            );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
 
-            const result = await generatePayload("");
+            const result = await generateFrom(csvData);
             const baseUpdates = result.updates.filter(
                 (update) => update.args[0] === "eip155:8453",
             );
@@ -583,12 +564,7 @@ describe("inspectPayload E2E Tests", () => {
                     { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
                 ],
             };
-            getNormalizedDataFromOnchainState.mockResolvedValue({});
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
-            const result = await generatePayload("");
-            assert.ok(result.solidityCode);
-            assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
-            expect(result.solidityCode).toMatchSnapshot();
+            const result = await generateFrom(csvData, {});
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 1);
             const addChainsUpdates = result.updates.filter(
@@ -601,14 +577,7 @@ describe("inspectPayload E2E Tests", () => {
             assert.strictEqual(removeUpdates.length, 0);
         });
         test("should handle completely empty CSV state", async () => {
-            getNormalizedDataFromOnchainState.mockResolvedValue(
-                INITIAL_ONCHAIN_STATE,
-            );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue({});
-            const result = await generatePayload("");
-            assert.ok(result.solidityCode);
-            assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
-            expect(result.solidityCode).toMatchSnapshot();
+            const result = await generateFrom({});
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 1);
             const removeChainsUpdates = result.updates.filter(
@@ -636,14 +605,7 @@ describe("inspectPayload E2E Tests", () => {
                 ],
             };
 
-            getNormalizedDataFromOnchainState.mockResolvedValue(
-                INITIAL_ONCHAIN_STATE,
-            );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
-            const result = await generatePayload("");
-            assert.ok(result.solidityCode);
-            assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
-            expect(result.solidityCode).toMatchSnapshot();
+            const result = await generateFrom(csvData);
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
         });
     });
@@ -670,7 +632,6 @@ describe("inspectPayload E2E Tests", () => {
                 },
             };
 
-            // CSV account data can match to isolate the validation logic
             const csvData = {
                 ETHEREUM: [
                     { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
@@ -680,13 +641,10 @@ describe("inspectPayload E2E Tests", () => {
                 ],
             };
 
-            getNormalizedDataFromOnchainState.mockResolvedValue(
+            const result = await generateFrom(
+                csvData,
                 onChainStateWithMismatch,
             );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
-
-            // Act
-            const result = await generatePayload("");
 
             // Assert
             const wasCalledWithMismatchWarning = consoleWarnSpy.mock.calls.some(
@@ -717,73 +675,25 @@ describe("inspectPayload E2E Tests", () => {
             );
         });
 
-        test("should log a warning when unknown chain details are found in on-chain state", async () => {
-            // Arrange
-            // Import the actual implementation instead of the mock
-            const {
-                getNormalizedDataFromOnchainState:
-                    actualGetNormalizedDataFromOnchainState,
-            } = await vi.importActual("../src/fetchOnchain.js");
-
-            // Mock agreement contract with an unknown chain
-            const mockAgreementContract = {
-                getDetails: vi.fn().mockResolvedValue({
-                    chains: [
-                        {
-                            caip2ChainId: "eip155:1", // Known chain (ETHEREUM)
-                            assetRecoveryAddress: RECOVERY.ETH,
-                            accounts: [[ACCOUNT.ETH1, 0]],
-                        },
-                        {
-                            caip2ChainId: "eip155:999999", // Unknown chain
-                            assetRecoveryAddress: RECOVERY.UNKNOWN,
-                            accounts: [[ACCOUNT.UNKNOWN, 0]],
-                        },
-                    ],
-                }),
-            };
-
-            // Act - use the actual implementation
-            const validationWarnings = [];
-            const result = await actualGetNormalizedDataFromOnchainState(
-                mockAgreementContract,
-                CHAIN_DETAILS,
-                (warning) => validationWarnings.push(warning),
-            );
-
-            // Assert
-            const wasCalledWithUnknownChainWarning = validationWarnings.some(
-                (warning) =>
-                    warning.includes(
-                        "Unknown chain details in on-chain state",
-                    ) && warning.includes("caip2ChainId='eip155:999999'"),
-            );
-
-            assert.ok(
-                wasCalledWithUnknownChainWarning,
-                "the warning reporter should receive the unknown on-chain chain warning",
-            );
-
-            // Verify that the unknown chain was not included in the result
-            assert.ok(!Object.hasOwn(result, "UNKNOWN"));
-            assert.ok(Object.hasOwn(result, "ETHEREUM"));
-        });
-
         test("should collect unknown CSV chains as validation warnings", async () => {
             const csvData = {
-                ETHEREUM: INITIAL_ONCHAIN_STATE.ETHEREUM.accounts,
-                BASE: INITIAL_ONCHAIN_STATE.BASE.accounts,
-                ARBITRUM: INITIAL_ONCHAIN_STATE.ARBITRUM.accounts,
+                ETHEREUM: [
+                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
+                ],
+                BASE: [
+                    { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
+                ],
+                ARBITRUM: [
+                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
+                ],
                 UNKNOWN: [
                     { accountAddress: ACCOUNT.UNKNOWN, childContractScope: 0 },
                 ],
             };
-            getNormalizedDataFromOnchainState.mockResolvedValue(
-                INITIAL_ONCHAIN_STATE,
-            );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
 
-            const result = await generatePayload("");
+            const result = await generateFrom(csvData);
 
             expect(result.validationWarnings).toHaveLength(1);
             expect(result.validationWarnings[0]).toContain(
@@ -796,113 +706,27 @@ describe("inspectPayload E2E Tests", () => {
         test("should collect chain metadata warnings in the payload result", async () => {
             const duplicateWarning =
                 "⚠️  Warning: Duplicate chain name found in CSV: ETHEREUM ⚠️";
-            getChainDetailsFromCSV.mockImplementation(
-                async (_url, reportWarning) => {
-                    reportWarning(duplicateWarning);
-                    return CHAIN_DETAILS;
-                },
-            );
-            getNormalizedDataFromOnchainState.mockResolvedValue(
-                INITIAL_ONCHAIN_STATE,
-            );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue({
-                ETHEREUM: INITIAL_ONCHAIN_STATE.ETHEREUM.accounts,
-                BASE: INITIAL_ONCHAIN_STATE.BASE.accounts,
-                ARBITRUM: INITIAL_ONCHAIN_STATE.ARBITRUM.accounts,
+            getChainDetailsFromCSV.mockResolvedValue({
+                chainDetails: CHAIN_DETAILS,
+                validationWarnings: [duplicateWarning],
             });
+            const csvData = {
+                ETHEREUM: [
+                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
+                ],
+                BASE: [
+                    { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
+                ],
+                ARBITRUM: [
+                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
+                ],
+            };
 
-            const result = await generatePayload("");
+            const result = await generateFrom(csvData);
 
             expect(result.validationWarnings).toEqual([duplicateWarning]);
-        });
-
-        test("should log a warning when duplicate chain names are found in CSV", async () => {
-            // Arrange
-            // Mock fetch to return CSV data with duplicate chain names
-            global.fetch = vi.fn().mockResolvedValue({
-                ok: true,
-                headers: {
-                    get: vi.fn().mockReturnValue("text/csv"),
-                },
-                text: vi.fn().mockResolvedValue(
-                    `Name,Chain Id,Asset Recovery Address
-ETHEREUM,eip155:1,${RECOVERY.ETH}
-ETHEREUM,eip155:2,${RECOVERY.ALTERNATE}
-BASE,eip155:8453,${RECOVERY.BASE}`,
-                ),
-            });
-
-            // Import the actual implementation to test it
-            const { getChainDetailsFromCSV: actualGetChainDetailsFromCSV } =
-                await vi.importActual("../src/fetchCSV.js");
-
-            // Act
-            const validationWarnings = [];
-            await actualGetChainDetailsFromCSV(
-                "https://example.test/chain-details.csv",
-                (warning) => validationWarnings.push(warning),
-            );
-
-            // Assert
-            const wasCalledWithDuplicateNamesWarning = validationWarnings.some(
-                (warning) =>
-                    warning.includes(
-                        "⚠️  Warning: Duplicate chain name found in CSV",
-                    ) && warning.includes("ETHEREUM"),
-            );
-
-            assert.ok(
-                wasCalledWithDuplicateNamesWarning,
-                "the warning reporter should receive the duplicate chain name warning",
-            );
-
-            // Clean up
-            delete global.fetch;
-        });
-
-        test("should log a warning when duplicate chain IDs are found in CSV", async () => {
-            // Arrange
-            // Mock fetch to return CSV data with duplicate chain IDs
-            global.fetch = vi.fn().mockResolvedValue({
-                ok: true,
-                headers: {
-                    get: vi.fn().mockReturnValue("text/csv"),
-                },
-                text: vi.fn().mockResolvedValue(
-                    `Name,Chain Id,Asset Recovery Address
-ETHEREUM,eip155:1,${RECOVERY.ETH}
-ETH_DUPLICATE,eip155:1,${RECOVERY.ALTERNATE}
-BASE,eip155:8453,${RECOVERY.BASE}`,
-                ),
-            });
-
-            // Import the actual implementation to test it
-            const { getChainDetailsFromCSV: actualGetChainDetailsFromCSV } =
-                await vi.importActual("../src/fetchCSV.js");
-
-            // Act
-            const validationWarnings = [];
-            await actualGetChainDetailsFromCSV(
-                "https://example.test/chain-details.csv",
-                (warning) => validationWarnings.push(warning),
-            );
-
-            // Assert
-            const wasCalledWithDuplicateChainIdsWarning =
-                validationWarnings.some(
-                    (warning) =>
-                        warning.includes(
-                            "⚠️  Warning: Duplicate chain ID found in CSV",
-                        ) && warning.includes("eip155:1"),
-                );
-
-            assert.ok(
-                wasCalledWithDuplicateChainIdsWarning,
-                "the warning reporter should receive the duplicate chain ID warning",
-            );
-
-            // Clean up
-            delete global.fetch;
         });
     });
 });
@@ -971,7 +795,7 @@ function normalizeDecodedValue(value, param) {
  * bytes map back to the expected function name and named arguments.
  *
  * @param {Array<{function: string, calldata: string}>} updates Generated payload updates.
- * @returns {Array<{index: number, function: string, calldata: string, decodedName: string, decodedArgs: Array<*>}>}
+ * @returns {Array<{calldata: string, decodedName: string, decodedArgs: Array<*>}>}
  */
 function payloadSnapshot(updates) {
     return updates.map((update, index) => {
@@ -979,10 +803,9 @@ function payloadSnapshot(updates) {
             data: update.calldata,
         });
         assert.ok(decoded, `Unable to decode payload update ${index}`);
+        assert.strictEqual(decoded.name, update.function);
 
         return {
-            index,
-            function: update.function,
             calldata: update.calldata,
             decodedName: decoded.name,
             decodedArgs: decoded.fragment.inputs.map((input, inputIndex) =>

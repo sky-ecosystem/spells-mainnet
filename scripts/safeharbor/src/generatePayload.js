@@ -32,22 +32,14 @@ import {
  */
 export async function generatePayload(agreementContract) {
     try {
-        const validationWarnings = [];
-        const reportWarning = (message) => {
-            validationWarnings.push(message);
-            console.warn(message);
-        };
-
         // 0. Fetch chain information once at the beginning
         console.warn("Fetching chains details CSV...");
         /**
          * Chain details fetched from CSV containing network information
          * @type {Array<{name: string, chainId: string, recoveryAddress: string}>}
          */
-        const chainDetails = await getChainDetailsFromCSV(
-            CHAIN_DETAILS_SHEET_URL,
-            reportWarning,
-        );
+        const { chainDetails, validationWarnings: chainDetailsWarnings } =
+            await getChainDetailsFromCSV(CHAIN_DETAILS_SHEET_URL);
 
         // 1. Download and parse CSV
         console.warn("Downloading contracts in scope CSV...");
@@ -65,11 +57,11 @@ export async function generatePayload(agreementContract) {
          * Normalized on-chain state for contracts
          * @type {{[chainId: string]: Array<{accountAddress: string, childContractScope: number}>}}
          */
-        const onChainState = await getNormalizedDataFromOnchainState(
-            agreementContract,
-            chainDetails,
-            reportWarning,
-        );
+        const { onChainState, validationWarnings: onChainWarnings } =
+            await getNormalizedDataFromOnchainState(
+                agreementContract,
+                chainDetails,
+            );
 
         // 3. Generate updates
         console.warn("Generating updates...");
@@ -77,12 +69,17 @@ export async function generatePayload(agreementContract) {
          * Array of update objects representing differences between CSV and on-chain state
          * @type {Array<{function: string, args: Array<any>, calldata: string}>}
          */
-        const updates = generateUpdates(
+        const { updates, validationWarnings: updateWarnings } = generateUpdates(
             onChainState,
             csvState,
             chainDetails,
-            reportWarning,
         );
+        const validationWarnings = [
+            ...chainDetailsWarnings,
+            ...onChainWarnings,
+            ...updateWarnings,
+        ];
+        validationWarnings.forEach((warning) => console.warn(warning));
 
         if (updates.length === 0) {
             return {

@@ -1,68 +1,62 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-const contractCalls = [];
-const getContractAddress = vi.fn();
-const getChainlogAddress = vi.fn();
-const encodeBytes32String = vi.fn((value) => `bytes32:${value}`);
+const mocks = vi.hoisted(() => ({
+    Contract: vi.fn(),
+    JsonRpcProvider: vi.fn((rpcUrl) => ({ rpcUrl })),
+    encodeBytes32String: vi.fn((value) => `bytes32:${value}`),
+    getContractAddress: vi.fn(),
+    getChainlogAddress: vi.fn(),
+}));
 
 vi.mock("ethers", () => ({
-    Contract: vi.fn((address, abi, provider) => {
-        contractCalls.push({ address, abi, provider });
-
-        if (contractCalls.length === 1) {
-            return {
-                getAddress: getContractAddress,
-                "getAddress(bytes32)": getChainlogAddress,
-            };
-        }
-
-        return { address, abi, provider };
-    }),
-    JsonRpcProvider: vi.fn((rpcUrl) => ({ rpcUrl })),
-    encodeBytes32String,
+    Contract: mocks.Contract,
+    JsonRpcProvider: mocks.JsonRpcProvider,
+    encodeBytes32String: mocks.encodeBytes32String,
 }));
+
+import { AGREEMENT_V3_ABI, CHAINLOG_ABI } from "../src/abis.js";
+import { createAgreementInstance } from "../src/utils/contractUtils.js";
 
 describe("createAgreementInstance", () => {
     afterEach(() => {
         vi.clearAllMocks();
-        contractCalls.length = 0;
     });
 
     test("loads the Safe Harbor agreement address from the Chainlog", async () => {
-        getContractAddress.mockResolvedValue(
+        const chainlog = {
+            getAddress: mocks.getContractAddress,
+            "getAddress(bytes32)": mocks.getChainlogAddress,
+        };
+        const agreement = {
+            address: "0x7000000000000000000000000000000000000001",
+        };
+
+        mocks.getChainlogAddress.mockResolvedValue(agreement.address);
+        mocks.Contract.mockReturnValueOnce(chainlog).mockReturnValueOnce(
+            agreement,
+        );
+
+        const result = await createAgreementInstance("https://rpc.example");
+
+        expect(mocks.Contract).toHaveBeenNthCalledWith(
+            1,
             "0xdA0Ab1e0017DEbCd72Be8599041a2aa3bA7e740F",
+            CHAINLOG_ABI,
+            { rpcUrl: "https://rpc.example" },
         );
-        getChainlogAddress.mockResolvedValue(
-            "0x7000000000000000000000000000000000000001",
-        );
-
-        const { createAgreementInstance } = await import(
-            "../src/utils/contractUtils.js"
-        );
-        const { CHAINLOG_ABI } = await import("../src/abis.js");
-        const { AGREEMENT_V3_ABI } = await import("../src/abis.js");
-
-        const agreement = await createAgreementInstance("https://rpc.example");
-
-        expect(contractCalls[0]).toEqual({
-            address: "0xdA0Ab1e0017DEbCd72Be8599041a2aa3bA7e740F",
-            abi: CHAINLOG_ABI,
-            provider: { rpcUrl: "https://rpc.example" },
-        });
-        expect(encodeBytes32String).toHaveBeenCalledWith(
+        expect(mocks.encodeBytes32String).toHaveBeenCalledWith(
             "SAFE_HARBOR_AGREEMENT",
         );
-        expect(getChainlogAddress).toHaveBeenCalledWith(
+        expect(mocks.getChainlogAddress).toHaveBeenCalledWith(
             "bytes32:SAFE_HARBOR_AGREEMENT",
         );
-        expect(getContractAddress).not.toHaveBeenCalled();
-        expect(contractCalls[1]).toEqual({
-            address: "0x7000000000000000000000000000000000000001",
-            abi: AGREEMENT_V3_ABI,
-            provider: { rpcUrl: "https://rpc.example" },
-        });
-        expect(agreement.address).toBe(
-            "0x7000000000000000000000000000000000000001",
+        expect(mocks.getContractAddress).not.toHaveBeenCalled();
+        expect(mocks.Contract).toHaveBeenNthCalledWith(
+            2,
+            agreement.address,
+            AGREEMENT_V3_ABI,
+            { rpcUrl: "https://rpc.example" },
         );
+        expect(result).toBe(agreement);
     });
 });

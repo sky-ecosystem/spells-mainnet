@@ -1,24 +1,36 @@
-import { describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { runCommand } from "../src/cli.js";
+import { generatePayload } from "../src/generatePayload.js";
+import { createAgreementInstance } from "../src/utils/contractUtils.js";
+
+vi.mock("../src/generatePayload.js", () => ({ generatePayload: vi.fn() }));
+vi.mock("../src/utils/contractUtils.js", () => ({
+    createAgreementInstance: vi.fn(),
+}));
 
 const CLEAN_RESULT = {
     updates: [],
     solidityCode: "",
     validationWarnings: [],
 };
+const agreementContract = {};
 
-function commandContext(result = CLEAN_RESULT) {
-    const agreementContract = {};
-    return {
-        agreementContract,
-        createAgreement: vi.fn().mockResolvedValue(agreementContract),
-        generate: vi.fn().mockResolvedValue(result),
-        rpcUrl: "https://rpc.example",
-        stdout: vi.fn(),
-        stderr: vi.fn(),
-        warn: vi.fn(),
-    };
-}
+let stdout;
+let stderr;
+
+beforeEach(() => {
+    vi.stubEnv("ETH_RPC_URL", "https://rpc.example");
+    createAgreementInstance.mockResolvedValue(agreementContract);
+    generatePayload.mockResolvedValue(CLEAN_RESULT);
+    stdout = vi.spyOn(console, "log").mockImplementation(() => {});
+    stderr = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+});
+
+afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+});
 
 describe("runCommand", () => {
     test.each([
@@ -33,15 +45,15 @@ describe("runCommand", () => {
         ],
         ["without updates", CLEAN_RESULT, undefined],
     ])("generate exits 0 %s", async (_scenario, result, expectedOutput) => {
-        const context = commandContext(result);
+        generatePayload.mockResolvedValue(result);
 
-        const exitCode = await runCommand("generate", context);
+        const exitCode = await runCommand("generate");
 
         expect(exitCode).toBe(0);
         if (expectedOutput) {
-            expect(context.stdout).toHaveBeenCalledWith(expectedOutput);
+            expect(stdout).toHaveBeenCalledWith(expectedOutput);
         } else {
-            expect(context.stdout).not.toHaveBeenCalled();
+            expect(stdout).not.toHaveBeenCalled();
         }
     });
 
@@ -58,24 +70,22 @@ describe("runCommand", () => {
     ])(
         "inspect prints complete JSON and exits 0 %s",
         async (_scenario, result) => {
-            const context = commandContext(result);
+            generatePayload.mockResolvedValue(result);
 
-            const exitCode = await runCommand("inspect", context);
+            const exitCode = await runCommand("inspect");
 
             expect(exitCode).toBe(0);
-            expect(context.stdout).toHaveBeenCalledWith(
+            expect(stdout).toHaveBeenCalledWith(
                 JSON.stringify(result, null, 2),
             );
         },
     );
 
     test("verify exits 0 when no updates or warnings are found", async () => {
-        const context = commandContext();
-
-        const exitCode = await runCommand("verify", context);
+        const exitCode = await runCommand("verify");
 
         expect(exitCode).toBe(0);
-        expect(context.stdout).toHaveBeenCalledWith(
+        expect(stdout).toHaveBeenCalledWith(
             "SafeHarbor verification passed: no updates or validation warnings.",
         );
     });
@@ -89,65 +99,55 @@ describe("runCommand", () => {
             ["recovery address mismatch"],
         ],
     ])("verify exits 2 for %s", async (_scenario, updates, warnings) => {
-        const context = commandContext({
+        generatePayload.mockResolvedValue({
             updates,
             solidityCode: updates.length > 0 ? "generated solidity" : "",
             validationWarnings: warnings,
         });
 
-        const exitCode = await runCommand("verify", context);
+        const exitCode = await runCommand("verify");
 
         expect(exitCode).toBe(2);
-        expect(context.stdout).toHaveBeenCalledWith(
+        expect(stdout).toHaveBeenCalledWith(
             `SafeHarbor verification failed: ${updates.length} update(s), ${warnings.length} validation warning(s).`,
         );
     });
 
     test("defaults to generate when no command is provided", async () => {
-        const context = commandContext();
-
-        const exitCode = await runCommand(undefined, context);
+        const exitCode = await runCommand();
 
         expect(exitCode).toBe(0);
-        expect(context.generate).toHaveBeenCalledWith(
-            context.agreementContract,
-        );
+        expect(generatePayload).toHaveBeenCalledWith(agreementContract);
     });
 
     test("exits 1 for an unknown command", async () => {
-        const context = commandContext();
-
-        const exitCode = await runCommand("unknown", context);
+        const exitCode = await runCommand("unknown");
 
         expect(exitCode).toBe(1);
-        expect(context.stderr).toHaveBeenCalledWith(
-            "Error: Unknown command 'unknown'",
-        );
-        expect(context.createAgreement).not.toHaveBeenCalled();
+        expect(stderr).toHaveBeenCalledWith("Error: Unknown command 'unknown'");
+        expect(createAgreementInstance).not.toHaveBeenCalled();
     });
 
     test("exits 1 when ETH_RPC_URL is missing", async () => {
-        const context = commandContext();
-        context.rpcUrl = undefined;
+        vi.stubEnv("ETH_RPC_URL", "");
 
-        const exitCode = await runCommand("verify", context);
+        const exitCode = await runCommand("verify");
 
         expect(exitCode).toBe(1);
-        expect(context.stderr).toHaveBeenCalledWith(
+        expect(stderr).toHaveBeenCalledWith(
             "Error: ETH_RPC_URL environment variable is not set.",
         );
-        expect(context.createAgreement).not.toHaveBeenCalled();
+        expect(createAgreementInstance).not.toHaveBeenCalled();
     });
 
     test("exits 1 when payload generation fails", async () => {
-        const context = commandContext();
         const failure = new Error("RPC unavailable");
-        context.generate.mockRejectedValue(failure);
+        generatePayload.mockRejectedValue(failure);
 
-        const exitCode = await runCommand("inspect", context);
+        const exitCode = await runCommand("inspect");
 
         expect(exitCode).toBe(1);
-        expect(context.stderr).toHaveBeenCalledWith(
+        expect(stderr).toHaveBeenCalledWith(
             "Failed to execute command:",
             failure,
         );

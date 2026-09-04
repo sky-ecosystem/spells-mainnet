@@ -3,45 +3,39 @@ import { AGREEMENT_V3_ABI as AGREEMENT_ABI } from "./abis.js";
 
 const agreementInterface = new Interface(AGREEMENT_ABI);
 
+function encodeUpdate(functionName, args) {
+    return {
+        function: functionName,
+        args,
+        calldata: agreementInterface.encodeFunctionData(functionName, args),
+    };
+}
+
 // Account difference calculation
 function calculateAccountDifferences(currentAccounts, desiredAccounts) {
-    // Create maps for easier lookup with composite keys
-    const currentMap = new Map(
-        currentAccounts.map((acc) => [
-            `${acc.accountAddress}-${acc.childContractScope}`,
-            acc,
-        ]),
+    const currentKeys = new Set(
+        currentAccounts.map(
+            (acc) => `${acc.accountAddress}-${acc.childContractScope}`,
+        ),
+    );
+    const desiredKeys = new Set(
+        desiredAccounts.map(
+            (acc) => `${acc.accountAddress}-${acc.childContractScope}`,
+        ),
     );
 
-    const desiredMap = new Map(
-        desiredAccounts.map((acc) => [
-            `${acc.accountAddress}-${acc.childContractScope}`,
-            acc,
-        ]),
-    );
-
-    // Find accounts to remove (exist in current but not in desired with same scope)
     const toRemove = currentAccounts
         .filter(
             (acc) =>
-                !desiredMap.has(
+                !desiredKeys.has(
                     `${acc.accountAddress}-${acc.childContractScope}`,
                 ),
         )
         .map((acc) => acc.accountAddress);
-
-    // Find accounts to add (exist in desired but not in current with same scope)
-    const toAdd = desiredAccounts
-        .filter(
-            (acc) =>
-                !currentMap.has(
-                    `${acc.accountAddress}-${acc.childContractScope}`,
-                ),
-        )
-        .map((acc) => ({
-            accountAddress: acc.accountAddress,
-            childContractScope: acc.childContractScope,
-        }));
+    const toAdd = desiredAccounts.filter(
+        (acc) =>
+            !currentKeys.has(`${acc.accountAddress}-${acc.childContractScope}`),
+    );
 
     return { toAdd, toRemove };
 }
@@ -85,58 +79,29 @@ function generateAccountUpdates(
 
         // Add replacements first if removing first would leave the chain empty.
         if (removesAllCurrentAccounts && toAdd.length > 0) {
-            updates.push({
-                function: "addAccounts",
-                args: [chainId, toAdd],
-                calldata: agreementInterface.encodeFunctionData("addAccounts", [
-                    chainId,
-                    toAdd,
-                ]),
-            });
+            updates.push(encodeUpdate("addAccounts", [chainId, toAdd]));
         }
 
         // Handle removals - removeAccounts now takes addresses directly
         if (toRemove.length > 0) {
-            updates.push({
-                function: "removeAccounts",
-                args: [chainId, toRemove],
-                calldata: agreementInterface.encodeFunctionData(
-                    "removeAccounts",
-                    [chainId, toRemove],
-                ),
-            });
+            updates.push(encodeUpdate("removeAccounts", [chainId, toRemove]));
         }
 
         // Handle additions
         if (!removesAllCurrentAccounts && toAdd.length > 0) {
-            updates.push({
-                function: "addAccounts",
-                args: [chainId, toAdd],
-                calldata: agreementInterface.encodeFunctionData("addAccounts", [
-                    chainId,
-                    toAdd,
-                ]),
-            });
+            updates.push(encodeUpdate("addAccounts", [chainId, toAdd]));
         }
     }
 
     return updates;
 }
 
-function validateRecoveryAddress(
-    onChainState,
-    csvState,
-    chainDetails,
-    reportWarning,
-) {
-    const onChainChains = new Set(Object.keys(onChainState));
-    const csvChains = new Set(Object.keys(csvState));
+function validateRecoveryAddress(onChainState, csvState, chainDetails) {
+    const validationWarnings = [];
 
-    const commonChains = [...onChainChains].filter((chain) =>
-        csvChains.has(chain),
-    );
+    for (const chainName of Object.keys(onChainState)) {
+        if (!Object.hasOwn(csvState, chainName)) continue;
 
-    for (const chainName of commonChains) {
         const onchainRecoveryAddress =
             onChainState[chainName].assetRecoveryAddress;
         const csvRecoveryAddress = chainDetails.assetRecoveryAddress[chainName];
@@ -147,20 +112,18 @@ function validateRecoveryAddress(
             onchainRecoveryAddress.toLowerCase() !==
                 csvRecoveryAddress.toLowerCase()
         ) {
-            reportWarning(
+            validationWarnings.push(
                 `\n\n‼️-----‼️ \nAsset Recovery Address mismatch for chain '${chainName}'. \nOn-chain: ${onchainRecoveryAddress} \nCSV:      ${csvRecoveryAddress} \n‼️-----‼️\n\n`,
             );
         }
     }
+
+    return validationWarnings;
 }
 
-function generateChainUpdates(
-    onChainState,
-    csvState,
-    chainDetails,
-    reportWarning,
-) {
+function generateChainUpdates(onChainState, csvState, chainDetails) {
     const updates = [];
+    const validationWarnings = [];
 
     const currentChainNames = Object.keys(onChainState);
     const chainDetailsChainNames = Object.keys(chainDetails.caip2ChainId);
@@ -169,7 +132,7 @@ function generateChainUpdates(
     // Filter out chains that don't have complete details
     desiredChainNames = desiredChainNames.filter((chainName) => {
         if (!chainDetailsChainNames.includes(chainName)) {
-            reportWarning(
+            validationWarnings.push(
                 `\n\n⚠️-----⚠️ \nUnknown chain details in CSV: name='${chainName}' \nInclude chain details to the chain details tab in the Google Sheet to add coverage to it. \n⚠️-----⚠️\n\n`,
             );
             return false;
@@ -191,13 +154,7 @@ function generateChainUpdates(
         const chainIdsToRemove = chainsToRemove.map(
             (chainName) => chainDetails.caip2ChainId[chainName],
         );
-        updates.push({
-            function: "removeChains",
-            args: [chainIdsToRemove],
-            calldata: agreementInterface.encodeFunctionData("removeChains", [
-                chainIdsToRemove,
-            ]),
-        });
+        updates.push(encodeUpdate("removeChains", [chainIdsToRemove]));
     }
 
     // Add new chains from CSV - batch them together
@@ -237,37 +194,24 @@ function generateChainUpdates(
             }
         });
 
-        updates.push({
-            function: "addChains",
-            args: [newChains],
-            calldata: agreementInterface.encodeFunctionData("addChains", [
-                newChains,
-            ]),
-        });
+        updates.push(encodeUpdate("addChains", [newChains]));
     }
 
-    return { updates, chainsToRemove };
+    return { updates, chainsToRemove, validationWarnings };
 }
 
-export function generateUpdates(
-    onChainState,
-    csvState,
-    chainDetails,
-    reportWarning = console.warn,
-) {
-    validateRecoveryAddress(
+export function generateUpdates(onChainState, csvState, chainDetails) {
+    const validationWarnings = validateRecoveryAddress(
         onChainState,
         csvState,
         chainDetails,
-        reportWarning,
     );
 
-    const { updates: chainUpdates, chainsToRemove } = generateChainUpdates(
-        onChainState,
-        csvState,
-        chainDetails,
-        reportWarning,
-    );
+    const {
+        updates: chainUpdates,
+        chainsToRemove,
+        validationWarnings: chainWarnings,
+    } = generateChainUpdates(onChainState, csvState, chainDetails);
     const accountUpdates = generateAccountUpdates(
         onChainState,
         csvState,
@@ -275,5 +219,8 @@ export function generateUpdates(
         chainsToRemove,
     );
 
-    return [...chainUpdates, ...accountUpdates];
+    return {
+        updates: [...chainUpdates, ...accountUpdates],
+        validationWarnings: [...validationWarnings, ...chainWarnings],
+    };
 }
