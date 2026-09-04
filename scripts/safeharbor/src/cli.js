@@ -4,10 +4,12 @@ import { createAgreementInstance } from "./utils/contractUtils.js";
 const COMMANDS = new Set(["generate", "inspect", "verify"]);
 
 export async function runCommand(command) {
-    const selectedCommand = command || "generate";
-
-    if (!COMMANDS.has(selectedCommand)) {
-        console.error(`Error: Unknown command '${selectedCommand}'`);
+    if (!COMMANDS.has(command)) {
+        console.error(
+            command
+                ? `Error: Unknown command '${command}'`
+                : "Error: Command is required",
+        );
         console.error("Available commands: generate, inspect, verify");
         console.error("Usage: npm run <command>");
         return 1;
@@ -29,15 +31,15 @@ export async function runCommand(command) {
         const agreementContract = await createAgreementInstance(rpcUrl);
         const result = await generatePayload(agreementContract);
 
-        if (selectedCommand === "generate" && result.updates.length > 0) {
+        if (command === "generate" && result.updates.length > 0) {
             console.log(result.solidityCode);
         }
 
-        if (selectedCommand === "inspect") {
+        if (command === "inspect") {
             console.log(JSON.stringify(result, null, 2));
         }
 
-        if (selectedCommand !== "verify") {
+        if (command !== "verify") {
             console.warn(
                 result.updates.length > 0
                     ? "Payload generation completed successfully."

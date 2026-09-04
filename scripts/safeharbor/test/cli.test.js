@@ -113,11 +113,12 @@ describe("runCommand", () => {
         );
     });
 
-    test("defaults to generate when no command is provided", async () => {
+    test("exits 1 when no command is provided", async () => {
         const exitCode = await runCommand();
 
-        expect(exitCode).toBe(0);
-        expect(generatePayload).toHaveBeenCalledWith(agreementContract);
+        expect(exitCode).toBe(1);
+        expect(stderr).toHaveBeenCalledWith("Error: Command is required");
+        expect(createAgreementInstance).not.toHaveBeenCalled();
     });
 
     test("exits 1 for an unknown command", async () => {
