@@ -1,6 +1,8 @@
-import { test, expect, it, describe, vi, beforeEach } from "vitest";
+import { test, expect, describe, vi, beforeEach, afterEach } from "vitest";
 import assert from "node:assert";
+import { Interface } from "ethers";
 import { generatePayload } from "../src/generatePayload.js";
+import { AGREEMENT_V3_ABI } from "../src/abis.js";
 
 // Mock the dependencies
 vi.mock("../src/fetchCSV.js", async (importOriginal) => {
@@ -22,113 +24,168 @@ import {
 } from "../src/fetchCSV.js";
 import { getNormalizedDataFromOnchainState } from "../src/fetchOnchain.js";
 
+let consoleWarnSpy;
+let consoleErrorSpy;
+
+// Static synthetic fixtures shaped like production EVM and Solana identifiers.
+const RECOVERY = {
+    ETH: "0x1000000000000000000000000000000000000001",
+    BASE: "0x1000000000000000000000000000000000000002",
+    ARB: "0x1000000000000000000000000000000000000003",
+    OP: "0x1000000000000000000000000000000000000004",
+    SOL: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+    MISMATCH: "0x10000000000000000000000000000000000000ff",
+};
+
+const ACCOUNT = {
+    ETH1: "0x2000000000000000000000000000000000000001",
+    ETH2: "0x2000000000000000000000000000000000000002",
+    ETH3: "0x2000000000000000000000000000000000000003",
+    ETHF: "0x2000000000000000000000000000000000000004",
+    ETHR: "0x2000000000000000000000000000000000000005",
+    BASE1: "0x3000000000000000000000000000000000000001",
+    BASE2: "0x3000000000000000000000000000000000000002",
+    ARB1: "0x4000000000000000000000000000000000000001",
+    ARB2: "0x4000000000000000000000000000000000000002",
+    ARB3: "0x4000000000000000000000000000000000000003",
+    OP1: "0x5000000000000000000000000000000000000001",
+    OP2: "0x5000000000000000000000000000000000000002",
+    OPF: "0x5000000000000000000000000000000000000003",
+    OPR1: "0x5000000000000000000000000000000000000004",
+    OPR2: "0x5000000000000000000000000000000000000005",
+    SOL1: "3EKkiwNLWqoUbzFkPrmKbtUB4EweE6f4STzevYUmezeL",
+    UNKNOWN: "0x6000000000000000000000000000000000000001",
+};
+
 const CHAIN_DETAILS = {
     caip2ChainId: {
         ETHEREUM: "eip155:1",
-        GNOSIS: "eip155:100",
+        BASE: "eip155:8453",
         ARBITRUM: "eip155:42161",
         OPTIMISM: "eip155:10",
-        POLYGON: "eip155:137",
+        SOLANA: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
     },
     assetRecoveryAddress: {
-        ETHEREUM: "0xETHEREUM_RECOVERY_ADDRESS",
-        GNOSIS: "0xGNOSIS_RECOVERY_ADDRESS",
-        ARBITRUM: "0xARBITRUM_RECOVERY_ADDRESS",
-        OPTIMISM: "0xOPTIMISM_RECOVERY_ADDRESS",
-        POLYGON: "0xPOLYGON_RECOVERY_ADDRESS",
+        ETHEREUM: RECOVERY.ETH,
+        BASE: RECOVERY.BASE,
+        ARBITRUM: RECOVERY.ARB,
+        OPTIMISM: RECOVERY.OP,
+        SOLANA: RECOVERY.SOL,
     },
     name: {
         "eip155:1": "ETHEREUM",
-        "eip155:100": "GNOSIS",
+        "eip155:8453": "BASE",
         "eip155:42161": "ARBITRUM",
         "eip155:10": "OPTIMISM",
-        "eip155:137": "POLYGON",
+        "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp": "SOLANA",
     },
 };
+
+function mockOnChainState(onChainState, validationWarnings = []) {
+    getNormalizedDataFromOnchainState.mockResolvedValue({
+        onChainState,
+        validationWarnings,
+    });
+}
 
 describe("inspectPayload E2E Tests", () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        getChainDetailsFromCSV.mockResolvedValue(CHAIN_DETAILS);
+        consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+        consoleErrorSpy = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => {});
+        getChainDetailsFromCSV.mockResolvedValue({
+            chainDetails: CHAIN_DETAILS,
+            validationWarnings: [],
+        });
+    });
+
+    afterEach(() => {
+        try {
+            expect(consoleErrorSpy).not.toHaveBeenCalled();
+        } finally {
+            consoleWarnSpy.mockRestore();
+            consoleErrorSpy.mockRestore();
+        }
     });
 
     const INITIAL_ONCHAIN_STATE = {
         ETHEREUM: {
             accounts: [
-                { accountAddress: "0xA1", childContractScope: 0 },
-                { accountAddress: "0xA2", childContractScope: 2 },
+                { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
+                { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
             ],
-            assetRecoveryAddress: "0xETHEREUM_RECOVERY_ADDRESS",
+            assetRecoveryAddress: RECOVERY.ETH,
         },
-        GNOSIS: {
-            accounts: [{ accountAddress: "0xB1", childContractScope: 0 }],
-            assetRecoveryAddress: "0xGNOSIS_RECOVERY_ADDRESS",
+        BASE: {
+            accounts: [
+                { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
+            ],
+            assetRecoveryAddress: RECOVERY.BASE,
         },
         ARBITRUM: {
             accounts: [
-                { accountAddress: "0xC1", childContractScope: 0 },
-                { accountAddress: "0xC2", childContractScope: 0 },
+                { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
+                { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
             ],
-            assetRecoveryAddress: "0xARBITRUM_RECOVERY_ADDRESS",
+            assetRecoveryAddress: RECOVERY.ARB,
         },
     };
+    async function generateFrom(
+        csvState,
+        onChainState = INITIAL_ONCHAIN_STATE,
+    ) {
+        mockOnChainState(onChainState);
+        getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvState);
+        return generatePayload("");
+    }
 
     describe("No changes scenario", () => {
         test("should generate no updates when onchain and CSV data match", async () => {
-            // Arrange - CSV data matches onchain exactly
             const csvData = {
                 ETHEREUM: [
-                    { accountAddress: "0xA1", childContractScope: 0 },
-                    { accountAddress: "0xA2", childContractScope: 2 },
+                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
                 ],
-                GNOSIS: [{ accountAddress: "0xB1", childContractScope: 0 }],
+                BASE: [
+                    { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
+                ],
                 ARBITRUM: [
-                    { accountAddress: "0xC1", childContractScope: 0 },
-                    { accountAddress: "0xC2", childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
                 ],
             };
 
-            getNormalizedDataFromOnchainState.mockResolvedValue(
-                INITIAL_ONCHAIN_STATE,
-            );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
-
-            // Act
-            const result = await generatePayload("");
+            const result = await generateFrom(csvData);
 
             // Assert - should have empty result since no changes needed
             assert.strictEqual(result.updates.length, 0);
             assert.strictEqual(result.solidityCode, "");
+            assert.deepStrictEqual(result.validationWarnings, []);
         });
     });
 
     describe("Account addition scenarios", () => {
         test("should generate addAccounts updates when new accounts are added to existing chains", async () => {
-            // Arrange - Add new accounts to existing chains
             const csvData = {
                 ETHEREUM: [
-                    { accountAddress: "0xA1", childContractScope: 0 }, // existing
-                    { accountAddress: "0xA2", childContractScope: 2 }, // existing
-                    { accountAddress: "0xA3", childContractScope: 0 }, // new
+                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
+                    { accountAddress: ACCOUNT.ETH3, childContractScope: 0 },
                 ],
-                GNOSIS: [
-                    { accountAddress: "0xB1", childContractScope: 0 }, // existing
-                    { accountAddress: "0xB2", childContractScope: 2 }, // new factory
+                BASE: [
+                    { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.BASE2, childContractScope: 2 },
                 ],
                 ARBITRUM: [
-                    { accountAddress: "0xC1", childContractScope: 0 }, // existing
-                    { accountAddress: "0xC2", childContractScope: 0 }, // existing
+                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
                 ],
             };
-            getNormalizedDataFromOnchainState.mockResolvedValue(
-                INITIAL_ONCHAIN_STATE,
-            );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
-            const result = await generatePayload("");
-            assert.ok(result.solidityCode);
-            assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
-            expect(result.solidityCode).toMatchSnapshot();
-            expect(result.solidityCode).toMatchSnapshot();
+
+            const result = await generateFrom(csvData);
+            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 2);
             const addAccountsUpdates = result.updates.filter(
                 (u) => u.function === "addAccounts",
@@ -139,80 +196,75 @@ describe("inspectPayload E2E Tests", () => {
             );
             assert.ok(ethereumUpdate);
             assert.deepStrictEqual(ethereumUpdate.args[1], [
-                { accountAddress: "0xA3", childContractScope: 0 },
+                { accountAddress: ACCOUNT.ETH3, childContractScope: 0 },
             ]);
-            const gnosisUpdate = addAccountsUpdates.find(
-                (u) => u.args[0] === "eip155:100",
+            const baseUpdate = addAccountsUpdates.find(
+                (u) => u.args[0] === "eip155:8453",
             );
-            assert.ok(gnosisUpdate);
-            assert.deepStrictEqual(gnosisUpdate.args[1], [
-                { accountAddress: "0xB2", childContractScope: 2 },
+            assert.ok(baseUpdate);
+            assert.deepStrictEqual(baseUpdate.args[1], [
+                { accountAddress: ACCOUNT.BASE2, childContractScope: 2 },
             ]);
         });
     });
     describe("Account removal scenarios", () => {
         test("should generate removeAccounts updates when accounts are removed", async () => {
             const csvData = {
-                ETHEREUM: [{ accountAddress: "0xA1", childContractScope: 0 }],
-                GNOSIS: [],
-                ARBITRUM: [{ accountAddress: "0xC2", childContractScope: 0 }],
+                ETHEREUM: [
+                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
+                ],
+                BASE: [
+                    { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
+                ],
+                ARBITRUM: [
+                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
+                ],
             };
-            getNormalizedDataFromOnchainState.mockResolvedValue(
-                INITIAL_ONCHAIN_STATE,
-            );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
-            const result = await generatePayload("");
-            assert.ok(result.solidityCode);
-            assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
-            expect(result.solidityCode).toMatchSnapshot();
-            assert.strictEqual(result.updates.length, 3);
+
+            const result = await generateFrom(csvData);
+            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
+            assert.strictEqual(result.updates.length, 2);
             const removeAccountsUpdates = result.updates.filter(
                 (u) => u.function === "removeAccounts",
             );
-            assert.strictEqual(removeAccountsUpdates.length, 3);
+            assert.strictEqual(removeAccountsUpdates.length, 2);
             const ethereumUpdate = removeAccountsUpdates.find(
                 (u) => u.args[0] === "eip155:1",
             );
             assert.ok(ethereumUpdate);
-            assert.deepStrictEqual(ethereumUpdate.args[1], ["0xA2"]);
-            const gnosisUpdate = removeAccountsUpdates.find(
-                (u) => u.args[0] === "eip155:100",
-            );
-            assert.ok(gnosisUpdate);
-            assert.deepStrictEqual(gnosisUpdate.args[1], ["0xB1"]);
+            assert.deepStrictEqual(ethereumUpdate.args[1], [ACCOUNT.ETH2]);
             const arbitrumUpdate = removeAccountsUpdates.find(
                 (u) => u.args[0] === "eip155:42161",
             );
             assert.ok(arbitrumUpdate);
-            assert.deepStrictEqual(arbitrumUpdate.args[1], ["0xC1"]);
+            assert.deepStrictEqual(arbitrumUpdate.args[1], [ACCOUNT.ARB1]);
         });
     });
     describe("Chain addition scenarios", () => {
         test("should generate addChains updates when new chains are introduced", async () => {
             const csvData = {
                 ETHEREUM: [
-                    { accountAddress: "0xA1", childContractScope: 0 },
-                    { accountAddress: "0xA2", childContractScope: 2 },
+                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
                 ],
-                GNOSIS: [{ accountAddress: "0xB1", childContractScope: 0 }],
+                BASE: [
+                    { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
+                ],
                 ARBITRUM: [
-                    { accountAddress: "0xC1", childContractScope: 0 },
-                    { accountAddress: "0xC2", childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
                 ],
                 OPTIMISM: [
-                    { accountAddress: "0xD1", childContractScope: 0 },
-                    { accountAddress: "0xD2", childContractScope: 2 },
+                    { accountAddress: ACCOUNT.OP1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.OP2, childContractScope: 2 },
                 ],
-                POLYGON: [{ accountAddress: "0xE1", childContractScope: 0 }],
+                SOLANA: [
+                    { accountAddress: ACCOUNT.SOL1, childContractScope: 0 },
+                ],
             };
-            getNormalizedDataFromOnchainState.mockResolvedValue(
-                INITIAL_ONCHAIN_STATE,
-            );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
-            const result = await generatePayload("");
-            assert.ok(result.solidityCode);
-            assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
-            expect(result.solidityCode).toMatchSnapshot();
+
+            const result = await generateFrom(csvData);
+            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 1);
             const addChainsUpdates = result.updates.filter(
                 (u) => u.function === "addChains",
@@ -224,70 +276,64 @@ describe("inspectPayload E2E Tests", () => {
                 (c) => c.caip2ChainId === "eip155:10",
             );
             assert.ok(optimismChain);
-            assert.strictEqual(
-                optimismChain.assetRecoveryAddress,
-                "0xOPTIMISM_RECOVERY_ADDRESS",
-            );
+            assert.strictEqual(optimismChain.assetRecoveryAddress, RECOVERY.OP);
             assert.strictEqual(optimismChain.accounts.length, 2);
             assert.deepStrictEqual(optimismChain.accounts, [
-                { accountAddress: "0xD1", childContractScope: 0 },
-                { accountAddress: "0xD2", childContractScope: 2 },
+                { accountAddress: ACCOUNT.OP1, childContractScope: 0 },
+                { accountAddress: ACCOUNT.OP2, childContractScope: 2 },
             ]);
-            const polygonChain = newChains.find(
-                (c) => c.caip2ChainId === "eip155:137",
+            const solanaChain = newChains.find(
+                (c) =>
+                    c.caip2ChainId ===
+                    "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
             );
-            assert.ok(polygonChain);
-            assert.strictEqual(
-                polygonChain.assetRecoveryAddress,
-                "0xPOLYGON_RECOVERY_ADDRESS",
-            );
-            assert.strictEqual(polygonChain.accounts.length, 1);
-            assert.deepStrictEqual(polygonChain.accounts, [
-                { accountAddress: "0xE1", childContractScope: 0 },
+            assert.ok(solanaChain);
+            assert.strictEqual(solanaChain.assetRecoveryAddress, RECOVERY.SOL);
+            assert.strictEqual(solanaChain.accounts.length, 1);
+            assert.deepStrictEqual(solanaChain.accounts, [
+                { accountAddress: ACCOUNT.SOL1, childContractScope: 0 },
             ]);
         });
-        test("should generate addChains with empty accounts for new empty chains", async () => {
+        test("should reject adding a new chain without accounts", async () => {
             const csvData = {
-                ETHEREUM: INITIAL_ONCHAIN_STATE.ETHEREUM.accounts,
-                GNOSIS: INITIAL_ONCHAIN_STATE.GNOSIS.accounts,
-                ARBITRUM: INITIAL_ONCHAIN_STATE.ARBITRUM.accounts,
+                ETHEREUM: [
+                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
+                ],
+                BASE: [
+                    { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
+                ],
+                ARBITRUM: [
+                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
+                ],
                 OPTIMISM: [],
             };
-            getNormalizedDataFromOnchainState.mockResolvedValue(
-                INITIAL_ONCHAIN_STATE,
+
+            await assert.rejects(
+                () => generateFrom(csvData),
+                /Cannot add chain 'OPTIMISM' without accounts/,
             );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
-            const result = await generatePayload("");
-            assert.ok(result.solidityCode);
-            assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
-            expect(result.solidityCode).toMatchSnapshot();
-            assert.strictEqual(result.updates.length, 1);
-            const addChainsUpdates = result.updates.filter(
-                (u) => u.function === "addChains",
+            expect(consoleErrorSpy).toHaveBeenCalledWith(
+                "Error generating update payload:",
+                expect.objectContaining({
+                    message: "Cannot add chain 'OPTIMISM' without accounts",
+                }),
             );
-            assert.strictEqual(addChainsUpdates.length, 1);
-            const newChains = addChainsUpdates[0].args[0];
-            assert.strictEqual(newChains.length, 1);
-            assert.strictEqual(newChains[0].caip2ChainId, "eip155:10");
-            assert.strictEqual(newChains[0].accounts.length, 0);
+            consoleErrorSpy.mockClear();
         });
     });
     describe("Chain removal scenarios", () => {
         test("should generate removeChains updates when chains are removed", async () => {
             const csvData = {
                 ETHEREUM: [
-                    { accountAddress: "0xA1", childContractScope: 0 },
-                    { accountAddress: "0xA2", childContractScope: 2 },
+                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
                 ],
             };
-            getNormalizedDataFromOnchainState.mockResolvedValue(
-                INITIAL_ONCHAIN_STATE,
-            );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
-            const result = await generatePayload("");
-            assert.ok(result.solidityCode);
-            assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
-            expect(result.solidityCode).toMatchSnapshot();
+
+            const result = await generateFrom(csvData);
+            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 1);
             const removeChainsUpdates = result.updates.filter(
                 (u) => u.function === "removeChains",
@@ -295,35 +341,29 @@ describe("inspectPayload E2E Tests", () => {
             assert.strictEqual(removeChainsUpdates.length, 1);
             const chainIdsToRemove = removeChainsUpdates[0].args[0];
             assert.strictEqual(chainIdsToRemove.length, 2);
-            assert.ok(chainIdsToRemove.includes("eip155:100"));
+            assert.ok(chainIdsToRemove.includes("eip155:8453"));
             assert.ok(chainIdsToRemove.includes("eip155:42161"));
         });
     });
     describe("Complex mixed scenarios", () => {
         test("should handle simultaneous chain additions, removals, and account changes", async () => {
-            // Arrange
-            const consoleWarnSpy = vi.spyOn(console, "warn");
-
             const csvData = {
                 ETHEREUM: [
-                    { accountAddress: "0xA1", childContractScope: 0 },
-                    { accountAddress: "0xA3", childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ETH3, childContractScope: 0 },
                 ],
                 ARBITRUM: [
-                    { accountAddress: "0xC1", childContractScope: 0 },
-                    { accountAddress: "0xC2", childContractScope: 0 },
-                    { accountAddress: "0xC3", childContractScope: 2 },
+                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ARB3, childContractScope: 2 },
                 ],
-                OPTIMISM: [{ accountAddress: "0xD1", childContractScope: 0 }],
+                OPTIMISM: [
+                    { accountAddress: ACCOUNT.OP1, childContractScope: 0 },
+                ],
             };
-            getNormalizedDataFromOnchainState.mockResolvedValue(
-                INITIAL_ONCHAIN_STATE,
-            );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
-            const result = await generatePayload("");
-            assert.ok(result.solidityCode);
-            assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
-            expect(result.solidityCode).toMatchSnapshot();
+
+            const result = await generateFrom(csvData);
+            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 5);
             const chainUpdates = result.updates.filter(
                 (u) =>
@@ -340,7 +380,7 @@ describe("inspectPayload E2E Tests", () => {
                 (u) => u.function === "removeChains",
             );
             assert.strictEqual(removeChainUpdate.args[0].length, 1);
-            assert.ok(removeChainUpdate.args[0].includes("eip155:100"));
+            assert.ok(removeChainUpdate.args[0].includes("eip155:8453"));
             const addChainUpdate = result.updates.find(
                 (u) => u.function === "addChains",
             );
@@ -367,11 +407,11 @@ describe("inspectPayload E2E Tests", () => {
             );
             const removeAccountUpdate = result.updates[removeAccountIndex];
             assert.ok(removeAccountUpdate.args[1].length, 1);
-            assert.ok(removeAccountUpdate.args[1].includes("0xA2"));
+            assert.ok(removeAccountUpdate.args[1].includes(ACCOUNT.ETH2));
             const addAccountUpdate = result.updates[addAccountIndex];
             assert.ok(addAccountUpdate.args[1].length, 1);
             assert.deepStrictEqual(addAccountUpdate.args[1], [
-                { accountAddress: "0xA3", childContractScope: 0 },
+                { accountAddress: ACCOUNT.ETH3, childContractScope: 0 },
             ]);
             const addAccountUpdate2 = result.updates.find(
                 (u) =>
@@ -380,7 +420,7 @@ describe("inspectPayload E2E Tests", () => {
             );
             assert.ok(addAccountUpdate2.args[1].length, 1);
             assert.deepStrictEqual(addAccountUpdate2.args[1], [
-                { accountAddress: "0xC3", childContractScope: 2 },
+                { accountAddress: ACCOUNT.ARB3, childContractScope: 2 },
             ]);
 
             // Assert no warnings were logged
@@ -391,30 +431,22 @@ describe("inspectPayload E2E Tests", () => {
                 !hasWarnings,
                 "Console should not contain warning markers (‼️ or ⚠️)",
             );
-
-            // Clean up
-            consoleWarnSpy.mockRestore();
         });
         test("should preserve childContractScope values correctly in complex scenarios", async () => {
             const csvData = {
                 ETHEREUM: [
-                    { accountAddress: "0xFactory1", childContractScope: 2 },
-                    { accountAddress: "0xNormal1", childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ETHF, childContractScope: 2 },
+                    { accountAddress: ACCOUNT.ETHR, childContractScope: 0 },
                 ],
                 OPTIMISM: [
-                    { accountAddress: "0xFactory2", childContractScope: 2 },
-                    { accountAddress: "0xNormal2", childContractScope: 0 },
-                    { accountAddress: "0xNormal3", childContractScope: 0 },
+                    { accountAddress: ACCOUNT.OPF, childContractScope: 2 },
+                    { accountAddress: ACCOUNT.OPR1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.OPR2, childContractScope: 0 },
                 ],
             };
-            getNormalizedDataFromOnchainState.mockResolvedValue(
-                INITIAL_ONCHAIN_STATE,
-            );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
-            const result = await generatePayload("");
-            assert.ok(result.solidityCode);
-            assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
-            expect(result.solidityCode).toMatchSnapshot();
+
+            const result = await generateFrom(csvData);
+            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 4);
             const addChainUpdate = result.updates.find(
                 (u) => u.function === "addChains",
@@ -425,12 +457,13 @@ describe("inspectPayload E2E Tests", () => {
             );
             assert.ok(optimismChain);
             const factoryAccount = optimismChain.accounts.find(
-                (a) => a.accountAddress === "0xFactory2",
+                (a) => a.accountAddress === ACCOUNT.OPF,
             );
             const normalAccounts = optimismChain.accounts.filter((a) =>
-                a.accountAddress.includes("Normal"),
+                [ACCOUNT.OPR1, ACCOUNT.OPR2].includes(a.accountAddress),
             );
             assert.strictEqual(factoryAccount.childContractScope, 2);
+            assert.strictEqual(normalAccounts.length, 2);
             assert.ok(normalAccounts.every((a) => a.childContractScope === 0));
 
             const removeAccountFromEthereumUpdate = result.updates.find(
@@ -446,16 +479,93 @@ describe("inspectPayload E2E Tests", () => {
         });
     });
     describe("Edge cases", () => {
+        test("should reject an existing chain without desired accounts", async () => {
+            const csvData = {
+                ETHEREUM: [
+                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
+                ],
+                BASE: [],
+                ARBITRUM: [
+                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
+                ],
+            };
+
+            await assert.rejects(
+                () => generateFrom(csvData),
+                /Chain 'BASE' must be removed instead of configured without accounts/,
+            );
+            expect(consoleErrorSpy).toHaveBeenCalledWith(
+                "Error generating update payload:",
+                expect.objectContaining({
+                    message:
+                        "Chain 'BASE' must be removed instead of configured without accounts",
+                }),
+            );
+            consoleErrorSpy.mockClear();
+        });
+
+        test("should add before removing for a full account replacement", async () => {
+            const csvData = {
+                ETHEREUM: [
+                    { accountAddress: ACCOUNT.ETH3, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ETHF, childContractScope: 2 },
+                ],
+                BASE: [
+                    { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
+                ],
+                ARBITRUM: [
+                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
+                ],
+            };
+
+            const result = await generateFrom(csvData);
+            const ethereumUpdates = result.updates.filter(
+                (update) => update.args[0] === "eip155:1",
+            );
+
+            expect(ethereumUpdates.map((update) => update.function)).toEqual([
+                "addAccounts",
+                "removeAccounts",
+            ]);
+        });
+
+        test("should add before removing for a sole-account scope change", async () => {
+            const csvData = {
+                ETHEREUM: [
+                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
+                ],
+                BASE: [
+                    { accountAddress: ACCOUNT.BASE1, childContractScope: 2 },
+                ],
+                ARBITRUM: [
+                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
+                ],
+            };
+
+            const result = await generateFrom(csvData);
+            const baseUpdates = result.updates.filter(
+                (update) => update.args[0] === "eip155:8453",
+            );
+
+            expect(baseUpdates.map((update) => update.function)).toEqual([
+                "addAccounts",
+                "removeAccounts",
+            ]);
+        });
+
         test("should handle completely empty onchain state", async () => {
             const csvData = {
-                ETHEREUM: [{ accountAddress: "0xA1", childContractScope: 0 }],
+                ETHEREUM: [
+                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
+                ],
             };
-            getNormalizedDataFromOnchainState.mockResolvedValue({});
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
-            const result = await generatePayload("");
-            assert.ok(result.solidityCode);
-            assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
-            expect(result.solidityCode).toMatchSnapshot();
+            const result = await generateFrom(csvData, {});
+            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 1);
             const addChainsUpdates = result.updates.filter(
                 (u) => u.function === "addChains",
@@ -467,14 +577,8 @@ describe("inspectPayload E2E Tests", () => {
             assert.strictEqual(removeUpdates.length, 0);
         });
         test("should handle completely empty CSV state", async () => {
-            getNormalizedDataFromOnchainState.mockResolvedValue(
-                INITIAL_ONCHAIN_STATE,
-            );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue({});
-            const result = await generatePayload("");
-            assert.ok(result.solidityCode);
-            assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
-            expect(result.solidityCode).toMatchSnapshot();
+            const result = await generateFrom({});
+            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 1);
             const removeChainsUpdates = result.updates.filter(
                 (u) => u.function === "removeChains",
@@ -483,239 +587,230 @@ describe("inspectPayload E2E Tests", () => {
             const chainIdsToRemove = removeChainsUpdates[0].args[0];
             assert.strictEqual(chainIdsToRemove.length, 3);
             assert.ok(chainIdsToRemove.includes("eip155:1"));
-            assert.ok(chainIdsToRemove.includes("eip155:100"));
+            assert.ok(chainIdsToRemove.includes("eip155:8453"));
             assert.ok(chainIdsToRemove.includes("eip155:42161"));
         });
         test("shoud handle account scope changes", async () => {
             const csvData = {
                 ETHEREUM: [
-                    { accountAddress: "0xA1", childContractScope: 2 },
-                    { accountAddress: "0xA2", childContractScope: 2 },
+                    { accountAddress: ACCOUNT.ETH1, childContractScope: 2 },
+                    { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
                 ],
-                GNOSIS: [{ accountAddress: "0xB1", childContractScope: 0 }],
+                BASE: [
+                    { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
+                ],
                 ARBITRUM: [
-                    { accountAddress: "0xC1", childContractScope: 0 },
-                    { accountAddress: "0xC2", childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
                 ],
             };
 
-            getNormalizedDataFromOnchainState.mockResolvedValue(
-                INITIAL_ONCHAIN_STATE,
-            );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
-            const result = await generatePayload("");
-            assert.ok(result.solidityCode);
-            assert.ok(result.solidityCode.includes("_updateSafeHarbor"));
-            expect(result.solidityCode).toMatchSnapshot();
+            const result = await generateFrom(csvData);
+            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
         });
     });
 
     describe("Chain Property Validation", () => {
         test("should log a warning when asset recovery addresses mismatch", async () => {
             // Arrange
-            const consoleWarnSpy = vi.spyOn(console, "warn");
-
             // Create a specific on-chain state for this test with a mismatch
             const onChainStateWithMismatch = {
                 ETHEREUM: {
                     accounts: [
-                        { accountAddress: "0xA1", childContractScope: 0 },
+                        { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
                     ],
-                    assetRecoveryAddress: "0xDIFFERENT_ONCHAIN_ADDRESS", // Mismatch
+                    assetRecoveryAddress: RECOVERY.MISMATCH, // Mismatch
                 },
-                GNOSIS: {
+                BASE: {
                     accounts: [
-                        { accountAddress: "0xB1", childContractScope: 0 },
+                        {
+                            accountAddress: ACCOUNT.BASE1,
+                            childContractScope: 0,
+                        },
                     ],
-                    assetRecoveryAddress: "0xGNOSIS_RECOVERY_ADDRESS", // Match
+                    assetRecoveryAddress: RECOVERY.BASE, // Match
                 },
             };
 
-            // CSV account data can match to isolate the validation logic
             const csvData = {
-                ETHEREUM: [{ accountAddress: "0xA1", childContractScope: 0 }],
-                GNOSIS: [{ accountAddress: "0xB1", childContractScope: 0 }],
+                ETHEREUM: [
+                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
+                ],
+                BASE: [
+                    { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
+                ],
             };
 
-            getNormalizedDataFromOnchainState.mockResolvedValue(
+            const result = await generateFrom(
+                csvData,
                 onChainStateWithMismatch,
             );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvData);
-
-            // Act
-            await generatePayload("", false); // No need to return updates
 
             // Assert
             const wasCalledWithMismatchWarning = consoleWarnSpy.mock.calls.some(
                 (call) =>
                     call[0].includes("Asset Recovery Address mismatch") &&
                     call[0].includes("ETHEREUM") &&
-                    call[0].includes("On-chain: 0xDIFFERENT_ONCHAIN_ADDRESS") &&
-                    call[0].includes("CSV:      0xETHEREUM_RECOVERY_ADDRESS"),
+                    call[0].includes(`On-chain: ${RECOVERY.MISMATCH}`) &&
+                    call[0].includes(`CSV:      ${RECOVERY.ETH}`),
             );
 
             assert.ok(
                 wasCalledWithMismatchWarning,
                 "console.warn was not called with the expected mismatch message for ETHEREUM",
             );
+            assert.ok(
+                result.validationWarnings.some((warning) =>
+                    warning.includes("Asset Recovery Address mismatch"),
+                ),
+            );
 
-            const wasCalledForGnosis = consoleWarnSpy.mock.calls.some((call) =>
-                call[0].includes("GNOSIS"),
+            const wasCalledForBase = consoleWarnSpy.mock.calls.some((call) =>
+                call[0].includes("BASE"),
             );
 
             assert.ok(
-                !wasCalledForGnosis,
-                "console.warn should not be called for GNOSIS as addresses match",
+                !wasCalledForBase,
+                "console.warn should not be called for BASE as addresses match",
             );
-
-            // Clean up
-            consoleWarnSpy.mockRestore();
         });
 
-        test("should log a warning when unknown chain details are found in on-chain state", async () => {
-            // Arrange
-            const consoleWarnSpy = vi.spyOn(console, "warn");
-
-            // Import the actual implementation instead of the mock
-            const {
-                getNormalizedDataFromOnchainState:
-                    actualGetNormalizedDataFromOnchainState,
-            } = await vi.importActual("../src/fetchOnchain.js");
-
-            // Mock agreement contract with an unknown chain
-            const mockAgreementContract = {
-                getDetails: vi.fn().mockResolvedValue({
-                    chains: [
-                        {
-                            caip2ChainId: "eip155:1", // Known chain (ETHEREUM)
-                            assetRecoveryAddress: "0xETHEREUM_RECOVERY_ADDRESS",
-                            accounts: [["0xA1", 0]],
-                        },
-                        {
-                            caip2ChainId: "eip155:999", // Unknown chain
-                            assetRecoveryAddress: "0xUNKNOWN_RECOVERY_ADDRESS",
-                            accounts: [["0xU1", 0]],
-                        },
-                    ],
-                }),
+        test("should collect unknown CSV chains as validation warnings", async () => {
+            const csvData = {
+                ETHEREUM: [
+                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
+                ],
+                BASE: [
+                    { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
+                ],
+                ARBITRUM: [
+                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
+                ],
+                UNKNOWN: [
+                    { accountAddress: ACCOUNT.UNKNOWN, childContractScope: 0 },
+                ],
             };
 
-            // Act - use the actual implementation
-            const result = await actualGetNormalizedDataFromOnchainState(
-                mockAgreementContract,
-                CHAIN_DETAILS,
+            const result = await generateFrom(csvData);
+
+            expect(result.validationWarnings).toHaveLength(1);
+            expect(result.validationWarnings[0]).toContain(
+                "Unknown chain details in CSV: name='UNKNOWN'",
             );
-
-            // Assert
-            const wasCalledWithUnknownChainWarning =
-                consoleWarnSpy.mock.calls.some(
-                    (call) =>
-                        call[0].includes(
-                            "Unknown chain details in on-chain state",
-                        ) && call[0].includes("caip2ChainId='eip155:999'"),
-                );
-
-            assert.ok(
-                wasCalledWithUnknownChainWarning,
-                "console.warn should be called with a warning about unknown chain in on-chain state",
-            );
-
-            // Verify that the unknown chain was not included in the result
-            assert.ok(!result.hasOwnProperty("UNKNOWN"));
-            assert.ok(result.hasOwnProperty("ETHEREUM"));
-
-            // Clean up
-            consoleWarnSpy.mockRestore();
         });
     });
 
     describe("Chain Details Duplicate Validation", () => {
-        test("should log a warning when duplicate chain names are found in CSV", async () => {
-            // Arrange
-            const consoleWarnSpy = vi.spyOn(console, "warn");
-
-            // Mock fetch to return CSV data with duplicate chain names
-            global.fetch = vi.fn().mockResolvedValue({
-                ok: true,
-                headers: {
-                    get: vi.fn().mockReturnValue("text/csv"),
-                },
-                text: vi.fn().mockResolvedValue(
-                    `Name,Chain Id,Asset Recovery Address
-ETHEREUM,eip155:1,0xETHEREUM_RECOVERY_ADDRESS
-ETHEREUM,eip155:2,0xANOTHER_ADDRESS
-GNOSIS,eip155:100,0xGNOSIS_RECOVERY_ADDRESS`,
-                ),
+        test("should collect chain metadata warnings in the payload result", async () => {
+            const duplicateWarning =
+                "⚠️  Warning: Duplicate chain name found in CSV: ETHEREUM ⚠️";
+            getChainDetailsFromCSV.mockResolvedValue({
+                chainDetails: CHAIN_DETAILS,
+                validationWarnings: [duplicateWarning],
             });
+            const csvData = {
+                ETHEREUM: [
+                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
+                ],
+                BASE: [
+                    { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
+                ],
+                ARBITRUM: [
+                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
+                ],
+            };
 
-            // Import the actual implementation to test it
-            const { getChainDetailsFromCSV: actualGetChainDetailsFromCSV } =
-                await vi.importActual("../src/fetchCSV.js");
+            const result = await generateFrom(csvData);
 
-            // Act
-            await actualGetChainDetailsFromCSV("fake-url");
-
-            // Assert
-            const wasCalledWithDuplicateNamesWarning =
-                consoleWarnSpy.mock.calls.some(
-                    (call) =>
-                        call[0].includes(
-                            "⚠️  Warning: Duplicate chain name found in CSV",
-                        ) && call[0].includes("ETHEREUM"),
-                );
-
-            assert.ok(
-                wasCalledWithDuplicateNamesWarning,
-                "console.warn should be called with a warning about duplicate chain name",
-            );
-
-            // Clean up
-            consoleWarnSpy.mockRestore();
-            delete global.fetch;
-        });
-
-        test("should log a warning when duplicate chain IDs are found in CSV", async () => {
-            // Arrange
-            const consoleWarnSpy = vi.spyOn(console, "warn");
-
-            // Mock fetch to return CSV data with duplicate chain IDs
-            global.fetch = vi.fn().mockResolvedValue({
-                ok: true,
-                headers: {
-                    get: vi.fn().mockReturnValue("text/csv"),
-                },
-                text: vi.fn().mockResolvedValue(
-                    `Name,Chain Id,Asset Recovery Address
-ETHEREUM,eip155:1,0xETHEREUM_RECOVERY_ADDRESS
-ETHEREUM_DUPLICATE,eip155:1,0xANOTHER_ADDRESS
-GNOSIS,eip155:100,0xGNOSIS_RECOVERY_ADDRESS`,
-                ),
-            });
-
-            // Import the actual implementation to test it
-            const { getChainDetailsFromCSV: actualGetChainDetailsFromCSV } =
-                await vi.importActual("../src/fetchCSV.js");
-
-            // Act
-            await actualGetChainDetailsFromCSV("fake-url");
-
-            // Assert
-            const wasCalledWithDuplicateChainIdsWarning =
-                consoleWarnSpy.mock.calls.some(
-                    (call) =>
-                        call[0].includes(
-                            "⚠️  Warning: Duplicate chain ID found in CSV",
-                        ) && call[0].includes("eip155:1"),
-                );
-
-            assert.ok(
-                wasCalledWithDuplicateChainIdsWarning,
-                "console.warn should be called with a warning about duplicate chain ID",
-            );
-
-            // Clean up
-            consoleWarnSpy.mockRestore();
-            delete global.fetch;
+            expect(result.validationWarnings).toEqual([duplicateWarning]);
         });
     });
 });
+
+const agreementInterface = new Interface(AGREEMENT_V3_ABI);
+
+/**
+ * Converts values decoded by ethers into snapshot-friendly JavaScript values.
+ *
+ * Ethers returns ABI tuples as Result objects with positional fields, while the
+ * Agreement ABI knows the component names. Passing the matching ABI ParamType
+ * lets snapshots show named structs such as accountAddress, childContractScope,
+ * and caip2ChainId instead of opaque positional arrays.
+ *
+ * @param {*} value Value returned by ethers while decoding calldata.
+ * @param {import("ethers").ParamType} [param] ABI parameter metadata for value.
+ * @returns {*} Stable value suitable for inline object snapshots.
+ */
+function normalizeDecodedValue(value, param) {
+    if (param?.name === "childContractScope") {
+        return Number(value);
+    }
+
+    if (typeof value === "bigint") {
+        return value.toString();
+    }
+
+    if (!value || typeof value !== "object") {
+        return value;
+    }
+
+    if (param?.baseType === "array") {
+        return value.map((item) =>
+            normalizeDecodedValue(item, param.arrayChildren),
+        );
+    }
+
+    if (param?.baseType === "tuple") {
+        return Object.fromEntries(
+            param.components.map((component, index) => [
+                component.name,
+                normalizeDecodedValue(value[index], component),
+            ]),
+        );
+    }
+
+    if (Array.isArray(value)) {
+        return value.map((item) => normalizeDecodedValue(item));
+    }
+
+    return Object.fromEntries(
+        Object.entries(value)
+            .filter(([key]) => Number.isNaN(Number(key)))
+            .map(([key, nestedValue]) => [
+                key,
+                normalizeDecodedValue(nestedValue),
+            ]),
+    );
+}
+
+/**
+ * Builds the stable payload snapshot for generated Safe Harbor updates.
+ *
+ * The raw calldata is preserved so the snapshot pins the exact executable
+ * bytes. The same calldata is decoded through the Agreement ABI to prove those
+ * bytes map back to the expected function name and named arguments.
+ *
+ * @param {Array<{function: string, calldata: string}>} updates Generated payload updates.
+ * @returns {Array<{calldata: string, decodedName: string, decodedArgs: Array<*>}>}
+ */
+function payloadSnapshot(updates) {
+    return updates.map((update, index) => {
+        const decoded = agreementInterface.parseTransaction({
+            data: update.calldata,
+        });
+        assert.ok(decoded, `Unable to decode payload update ${index}`);
+        assert.strictEqual(decoded.name, update.function);
+
+        return {
+            calldata: update.calldata,
+            decodedName: decoded.name,
+            decodedArgs: decoded.fragment.inputs.map((input, inputIndex) =>
+                normalizeDecodedValue(decoded.args[inputIndex], input),
+            ),
+        };
+    });
+}

@@ -1,10 +1,11 @@
 // Build internal representation from on-chain state
 function normalize(details, chainDetails) {
-    return details.chains.reduce((chains, chain) => {
+    const validationWarnings = [];
+    const onChainState = details.chains.reduce((chains, chain) => {
         const chainName = chainDetails.name[chain.caip2ChainId];
 
         if (!chainName) {
-            console.warn(
+            validationWarnings.push(
                 `\n\n⚠️-----⚠️ \nUnknown chain details in on-chain state: caip2ChainId='${chain.caip2ChainId}'. \nTo either remove or keep this chain, please add the chain details to the chain details tab in the Google Sheet. \n⚠️-----⚠️\n\n`,
             );
             return chains;
@@ -19,6 +20,8 @@ function normalize(details, chainDetails) {
         };
         return chains;
     }, {});
+
+    return { onChainState, validationWarnings };
 }
 
 export async function getNormalizedDataFromOnchainState(

@@ -63,6 +63,7 @@ export async function getNormalizedContractsInScopeFromCSV(url) {
 
 export async function getChainDetailsFromCSV(url) {
     const records = await downloadAndParse(url);
+    const validationWarnings = [];
 
     // Normalize chain details data
     const caip2ChainId = {};
@@ -77,14 +78,14 @@ export async function getChainDetailsFromCSV(url) {
         if (chainName && chainId && chainAssetRecoveryAddress) {
             // Check for duplicate names - if key already exists in object
             if (caip2ChainId[chainName]) {
-                console.warn(
+                validationWarnings.push(
                     `⚠️  Warning: Duplicate chain name found in CSV: ${chainName} ⚠️`,
                 );
             }
 
             // Check for duplicate chain IDs - if key already exists in object
             if (name[chainId]) {
-                console.warn(
+                validationWarnings.push(
                     `⚠️  Warning: Duplicate chain ID found in CSV: ${chainId} ⚠️`,
                 );
             }
@@ -96,8 +97,7 @@ export async function getChainDetailsFromCSV(url) {
     });
 
     return {
-        caip2ChainId,
-        assetRecoveryAddress,
-        name,
+        chainDetails: { caip2ChainId, assetRecoveryAddress, name },
+        validationWarnings,
     };
 }

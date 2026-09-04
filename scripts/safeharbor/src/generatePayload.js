@@ -6,8 +6,8 @@ import { getNormalizedDataFromOnchainState } from "./fetchOnchain.js";
 import { generateUpdates } from "./generateUpdates.js";
 import { generateSolidityCode } from "./utils/generateSolidity.js";
 import {
-    CONTRACTS_IN_SCOPE_SHEET_URL,
     CHAIN_DETAILS_SHEET_URL,
+    CONTRACTS_IN_SCOPE_SHEET_URL,
 } from "./constants.js";
 
 /**
@@ -24,15 +24,11 @@ import {
  * @function generatePayload
  * @param {Object} agreementContract - The ethers.js agreement contract instance
  * @param {string} agreementContract.address - The address of the agreement contract
- * @returns {Promise<{updates: Array<{function: string, args: Array<any>, calldata: string}>, solidityCode: string}>} Object containing:
+ * @returns {Promise<{updates: Array<{function: string, args: Array<any>, calldata: string}>, solidityCode: string, validationWarnings: string[]}>} Object containing:
  *   - updates: Array of update objects with function calls and calldata
  *   - solidityCode: Generated Solidity code for the updates
+ *   - validationWarnings: Validation warnings found while comparing states
  * @throws {Error} If any step in the process fails
- *
- * @example
- * const agreementContract = createAgreementInstance(rpcUrl);
- * const result = await generatePayload(agreementContract);
- * console.log(result.solidityCode);
  */
 export async function generatePayload(agreementContract) {
     try {
@@ -42,9 +38,8 @@ export async function generatePayload(agreementContract) {
          * Chain details fetched from CSV containing network information
          * @type {Array<{name: string, chainId: string, recoveryAddress: string}>}
          */
-        const chainDetails = await getChainDetailsFromCSV(
-            CHAIN_DETAILS_SHEET_URL,
-        );
+        const { chainDetails, validationWarnings: chainDetailsWarnings } =
+            await getChainDetailsFromCSV(CHAIN_DETAILS_SHEET_URL);
 
         // 1. Download and parse CSV
         console.warn("Downloading contracts in scope CSV...");
@@ -62,10 +57,11 @@ export async function generatePayload(agreementContract) {
          * Normalized on-chain state for contracts
          * @type {{[chainId: string]: Array<{accountAddress: string, childContractScope: number}>}}
          */
-        const onChainState = await getNormalizedDataFromOnchainState(
-            agreementContract,
-            chainDetails,
-        );
+        const { onChainState, validationWarnings: onChainWarnings } =
+            await getNormalizedDataFromOnchainState(
+                agreementContract,
+                chainDetails,
+            );
 
         // 3. Generate updates
         console.warn("Generating updates...");
@@ -73,12 +69,23 @@ export async function generatePayload(agreementContract) {
          * Array of update objects representing differences between CSV and on-chain state
          * @type {Array<{function: string, args: Array<any>, calldata: string}>}
          */
-        const updates = generateUpdates(onChainState, csvState, chainDetails);
+        const { updates, validationWarnings: updateWarnings } = generateUpdates(
+            onChainState,
+            csvState,
+            chainDetails,
+        );
+        const validationWarnings = [
+            ...chainDetailsWarnings,
+            ...onChainWarnings,
+            ...updateWarnings,
+        ];
+        validationWarnings.forEach((warning) => console.warn(warning));
 
         if (updates.length === 0) {
             return {
                 updates: [],
                 solidityCode: "",
+                validationWarnings,
             };
         }
 
@@ -92,6 +99,7 @@ export async function generatePayload(agreementContract) {
         return {
             updates,
             solidityCode,
+            validationWarnings,
         };
     } catch (error) {
         /**

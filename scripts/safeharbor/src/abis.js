@@ -908,3 +908,13 @@ export const AGREEMENT_V3_ABI = [
         type: "function",
     },
 ];
+
+export const CHAINLOG_ABI = [
+    {
+        inputs: [{ internalType: "bytes32", name: "", type: "bytes32" }],
+        name: "getAddress",
+        outputs: [{ internalType: "address", name: "", type: "address" }],
+        stateMutability: "view",
+        type: "function",
+    },
+];

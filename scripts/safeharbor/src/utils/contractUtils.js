@@ -1,10 +1,13 @@
-import { Contract, JsonRpcProvider } from "ethers";
-import { AGREEMENT_ADDRESS } from "../constants.js";
-import { AGREEMENT_V3_ABI as AGREEMENT_ABI } from "../abis.js";
+import { Contract, encodeBytes32String, JsonRpcProvider } from "ethers";
+import { AGREEMENT_V3_ABI as AGREEMENT_ABI, CHAINLOG_ABI } from "../abis.js";
+import { AGREEMENT_CHAINLOG_KEY, CHAINLOG_ADDRESS } from "../constants.js";
 
-export function createAgreementInstance(rpcUrl) {
+export async function createAgreementInstance(rpcUrl) {
     const provider = new JsonRpcProvider(rpcUrl);
+    const chainlog = new Contract(CHAINLOG_ADDRESS, CHAINLOG_ABI, provider);
+    const agreementAddress = await chainlog["getAddress(bytes32)"](
+        encodeBytes32String(AGREEMENT_CHAINLOG_KEY),
+    );
 
-    const agreement = new Contract(AGREEMENT_ADDRESS, AGREEMENT_ABI, provider);
-    return agreement;
+    return new Contract(agreementAddress, AGREEMENT_ABI, provider);
 }
