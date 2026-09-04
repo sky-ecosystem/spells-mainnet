@@ -9,6 +9,5 @@ export async function createAgreementInstance(rpcUrl) {
         encodeBytes32String(AGREEMENT_CHAINLOG_KEY),
     );
 
-    const agreement = new Contract(agreementAddress, AGREEMENT_ABI, provider);
-    return agreement;
+    return new Contract(agreementAddress, AGREEMENT_ABI, provider);
 }
