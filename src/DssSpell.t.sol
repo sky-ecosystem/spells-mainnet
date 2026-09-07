@@ -40,69 +40,6 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
-interface PASBeamStateLike {
-    function wards(address) external view returns (uint256);
-    function userRoles(address) external view returns (bytes32);
-    function actionsRoles(bytes4) external view returns (bytes32);
-    function rateLimits(address) external view returns (uint256);
-    function controllers(address) external view returns (uint256);
-    function cBeams(address) external view returns (uint256);
-    function rateLimitsCBeams(address, address) external view returns (uint256);
-    function controllersCBeams(address, address) external view returns (uint256);
-    function hop(address) external view returns (uint256);
-    function maxChange(address) external view returns (uint256);
-    function getHop(address) external view returns (uint256);
-    function getMaxChange(address) external view returns (uint256);
-    function stopped() external view returns (bool);
-    function setHop(address, uint256) external;
-    function start() external;
-    function stop() external;
-}
-
-interface PASConfiguratorLike {
-    function beamState() external view returns (address);
-    function zzz(address, bytes32) external view returns (uint256);
-    function setRateLimit(address, bytes32, uint256, uint256) external;
-}
-
-interface PASMomLike {
-    function owner() external view returns (address);
-    function authority() external view returns (address);
-    function beamState() external view returns (address);
-    function timelock() external view returns (address);
-    function stop() external;
-    function pause() external;
-}
-
-interface PASTimelockLike {
-    function DEFAULT_ADMIN_ROLE() external view returns (bytes32);
-    function PROPOSER_ROLE() external view returns (bytes32);
-    function CANCELLER_ROLE() external view returns (bytes32);
-    function PAUSER_ROLE() external view returns (bytes32);
-    function getMinDelay() external view returns (uint256);
-    function hasRole(bytes32, address) external view returns (bool);
-    function paused() external view returns (bool);
-    function unpause() external;
-    function scheduleBatch(address[] calldata, uint256[] calldata, bytes[] calldata, bytes32, bytes32, uint256) external;
-    function executeBatch(address[] calldata, uint256[] calldata, bytes[] calldata, bytes32, bytes32) external payable;
-}
-
-interface AccessControlLike {
-    function hasRole(bytes32, address) external view returns (bool);
-    function grantRole(bytes32, address) external;
-}
-
-interface RateLimitsLike {
-    struct RateLimitData {
-        uint256 maxAmount;
-        uint256 slope;
-        uint256 lastAmount;
-        uint256 lastUpdated;
-    }
-
-    function getRateLimitData(bytes32) external view returns (RateLimitData memory);
-}
-
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -717,16 +654,16 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public skipped { // add the `skipped` modifier to skip
+    function testVestSky() public { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
-        uint256 OCT_18_2026_14_21_59_UTC = 1792333319;
+        uint256 NOV_15_2026_14_02_23_UTC = 1794751343;
 
         uint256 spellCastTime = _getSpellCastTime();
 
         // Build expected new stream
         NewVestStream[] memory newStreams = new NewVestStream[](1);
         newStreams[0] = NewVestStream({
-            id:  16,
+            id:  17,
             usr: addr.addr("REWARDS_DIST_LSSKY_SKY"),
             bgn: spellCastTime,
             clf: spellCastTime,
@@ -734,15 +671,15 @@ contract DssSpellTest is DssSpellTestBase {
             tau: 90 days,
             mgr: address(0),
             res: 1,
-            tot: 96_903_706 * WAD,
+            tot: 143_208_393 * WAD,
             rxd: 0 // Amount already claimed
         });
 
         // For each yanked stream, provide Stream object and initialize the array with the current number of yanked streams
         YankedVestStream[] memory yankedStreams = new YankedVestStream[](1);
         yankedStreams[0] = YankedVestStream({
-            id:  15,
-            fin: OCT_18_2026_14_21_59_UTC,
+            id:  16,
+            fin: NOV_15_2026_14_02_23_UTC,
             end: spellCastTime
         });
 
@@ -884,7 +821,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public skipped { // add the `skipped` modifier to skip
+    function testPayments() public { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -895,20 +832,20 @@ contract DssSpellTest is DssSpellTestBase {
         //    the amount to be paid
         // Initialize the array with the number of payees
         Payee[7] memory payees = [
-            Payee(address(usds), addr.addr("SPARK_SUBPROXY"),                  4_442_924 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("GROVE_SUBPROXY"),                  1_808_084 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("KEEL_SUBPROXY"),                   35_328 ether),    // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("OBEX_SUBPROXY"),                   916_736 ether),   // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("SKYBASE_SUBPROXY"),                327_407 ether),   // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("OSERO_SUBPROXY"),                  12_043 ether),    // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG"), 2_103_484 ether)  // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("SPARK_SUBPROXY"),                  937_436 ether),   // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("GROVE_SUBPROXY"),                  1_342_064 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("KEEL_SUBPROXY"),                   31_776 ether),    // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("OBEX_SUBPROXY"),                   458_340 ether),   // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("SKYBASE_SUBPROXY"),                101_204 ether),   // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("OSERO_SUBPROXY"),                  30_156 ether),    // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG"), 3_149_060 ether)  // Note: ether is only a keyword helper
         ];
 
         // Fill the total values from exec sheet
         PaymentAmounts memory expectedTotalPayments = PaymentAmounts({
             dai:           0  ether, // Note: ether is only a keyword helper
             mkr:           0  ether, // Note: ether is only a keyword helper
-            usds:  9_646_006  ether, // Note: ether is only a keyword helper
+            usds:  6_050_036  ether, // Note: ether is only a keyword helper
             sky:           0  ether  // Note: ether is only a keyword helper
         });
 
@@ -1345,13 +1282,13 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 
-    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
+    function testMonthlySettlementCycleInflows() public { // add the `skipped` modifier to skip
         AllocatorPayment[] memory payments = new AllocatorPayment[](4);
-        payments[0] = AllocatorPayment(addr.addr("ALLOCATOR_SPARK_A_VAULT"), 9_465_419 * WAD);
-        payments[1] = AllocatorPayment(addr.addr("ALLOCATOR_BLOOM_A_VAULT"), 9_685_438 * WAD);
-        payments[2] = AllocatorPayment(addr.addr("ALLOCATOR_OBEX_A_VAULT"),  2_535_968 * WAD);
-        payments[3] = AllocatorPayment(addr.addr("ALLOCATOR_PRYSM_A_VAULT"), 497 * WAD);
-        uint256 expectedTotalAmount = 21_687_322 * WAD;
+        payments[0] = AllocatorPayment(addr.addr("ALLOCATOR_SPARK_A_VAULT"), 6_357_912 * WAD);
+        payments[1] = AllocatorPayment(addr.addr("ALLOCATOR_BLOOM_A_VAULT"), 9_574_714 * WAD);
+        payments[2] = AllocatorPayment(addr.addr("ALLOCATOR_OBEX_A_VAULT"),  1_631_729 * WAD);
+        payments[3] = AllocatorPayment(addr.addr("ALLOCATOR_PRYSM_A_VAULT"), 7_006 * WAD);
+        uint256 expectedTotalAmount = 17_571_361 * WAD;
 
         MscIlkValues[] memory expectedValues = new MscIlkValues[](payments.length);
         uint256 totalDtab = 0;
@@ -1399,15 +1336,15 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
+    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
         PrimeAgentSpell[2] memory primeAgentSpells = [
             PrimeAgentSpell({
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "SPARK_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0xbE35b15Cda9002C1719A9D254B158613BDdE72af,
+                addr: 0x7602cc457786c06778258A0b004f2D66c54386fC,
                 // Insert Prime Agent spell codehash
-                codehash: 0xd3d82d87849aa5a7df3105bac5e97518999288f8ce91ed80c83031a058a2fcf8,
+                codehash: 0xb3b1f22f29ef3d269404004599f13b840e45ec98909ac3de529e27c155bed088,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             }),
@@ -1415,9 +1352,9 @@ contract DssSpellTest is DssSpellTestBase {
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "GROVE_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0xF3d4F600640a87F4203DF0A554642228a119711e,
+                addr: 0x73F9798B24b7843B8028f905373124EfCAF25Da4,
                 // Insert Prime Agent spell codehash
-                codehash: 0x89f28b693c551c87c8dbd632484c39e8e5e1ac040696ed7839776ba3beae23c5,
+                codehash: 0xc72bda25146c6225b10ee085a10e21b0126b34dde6036a24d7023142846d34c0,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             })
@@ -1532,4 +1469,46 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
+    function testBurnSky() public {
+        uint256 skyTotalSupplyBefore     = sky.totalSupply();
+        uint256 skyTreasuryBalanceBefore = sky.balanceOf(address(pauseProxy));
+
+        // Note: `updateFarmVest` distributes the accrued amount of the previous LSSKY->SKY vest
+        // out of the treasury (the vest czar) before yanking it.
+        VestedRewardsDistributionLike dist = VestedRewardsDistributionLike(addr.addr("REWARDS_DIST_LSSKY_SKY"));
+        VestAbstract vestSky      = VestAbstract(dist.dssVest());
+        uint256 prevVestId        = dist.vestId();
+        uint256 prevVestRxdBefore = vestSky.rxd(prevVestId);
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        uint256 distributed = vestSky.rxd(prevVestId) - prevVestRxdBefore;
+
+        assertEq(
+            sky.totalSupply(),
+            skyTotalSupplyBefore - 2_860_943.76 ether,
+            "SKY should be burned"
+        );
+        assertEq(
+            sky.balanceOf(address(pauseProxy)),
+            skyTreasuryBalanceBefore - 2_860_943.76 ether - distributed,
+            "SKY treasury balance should have decreased by the burn and the vest distribution"
+        );
+    }
+
+    function testSplitHopAndFarmRewardsDuration() public {
+        StakingRewardsLike farm = StakingRewardsLike(addr.addr("REWARDS_LSSKY_USDS"));
+
+        assertEq(split.hop(),             3_748, "TestError/split-hop-before");
+        assertEq(farm.rewardsDuration(),  3_748, "TestError/rewards-duration-before");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        assertEq(split.hop(),            2_504, "TestError/split-hop-after");
+        assertEq(farm.rewardsDuration(), 2_504, "TestError/rewards-duration-after");
+    }
 }

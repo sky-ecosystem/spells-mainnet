@@ -21,6 +21,7 @@ import { DssAction, DssExecLib } from "dss-exec-lib/DssAction.sol";
 import { GemAbstract } from "dss-interfaces/ERC/GemAbstract.sol";
 import { JugAbstract } from "dss-interfaces/dss/JugAbstract.sol";
 import { VatAbstract } from "dss-interfaces/dss/VatAbstract.sol";
+import { DssAutoLineAbstract } from "dss-interfaces/dss/DssAutoLineAbstract.sol";
 // Copied from https://github.com/sky-ecosystem/endgame-toolkit/blob/4f238f9b23298190150d49482bad56c00f0af825/script/dependencies/treasury-funded-farms/TreasuryFundedFarmingInit.sol
 import { TreasuryFundedFarmingInit, FarmingUpdateVestParams } from "./dependencies/endgame-toolkit/treasury-funded-farms/TreasuryFundedFarmingInit.sol";
 
@@ -93,6 +94,9 @@ contract DssSpellAction is DssAction {
     address internal immutable MCD_SPLIT                = DssExecLib.getChangelogAddress("MCD_SPLIT");
     address internal immutable REWARDS_OWNER_LSSKY_USDS = DssExecLib.getChangelogAddress("REWARDS_OWNER_LSSKY_USDS");
     address internal immutable MKR_SKY                  = DssExecLib.getChangelogAddress("MKR_SKY");
+    address internal immutable SPARK_STARGUARD          = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
+    address internal immutable GROVE_STARGUARD          = DssExecLib.getChangelogAddress("GROVE_STARGUARD");
+    address internal immutable MCD_IAM_AUTO_LINE        = DssExecLib.getChangelogAddress("MCD_IAM_AUTO_LINE");
 
     // ---------- Wallets ----------
     address internal constant CORE_COUNCIL_BUDGET_MULTISIG = 0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364;
@@ -189,6 +193,9 @@ contract DssSpellAction is DssAction {
             _ttl: 43_200 seconds
         });
 
+        // Note: Apply the updated ALLOCATOR-GROVE-A AutoLine configuration immediately
+        DssAutoLineAbstract(MCD_IAM_AUTO_LINE).exec("ALLOCATOR-GROVE-A");
+
         // ---------- Adjust ALLOCATOR-PRYSM-A DC-IAM Parameters ----------
         // Forum: https://forum.skyeco.com/t/sep-10-2026-osero-requested-changes-to-allocator-vault-parameters/28211
         // Atlas: https://sky-atlas.io/#41a1ae38-4f5c-468f-b6ba-47e16ecc5aec
@@ -203,6 +210,9 @@ contract DssSpellAction is DssAction {
             _ttl: 86_400 seconds
         });
 
+        // Note: Apply the updated ALLOCATOR-PRYSM-A AutoLine configuration immediately
+        DssAutoLineAbstract(MCD_IAM_AUTO_LINE).exec("ALLOCATOR-PRYSM-A");
+
         // ---------- Spark Proxy Spell ----------
         // Forum: https://forum.skyeco.com/t/september-10-2026-proposed-changes-to-spark-for-upcoming-spell/28208
         // Atlas: https://sky-atlas.io/#6029a425-ad81-46c5-866d-94e2ff663873
@@ -211,14 +221,14 @@ contract DssSpellAction is DssAction {
         // Poll: https://snapshot.org/#/s:sparkfi.eth/proposal/0x95329a02677772384f4d2bad196de1f2b0fe6b83a06ab61fe634fb07643dcb86
 
         // Whitelist Spark spell with address 0x7602cc457786c06778258A0b004f2D66c54386fC and codehash 0xb3b1f22f29ef3d269404004599f13b840e45ec98909ac3de529e27c155bed088 in SPARK_STARGUARD, direct execution: No
-        StarGuardLike(SPARK_SUBPROXY).plot(SPARK_SPELL, SPARK_SPELL_HASH);
+        StarGuardLike(SPARK_STARGUARD).plot(SPARK_SPELL, SPARK_SPELL_HASH);
 
         // ---------- Grove Proxy Spell ----------
         // Forum: https://forum.skyeco.com/t/september-10-2026-proposed-changes-to-grove-for-upcoming-spell/28207
         // Poll: https://snapshot.box/#/s:grovefinance.eth/proposal/0x1c152d7efd78b8cc72bec0af156d60ead97578bf11285a2c51e84d8adf2dbaba
 
         // Whitelist Grove spell with address 0x73F9798B24b7843B8028f905373124EfCAF25Da4 and codehash 0xc72bda25146c6225b10ee085a10e21b0126b34dde6036a24d7023142846d34c0 in GROVE_STARGUARD, direct execution: No
-        StarGuardLike(GROVE_SUBPROXY).plot(GROVE_SPELL, GROVE_SPELL_HASH);
+        StarGuardLike(GROVE_STARGUARD).plot(GROVE_SPELL, GROVE_SPELL_HASH);
     }
 
     // ---------- Helper Functions ----------

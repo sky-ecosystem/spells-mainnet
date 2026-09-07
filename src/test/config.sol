@@ -149,7 +149,7 @@ contract Config {
             deployed_spell_created: 0,          // use `make deploy-info tx=<deployment-tx>` to obtain the timestamp
             deployed_spell_block:   0,          // use `make deploy-info tx=<deployment-tx>` to obtain the block number
             previous_spells:        prevSpells, // older spells to ensure are executed first
-            office_hours_enabled:   true,       // true if officehours is expected to be enabled in the spell
+            office_hours_enabled:   false,      // true if officehours is expected to be enabled in the spell
             expiration_threshold:   30 days     // Amount of time before spell expires
         });
 
@@ -202,7 +202,7 @@ contract Config {
         afterSpell.SP_dsr_max   = 30_00;                                      // In basis points
         afterSpell.SP_dsr_step  = 4_00;                                       // In basis points
         afterSpell.sky_mkr_rate = 24_000;                                     // In whole SKY/MKR units
-        afterSpell.mkr_sky_fee  = 4_00;                                       // In basis points
+        afterSpell.mkr_sky_fee  = 5_00;                                       // In basis points
 
         afterSpell.stusds_rate_setter_tau      = 57_600;        // Cooldown period between rate changes in seconds
         afterSpell.stusds_rate_setter_maxLine  = 1_000_000_000; // USDS units
@@ -1181,8 +1181,8 @@ contract Config {
         });
         afterSpell.collaterals["ALLOCATOR-PRYSM-A"] = CollateralValues({
             um:           UpdateMethod.AUTOLINE,
-            aL_line:      25_000_000,
-            aL_gap:       5_000_000,
+            aL_line:      100_000_000,
+            aL_gap:       15_000_000,
             aL_ttl:       86_400,
             line:         0,
             dust:         0,
@@ -1239,9 +1239,9 @@ contract Config {
         });
         afterSpell.collaterals["ALLOCATOR-GROVE-A"] = CollateralValues({
             um:           UpdateMethod.AUTOLINE,
-            aL_line:      25_000_000,
-            aL_gap:       5_000_000,
-            aL_ttl:       86_400,
+            aL_line:      100_000_000,
+            aL_gap:       15_000_000,
+            aL_ttl:       43_200,
             line:         0,
             dust:         0,
             pct:          0,
