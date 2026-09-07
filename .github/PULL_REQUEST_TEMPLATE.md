@@ -27,4 +27,4 @@ _Provide links to relevant issues, previous PRs, incidents, documentation, or di
 - [ ] IF this is a Maintenance PR, remove the “(Maintenance PR)” labels from the section headings;
 - [ ] IF this is a Spell PR, remove the Maintenance PR sections;
 - [ ] IF this is a Spell PR, only the current spell-related contracts and tests have been updated and archived; no existing base test has been modified;
-- [ ] IF this is a Spell PR, the execution sheet link is included in the Description.
+- [ ] IF this is a Spell PR, the executive sheet link is included in the Description.
