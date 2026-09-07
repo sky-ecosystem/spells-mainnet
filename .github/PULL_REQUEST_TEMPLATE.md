@@ -20,7 +20,7 @@ _Provide links to relevant issues, previous PRs, incidents, documentation, or di
 
 ## Checklist
 
-- [ ] PR title clearly shows what the PR implements; IF it is a spell PR follows format of `YYYY-MM-DD Spell`;
+- [ ] PR title clearly shows what the PR implements; IF it is a spell PR follows format of `Mainnet spell YYYY-MM-DD`;
 - [ ] PR doesn't update any files that are not related to the current PR scope;
 - [ ] All required information for the current PR type has been filled in above;
 - [ ] CI tests pass;
