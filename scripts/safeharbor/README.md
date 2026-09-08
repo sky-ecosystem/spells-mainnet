@@ -59,7 +59,7 @@ The script follows these steps:
 
 `index.js` validates the command and RPC configuration, creates the provider, and wires the Agreement reader, payload generator, and command runner through creator closures. It destroys the provider when the command finishes. `agreement.js` uses the injected provider to resolve the Agreement address through `chainlog.js`, construct the Agreement instance, and fetch its details. Its pure `normalizeOnchainState` function converts those details into reconciliation state without network access. `sheet.js` reads and normalizes the Safeharbor Sheet; CSV is its transport format. The RPC URL stays at the entrypoint; the Agreement instance stays inside the reader.
 
-Validation returns plain diagnostics with a stable `code` and optional `context` containing raw facts. For example:
+Validation returns plain diagnostics with a stable `code` from the frozen `DIAGNOSTIC_CODES` object exported by `diagnosticCodes.js`, and optional `context` containing raw facts. For example:
 
 ```json
 {

@@ -113,7 +113,7 @@ describe("contracts CSV headers", () => {
             ),
         ).rejects.toMatchObject({
             diagnostic: {
-                code: "MISSING_CSV_HEADERS",
+                code: "MISSING_SHEET_HEADERS",
                 context: {
                     missingHeaders: expect.arrayContaining([missingHeader]),
                 },
@@ -203,7 +203,7 @@ describe("chain metadata CSV headers", () => {
             getChainDetailsFromSheet("https://example.test/chains.csv"),
         ).rejects.toMatchObject({
             diagnostic: {
-                code: "MISSING_CSV_HEADERS",
+                code: "MISSING_SHEET_HEADERS",
                 context: {
                     missingHeaders: expect.arrayContaining([missingHeader]),
                 },
@@ -318,7 +318,7 @@ describe("CSV validation before payload generation", () => {
             contractCSV: "Chain,Address,isFactory\n",
             error: {
                 diagnostic: {
-                    code: "MISSING_CSV_HEADERS",
+                    code: "MISSING_SHEET_HEADERS",
                     context: { missingHeaders: ["Status"] },
                 },
             },
@@ -329,7 +329,7 @@ describe("CSV validation before payload generation", () => {
             contractCSV: "Status,Chain,Address,isFactory\n",
             error: {
                 diagnostic: {
-                    code: "MISSING_CSV_HEADERS",
+                    code: "MISSING_SHEET_HEADERS",
                     context: { missingHeaders: ["Asset Recovery Address"] },
                 },
             },

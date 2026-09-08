@@ -1,3 +1,4 @@
+import { DIAGNOSTIC_CODES as $ } from "./diagnosticCodes.js";
 import { parse } from "csv-parse/sync";
 import { findDuplicateIndexes } from "./findDuplicateIndexes.js";
 
@@ -35,7 +36,12 @@ export function validateHeaders(headers, requiredHeaders) {
         (header) => !headers.includes(header),
     );
     return missingHeaders.length > 0
-        ? [{ code: "MISSING_CSV_HEADERS", context: { missingHeaders } }]
+        ? [
+              {
+                  code: $.MISSING_SHEET_HEADERS,
+                  context: { missingHeaders },
+              },
+          ]
         : [];
 }
 
@@ -44,9 +50,12 @@ const CHAIN_DETAILS_HEADERS = ["Name", "Chain Id", "Asset Recovery Address"];
 async function downloadAndParse(url) {
     const response = await fetch(url);
     const diagnostic = !response.ok
-        ? { code: "HTTP_ERROR", context: { status: response.status } }
+        ? {
+              code: $.HTTP_ERROR,
+              context: { status: response.status },
+          }
         : !response.headers.get("content-type")?.includes("text/csv")
-          ? { code: "INVALID_CSV_CONTENT_TYPE" }
+          ? { code: $.INVALID_CSV_CONTENT_TYPE }
           : undefined;
     if (diagnostic) {
         throw Object.assign(new Error(diagnostic.code), { diagnostic });
@@ -119,7 +128,7 @@ function normalizeChainDetails(records) {
                 .filter((record) => Object.values(record).some(Boolean))
                 .filter((record) => getMissingChainFields(record).length > 0)
                 .map((record) => ({
-                    code: "INCOMPLETE_CHAIN_METADATA",
+                    code: $.INCOMPLETE_CHAIN_METADATA,
                     context: {
                         chainName: record.Name,
                         chainId: record["Chain Id"],
@@ -130,7 +139,7 @@ function normalizeChainDetails(records) {
                 ...(duplicateNameIndexes.has(index)
                     ? [
                           {
-                              code: "DUPLICATE_CHAIN_NAME",
+                              code: $.DUPLICATE_CHAIN_NAME,
                               context: { chainName: chain.Name },
                           },
                       ]
@@ -138,7 +147,7 @@ function normalizeChainDetails(records) {
                 ...(duplicateIdIndexes.has(index)
                     ? [
                           {
-                              code: "DUPLICATE_CHAIN_ID",
+                              code: $.DUPLICATE_CHAIN_ID,
                               context: { chainId: chain["Chain Id"] },
                           },
                       ]

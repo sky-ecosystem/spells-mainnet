@@ -1,3 +1,4 @@
+import { DIAGNOSTIC_CODES as $ } from "./diagnosticCodes.js";
 import { formatDiagnostic } from "./formatDiagnostic.js";
 
 export function createCommandRunner({ generatePayload }) {
@@ -62,11 +63,11 @@ export function reportError(error) {
 }
 
 export function validateOptions({ command, rpcUrl }) {
-    if (!command) return [{ code: "COMMAND_REQUIRED" }];
+    if (!command) return [{ code: $.COMMAND_REQUIRED }];
     if (!COMMANDS.has(command)) {
-        return [{ code: "UNKNOWN_COMMAND", context: { command } }];
+        return [{ code: $.UNKNOWN_COMMAND, context: { command } }];
     }
-    return rpcUrl ? [] : [{ code: "RPC_URL_REQUIRED" }];
+    return rpcUrl ? [] : [{ code: $.RPC_URL_REQUIRED }];
 }
 
 const COMMANDS = new Set(["generate", "inspect", "verify"]);

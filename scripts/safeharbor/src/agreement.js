@@ -1,3 +1,4 @@
+import { DIAGNOSTIC_CODES as $ } from "./diagnosticCodes.js";
 import { Contract } from "ethers";
 import { AGREEMENT_V3_ABI } from "./abis.js";
 import { getChainlogAddress } from "./chainlog.js";
@@ -24,7 +25,7 @@ export function normalizeOnchainState(details, chainDetails) {
 
         if (!chainName) {
             validationWarnings.push({
-                code: "UNKNOWN_ONCHAIN_CHAIN",
+                code: $.UNKNOWN_ONCHAIN_CHAIN,
                 context: { chainId: chain.caip2ChainId },
             });
             return chains;

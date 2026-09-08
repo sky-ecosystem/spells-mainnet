@@ -145,7 +145,7 @@ test.each([
     },
     {
         diagnostic: {
-            code: "MISSING_CSV_HEADERS",
+            code: "MISSING_SHEET_HEADERS",
             context: { missingHeaders: ["Status", "Address"] },
         },
         message: "Missing required CSV headers: Status, Address",

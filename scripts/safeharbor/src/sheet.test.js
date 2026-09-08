@@ -5,7 +5,7 @@ test("returns every missing header in required order", () => {
     expect(validateHeaders(["Status"], ["Status", "Chain", "Address"])).toEqual(
         [
             {
-                code: "MISSING_CSV_HEADERS",
+                code: "MISSING_SHEET_HEADERS",
                 context: { missingHeaders: ["Chain", "Address"] },
             },
         ],

@@ -1,3 +1,4 @@
+import { DIAGNOSTIC_CODES as $ } from "./diagnosticCodes.js";
 import { getAddress } from "ethers";
 import { findDuplicateIndexes } from "./findDuplicateIndexes.js";
 
@@ -26,7 +27,7 @@ export function createStateValidators(onChainState, sheetState, chainDetails) {
     function validateSheetAccounts(chainName) {
         return findDuplicateAccountAddresses(sheetState[chainName]).map(
             (address) => ({
-                code: "DUPLICATE_SHEET_ACCOUNT",
+                code: $.DUPLICATE_SHEET_ACCOUNT,
                 context: { chainName, address },
             }),
         );
@@ -36,7 +37,7 @@ export function createStateValidators(onChainState, sheetState, chainDetails) {
         return findDuplicateAccountAddresses(
             onChainState[chainName].accounts,
         ).map((address) => ({
-            code: "DUPLICATE_ONCHAIN_ACCOUNT",
+            code: $.DUPLICATE_ONCHAIN_ACCOUNT,
             context: { chainName, address },
         }));
     }
@@ -52,7 +53,7 @@ export function createStateValidators(onChainState, sheetState, chainDetails) {
                     !Object.hasOwn(chainDetails.caip2ChainId, chainName),
             )
             .map((chainName) => ({
-                code: "UNKNOWN_SHEET_CHAIN",
+                code: $.UNKNOWN_SHEET_CHAIN,
                 context: { chainName },
             }));
     }
@@ -67,7 +68,7 @@ export function createStateValidators(onChainState, sheetState, chainDetails) {
         if (!isNewChain && !onchainRecoveryAddress) {
             return [
                 {
-                    code: "MISSING_ONCHAIN_RECOVERY_ADDRESS",
+                    code: $.MISSING_ONCHAIN_RECOVERY_ADDRESS,
                     context: { chainName },
                 },
             ];
@@ -99,7 +100,7 @@ export function createRecoveryAddressValidator(
     { chainName, isNewChain, onchainRecoveryAddress, sheetRecoveryAddress },
 ) {
     const mismatchWarning = {
-        code: "RECOVERY_ADDRESS_MISMATCH",
+        code: $.RECOVERY_ADDRESS_MISMATCH,
         context: { chainName, onchainRecoveryAddress, sheetRecoveryAddress },
     };
 
@@ -114,7 +115,7 @@ export function createRecoveryAddressValidator(
         } catch {
             return [
                 {
-                    code: "INVALID_EVM_RECOVERY_ADDRESS",
+                    code: $.INVALID_EVM_RECOVERY_ADDRESS,
                     context: {
                         chainName,
                         isNewChain,

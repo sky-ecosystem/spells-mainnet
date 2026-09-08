@@ -1,3 +1,4 @@
+import { DIAGNOSTIC_CODES as $ } from "./diagnosticCodes.js";
 import { Interface } from "ethers";
 import { AGREEMENT_V3_ABI as AGREEMENT_ABI } from "./abis.js";
 
@@ -168,8 +169,8 @@ function validateUpdateInputs(onChainState, sheetState) {
                 return [
                     {
                         code: isNewChain
-                            ? "ADDED_CHAIN_WITHOUT_ACCOUNTS"
-                            : "EXISTING_CHAIN_WITHOUT_ACCOUNTS",
+                            ? $.ADDED_CHAIN_WITHOUT_ACCOUNTS
+                            : $.EXISTING_CHAIN_WITHOUT_ACCOUNTS,
                         context: { chainName },
                     },
                 ];
@@ -185,7 +186,7 @@ function validateUpdateInputs(onChainState, sheetState) {
             return invalidAccounts.length > 0
                 ? [
                       {
-                          code: "INVALID_NEW_CHAIN_ACCOUNTS",
+                          code: $.INVALID_NEW_CHAIN_ACCOUNTS,
                           context: { chainName, accounts: invalidAccounts },
                       },
                   ]
