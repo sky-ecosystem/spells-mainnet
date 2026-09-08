@@ -19,7 +19,11 @@ export function generateSolidityCode(updates) {
         _updateSafeHarbor(calldatas);
     `;
 
-    return solidityCode.trimEnd();
+    return solidityCode
+        .trim()
+        .split("\n")
+        .map((line) => line.trim())
+        .join("\n");
 }
 
 function getDescription(update) {
