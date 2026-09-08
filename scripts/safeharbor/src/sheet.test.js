@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { validateHeaders } from "./validateHeaders.js";
+import { validateHeaders } from "./sheet.js";
 
 test("returns every missing header in required order", () => {
     expect(validateHeaders(["Status"], ["Status", "Chain", "Address"])).toEqual(

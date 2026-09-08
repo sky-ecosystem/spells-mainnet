@@ -1,6 +1,5 @@
 import { parse } from "csv-parse/sync";
 import { findDuplicateIndexes } from "./utils/findDuplicateIndexes.js";
-import { validateHeaders } from "./validateHeaders.js";
 
 export async function getNormalizedContractsInScopeFromSheet(url) {
     const { headers, records } = await downloadAndParse(url);
@@ -23,6 +22,15 @@ export async function getChainDetailsFromSheet(url) {
         throw Object.assign(new Error(diagnostic.code), { diagnostic });
     }
     return normalizeChainDetails(records);
+}
+
+export function validateHeaders(headers, requiredHeaders) {
+    const missingHeaders = requiredHeaders.filter(
+        (header) => !headers.includes(header),
+    );
+    return missingHeaders.length > 0
+        ? [{ code: "MISSING_CSV_HEADERS", context: { missingHeaders } }]
+        : [];
 }
 
 const CHAIN_DETAILS_HEADERS = ["Name", "Chain Id", "Asset Recovery Address"];
