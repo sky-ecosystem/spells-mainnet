@@ -42,7 +42,7 @@ function calculateAccountDifferences(currentAccounts, desiredAccounts) {
 
 function generateAccountUpdates(
     onChainState,
-    csvState,
+    sheetState,
     chainDetails,
     chainsToRemove = [],
 ) {
@@ -53,21 +53,12 @@ function generateAccountUpdates(
     for (const chainName of Object.keys(onChainState)) {
         // Skip chains that are being removed
         if (chainsToRemove.includes(chainName)) {
-            console.warn(
-                `Skipping account updates for chain ${chainName} - will be removed entirely`,
-            );
             continue;
         }
 
         const chainId = chainDetails.caip2ChainId[chainName];
         const currentAccounts = onChainState[chainName] || [];
-        const desiredAccounts = csvState[chainName] || [];
-
-        if (desiredAccounts.length === 0) {
-            throw new Error(
-                `Chain '${chainName}' must be removed instead of configured without accounts`,
-            );
-        }
+        const desiredAccounts = sheetState[chainName] || [];
 
         const { toAdd, toRemove } = calculateAccountDifferences(
             currentAccounts.accounts,
@@ -104,11 +95,11 @@ function generateAccountUpdates(
     return updates;
 }
 
-function generateChainUpdates(onChainState, csvState, chainDetails) {
+function generateChainUpdates(onChainState, sheetState, chainDetails) {
     const updates = [];
 
     const currentChainNames = Object.keys(onChainState);
-    const desiredChainNames = Object.keys(csvState);
+    const desiredChainNames = Object.keys(sheetState);
 
     // Find chains to add and remove
     const chainsToRemove = currentChainNames.filter(
@@ -118,7 +109,7 @@ function generateChainUpdates(onChainState, csvState, chainDetails) {
         (chain) => !currentChainNames.includes(chain),
     );
 
-    // Remove chains that are no longer in CSV - batch them together
+    // Remove chains that are no longer in the Safeharbor Sheet - batch them together
     if (chainsToRemove.length > 0) {
         const chainIdsToRemove = chainsToRemove.map(
             (chainName) => chainDetails.caip2ChainId[chainName],
@@ -126,17 +117,11 @@ function generateChainUpdates(onChainState, csvState, chainDetails) {
         updates.push(encodeUpdate("removeChains", [chainIdsToRemove]));
     }
 
-    // Add new chains from CSV - batch them together
+    // Add new chains from the Safeharbor Sheet - batch them together
     if (chainsToAdd.length > 0) {
         const newChains = chainsToAdd.map((chainName) => {
             const chainId = chainDetails.caip2ChainId[chainName];
-            const accounts = csvState[chainName] || [];
-
-            if (accounts.length === 0) {
-                throw new Error(
-                    `Cannot add chain '${chainName}' without accounts`,
-                );
-            }
+            const accounts = sheetState[chainName] || [];
 
             return {
                 assetRecoveryAddress:
@@ -146,23 +131,6 @@ function generateChainUpdates(onChainState, csvState, chainDetails) {
             };
         });
 
-        // Debug: Check for undefined values in accounts across all new chains
-        newChains.forEach((chain, index) => {
-            if (chain.accounts.length > 0) {
-                const problematicAccounts = chain.accounts.filter(
-                    (acc) =>
-                        !acc.accountAddress ||
-                        acc.childContractScope === undefined ||
-                        acc.childContractScope === null,
-                );
-                if (problematicAccounts.length > 0) {
-                    throw new Error(
-                        `Problematic accounts found in chain ${chainsToAdd[index]}: ${JSON.stringify(problematicAccounts)}`,
-                    );
-                }
-            }
-        });
-
         updates.push(encodeUpdate("addChains", [newChains]));
     }
 
@@ -170,18 +138,58 @@ function generateChainUpdates(onChainState, csvState, chainDetails) {
 }
 
 // The caller must validate state before generating executable updates.
-export function generateUpdates(onChainState, csvState, chainDetails) {
+export function generateUpdates(onChainState, sheetState, chainDetails) {
+    const [diagnostic] = validateUpdateInputs(onChainState, sheetState);
+    if (diagnostic) {
+        throw Object.assign(new Error(diagnostic.code), { diagnostic });
+    }
+
     const { updates: chainUpdates, chainsToRemove } = generateChainUpdates(
         onChainState,
-        csvState,
+        sheetState,
         chainDetails,
     );
     const accountUpdates = generateAccountUpdates(
         onChainState,
-        csvState,
+        sheetState,
         chainDetails,
         chainsToRemove,
     );
 
     return [...chainUpdates, ...accountUpdates];
+}
+
+function validateUpdateInputs(onChainState, sheetState) {
+    return Object.entries(sheetState).flatMap(
+        ([chainName, desiredAccounts]) => {
+            const isNewChain = !Object.hasOwn(onChainState, chainName);
+            const accounts = desiredAccounts || [];
+            if (accounts.length === 0) {
+                return [
+                    {
+                        code: isNewChain
+                            ? "ADDED_CHAIN_WITHOUT_ACCOUNTS"
+                            : "EXISTING_CHAIN_WITHOUT_ACCOUNTS",
+                        context: { chainName },
+                    },
+                ];
+            }
+            if (!isNewChain) return [];
+
+            const invalidAccounts = accounts.filter(
+                (account) =>
+                    !account.accountAddress ||
+                    account.childContractScope === undefined ||
+                    account.childContractScope === null,
+            );
+            return invalidAccounts.length > 0
+                ? [
+                      {
+                          code: "INVALID_NEW_CHAIN_ACCOUNTS",
+                          context: { chainName, accounts: invalidAccounts },
+                      },
+                  ]
+                : [];
+        },
+    );
 }

@@ -1,57 +1,30 @@
 import { parse } from "csv-parse/sync";
 import { findDuplicateIndexes } from "./utils/findDuplicateIndexes.js";
+import { validateHeaders } from "./validateHeaders.js";
 
 const CHAIN_DETAILS_HEADERS = ["Name", "Chain Id", "Asset Recovery Address"];
 
 async function downloadAndParse(url) {
-    console.warn(`Fetching CSV from ${url}`);
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const csvText = await response.text();
-
-        // Basic validation that we got CSV data
-        if (!response.headers.get("content-type")?.includes("text/csv")) {
-            throw new Error(
-                "Invalid content type. Expected CSV data. Please check the URL format.",
-            );
-        }
-
-        let headers = [];
-        const records = parse(csvText, {
-            columns: (columns) => {
-                headers = columns;
-                return columns;
-            },
-            skip_empty_lines: true,
-            trim: true,
-        });
-        return { headers, records };
-    } catch (error) {
-        console.error("Error downloading CSV:", error.message);
-        if (error.message.includes("HTML")) {
-            console.error(
-                "\nThe URL might be incorrect. For Google Sheets, make sure to use the export URL format:",
-            );
-            console.error(
-                "https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/export?format=csv&gid={SHEET_ID}",
-            );
-        }
-        throw error;
+    const response = await fetch(url);
+    const diagnostic = !response.ok
+        ? { code: "HTTP_ERROR", context: { status: response.status } }
+        : !response.headers.get("content-type")?.includes("text/csv")
+          ? { code: "INVALID_CSV_CONTENT_TYPE" }
+          : undefined;
+    if (diagnostic) {
+        throw Object.assign(new Error(diagnostic.code), { diagnostic });
     }
-}
-
-function validateHeaders(headers, requiredHeaders) {
-    const missingHeaders = requiredHeaders.filter(
-        (header) => !headers.includes(header),
-    );
-    if (missingHeaders.length > 0) {
-        throw new Error(
-            `Missing required CSV headers: ${missingHeaders.join(", ")}`,
-        );
-    }
+    const csvText = await response.text();
+    let headers = [];
+    const records = parse(csvText, {
+        columns: (columns) => {
+            headers = columns;
+            return columns;
+        },
+        skip_empty_lines: true,
+        trim: true,
+    });
+    return { headers, records };
 }
 
 function normalizeContractsInScope(records) {
@@ -75,20 +48,26 @@ function normalizeContractsInScope(records) {
         }, {});
 }
 
-export async function getNormalizedContractsInScopeFromCSV(url) {
+export async function getNormalizedContractsInScopeFromSheet(url) {
     const { headers, records } = await downloadAndParse(url);
-    validateHeaders(headers, [
+    const [diagnostic] = validateHeaders(headers, [
         "Status",
         "Chain",
         "Address",
         headers.includes("IsFactory") ? "IsFactory" : "isFactory",
     ]);
+    if (diagnostic) {
+        throw Object.assign(new Error(diagnostic.code), { diagnostic });
+    }
     return normalizeContractsInScope(records);
 }
 
-export async function getChainDetailsFromCSV(url) {
+export async function getChainDetailsFromSheet(url) {
     const { headers, records } = await downloadAndParse(url);
-    validateHeaders(headers, CHAIN_DETAILS_HEADERS);
+    const [diagnostic] = validateHeaders(headers, CHAIN_DETAILS_HEADERS);
+    if (diagnostic) {
+        throw Object.assign(new Error(diagnostic.code), { diagnostic });
+    }
     return normalizeChainDetails(records);
 }
 
@@ -125,16 +104,30 @@ function normalizeChainDetails(records) {
             ...records
                 .filter((record) => Object.values(record).some(Boolean))
                 .filter((record) => getMissingChainFields(record).length > 0)
-                .map(
-                    (record) =>
-                        `Incomplete chain details in CSV: name='${record.Name}', chainId='${record["Chain Id"]}'; missing ${getMissingChainFields(record).join(", ")}`,
-                ),
+                .map((record) => ({
+                    code: "INCOMPLETE_CHAIN_METADATA",
+                    context: {
+                        chainName: record.Name,
+                        chainId: record["Chain Id"],
+                        missingFields: getMissingChainFields(record),
+                    },
+                })),
             ...chains.flatMap((chain, index) => [
                 ...(duplicateNameIndexes.has(index)
-                    ? [`Duplicate chain name found in CSV: ${chain.Name}`]
+                    ? [
+                          {
+                              code: "DUPLICATE_CHAIN_NAME",
+                              context: { chainName: chain.Name },
+                          },
+                      ]
                     : []),
                 ...(duplicateIdIndexes.has(index)
-                    ? [`Duplicate chain ID found in CSV: ${chain["Chain Id"]}`]
+                    ? [
+                          {
+                              code: "DUPLICATE_CHAIN_ID",
+                              context: { chainId: chain["Chain Id"] },
+                          },
+                      ]
                     : []),
             ]),
         ],

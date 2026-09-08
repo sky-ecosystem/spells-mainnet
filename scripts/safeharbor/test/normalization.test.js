@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { getChainDetailsFromCSV } from "../src/fetchCSV.js";
-import { getNormalizedDataFromOnchainState } from "../src/fetchOnchain.js";
+import { getChainDetailsFromSheet } from "../src/sheet.js";
 
 beforeEach(() => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -11,90 +10,80 @@ afterEach(() => {
     vi.restoreAllMocks();
 });
 
-describe("getNormalizedDataFromOnchainState", () => {
-    test("returns warnings for unknown on-chain chains", async () => {
-        const agreementContract = {
-            getDetails: vi.fn().mockResolvedValue({
-                chains: [
-                    {
-                        caip2ChainId: "eip155:1",
-                        assetRecoveryAddress:
-                            "0x1000000000000000000000000000000000000001",
-                        accounts: [
-                            ["0x2000000000000000000000000000000000000001", 0],
-                        ],
-                    },
-                    {
-                        caip2ChainId: "eip155:999999",
-                        assetRecoveryAddress:
-                            "0x10000000000000000000000000000000000000fe",
-                        accounts: [
-                            ["0x6000000000000000000000000000000000000001", 0],
-                        ],
-                    },
-                ],
-            }),
-        };
-
-        const { onChainState, validationWarnings } =
-            await getNormalizedDataFromOnchainState(agreementContract, {
-                name: { "eip155:1": "ETHEREUM" },
-            });
-
-        expect(onChainState).toEqual({
-            ETHEREUM: {
-                accounts: [
-                    {
-                        accountAddress:
-                            "0x2000000000000000000000000000000000000001",
-                        childContractScope: 0,
-                    },
-                ],
-                assetRecoveryAddress:
-                    "0x1000000000000000000000000000000000000001",
-            },
-        });
-        expect(validationWarnings).toEqual([
-            "Unknown chain details in on-chain state: caip2ChainId='eip155:999999'.\nTo either remove or keep this chain, please add the chain details to the chain details tab in the Google Sheet.",
-        ]);
-    });
-});
-
-describe("getChainDetailsFromCSV", () => {
+describe("getChainDetailsFromSheet", () => {
     test.each([
         {
             scenario: "missing recovery address",
             csv: "Name,Chain Id,Asset Recovery Address\nBASE,eip155:8453,\n",
             warnings: [
-                "Incomplete chain details in CSV: name='BASE', chainId='eip155:8453'; missing Asset Recovery Address",
+                {
+                    code: "INCOMPLETE_CHAIN_METADATA",
+                    context: {
+                        chainName: "BASE",
+                        chainId: "eip155:8453",
+                        missingFields: ["Asset Recovery Address"],
+                    },
+                },
             ],
         },
         {
             scenario: "missing chain name",
             csv: "Name,Chain Id,Asset Recovery Address\n,eip155:8453,0x1000000000000000000000000000000000000001\n",
             warnings: [
-                "Incomplete chain details in CSV: name='', chainId='eip155:8453'; missing Name",
+                {
+                    code: "INCOMPLETE_CHAIN_METADATA",
+                    context: {
+                        chainName: "",
+                        chainId: "eip155:8453",
+                        missingFields: ["Name"],
+                    },
+                },
             ],
         },
         {
             scenario: "missing chain ID",
             csv: "Name,Chain Id,Asset Recovery Address\nBASE,,0x1000000000000000000000000000000000000001\n",
             warnings: [
-                "Incomplete chain details in CSV: name='BASE', chainId=''; missing Chain Id",
+                {
+                    code: "INCOMPLETE_CHAIN_METADATA",
+                    context: {
+                        chainName: "BASE",
+                        chainId: "",
+                        missingFields: ["Chain Id"],
+                    },
+                },
             ],
         },
         {
             scenario: "multiple missing fields",
             csv: "Name,Chain Id,Asset Recovery Address\nBASE,,\n",
             warnings: [
-                "Incomplete chain details in CSV: name='BASE', chainId=''; missing Chain Id, Asset Recovery Address",
+                {
+                    code: "INCOMPLETE_CHAIN_METADATA",
+                    context: {
+                        chainName: "BASE",
+                        chainId: "",
+                        missingFields: ["Chain Id", "Asset Recovery Address"],
+                    },
+                },
             ],
         },
         {
             scenario: "only an extra column is populated",
             csv: "Name,Chain Id,Asset Recovery Address,Notes\n,,,draft\n",
             warnings: [
-                "Incomplete chain details in CSV: name='', chainId=''; missing Name, Chain Id, Asset Recovery Address",
+                {
+                    code: "INCOMPLETE_CHAIN_METADATA",
+                    context: {
+                        chainName: "",
+                        chainId: "",
+                        missingFields: [
+                            "Name",
+                            "Chain Id",
+                            "Asset Recovery Address",
+                        ],
+                    },
+                },
             ],
         },
         {
@@ -113,7 +102,7 @@ describe("getChainDetailsFromCSV", () => {
         );
 
         await expect(
-            getChainDetailsFromCSV("https://example.test/chains.csv"),
+            getChainDetailsFromSheet("https://example.test/chains.csv"),
         ).resolves.toEqual({
             chainDetails: {
                 caip2ChainId: {},
@@ -128,12 +117,15 @@ describe("getChainDetailsFromCSV", () => {
         [
             "chain name",
             "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nETHEREUM,eip155:2,0x1000000000000000000000000000000000000002",
-            "Duplicate chain name found in CSV: ETHEREUM",
+            {
+                code: "DUPLICATE_CHAIN_NAME",
+                context: { chainName: "ETHEREUM" },
+            },
         ],
         [
             "chain ID",
             "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nETH_DUPLICATE,eip155:1,0x1000000000000000000000000000000000000002",
-            "Duplicate chain ID found in CSV: eip155:1",
+            { code: "DUPLICATE_CHAIN_ID", context: { chainId: "eip155:1" } },
         ],
     ])(
         "preserves earlier mappings for a duplicate %s",
@@ -148,7 +140,7 @@ describe("getChainDetailsFromCSV", () => {
             );
 
             const { chainDetails, validationWarnings } =
-                await getChainDetailsFromCSV(
+                await getChainDetailsFromSheet(
                     "https://example.test/chain-details.csv",
                 );
 
@@ -168,24 +160,42 @@ describe("getChainDetailsFromCSV", () => {
             "both name and ID",
             "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000002\nBASE,eip155:8453,0x1000000000000000000000000000000000000003\n",
             [
-                "Duplicate chain name found in CSV: ETHEREUM",
-                "Duplicate chain ID found in CSV: eip155:1",
+                {
+                    code: "DUPLICATE_CHAIN_NAME",
+                    context: { chainName: "ETHEREUM" },
+                },
+                {
+                    code: "DUPLICATE_CHAIN_ID",
+                    context: { chainId: "eip155:1" },
+                },
             ],
         ],
         [
             "an ID previously seen in a rejected row",
             "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nETHEREUM,eip155:2,0x1000000000000000000000000000000000000002\nOTHER,eip155:2,0x1000000000000000000000000000000000000002\nBASE,eip155:8453,0x1000000000000000000000000000000000000003\n",
             [
-                "Duplicate chain name found in CSV: ETHEREUM",
-                "Duplicate chain ID found in CSV: eip155:2",
+                {
+                    code: "DUPLICATE_CHAIN_NAME",
+                    context: { chainName: "ETHEREUM" },
+                },
+                {
+                    code: "DUPLICATE_CHAIN_ID",
+                    context: { chainId: "eip155:2" },
+                },
             ],
         ],
         [
             "a name previously seen in a rejected row",
             "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nOTHER,eip155:1,0x1000000000000000000000000000000000000002\nOTHER,eip155:2,0x1000000000000000000000000000000000000002\nBASE,eip155:8453,0x1000000000000000000000000000000000000003\n",
             [
-                "Duplicate chain ID found in CSV: eip155:1",
-                "Duplicate chain name found in CSV: OTHER",
+                {
+                    code: "DUPLICATE_CHAIN_ID",
+                    context: { chainId: "eip155:1" },
+                },
+                {
+                    code: "DUPLICATE_CHAIN_NAME",
+                    context: { chainName: "OTHER" },
+                },
             ],
         ],
     ])(
@@ -201,7 +211,7 @@ describe("getChainDetailsFromCSV", () => {
             );
 
             await expect(
-                getChainDetailsFromCSV("https://example.test/chains.csv"),
+                getChainDetailsFromSheet("https://example.test/chains.csv"),
             ).resolves.toEqual({
                 chainDetails: {
                     caip2ChainId: { ETHEREUM: "eip155:1", BASE: "eip155:8453" },

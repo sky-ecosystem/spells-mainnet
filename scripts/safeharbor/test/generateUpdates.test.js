@@ -18,7 +18,10 @@ test.each([
             },
             name: { "eip155:10": "OPTIMISM" },
         },
-        error: "Cannot add chain 'OPTIMISM' without accounts",
+        diagnostic: {
+            code: "ADDED_CHAIN_WITHOUT_ACCOUNTS",
+            context: { chainName: "OPTIMISM" },
+        },
     },
     {
         scenario: "an existing chain without desired accounts",
@@ -43,13 +46,71 @@ test.each([
             },
             name: { "eip155:8453": "BASE" },
         },
-        error: "Chain 'BASE' must be removed instead of configured without accounts",
+        diagnostic: {
+            code: "EXISTING_CHAIN_WITHOUT_ACCOUNTS",
+            context: { chainName: "BASE" },
+        },
     },
-])("rejects $scenario", ({ current, desired, chainDetails, error }) => {
+    {
+        scenario: "invalid accounts in a later new chain before any encoding",
+        current: {
+            ETHEREUM: {
+                accounts: [
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000001",
+                        childContractScope: 0n,
+                    },
+                ],
+                assetRecoveryAddress:
+                    "0x1000000000000000000000000000000000000001",
+            },
+        },
+        desired: {
+            BASE: [
+                {
+                    accountAddress:
+                        "0x3000000000000000000000000000000000000001",
+                    childContractScope: 0,
+                },
+            ],
+            OPTIMISM: [{ accountAddress: "", childContractScope: 0 }],
+        },
+        chainDetails: {
+            caip2ChainId: {
+                ETHEREUM: "eip155:1",
+                BASE: "eip155:8453",
+                OPTIMISM: "eip155:10",
+            },
+            assetRecoveryAddress: {
+                ETHEREUM: "0x1000000000000000000000000000000000000001",
+                BASE: "0x1000000000000000000000000000000000000002",
+                OPTIMISM: "0x1000000000000000000000000000000000000004",
+            },
+            name: {
+                "eip155:1": "ETHEREUM",
+                "eip155:8453": "BASE",
+                "eip155:10": "OPTIMISM",
+            },
+        },
+        diagnostic: {
+            code: "INVALID_NEW_CHAIN_ACCOUNTS",
+            context: {
+                chainName: "OPTIMISM",
+                accounts: [{ accountAddress: "", childContractScope: 0 }],
+            },
+        },
+    },
+])("rejects $scenario", ({ current, desired, chainDetails, diagnostic }) => {
     const encoding = vi.spyOn(Interface.prototype, "encodeFunctionData");
 
-    expect(() => generateUpdates(current, desired, chainDetails)).toThrow(
-        error,
-    );
+    let failure;
+    try {
+        generateUpdates(current, desired, chainDetails);
+    } catch (error) {
+        failure = error;
+    }
+    expect(failure).toBeInstanceOf(Error);
+    expect(failure.diagnostic).toEqual(diagnostic);
     expect(encoding).not.toHaveBeenCalled();
 });

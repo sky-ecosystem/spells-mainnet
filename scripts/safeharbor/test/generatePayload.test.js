@@ -1,26 +1,34 @@
 import { test, expect, describe, vi, beforeEach, afterEach } from "vitest";
 import assert from "node:assert";
 import { Interface } from "ethers";
-import { generatePayload } from "../src/generatePayload.js";
+import { createPayloadGenerator } from "../src/generatePayload.js";
 import { AGREEMENT_V3_ABI } from "../src/abis.js";
+
+const getAgreementDetails = vi.fn();
+const generatePayload = createPayloadGenerator({ getAgreementDetails });
 
 let consoleWarnSpy;
 let consoleErrorSpy;
+let consoleLogSpy;
 let encodeSpy;
 
 beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());
     consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     encodeSpy = vi.spyOn(Interface.prototype, "encodeFunctionData");
 });
 
 afterEach(() => {
     try {
+        expect(consoleWarnSpy).not.toHaveBeenCalled();
         expect(consoleErrorSpy).not.toHaveBeenCalled();
+        expect(consoleLogSpy).not.toHaveBeenCalled();
     } finally {
         vi.restoreAllMocks();
         vi.unstubAllGlobals();
+        vi.resetAllMocks();
     }
 });
 
@@ -34,9 +42,9 @@ async function generateFrom({ chainCSV, contractCSV, details }) {
                 headers: { "content-type": "text/csv" },
             }),
         );
-    const result = await generatePayload({
-        getDetails: vi.fn().mockResolvedValue(details),
-    });
+    getAgreementDetails.mockResolvedValue(details);
+    const result = await generatePayload();
+    expect(getAgreementDetails).toHaveBeenCalledExactlyOnceWith();
     payloadSnapshot(result.updates);
     return result;
 }
@@ -911,12 +919,21 @@ describe("generatePayload", () => {
             expect(result.updates).toEqual([]);
             expect(result.solidityCode).toBe("");
             expect(result.validationWarnings).toEqual([
-                expect.stringContaining("Asset Recovery Address mismatch"),
+                {
+                    code: "RECOVERY_ADDRESS_MISMATCH",
+                    context: {
+                        chainName: "ETHEREUM",
+                        onchainRecoveryAddress:
+                            "0x10000000000000000000000000000000000000ff",
+                        sheetRecoveryAddress:
+                            "0x1000000000000000000000000000000000000001",
+                    },
+                },
             ]);
             expect(encodeSpy).not.toHaveBeenCalled();
         });
 
-        test("should log a warning when asset recovery addresses mismatch", async () => {
+        test("should return a diagnostic only for the mismatched recovery address", async () => {
             const result = await generateFrom({
                 chainCSV:
                     "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
@@ -954,36 +971,21 @@ describe("generatePayload", () => {
             expect(result.solidityCode).toBe("");
             expect(encodeSpy).not.toHaveBeenCalled();
 
-            // Assert
-            const wasCalledWithMismatchWarning = consoleWarnSpy.mock.calls.some(
-                (call) =>
-                    call[0].includes("Asset Recovery Address mismatch") &&
-                    call[0].includes("ETHEREUM") &&
-                    call[0].includes(`On-chain: ${RECOVERY.MISMATCH}`) &&
-                    call[0].includes(`CSV:      ${RECOVERY.ETH}`),
-            );
-
-            assert.ok(
-                wasCalledWithMismatchWarning,
-                "console.warn was not called with the expected mismatch message for ETHEREUM",
-            );
-            assert.ok(
-                result.validationWarnings.some((warning) =>
-                    warning.includes("Asset Recovery Address mismatch"),
-                ),
-            );
-
-            const wasCalledForBase = consoleWarnSpy.mock.calls.some((call) =>
-                call[0].includes("BASE"),
-            );
-
-            assert.ok(
-                !wasCalledForBase,
-                "console.warn should not be called for BASE as addresses match",
-            );
+            expect(result.validationWarnings).toEqual([
+                {
+                    code: "RECOVERY_ADDRESS_MISMATCH",
+                    context: {
+                        chainName: "ETHEREUM",
+                        onchainRecoveryAddress:
+                            "0x10000000000000000000000000000000000000ff",
+                        sheetRecoveryAddress:
+                            "0x1000000000000000000000000000000000000001",
+                    },
+                },
+            ]);
         });
 
-        test("should collect unknown CSV chains as validation warnings", async () => {
+        test("should collect unknown Safeharbor Sheet chains as validation warnings", async () => {
             const result = await generateFrom({
                 chainCSV:
                     "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
@@ -1036,10 +1038,12 @@ describe("generatePayload", () => {
                 },
             });
 
-            expect(result.validationWarnings).toHaveLength(1);
-            expect(result.validationWarnings[0]).toContain(
-                "Unknown chain details in CSV: name='UNKNOWN'",
-            );
+            expect(result.validationWarnings).toEqual([
+                {
+                    code: "UNKNOWN_SHEET_CHAIN",
+                    context: { chainName: "UNKNOWN" },
+                },
+            ]);
             expect(result.updates).toEqual([]);
             expect(result.solidityCode).toBe("");
             expect(encodeSpy).not.toHaveBeenCalled();
@@ -1048,8 +1052,10 @@ describe("generatePayload", () => {
 
     describe("Chain Details Duplicate Validation", () => {
         test("should collect chain metadata warnings in the payload result", async () => {
-            const duplicateWarning =
-                "Duplicate chain name found in CSV: ETHEREUM";
+            const duplicateWarning = {
+                code: "DUPLICATE_CHAIN_NAME",
+                context: { chainName: "ETHEREUM" },
+            };
 
             const result = await generateFrom({
                 chainCSV:
@@ -1112,8 +1118,10 @@ describe("generatePayload", () => {
 
     describe("Validation warning aggregation", () => {
         test("should block chain updates on on-chain normalization warnings", async () => {
-            const unknownChainWarning =
-                "Unknown chain details in on-chain state: caip2ChainId='eip155:137'.\nTo either remove or keep this chain, please add the chain details to the chain details tab in the Google Sheet.";
+            const unknownChainWarning = {
+                code: "UNKNOWN_ONCHAIN_CHAIN",
+                context: { chainId: "eip155:137" },
+            };
 
             const result = await generateFrom({
                 chainCSV:
@@ -1146,10 +1154,14 @@ describe("generatePayload", () => {
         });
 
         test("should collect warnings from every stage before encoding updates", async () => {
-            const duplicateWarning =
-                "Duplicate chain name found in CSV: ETHEREUM";
-            const unknownChainWarning =
-                "Unknown chain details in on-chain state: caip2ChainId='eip155:137'.\nTo either remove or keep this chain, please add the chain details to the chain details tab in the Google Sheet.";
+            const duplicateWarning = {
+                code: "DUPLICATE_CHAIN_NAME",
+                context: { chainName: "ETHEREUM" },
+            };
+            const unknownChainWarning = {
+                code: "UNKNOWN_ONCHAIN_CHAIN",
+                context: { chainId: "eip155:137" },
+            };
 
             const result = await generateFrom({
                 chainCSV:
@@ -1190,15 +1202,22 @@ describe("generatePayload", () => {
                 validationWarnings: [
                     duplicateWarning,
                     unknownChainWarning,
-                    expect.stringContaining("Asset Recovery Address mismatch"),
-                    expect.stringContaining(
-                        "Unknown chain details in CSV: name='UNKNOWN'",
-                    ),
+                    {
+                        code: "RECOVERY_ADDRESS_MISMATCH",
+                        context: {
+                            chainName: "ETHEREUM",
+                            onchainRecoveryAddress:
+                                "0x10000000000000000000000000000000000000ff",
+                            sheetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000001",
+                        },
+                    },
+                    {
+                        code: "UNKNOWN_SHEET_CHAIN",
+                        context: { chainName: "UNKNOWN" },
+                    },
                 ],
             });
-            for (const warning of result.validationWarnings) {
-                expect(consoleWarnSpy).toHaveBeenCalledWith(warning);
-            }
             expect(encodeSpy).not.toHaveBeenCalled();
         });
     });
@@ -1379,7 +1398,10 @@ test.each([
             ],
         },
         expectedWarnings: [
-            "Missing on-chain Asset Recovery Address for existing chain 'ETHEREUM'",
+            {
+                code: "MISSING_ONCHAIN_RECOVERY_ADDRESS",
+                context: { chainName: "ETHEREUM" },
+            },
         ],
     },
     {
@@ -1400,7 +1422,10 @@ test.each([
             ],
         },
         expectedWarnings: [
-            "Missing on-chain Asset Recovery Address for existing chain 'ETHEREUM'",
+            {
+                code: "MISSING_ONCHAIN_RECOVERY_ADDRESS",
+                context: { chainName: "ETHEREUM" },
+            },
         ],
     },
     {
@@ -1421,7 +1446,10 @@ test.each([
             ],
         },
         expectedWarnings: [
-            "Missing on-chain Asset Recovery Address for existing chain 'ETHEREUM'",
+            {
+                code: "MISSING_ONCHAIN_RECOVERY_ADDRESS",
+                context: { chainName: "ETHEREUM" },
+            },
         ],
     },
     {
@@ -1442,7 +1470,10 @@ test.each([
             ],
         },
         expectedWarnings: [
-            "Missing on-chain Asset Recovery Address for existing chain 'SOLANA'",
+            {
+                code: "MISSING_ONCHAIN_RECOVERY_ADDRESS",
+                context: { chainName: "SOLANA" },
+            },
         ],
     },
     {
@@ -1463,7 +1494,10 @@ test.each([
             ],
         },
         expectedWarnings: [
-            "Missing on-chain Asset Recovery Address for existing chain 'SOLANA'",
+            {
+                code: "MISSING_ONCHAIN_RECOVERY_ADDRESS",
+                context: { chainName: "SOLANA" },
+            },
         ],
     },
     {
@@ -1484,7 +1518,10 @@ test.each([
             ],
         },
         expectedWarnings: [
-            "Missing on-chain Asset Recovery Address for existing chain 'SOLANA'",
+            {
+                code: "MISSING_ONCHAIN_RECOVERY_ADDRESS",
+                context: { chainName: "SOLANA" },
+            },
         ],
     },
     {
@@ -1493,7 +1530,12 @@ test.each([
             "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nETHEREUM,eip155:2,0x1000000000000000000000000000000000000002\n",
         contractCSV: "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,,FALSE\n",
         details: { chains: [] },
-        expectedWarnings: ["Duplicate chain name found in CSV: ETHEREUM"],
+        expectedWarnings: [
+            {
+                code: "DUPLICATE_CHAIN_NAME",
+                context: { chainName: "ETHEREUM" },
+            },
+        ],
     },
     {
         scenario: "a malformed recovery address on a new EVM chain",
@@ -1503,7 +1545,15 @@ test.each([
             "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
         details: { chains: [] },
         expectedWarnings: [
-            "Invalid EVM Asset Recovery Address for chain 'ETHEREUM'. On-chain: not registered; CSV: not-an-address",
+            {
+                code: "INVALID_EVM_RECOVERY_ADDRESS",
+                context: {
+                    chainName: "ETHEREUM",
+                    isNewChain: true,
+                    onchainRecoveryAddress: undefined,
+                    sheetRecoveryAddress: "not-an-address",
+                },
+            },
         ],
     },
     {
@@ -1514,7 +1564,16 @@ test.each([
             "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
         details: { chains: [] },
         expectedWarnings: [
-            "Invalid EVM Asset Recovery Address for chain 'ETHEREUM'. On-chain: not registered; CSV: 0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
+            {
+                code: "INVALID_EVM_RECOVERY_ADDRESS",
+                context: {
+                    chainName: "ETHEREUM",
+                    isNewChain: true,
+                    onchainRecoveryAddress: undefined,
+                    sheetRecoveryAddress:
+                        "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
+                },
+            },
         ],
     },
     {
@@ -1536,7 +1595,16 @@ test.each([
             ],
         },
         expectedWarnings: [
-            "Asset Recovery Address mismatch for chain 'SOLANA'.\nOn-chain: 29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\nCSV:      29d2s7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+            {
+                code: "RECOVERY_ADDRESS_MISMATCH",
+                context: {
+                    chainName: "SOLANA",
+                    onchainRecoveryAddress:
+                        "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+                    sheetRecoveryAddress:
+                        "29d2s7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+                },
+            },
         ],
     },
     {
@@ -1558,7 +1626,14 @@ test.each([
             ],
         },
         expectedWarnings: [
-            "Incomplete chain details in CSV: name='BASE', chainId='eip155:8453'; missing Asset Recovery Address",
+            {
+                code: "INCOMPLETE_CHAIN_METADATA",
+                context: {
+                    chainName: "BASE",
+                    chainId: "eip155:8453",
+                    missingFields: ["Asset Recovery Address"],
+                },
+            },
         ],
     },
     {
@@ -1568,8 +1643,22 @@ test.each([
         contractCSV: "Status,Chain,Address,isFactory\n",
         details: { chains: [] },
         expectedWarnings: [
-            "Incomplete chain details in CSV: name='BASE', chainId='eip155:8453'; missing Asset Recovery Address",
-            "Incomplete chain details in CSV: name='', chainId='eip155:1'; missing Name",
+            {
+                code: "INCOMPLETE_CHAIN_METADATA",
+                context: {
+                    chainName: "BASE",
+                    chainId: "eip155:8453",
+                    missingFields: ["Asset Recovery Address"],
+                },
+            },
+            {
+                code: "INCOMPLETE_CHAIN_METADATA",
+                context: {
+                    chainName: "",
+                    chainId: "eip155:1",
+                    missingFields: ["Name"],
+                },
+            },
         ],
     },
     {
@@ -1590,7 +1679,12 @@ test.each([
                 },
             ],
         },
-        expectedWarnings: ["Duplicate chain name found in CSV: ETHEREUM"],
+        expectedWarnings: [
+            {
+                code: "DUPLICATE_CHAIN_NAME",
+                context: { chainName: "ETHEREUM" },
+            },
+        ],
     },
     {
         scenario: "duplicate chain IDs",
@@ -1610,7 +1704,9 @@ test.each([
                 },
             ],
         },
-        expectedWarnings: ["Duplicate chain ID found in CSV: eip155:1"],
+        expectedWarnings: [
+            { code: "DUPLICATE_CHAIN_ID", context: { chainId: "eip155:1" } },
+        ],
     },
     {
         scenario: "duplicate additions to an existing chain",
@@ -1631,7 +1727,13 @@ test.each([
             ],
         },
         expectedWarnings: [
-            "Duplicate account address in CSV state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000002",
+            {
+                code: "DUPLICATE_SHEET_ACCOUNT",
+                context: {
+                    chainName: "ETHEREUM",
+                    address: "0x2000000000000000000000000000000000000002",
+                },
+            },
         ],
     },
     {
@@ -1642,7 +1744,13 @@ test.each([
             "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
         details: { chains: [] },
         expectedWarnings: [
-            "Duplicate account address in CSV state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000001",
+            {
+                code: "DUPLICATE_SHEET_ACCOUNT",
+                context: {
+                    chainName: "ETHEREUM",
+                    address: "0x2000000000000000000000000000000000000001",
+                },
+            },
         ],
     },
     {
@@ -1664,7 +1772,13 @@ test.each([
             ],
         },
         expectedWarnings: [
-            "Duplicate account address in CSV state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000001",
+            {
+                code: "DUPLICATE_SHEET_ACCOUNT",
+                context: {
+                    chainName: "ETHEREUM",
+                    address: "0x2000000000000000000000000000000000000001",
+                },
+            },
         ],
     },
     {
@@ -1687,7 +1801,13 @@ test.each([
             ],
         },
         expectedWarnings: [
-            "Duplicate account address in on-chain state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000001",
+            {
+                code: "DUPLICATE_ONCHAIN_ACCOUNT",
+                context: {
+                    chainName: "ETHEREUM",
+                    address: "0x2000000000000000000000000000000000000001",
+                },
+            },
         ],
     },
     {
@@ -1710,7 +1830,13 @@ test.each([
             ],
         },
         expectedWarnings: [
-            "Duplicate account address in on-chain state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000001",
+            {
+                code: "DUPLICATE_ONCHAIN_ACCOUNT",
+                context: {
+                    chainName: "ETHEREUM",
+                    address: "0x2000000000000000000000000000000000000001",
+                },
+            },
         ],
     },
     {
@@ -1732,7 +1858,13 @@ test.each([
             ],
         },
         expectedWarnings: [
-            "Duplicate account address in on-chain state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000001",
+            {
+                code: "DUPLICATE_ONCHAIN_ACCOUNT",
+                context: {
+                    chainName: "ETHEREUM",
+                    address: "0x2000000000000000000000000000000000000001",
+                },
+            },
         ],
     },
     {
@@ -1755,8 +1887,20 @@ test.each([
             ],
         },
         expectedWarnings: [
-            "Duplicate account address in CSV state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000001",
-            "Duplicate account address in on-chain state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000002",
+            {
+                code: "DUPLICATE_SHEET_ACCOUNT",
+                context: {
+                    chainName: "ETHEREUM",
+                    address: "0x2000000000000000000000000000000000000001",
+                },
+            },
+            {
+                code: "DUPLICATE_ONCHAIN_ACCOUNT",
+                context: {
+                    chainName: "ETHEREUM",
+                    address: "0x2000000000000000000000000000000000000002",
+                },
+            },
         ],
     },
 ])(
@@ -1770,9 +1914,6 @@ test.each([
             validationWarnings: expectedWarnings,
         });
         expect(encodeSpy).not.toHaveBeenCalled();
-        for (const warning of expectedWarnings) {
-            expect(consoleWarnSpy).toHaveBeenCalledWith(warning);
-        }
     },
 );
 

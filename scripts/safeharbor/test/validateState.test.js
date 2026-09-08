@@ -40,8 +40,20 @@ describe("duplicate account validation", () => {
                 ],
             },
             warnings: [
-                "Duplicate account address in CSV state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000002",
-                "Duplicate account address in CSV state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000001",
+                {
+                    code: "DUPLICATE_SHEET_ACCOUNT",
+                    context: {
+                        chainName: "ETHEREUM",
+                        address: "0x2000000000000000000000000000000000000002",
+                    },
+                },
+                {
+                    code: "DUPLICATE_SHEET_ACCOUNT",
+                    context: {
+                        chainName: "ETHEREUM",
+                        address: "0x2000000000000000000000000000000000000001",
+                    },
+                },
             ],
         },
         {
@@ -62,7 +74,13 @@ describe("duplicate account validation", () => {
                 ],
             },
             warnings: [
-                "Duplicate account address in CSV state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000001",
+                {
+                    code: "DUPLICATE_SHEET_ACCOUNT",
+                    context: {
+                        chainName: "ETHEREUM",
+                        address: "0x2000000000000000000000000000000000000001",
+                    },
+                },
             ],
         },
         {
@@ -95,7 +113,13 @@ describe("duplicate account validation", () => {
                 ],
             },
             warnings: [
-                "Duplicate account address in CSV state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000001",
+                {
+                    code: "DUPLICATE_SHEET_ACCOUNT",
+                    context: {
+                        chainName: "ETHEREUM",
+                        address: "0x2000000000000000000000000000000000000001",
+                    },
+                },
             ],
         },
         {
@@ -120,7 +144,13 @@ describe("duplicate account validation", () => {
             },
             desired: {},
             warnings: [
-                "Duplicate account address in on-chain state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000001",
+                {
+                    code: "DUPLICATE_ONCHAIN_ACCOUNT",
+                    context: {
+                        chainName: "ETHEREUM",
+                        address: "0x2000000000000000000000000000000000000001",
+                    },
+                },
             ],
         },
         {
@@ -153,7 +183,13 @@ describe("duplicate account validation", () => {
                 ],
             },
             warnings: [
-                "Duplicate account address in on-chain state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000001",
+                {
+                    code: "DUPLICATE_ONCHAIN_ACCOUNT",
+                    context: {
+                        chainName: "ETHEREUM",
+                        address: "0x2000000000000000000000000000000000000001",
+                    },
+                },
             ],
         },
         {
@@ -206,9 +242,27 @@ describe("duplicate account validation", () => {
                 ],
             },
             warnings: [
-                "Duplicate account address in CSV state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000001",
-                "Duplicate account address in CSV state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000002",
-                "Duplicate account address in on-chain state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000002",
+                {
+                    code: "DUPLICATE_SHEET_ACCOUNT",
+                    context: {
+                        chainName: "ETHEREUM",
+                        address: "0x2000000000000000000000000000000000000001",
+                    },
+                },
+                {
+                    code: "DUPLICATE_SHEET_ACCOUNT",
+                    context: {
+                        chainName: "ETHEREUM",
+                        address: "0x2000000000000000000000000000000000000002",
+                    },
+                },
+                {
+                    code: "DUPLICATE_ONCHAIN_ACCOUNT",
+                    context: {
+                        chainName: "ETHEREUM",
+                        address: "0x2000000000000000000000000000000000000002",
+                    },
+                },
             ],
         },
         {
@@ -365,7 +419,7 @@ describe("recovery address comparison", () => {
             chainId: "eip155:1",
             isNewChain: true,
             onchainState: {},
-            csvAddress: "0x8ba1f109551bd432803012645ac136ddd64dba72",
+            sheetAddress: "0x8ba1f109551bd432803012645ac136ddd64dba72",
             warning: null,
         },
         {
@@ -373,7 +427,7 @@ describe("recovery address comparison", () => {
             chainId: "eip155:1",
             isNewChain: true,
             onchainState: {},
-            csvAddress: "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
+            sheetAddress: "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
             warning: null,
         },
         {
@@ -381,16 +435,33 @@ describe("recovery address comparison", () => {
             chainId: "eip155:1",
             isNewChain: true,
             onchainState: {},
-            csvAddress: "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
-            warning: "Invalid EVM Asset Recovery Address",
+            sheetAddress: "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
+            warning: {
+                code: "INVALID_EVM_RECOVERY_ADDRESS",
+                context: {
+                    chainName: "CHAIN",
+                    isNewChain: true,
+                    onchainRecoveryAddress: undefined,
+                    sheetRecoveryAddress:
+                        "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
+                },
+            },
         },
         {
             scenario: "a new chain rejects a malformed EVM recovery address",
             chainId: "eip155:1",
             isNewChain: true,
             onchainState: {},
-            csvAddress: "not-an-address",
-            warning: "Invalid EVM Asset Recovery Address",
+            sheetAddress: "not-an-address",
+            warning: {
+                code: "INVALID_EVM_RECOVERY_ADDRESS",
+                context: {
+                    chainName: "CHAIN",
+                    isNewChain: true,
+                    onchainRecoveryAddress: undefined,
+                    sheetRecoveryAddress: "not-an-address",
+                },
+            },
         },
         {
             scenario:
@@ -398,7 +469,7 @@ describe("recovery address comparison", () => {
             chainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
             isNewChain: true,
             onchainState: {},
-            csvAddress: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+            sheetAddress: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
             warning: null,
         },
         {
@@ -412,7 +483,7 @@ describe("recovery address comparison", () => {
                         "0x8ba1f109551bd432803012645ac136ddd64dba72",
                 },
             },
-            csvAddress: "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
+            sheetAddress: "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
             warning: null,
         },
         {
@@ -426,7 +497,7 @@ describe("recovery address comparison", () => {
                         "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
                 },
             },
-            csvAddress: "0x8ba1f109551bd432803012645ac136ddd64dba72",
+            sheetAddress: "0x8ba1f109551bd432803012645ac136ddd64dba72",
             warning: null,
         },
         {
@@ -440,11 +511,21 @@ describe("recovery address comparison", () => {
                         "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
                 },
             },
-            csvAddress: "0x1000000000000000000000000000000000000001",
-            warning: "Asset Recovery Address mismatch",
+            sheetAddress: "0x1000000000000000000000000000000000000001",
+            warning: {
+                code: "RECOVERY_ADDRESS_MISMATCH",
+                context: {
+                    chainName: "CHAIN",
+                    onchainRecoveryAddress:
+                        "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
+                    sheetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                },
+            },
         },
         {
-            scenario: "an invalid CSV checksum is not normalized away",
+            scenario:
+                "an invalid Safeharbor Sheet checksum is not normalized away",
             chainId: "eip155:1",
             isNewChain: false,
             onchainState: {
@@ -454,8 +535,18 @@ describe("recovery address comparison", () => {
                         "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
                 },
             },
-            csvAddress: "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
-            warning: "Invalid EVM Asset Recovery Address",
+            sheetAddress: "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
+            warning: {
+                code: "INVALID_EVM_RECOVERY_ADDRESS",
+                context: {
+                    chainName: "CHAIN",
+                    isNewChain: false,
+                    onchainRecoveryAddress:
+                        "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
+                    sheetRecoveryAddress:
+                        "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
+                },
+            },
         },
         {
             scenario: "an invalid on-chain checksum is not normalized away",
@@ -468,8 +559,18 @@ describe("recovery address comparison", () => {
                         "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
                 },
             },
-            csvAddress: "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
-            warning: "Invalid EVM Asset Recovery Address",
+            sheetAddress: "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
+            warning: {
+                code: "INVALID_EVM_RECOVERY_ADDRESS",
+                context: {
+                    chainName: "CHAIN",
+                    isNewChain: false,
+                    onchainRecoveryAddress:
+                        "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
+                    sheetRecoveryAddress:
+                        "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
+                },
+            },
         },
         {
             scenario: "a malformed EVM address produces a validation warning",
@@ -482,8 +583,17 @@ describe("recovery address comparison", () => {
                         "0x1000000000000000000000000000000000000001",
                 },
             },
-            csvAddress: "not-an-address",
-            warning: "Invalid EVM Asset Recovery Address",
+            sheetAddress: "not-an-address",
+            warning: {
+                code: "INVALID_EVM_RECOVERY_ADDRESS",
+                context: {
+                    chainName: "CHAIN",
+                    isNewChain: false,
+                    onchainRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                    sheetRecoveryAddress: "not-an-address",
+                },
+            },
         },
         {
             scenario: "identical malformed EVM addresses are still invalid",
@@ -492,8 +602,16 @@ describe("recovery address comparison", () => {
             onchainState: {
                 CHAIN: { accounts: [], assetRecoveryAddress: "not-an-address" },
             },
-            csvAddress: "not-an-address",
-            warning: "Invalid EVM Asset Recovery Address",
+            sheetAddress: "not-an-address",
+            warning: {
+                code: "INVALID_EVM_RECOVERY_ADDRESS",
+                context: {
+                    chainName: "CHAIN",
+                    isNewChain: false,
+                    onchainRecoveryAddress: "not-an-address",
+                    sheetRecoveryAddress: "not-an-address",
+                },
+            },
         },
         {
             scenario: "identical Solana identifiers match",
@@ -506,7 +624,7 @@ describe("recovery address comparison", () => {
                         "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
                 },
             },
-            csvAddress: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+            sheetAddress: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
             warning: null,
         },
         {
@@ -520,8 +638,17 @@ describe("recovery address comparison", () => {
                         "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
                 },
             },
-            csvAddress: "29d2s7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
-            warning: "Asset Recovery Address mismatch",
+            sheetAddress: "29d2s7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+            warning: {
+                code: "RECOVERY_ADDRESS_MISMATCH",
+                context: {
+                    chainName: "CHAIN",
+                    onchainRecoveryAddress:
+                        "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+                    sheetRecoveryAddress:
+                        "29d2s7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+                },
+            },
         },
         {
             scenario: "other non-EVM identifiers match exactly",
@@ -533,7 +660,7 @@ describe("recovery address comparison", () => {
                     assetRecoveryAddress: "recovery-identifier",
                 },
             },
-            csvAddress: "recovery-identifier",
+            sheetAddress: "recovery-identifier",
             warning: null,
         },
         {
@@ -546,12 +673,19 @@ describe("recovery address comparison", () => {
                     assetRecoveryAddress: "Recovery-identifier",
                 },
             },
-            csvAddress: "recovery-identifier",
-            warning: "Asset Recovery Address mismatch",
+            sheetAddress: "recovery-identifier",
+            warning: {
+                code: "RECOVERY_ADDRESS_MISMATCH",
+                context: {
+                    chainName: "CHAIN",
+                    onchainRecoveryAddress: "Recovery-identifier",
+                    sheetRecoveryAddress: "recovery-identifier",
+                },
+            },
         },
     ])(
         "$scenario",
-        ({ chainId, isNewChain, onchainState, csvAddress, warning }) => {
+        ({ chainId, isNewChain, onchainState, sheetAddress, warning }) => {
             const onchainAddress = onchainState.CHAIN?.assetRecoveryAddress;
             const validateRecoveryAddress = createRecoveryAddressValidator(
                 chainId,
@@ -559,7 +693,7 @@ describe("recovery address comparison", () => {
                     chainName: "CHAIN",
                     isNewChain,
                     onchainRecoveryAddress: onchainAddress,
-                    csvRecoveryAddress: csvAddress,
+                    sheetRecoveryAddress: sheetAddress,
                 },
             );
             const { validateRecoveryAddresses } = createStateValidators(
@@ -567,22 +701,14 @@ describe("recovery address comparison", () => {
                 { CHAIN: [] },
                 {
                     caip2ChainId: { CHAIN: chainId },
-                    assetRecoveryAddress: { CHAIN: csvAddress },
+                    assetRecoveryAddress: { CHAIN: sheetAddress },
                     name: { [chainId]: "CHAIN" },
                 },
             );
             const warnings = validateRecoveryAddresses();
 
-            expect(warnings).toEqual(
-                warning ? [expect.stringContaining(warning)] : [],
-            );
-            expect(validateRecoveryAddress()).toEqual(warnings);
-            if (warning) {
-                expect(warnings[0]).toContain(
-                    onchainAddress ?? "not registered",
-                );
-                expect(warnings[0]).toContain(csvAddress);
-            }
+            expect(warnings).toEqual(warning ? [warning] : []);
+            expect(validateRecoveryAddress()).toEqual(warning ? [warning] : []);
         },
     );
 });
@@ -608,18 +734,27 @@ describe("known-chain validation", () => {
             );
 
         expect(validateRecoveryAddresses()).toEqual([
-            "Asset Recovery Address mismatch for chain 'ETHEREUM'.\nOn-chain: 0x1000000000000000000000000000000000000001\nCSV:      0x1000000000000000000000000000000000000002",
+            {
+                code: "RECOVERY_ADDRESS_MISMATCH",
+                context: {
+                    chainName: "ETHEREUM",
+                    onchainRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                    sheetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000002",
+                },
+            },
         ]);
         expect(validateKnownChains()).toEqual([
-            "Unknown chain details in CSV: name='UNKNOWN'\nInclude chain details to the chain details tab in the Google Sheet to add coverage to it.",
+            { code: "UNKNOWN_SHEET_CHAIN", context: { chainName: "UNKNOWN" } },
         ]);
     });
 
     test.each([
         ["known chains", { ETHEREUM: [] }],
         ["no desired chains", {}],
-    ])("returns no warnings for %s", (_scenario, csvState) => {
-        const { validateKnownChains } = createStateValidators({}, csvState, {
+    ])("returns no warnings for %s", (_scenario, sheetState) => {
+        const { validateKnownChains } = createStateValidators({}, sheetState, {
             caip2ChainId: { ETHEREUM: "eip155:1" },
             assetRecoveryAddress: {
                 ETHEREUM: "0x1000000000000000000000000000000000000001",
@@ -656,9 +791,7 @@ describe("known-chain validation", () => {
 
         expect(ethereum.validateKnownChains()).toEqual([]);
         expect(base.validateKnownChains()).toEqual([
-            expect.stringContaining(
-                "Unknown chain details in CSV: name='ETHEREUM'",
-            ),
+            { code: "UNKNOWN_SHEET_CHAIN", context: { chainName: "ETHEREUM" } },
         ]);
         expect(ethereum.validateKnownChains()).toEqual([]);
     });

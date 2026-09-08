@@ -43,7 +43,7 @@ If all of these steps are done, the agreement can be adopted by Sky protocol.
 
 The script follows these steps:
 
-1. Downloads latest CSV from Google Sheets and parses it locally
+1. Downloads the Safeharbor Sheet as CSV and parses it locally
 
 2. Validates CSV headers before building the internal representation organized by chains/networks
 
@@ -51,13 +51,28 @@ The script follows these steps:
 
 4. Builds comparable internal representation of on-chain state
 
-5. Collects warnings from CSV and on-chain normalization, then validates the comparable states. Any warning stops generation before diffing or encoding, returning `updates: []`, `solidityCode: ""`, and the collected `validationWarnings`.
+5. Collects warnings from Safeharbor Sheet and on-chain normalization, then validates the comparable states. Any warning stops generation before diffing or encoding, returning `updates: []`, `solidityCode: ""`, and the collected `validationWarnings`.
 
-6. If there are no warnings, compares CSV vs on-chain state and encodes the required updates (if any).
+6. If there are no warnings, compares Safeharbor Sheet and on-chain state and encodes the required updates (if any).
 
 7. Generates the solidity code for the updates.
 
-The contracts CSV requires `Status`, `Chain`, `Address`, and either `isFactory` or `IsFactory`. Chain metadata requires `Name`, `Chain Id`, and `Asset Recovery Address`. Missing headers, including in header-only files, and malformed CSV cause an error before normalization or update generation; CLI commands exit with code `1`. Completely empty files are invalid because they have no headers. A contracts CSV with valid headers and no `ACTIVE` records is a legitimate empty desired state and may generate chain removals when the corresponding chain metadata is available.
+`index.js` validates the command and RPC configuration, creates the provider, and wires the Agreement reader, payload generator, and command runner through creator closures. It destroys the provider when the command finishes. `agreement.js` uses the injected provider to resolve the Agreement address through `chainlog.js`, construct the Agreement instance, and fetch its details. Its pure `normalizeOnchainState` function converts those details into reconciliation state without network access. `sheet.js` reads and normalizes the Safeharbor Sheet; CSV is its transport format. The RPC URL stays at the entrypoint; the Agreement instance stays inside the reader.
+
+Validation returns plain diagnostics with a stable `code` and optional `context` containing raw facts. For example:
+
+```json
+{
+  "code": "UNKNOWN_SHEET_CHAIN",
+  "context": { "chainName": "BASE" }
+}
+```
+
+Diagnostics contain no human-readable messages. `formatDiagnostic.js` owns their wording; the CLI prints each diagnostic to stderr once. `generate` and `verify` also print their command summaries; `inspect` prints JSON instead. The generator, CSV adapter, validators, and diff logic do not print progress or errors. Fatal application checks propagate native `Error` objects carrying a `diagnostic`; parser, fetch, and RPC exceptions propagate unchanged and are reported once at the CLI boundary. Command and header checks still exit `1`, while reconciliation warnings retain their command-specific exit behavior.
+
+The `validationWarnings` field is retained, but its entries are now diagnostic objects rather than strings. This also changes the `inspect` JSON contract: consumers should use `code` and `context`, not parse warning text. `inspect` continues to print human-readable diagnostics to stderr, keeping stdout reserved for JSON.
+
+The contracts tab in the Safeharbor Sheet is exported as CSV and requires `Status`, `Chain`, `Address`, and either `isFactory` or `IsFactory`. Chain metadata requires `Name`, `Chain Id`, and `Asset Recovery Address`. Missing headers, including in header-only files, and malformed CSV cause an error before normalization or update generation; CLI commands exit with code `1`. Completely empty files are invalid because they have no headers. A contracts CSV with valid headers and no `ACTIVE` records is a legitimate empty desired state and may generate chain removals when the corresponding chain metadata is available.
 
 Nonblank chain metadata rows must contain all three required fields; incomplete rows produce warnings listing the missing fields, even if those chains are not in the desired state. Completely blank rows are ignored. A row with only an extra column populated is incomplete, not blank.
 
@@ -134,10 +149,14 @@ npm run format:check
 
 The tests cover the following scenarios; this is not a claim of completeness:
 
-- `generatePayload.test.js` uses explicit CSV and Agreement-state fixtures with real parsing, normalization, validation, diffing, encoding, and Solidity rendering. It covers chain/account additions and removals, mixed updates, empty states, warnings, duplicate data, recovery metadata, and scope changes. Replacement fixtures include `[A] → [B,C]`, `[A,B,C] → [D]`, partial `[A,B,C] → [A,C,D]`, reordered equivalents, sole-account scope changes, and simultaneous two- and three-account scope changes.
+- `generatePayload.test.js` uses explicit CSV and Agreement-state fixtures with real parsing, normalization, validation, diffing, encoding, and Solidity rendering. It asserts structured diagnostics and no console output from the pipeline. It covers chain/account additions and removals, mixed updates, empty states, warnings, duplicate data, recovery metadata, and scope changes. Replacement fixtures include `[A] → [B,C]`, `[A,B,C] → [D]`, partial `[A,B,C] → [A,C,D]`, reordered equivalents, sole-account scope changes, and simultaneous two- and three-account scope changes.
 - Every update produced in those pipeline tests is decoded with the Agreement ABI; its function and all normalized arguments must equal the corresponding update. Selected scenarios also retain raw calldata and readable decoded snapshots. These ethers encoding/decoding checks establish consistency, not independent EVM verification.
-- `cli.test.js` exercises all three command handlers through the real pipeline, mocking only CSV fetching and Agreement construction/state reads. It checks exact output and returned exit codes for clean reconciliation, valid chain removal, warnings with and without account differences, multiple simultaneous warnings, missing headers, malformed CSV, and fetch/RPC failures. It also checks missing/unknown commands and missing RPC configuration before external data is accessed. These are in-process integration tests, not subprocess or live-RPC tests.
-- Separate tests cover required headers and factory aliases, incomplete metadata, duplicates, EVM checksum validation, exact non-EVM comparisons, on-chain normalization, Chainlog resolution, the Solidity wrapper, and defensive rejection of empty account arrays that CSV normalization cannot produce.
+- `cli.test.js` exercises all three command handlers through the real pipeline, mocking only CSV fetching and injecting an Agreement-details reader stub. It checks exact output and returned exit codes for clean reconciliation, valid chain removal, warnings with and without account differences, multiple simultaneous warnings, missing headers, malformed CSV, and fetch failures. It verifies that individual diagnostics and failures are reported once and `inspect` JSON retains structured diagnostics. These are in-process integration tests, not subprocess or live-RPC tests.
+- `index.integration.test.js` exercises the entrypoint with CSV fetching and ethers construction mocked. It checks missing/unknown commands and missing RPC configuration before dependencies are constructed, real closure wiring, provider cleanup after success and pipeline failure, and provider construction errors.
+- `agreement.integration.test.js` checks Agreement construction and state reads, including propagation of lookup, construction, and read errors, with Chainlog lookup and contract construction mocked. `chainlog.integration.test.js` uses real ethers with a mocked RPC call to check the lookup target, calldata, and returned address.
+- `src/agreement.test.js` contains pure unit tests for empty state, unknown-chain warnings, chain/account ordering, exact address strings, bigint scopes, and input nonmutation.
+- Colocated `src/validateOptions.test.js` and `src/validateHeaders.test.js` check pure diagnostic results; `src/formatDiagnostic.test.js` checks human-readable wording independently of detection.
+- Separate tests cover required headers and factory aliases, incomplete metadata, duplicates, EVM checksum validation, exact non-EVM comparisons, the Solidity wrapper, and defensive rejection of empty account arrays that CSV normalization cannot produce. A multi-chain defensive fixture verifies that invalid accounts in a later new chain prevent all encoding, including removals for earlier chains. CSV adapter tests cover HTTP failures, invalid or missing content types, and unchanged propagation of fetch failures without console output.
 
 The seven replacement/reordering fixtures were also executed against the actual Agreement at `0xf17bB418B4EC251f300Aa3517Cb37349f17697A1` on a local Ethereum fork at block **25934096**, hash `0xa29f7a0e3eaed16874bd16a0936bf2f973260008fe39be32c56097d084a8beb4`. Before the ordering fix, the simultaneous scope-change fixtures retained an old scope. With reverse removals, all seven reached the expected account scopes and reconciled with no updates or validation warnings. This was a local-fork check for this change, not a CI RPC dependency or a live transaction.
 

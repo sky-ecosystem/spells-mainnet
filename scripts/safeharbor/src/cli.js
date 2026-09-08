@@ -1,75 +1,62 @@
-import { generatePayload } from "./generatePayload.js";
-import { createAgreementInstance } from "./utils/contractUtils.js";
+import { formatDiagnostic } from "./formatDiagnostic.js";
 
-const COMMANDS = new Set(["generate", "inspect", "verify"]);
+export function createCommandRunner({ generatePayload }) {
+    return async function runCommand(command) {
+        try {
+            const result = await generatePayload();
+            result.validationWarnings.forEach((diagnostic) =>
+                console.warn(formatDiagnostic(diagnostic)),
+            );
+            const warningCount = result.validationWarnings.length;
 
-export async function runCommand(command) {
-    if (!COMMANDS.has(command)) {
-        console.error(
-            command
-                ? `Error: Unknown command '${command}'`
-                : "Error: Command is required",
-        );
-        console.error("Available commands: generate, inspect, verify");
-        console.error("Usage: npm run <command>");
-        return 1;
-    }
+            if (command === "generate") {
+                if (warningCount > 0) {
+                    console.warn(
+                        `Payload generation blocked: ${warningCount} validation warning(s).`,
+                    );
+                    return 2;
+                }
 
-    const rpcUrl = process.env.ETH_RPC_URL;
-    if (!rpcUrl) {
-        console.error("Error: ETH_RPC_URL environment variable is not set.");
-        console.error(
-            "Please set your Ethereum RPC URL in a .env file or as an environment variable.",
-        );
-        console.error(
-            "Example: ETH_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR_API_KEY",
-        );
-        return 1;
-    }
+                if (result.updates.length > 0) {
+                    console.log(result.solidityCode);
+                }
 
-    try {
-        const agreementContract = await createAgreementInstance(rpcUrl);
-        const result = await generatePayload(agreementContract);
-        const warningCount = result.validationWarnings.length;
-
-        if (command === "generate") {
-            if (warningCount > 0) {
                 console.warn(
-                    `Payload generation blocked: ${warningCount} validation warning(s).`,
+                    result.updates.length > 0
+                        ? "Payload generation completed successfully."
+                        : "No updates to generate",
                 );
-                return 2;
+                return 0;
             }
 
-            if (result.updates.length > 0) {
-                console.log(result.solidityCode);
+            if (command === "inspect") {
+                console.log(JSON.stringify(result, null, 2));
+                return 0;
             }
 
-            console.warn(
-                result.updates.length > 0
-                    ? "Payload generation completed successfully."
-                    : "No updates to generate",
-            );
-            return 0;
-        }
+            if (result.updates.length === 0 && warningCount === 0) {
+                console.log(
+                    "SafeHarbor verification passed: no updates or validation warnings.",
+                );
+                return 0;
+            }
 
-        if (command === "inspect") {
-            console.log(JSON.stringify(result, null, 2));
-            return 0;
-        }
-
-        if (result.updates.length === 0 && warningCount === 0) {
             console.log(
-                "SafeHarbor verification passed: no updates or validation warnings.",
+                `SafeHarbor verification failed: ${result.updates.length} update(s), ${warningCount} validation warning(s).`,
             );
-            return 0;
+            return 2;
+        } catch (error) {
+            reportError(error);
+            return 1;
         }
+    };
+}
 
-        console.log(
-            `SafeHarbor verification failed: ${result.updates.length} update(s), ${warningCount} validation warning(s).`,
-        );
-        return 2;
-    } catch (error) {
-        console.error("Failed to execute command:", error);
-        return 1;
-    }
+export function reportError(error) {
+    console.error(
+        "Failed to execute command:",
+        error?.diagnostic
+            ? formatDiagnostic(error.diagnostic)
+            : (error?.message ?? String(error)),
+    );
 }

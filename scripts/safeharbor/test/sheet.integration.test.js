@@ -1,25 +1,72 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { Interface } from "ethers";
 import {
-    getChainDetailsFromCSV,
-    getNormalizedContractsInScopeFromCSV,
-} from "../src/fetchCSV.js";
-import { generatePayload } from "../src/generatePayload.js";
+    getChainDetailsFromSheet,
+    getNormalizedContractsInScopeFromSheet,
+} from "../src/sheet.js";
+import { createPayloadGenerator } from "../src/generatePayload.js";
+
+const getAgreementDetails = vi.fn();
+const generatePayload = createPayloadGenerator({ getAgreementDetails });
 
 beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());
     vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "log").mockImplementation(() => {});
 });
 
 afterEach(() => {
-    vi.unstubAllGlobals();
-    vi.restoreAllMocks();
+    try {
+        expect(console.warn).not.toHaveBeenCalled();
+        expect(console.error).not.toHaveBeenCalled();
+        expect(console.log).not.toHaveBeenCalled();
+    } finally {
+        vi.unstubAllGlobals();
+        vi.restoreAllMocks();
+        vi.resetAllMocks();
+    }
 });
 
 function csvResponse(csv) {
     return new Response(csv, { headers: { "content-type": "text/csv" } });
 }
+
+test.each([
+    {
+        status: 503,
+        headers: { "content-type": "text/html" },
+        diagnostic: { code: "HTTP_ERROR", context: { status: 503 } },
+    },
+    {
+        status: 200,
+        headers: { "content-type": "text/html" },
+        diagnostic: { code: "INVALID_CSV_CONTENT_TYPE" },
+    },
+    {
+        status: 200,
+        headers: {},
+        diagnostic: { code: "INVALID_CSV_CONTENT_TYPE" },
+    },
+])(
+    "rejects invalid CSV response $diagnostic.code without reporting",
+    async ({ status, headers, diagnostic }) => {
+        fetch.mockResolvedValue(new Response(null, { status, headers }));
+
+        await expect(
+            getChainDetailsFromSheet("https://example.test/chains.csv"),
+        ).rejects.toMatchObject({ diagnostic });
+    },
+);
+
+test("propagates fetch failures unchanged without reporting", async () => {
+    const failure = new Error("Network unavailable");
+    fetch.mockRejectedValue(failure);
+
+    await expect(
+        getChainDetailsFromSheet("https://example.test/chains.csv"),
+    ).rejects.toBe(failure);
+});
 
 describe("contracts CSV headers", () => {
     test.each([
@@ -61,10 +108,17 @@ describe("contracts CSV headers", () => {
         fetch.mockResolvedValue(csvResponse(csv));
 
         await expect(
-            getNormalizedContractsInScopeFromCSV(
+            getNormalizedContractsInScopeFromSheet(
                 "https://example.test/contracts.csv",
             ),
-        ).rejects.toThrow(`Missing required CSV headers: ${missingHeader}`);
+        ).rejects.toMatchObject({
+            diagnostic: {
+                code: "MISSING_CSV_HEADERS",
+                context: {
+                    missingHeaders: expect.arrayContaining([missingHeader]),
+                },
+            },
+        });
     });
 
     test.each([
@@ -88,7 +142,7 @@ describe("contracts CSV headers", () => {
         fetch.mockResolvedValue(csvResponse(csv));
 
         await expect(
-            getNormalizedContractsInScopeFromCSV(
+            getNormalizedContractsInScopeFromSheet(
                 "https://example.test/contracts.csv",
             ),
         ).resolves.toEqual({
@@ -146,8 +200,15 @@ describe("chain metadata CSV headers", () => {
         fetch.mockResolvedValue(csvResponse(csv));
 
         await expect(
-            getChainDetailsFromCSV("https://example.test/chains.csv"),
-        ).rejects.toThrow(`Missing required CSV headers: ${missingHeader}`);
+            getChainDetailsFromSheet("https://example.test/chains.csv"),
+        ).rejects.toMatchObject({
+            diagnostic: {
+                code: "MISSING_CSV_HEADERS",
+                context: {
+                    missingHeaders: expect.arrayContaining([missingHeader]),
+                },
+            },
+        });
     });
 
     test("accepts a header-only file", async () => {
@@ -156,7 +217,7 @@ describe("chain metadata CSV headers", () => {
         );
 
         await expect(
-            getChainDetailsFromCSV("https://example.test/chains.csv"),
+            getChainDetailsFromSheet("https://example.test/chains.csv"),
         ).resolves.toEqual({
             chainDetails: {
                 caip2ChainId: {},
@@ -175,7 +236,7 @@ describe("chain metadata CSV headers", () => {
         );
 
         await expect(
-            getChainDetailsFromCSV("https://example.test/chains.csv"),
+            getChainDetailsFromSheet("https://example.test/chains.csv"),
         ).resolves.toEqual({
             chainDetails: {
                 caip2ChainId: { ETHEREUM: "eip155:1" },
@@ -193,49 +254,49 @@ describe("malformed CSV", () => {
     test.each([
         [
             "contracts with a malformed header",
-            getNormalizedContractsInScopeFromCSV,
+            getNormalizedContractsInScopeFromSheet,
             'Status,Chain,Address,"isFactory\n',
             "CSV_QUOTE_NOT_CLOSED",
         ],
         [
             "contracts with an unterminated quote",
-            getNormalizedContractsInScopeFromCSV,
+            getNormalizedContractsInScopeFromSheet,
             'Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,"0x2000000000000000000000000000000000000001,FALSE\n',
             "CSV_QUOTE_NOT_CLOSED",
         ],
         [
             "contracts with too few fields",
-            getNormalizedContractsInScopeFromCSV,
+            getNormalizedContractsInScopeFromSheet,
             "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001\n",
             "CSV_RECORD_INCONSISTENT_COLUMNS",
         ],
         [
             "contracts with too many fields",
-            getNormalizedContractsInScopeFromCSV,
+            getNormalizedContractsInScopeFromSheet,
             "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE,EXTRA\n",
             "CSV_RECORD_INCONSISTENT_COLUMNS",
         ],
         [
             "chain metadata with a malformed header",
-            getChainDetailsFromCSV,
+            getChainDetailsFromSheet,
             'Name,Chain Id,"Asset Recovery Address\n',
             "CSV_QUOTE_NOT_CLOSED",
         ],
         [
             "chain metadata with an unterminated quote",
-            getChainDetailsFromCSV,
+            getChainDetailsFromSheet,
             'Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,"0x1000000000000000000000000000000000000001\n',
             "CSV_QUOTE_NOT_CLOSED",
         ],
         [
             "chain metadata with too few fields",
-            getChainDetailsFromCSV,
+            getChainDetailsFromSheet,
             "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1\n",
             "CSV_RECORD_INCONSISTENT_COLUMNS",
         ],
         [
             "chain metadata with too many fields",
-            getChainDetailsFromCSV,
+            getChainDetailsFromSheet,
             "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001,EXTRA\n",
             "CSV_RECORD_INCONSISTENT_COLUMNS",
         ],
@@ -255,13 +316,23 @@ describe("CSV validation before payload generation", () => {
             chainCSV:
                 "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
             contractCSV: "Chain,Address,isFactory\n",
-            error: "Missing required CSV headers: Status",
+            error: {
+                diagnostic: {
+                    code: "MISSING_CSV_HEADERS",
+                    context: { missingHeaders: ["Status"] },
+                },
+            },
         },
         {
             scenario: "missing chain metadata headers",
             chainCSV: "Name,Chain Id\n",
             contractCSV: "Status,Chain,Address,isFactory\n",
-            error: "Missing required CSV headers: Asset Recovery Address",
+            error: {
+                diagnostic: {
+                    code: "MISSING_CSV_HEADERS",
+                    context: { missingHeaders: ["Asset Recovery Address"] },
+                },
+            },
         },
         {
             scenario: "malformed contracts CSV",
@@ -269,14 +340,14 @@ describe("CSV validation before payload generation", () => {
                 "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
             contractCSV:
                 'Status,Chain,Address,isFactory\n"INACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n',
-            error: "Quote Not Closed",
+            error: { code: "CSV_QUOTE_NOT_CLOSED" },
         },
         {
             scenario: "malformed chain metadata CSV",
             chainCSV:
                 'Name,Chain Id,Asset Recovery Address\n"ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n',
             contractCSV: "Status,Chain,Address,isFactory\n",
-            error: "Quote Not Closed",
+            error: { code: "CSV_QUOTE_NOT_CLOSED" },
         },
     ])(
         "rejects $scenario before reading state or encoding removals",
@@ -284,29 +355,10 @@ describe("CSV validation before payload generation", () => {
             fetch
                 .mockResolvedValueOnce(csvResponse(chainCSV))
                 .mockResolvedValueOnce(csvResponse(contractCSV));
-            const agreementContract = {
-                getDetails: vi.fn().mockResolvedValue({
-                    chains: [
-                        {
-                            caip2ChainId: "eip155:1",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000001",
-                            accounts: [
-                                [
-                                    "0x2000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                            ],
-                        },
-                    ],
-                }),
-            };
             const encode = vi.spyOn(Interface.prototype, "encodeFunctionData");
 
-            await expect(generatePayload(agreementContract)).rejects.toThrow(
-                error,
-            );
-            expect(agreementContract.getDetails).not.toHaveBeenCalled();
+            await expect(generatePayload()).rejects.toMatchObject(error);
+            expect(getAgreementDetails).not.toHaveBeenCalled();
             expect(encode).not.toHaveBeenCalled();
         },
     );
@@ -328,25 +380,20 @@ describe("CSV validation before payload generation", () => {
                     ),
                 )
                 .mockResolvedValueOnce(csvResponse(contractCSV));
-            const agreementContract = {
-                getDetails: vi.fn().mockResolvedValue({
-                    chains: [
-                        {
-                            caip2ChainId: "eip155:1",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000001",
-                            accounts: [
-                                [
-                                    "0x2000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                            ],
-                        },
-                    ],
-                }),
-            };
+            getAgreementDetails.mockResolvedValue({
+                chains: [
+                    {
+                        caip2ChainId: "eip155:1",
+                        assetRecoveryAddress:
+                            "0x1000000000000000000000000000000000000001",
+                        accounts: [
+                            ["0x2000000000000000000000000000000000000001", 0n],
+                        ],
+                    },
+                ],
+            });
 
-            const result = await generatePayload(agreementContract);
+            const result = await generatePayload();
 
             expect(result.validationWarnings).toEqual([]);
             expect(result.updates).toEqual([

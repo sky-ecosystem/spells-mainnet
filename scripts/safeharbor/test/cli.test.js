@@ -1,21 +1,21 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { runCommand } from "../src/cli.js";
-import { createAgreementInstance } from "../src/utils/contractUtils.js";
+import { createCommandRunner } from "../src/cli.js";
+import { createPayloadGenerator } from "../src/generatePayload.js";
 import {
     CHAIN_DETAILS_SHEET_URL,
     CONTRACTS_IN_SCOPE_SHEET_URL,
 } from "../src/constants.js";
 
-vi.mock("../src/utils/contractUtils.js", () => ({
-    createAgreementInstance: vi.fn(),
-}));
-
+let getAgreementDetails;
+let runCommand;
 let stdout;
 let stderr;
 let warnings;
 
 beforeEach(() => {
-    vi.stubEnv("ETH_RPC_URL", "https://rpc.example");
+    getAgreementDetails = vi.fn();
+    const generatePayload = createPayloadGenerator({ getAgreementDetails });
+    runCommand = createCommandRunner({ generatePayload });
     vi.stubGlobal("fetch", vi.fn());
     stdout = vi.spyOn(console, "log").mockImplementation(() => {});
     stderr = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -23,7 +23,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-    vi.unstubAllEnvs();
     vi.unstubAllGlobals();
     vi.resetAllMocks();
     vi.restoreAllMocks();
@@ -39,9 +38,7 @@ function mockSources({ chainCSV, contractCSV, details }) {
                 headers: { "content-type": "text/csv" },
             }),
         );
-    const getDetails = vi.fn().mockResolvedValue(details);
-    createAgreementInstance.mockResolvedValue({ getDetails });
-    return getDetails;
+    getAgreementDetails.mockResolvedValue(details);
 }
 
 describe.each([
@@ -64,6 +61,7 @@ describe.each([
             ],
         },
         result: { updates: [], solidityCode: "", validationWarnings: [] },
+        warningMessages: [],
         exitCodes: { generate: 0, inspect: 0, verify: 0 },
         generateMessage: "No updates to generate",
         verifyMessage:
@@ -99,6 +97,7 @@ describe.each([
                 "\n        bytes[] memory calldatas = new bytes[](1);\n\n        // Remove chains: eip155:1\n        calldatas[0] = hex'1e12ef2900000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000086569703135353a31000000000000000000000000000000000000000000000000';\n\n        _updateSafeHarbor(calldatas);",
             validationWarnings: [],
         },
+        warningMessages: [],
         exitCodes: { generate: 0, inspect: 0, verify: 2 },
         generateMessage: "Payload generation completed successfully.",
         verifyMessage:
@@ -126,9 +125,21 @@ describe.each([
             updates: [],
             solidityCode: "",
             validationWarnings: [
-                "Asset Recovery Address mismatch for chain 'ETHEREUM'.\nOn-chain: 0x1000000000000000000000000000000000000002\nCSV:      0x1000000000000000000000000000000000000001",
+                {
+                    code: "RECOVERY_ADDRESS_MISMATCH",
+                    context: {
+                        chainName: "ETHEREUM",
+                        onchainRecoveryAddress:
+                            "0x1000000000000000000000000000000000000002",
+                        sheetRecoveryAddress:
+                            "0x1000000000000000000000000000000000000001",
+                    },
+                },
             ],
         },
+        warningMessages: [
+            "Asset Recovery Address mismatch for chain 'ETHEREUM'.\nOn-chain: 0x1000000000000000000000000000000000000002\nSafeharbor Sheet: 0x1000000000000000000000000000000000000001",
+        ],
         exitCodes: { generate: 2, inspect: 0, verify: 2 },
         generateMessage: "Payload generation blocked: 1 validation warning(s).",
         verifyMessage:
@@ -156,10 +167,29 @@ describe.each([
             updates: [],
             solidityCode: "",
             validationWarnings: [
-                "Asset Recovery Address mismatch for chain 'ETHEREUM'.\nOn-chain: 0x1000000000000000000000000000000000000002\nCSV:      0x1000000000000000000000000000000000000001",
-                "Duplicate account address in CSV state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000002",
+                {
+                    code: "RECOVERY_ADDRESS_MISMATCH",
+                    context: {
+                        chainName: "ETHEREUM",
+                        onchainRecoveryAddress:
+                            "0x1000000000000000000000000000000000000002",
+                        sheetRecoveryAddress:
+                            "0x1000000000000000000000000000000000000001",
+                    },
+                },
+                {
+                    code: "DUPLICATE_SHEET_ACCOUNT",
+                    context: {
+                        chainName: "ETHEREUM",
+                        address: "0x2000000000000000000000000000000000000002",
+                    },
+                },
             ],
         },
+        warningMessages: [
+            "Asset Recovery Address mismatch for chain 'ETHEREUM'.\nOn-chain: 0x1000000000000000000000000000000000000002\nSafeharbor Sheet: 0x1000000000000000000000000000000000000001",
+            "Duplicate account address in Safeharbor Sheet for chain 'ETHEREUM': 0x2000000000000000000000000000000000000002",
+        ],
         exitCodes: { generate: 2, inspect: 0, verify: 2 },
         generateMessage: "Payload generation blocked: 2 validation warning(s).",
         verifyMessage:
@@ -169,17 +199,14 @@ describe.each([
     test.each(["generate", "inspect", "verify"])(
         "%s uses the real pipeline",
         async (command) => {
-            const getDetails = mockSources(fixture);
+            mockSources(fixture);
 
             expect(await runCommand(command)).toBe(fixture.exitCodes[command]);
-            expect(createAgreementInstance).toHaveBeenCalledExactlyOnceWith(
-                "https://rpc.example",
-            );
             expect(fetch.mock.calls).toEqual([
                 [CHAIN_DETAILS_SHEET_URL],
                 [CONTRACTS_IN_SCOPE_SHEET_URL],
             ]);
-            expect(getDetails).toHaveBeenCalledOnce();
+            expect(getAgreementDetails).toHaveBeenCalledExactlyOnceWith();
             expect(stderr).not.toHaveBeenCalled();
 
             if (command === "inspect") {
@@ -199,9 +226,12 @@ describe.each([
                 );
             }
 
-            for (const warning of fixture.result.validationWarnings) {
-                expect(warnings).toHaveBeenCalledWith(warning);
-            }
+            const expectedWarnings = fixture.warningMessages.map((message) => [
+                message,
+            ]);
+            if (command === "generate")
+                expectedWarnings.push([fixture.generateMessage]);
+            expect(warnings.mock.calls).toEqual(expectedWarnings);
             if (fixture.result.validationWarnings.length > 0) {
                 expect(warnings).not.toHaveBeenCalledWith(
                     "Payload generation completed successfully.",
@@ -260,15 +290,15 @@ describe.each([
     test.each(["generate", "inspect", "verify"])(
         "%s exits 1 without output",
         async (command) => {
-            const getDetails = mockSources(fixture);
+            mockSources(fixture);
 
             expect(await runCommand(command)).toBe(1);
             expect(stdout).not.toHaveBeenCalled();
-            expect(stderr).toHaveBeenLastCalledWith(
+            expect(stderr).toHaveBeenCalledExactlyOnceWith(
                 "Failed to execute command:",
-                expect.objectContaining({ message: fixture.errorMessage }),
+                fixture.errorMessage,
             );
-            expect(getDetails).not.toHaveBeenCalled();
+            expect(getAgreementDetails).not.toHaveBeenCalled();
             expect(warnings).not.toHaveBeenCalledWith("Generating updates...");
             expect(warnings).not.toHaveBeenCalledWith(
                 "Payload generation completed successfully.",
@@ -278,94 +308,41 @@ describe.each([
     );
 });
 
-describe("command errors", () => {
-    test.each([
-        [undefined, "Error: Command is required"],
-        ["unknown", "Error: Unknown command 'unknown'"],
-    ])(
-        "rejects command %s before accessing external data",
-        async (command, message) => {
-            expect(await runCommand(command)).toBe(1);
-            expect(stderr).toHaveBeenCalledWith(message);
-            expect(stdout).not.toHaveBeenCalled();
-            expect(createAgreementInstance).not.toHaveBeenCalled();
-            expect(fetch).not.toHaveBeenCalled();
-        },
-    );
-
-    test("rejects a missing ETH_RPC_URL before accessing external data", async () => {
-        vi.stubEnv("ETH_RPC_URL", "");
-
-        expect(await runCommand("verify")).toBe(1);
-        expect(stderr).toHaveBeenCalledWith(
-            "Error: ETH_RPC_URL environment variable is not set.",
-        );
-        expect(stdout).not.toHaveBeenCalled();
-        expect(createAgreementInstance).not.toHaveBeenCalled();
-        expect(fetch).not.toHaveBeenCalled();
-    });
-});
-
 describe.each(["generate", "inspect", "verify"])(
     "%s operational errors",
     (command) => {
-        test("exits 1 when Agreement construction fails", async () => {
-            const failure = new Error("RPC unavailable");
-            createAgreementInstance.mockRejectedValue(failure);
-
-            expect(await runCommand(command)).toBe(1);
-            expect(stderr).toHaveBeenLastCalledWith(
-                "Failed to execute command:",
-                failure,
-            );
-            expect(stdout).not.toHaveBeenCalled();
-            expect(fetch).not.toHaveBeenCalled();
-        });
-
         test("exits 1 when CSV fetching fails", async () => {
-            const getDetails = vi.fn();
-            createAgreementInstance.mockResolvedValue({ getDetails });
             const failure = new Error("CSV unavailable");
             fetch.mockRejectedValue(failure);
 
             expect(await runCommand(command)).toBe(1);
-            expect(stderr).toHaveBeenLastCalledWith(
+            expect(stderr).toHaveBeenCalledExactlyOnceWith(
                 "Failed to execute command:",
-                failure,
+                "CSV unavailable",
             );
             expect(stdout).not.toHaveBeenCalled();
-            expect(getDetails).not.toHaveBeenCalled();
+            expect(getAgreementDetails).not.toHaveBeenCalled();
         });
 
-        test("exits 1 when Agreement state reads fail", async () => {
-            const getDetails = mockSources({
-                chainCSV:
-                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
-                contractCSV:
-                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
-                details: {
-                    chains: [
-                        {
-                            caip2ChainId: "eip155:1",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000001",
-                            accounts: [
-                                [
-                                    "0x2000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                            ],
-                        },
-                    ],
-                },
-            });
+        test("exits 1 when fetching Agreement details fails", async () => {
+            fetch
+                .mockResolvedValueOnce(
+                    new Response("Name,Chain Id,Asset Recovery Address\n", {
+                        headers: { "content-type": "text/csv" },
+                    }),
+                )
+                .mockResolvedValueOnce(
+                    new Response("Status,Chain,Address,isFactory\n", {
+                        headers: { "content-type": "text/csv" },
+                    }),
+                );
             const failure = new Error("Agreement state unavailable");
-            getDetails.mockRejectedValue(failure);
+            getAgreementDetails.mockRejectedValue(failure);
 
             expect(await runCommand(command)).toBe(1);
-            expect(stderr).toHaveBeenLastCalledWith(
+            expect(stderr).toHaveBeenCalledExactlyOnceWith(
                 "Failed to execute command:",
-                failure,
+                "Agreement state unavailable",
             );
             expect(stdout).not.toHaveBeenCalled();
         });

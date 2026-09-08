@@ -1,12 +1,12 @@
 import { getAddress } from "ethers";
 import { findDuplicateIndexes } from "./utils/findDuplicateIndexes.js";
 
-export function validateState(onChainState, csvState, chainDetails) {
+export function validateState(onChainState, sheetState, chainDetails) {
     const {
         validateRecoveryAddresses,
         validateKnownChains,
         validateUniqueAccounts,
-    } = createStateValidators(onChainState, csvState, chainDetails);
+    } = createStateValidators(onChainState, sheetState, chainDetails);
 
     return [
         ...validateRecoveryAddresses(),
@@ -15,59 +15,65 @@ export function validateState(onChainState, csvState, chainDetails) {
     ];
 }
 
-export function createStateValidators(onChainState, csvState, chainDetails) {
+export function createStateValidators(onChainState, sheetState, chainDetails) {
     function validateUniqueAccounts() {
         return [
-            ...Object.keys(csvState).flatMap(validateCsvAccounts),
+            ...Object.keys(sheetState).flatMap(validateSheetAccounts),
             ...Object.keys(onChainState).flatMap(validateOnChainAccounts),
         ];
     }
 
-    function validateCsvAccounts(chainName) {
-        return findDuplicateAccountAddresses(csvState[chainName]).map(
-            (address) =>
-                `Duplicate account address in CSV state for chain '${chainName}': ${address}`,
+    function validateSheetAccounts(chainName) {
+        return findDuplicateAccountAddresses(sheetState[chainName]).map(
+            (address) => ({
+                code: "DUPLICATE_SHEET_ACCOUNT",
+                context: { chainName, address },
+            }),
         );
     }
 
     function validateOnChainAccounts(chainName) {
         return findDuplicateAccountAddresses(
             onChainState[chainName].accounts,
-        ).map(
-            (address) =>
-                `Duplicate account address in on-chain state for chain '${chainName}': ${address}`,
-        );
+        ).map((address) => ({
+            code: "DUPLICATE_ONCHAIN_ACCOUNT",
+            context: { chainName, address },
+        }));
     }
 
     function validateRecoveryAddresses() {
-        return Object.keys(csvState).flatMap(validateRecoveryAddress);
+        return Object.keys(sheetState).flatMap(validateRecoveryAddress);
     }
 
     function validateKnownChains() {
-        return Object.keys(csvState)
+        return Object.keys(sheetState)
             .filter(
                 (chainName) =>
                     !Object.hasOwn(chainDetails.caip2ChainId, chainName),
             )
-            .map(
-                (chainName) =>
-                    `Unknown chain details in CSV: name='${chainName}'\nInclude chain details to the chain details tab in the Google Sheet to add coverage to it.`,
-            );
+            .map((chainName) => ({
+                code: "UNKNOWN_SHEET_CHAIN",
+                context: { chainName },
+            }));
     }
 
     function validateRecoveryAddress(chainName) {
         const isNewChain = !Object.hasOwn(onChainState, chainName);
         const onchainRecoveryAddress =
             onChainState[chainName]?.assetRecoveryAddress;
-        const csvRecoveryAddress = chainDetails.assetRecoveryAddress[chainName];
+        const sheetRecoveryAddress =
+            chainDetails.assetRecoveryAddress[chainName];
 
         if (!isNewChain && !onchainRecoveryAddress) {
             return [
-                `Missing on-chain Asset Recovery Address for existing chain '${chainName}'`,
+                {
+                    code: "MISSING_ONCHAIN_RECOVERY_ADDRESS",
+                    context: { chainName },
+                },
             ];
         }
 
-        if (!csvRecoveryAddress) return [];
+        if (!sheetRecoveryAddress) return [];
 
         const validate = createRecoveryAddressValidator(
             chainDetails.caip2ChainId[chainName],
@@ -75,7 +81,7 @@ export function createStateValidators(onChainState, csvState, chainDetails) {
                 chainName,
                 isNewChain,
                 onchainRecoveryAddress,
-                csvRecoveryAddress,
+                sheetRecoveryAddress,
             },
         );
         return validate();
@@ -96,27 +102,38 @@ function findDuplicateAccountAddresses(accounts) {
 
 export function createRecoveryAddressValidator(
     chainId,
-    { chainName, isNewChain, onchainRecoveryAddress, csvRecoveryAddress },
+    { chainName, isNewChain, onchainRecoveryAddress, sheetRecoveryAddress },
 ) {
-    const mismatchWarning = `Asset Recovery Address mismatch for chain '${chainName}'.\nOn-chain: ${onchainRecoveryAddress}\nCSV:      ${csvRecoveryAddress}`;
+    const mismatchWarning = {
+        code: "RECOVERY_ADDRESS_MISMATCH",
+        context: { chainName, onchainRecoveryAddress, sheetRecoveryAddress },
+    };
 
     function validateEvmRecoveryAddress() {
         try {
-            const csvAddress = getAddress(csvRecoveryAddress);
+            const sheetAddress = getAddress(sheetRecoveryAddress);
             if (isNewChain) return [];
 
-            return getAddress(onchainRecoveryAddress) === csvAddress
+            return getAddress(onchainRecoveryAddress) === sheetAddress
                 ? []
                 : [mismatchWarning];
         } catch {
             return [
-                `Invalid EVM Asset Recovery Address for chain '${chainName}'. On-chain: ${isNewChain ? "not registered" : onchainRecoveryAddress}; CSV: ${csvRecoveryAddress}`,
+                {
+                    code: "INVALID_EVM_RECOVERY_ADDRESS",
+                    context: {
+                        chainName,
+                        isNewChain,
+                        onchainRecoveryAddress,
+                        sheetRecoveryAddress,
+                    },
+                },
             ];
         }
     }
 
     function validateNonEvmRecoveryAddress() {
-        return isNewChain || onchainRecoveryAddress === csvRecoveryAddress
+        return isNewChain || onchainRecoveryAddress === sheetRecoveryAddress
             ? []
             : [mismatchWarning];
     }
