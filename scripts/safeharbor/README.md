@@ -65,6 +65,8 @@ EVM recovery addresses for desired chains, including newly added chains, are val
 
 Duplicate chain names or IDs in complete metadata rows produce warnings without overwriting earlier mappings. Repeated account addresses within a chain in either desired or current state also produce warnings, including when their scopes differ. These checks run before diffing and block all executable output. Account addresses retain the Agreement's exact, case-sensitive string semantics; the same address may legitimately appear on different chains. Canonical EVM comparison applies only to recovery addresses, not account identifiers.
 
+Full account replacements add before removing because the Agreement rejects removing every account from a chain. Old accounts are then removed in reverse current-state order: the Agreement removes the first matching address and uses swap-and-pop, so forward removal can accidentally delete a newly added scope replacement. Partial replacements continue to remove before adding. Reordering equivalent accounts alone produces no updates.
+
 # Running the script
 
 Required env variables:
@@ -118,3 +120,25 @@ After checking that `validationWarnings` is empty, see the Solidity code to be r
 ```bash
 jq -r .solidityCode inspect.json
 ```
+
+# Testing and review
+
+From `scripts/safeharbor`, install dependencies, then run the offline suite and checks:
+
+```bash
+npm ci
+npm test -- --run
+npm run lint
+npm run format:check
+```
+
+The tests cover the following scenarios; this is not a claim of completeness:
+
+- `generatePayload.test.js` uses explicit CSV and Agreement-state fixtures with real parsing, normalization, validation, diffing, encoding, and Solidity rendering. It covers chain/account additions and removals, mixed updates, empty states, warnings, duplicate data, recovery metadata, and scope changes. Replacement fixtures include `[A] → [B,C]`, `[A,B,C] → [D]`, partial `[A,B,C] → [A,C,D]`, reordered equivalents, sole-account scope changes, and simultaneous two- and three-account scope changes.
+- Every update produced in those pipeline tests is decoded with the Agreement ABI; its function and all normalized arguments must equal the corresponding update. Selected scenarios also retain raw calldata and readable decoded snapshots. These ethers encoding/decoding checks establish consistency, not independent EVM verification.
+- `cli.test.js` exercises all three command handlers through the real pipeline, mocking only CSV fetching and Agreement construction/state reads. It checks exact output and returned exit codes for clean reconciliation, valid chain removal, warnings with and without account differences, multiple simultaneous warnings, missing headers, malformed CSV, and fetch/RPC failures. It also checks missing/unknown commands and missing RPC configuration before external data is accessed. These are in-process integration tests, not subprocess or live-RPC tests.
+- Separate tests cover required headers and factory aliases, incomplete metadata, duplicates, EVM checksum validation, exact non-EVM comparisons, on-chain normalization, Chainlog resolution, the Solidity wrapper, and defensive rejection of empty account arrays that CSV normalization cannot produce.
+
+The seven replacement/reordering fixtures were also executed against the actual Agreement at `0xf17bB418B4EC251f300Aa3517Cb37349f17697A1` on a local Ethereum fork at block **25934096**, hash `0xa29f7a0e3eaed16874bd16a0936bf2f973260008fe39be32c56097d084a8beb4`. Before the ordering fix, the simultaneous scope-change fixtures retained an old scope. With reverse removals, all seven reached the expected account scopes and reconciled with no updates or validation warnings. This was a local-fork check for this change, not a CI RPC dependency or a live transaction.
+
+For each spell, the approved spreadsheet remains the desired-state source of truth. Review its changes, match the generated calldata to the calldata inserted in the spell, execute the spell in a Tenderly Virtual TestNet, and run `verify` against that simulated post-state. Both updates and validation warnings must be empty. The offline suite and the pinned replacement regression do not replace these payload-specific controls.
