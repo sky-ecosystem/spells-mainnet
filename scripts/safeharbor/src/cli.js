@@ -30,16 +30,20 @@ export async function runCommand(command) {
     try {
         const agreementContract = await createAgreementInstance(rpcUrl);
         const result = await generatePayload(agreementContract);
+        const warningCount = result.validationWarnings.length;
 
-        if (command === "generate" && result.updates.length > 0) {
-            console.log(result.solidityCode);
-        }
+        if (command === "generate") {
+            if (warningCount > 0) {
+                console.warn(
+                    `Payload generation blocked: ${warningCount} validation warning(s).`,
+                );
+                return 2;
+            }
 
-        if (command === "inspect") {
-            console.log(JSON.stringify(result, null, 2));
-        }
+            if (result.updates.length > 0) {
+                console.log(result.solidityCode);
+            }
 
-        if (command !== "verify") {
             console.warn(
                 result.updates.length > 0
                     ? "Payload generation completed successfully."
@@ -48,7 +52,11 @@ export async function runCommand(command) {
             return 0;
         }
 
-        const warningCount = result.validationWarnings.length;
+        if (command === "inspect") {
+            console.log(JSON.stringify(result, null, 2));
+            return 0;
+        }
+
         if (result.updates.length === 0 && warningCount === 0) {
             console.log(
                 "SafeHarbor verification passed: no updates or validation warnings.",

@@ -17,6 +17,7 @@ const agreementContract = {};
 
 let stdout;
 let stderr;
+let warnings;
 
 beforeEach(() => {
     vi.stubEnv("ETH_RPC_URL", "https://rpc.example");
@@ -24,7 +25,7 @@ beforeEach(() => {
     generatePayload.mockResolvedValue(CLEAN_RESULT);
     stdout = vi.spyOn(console, "log").mockImplementation(() => {});
     stderr = vi.spyOn(console, "error").mockImplementation(() => {});
-    vi.spyOn(console, "warn").mockImplementation(() => {});
+    warnings = vi.spyOn(console, "warn").mockImplementation(() => {});
 });
 
 afterEach(() => {
@@ -57,13 +58,29 @@ describe("runCommand", () => {
         }
     });
 
+    test("generate exits 2 without output or success messages on validation warnings", async () => {
+        generatePayload.mockResolvedValue({
+            updates: [],
+            solidityCode: "",
+            validationWarnings: ["recovery address mismatch"],
+        });
+
+        const exitCode = await runCommand("generate");
+
+        expect(exitCode).toBe(2);
+        expect(stdout).not.toHaveBeenCalled();
+        expect(warnings.mock.calls).toEqual([
+            ["Payload generation blocked: 1 validation warning(s)."],
+        ]);
+    });
+
     test.each([
         ["without differences", CLEAN_RESULT],
         [
-            "with updates and warnings",
+            "with validation warnings",
             {
-                updates: [{ function: "addAccounts" }],
-                solidityCode: "generated solidity",
+                updates: [],
+                solidityCode: "",
                 validationWarnings: ["recovery address mismatch"],
             },
         ],
@@ -78,6 +95,7 @@ describe("runCommand", () => {
             expect(stdout).toHaveBeenCalledWith(
                 JSON.stringify(result, null, 2),
             );
+            expect(warnings).not.toHaveBeenCalled();
         },
     );
 
@@ -141,16 +159,20 @@ describe("runCommand", () => {
         expect(createAgreementInstance).not.toHaveBeenCalled();
     });
 
-    test("exits 1 when payload generation fails", async () => {
-        const failure = new Error("RPC unavailable");
-        generatePayload.mockRejectedValue(failure);
+    test.each(["generate", "inspect", "verify"])(
+        "%s exits 1 when payload generation fails",
+        async (command) => {
+            const failure = new Error("RPC unavailable");
+            generatePayload.mockRejectedValue(failure);
 
-        const exitCode = await runCommand("inspect");
+            const exitCode = await runCommand(command);
 
-        expect(exitCode).toBe(1);
-        expect(stderr).toHaveBeenCalledWith(
-            "Failed to execute command:",
-            failure,
-        );
-    });
+            expect(exitCode).toBe(1);
+            expect(stderr).toHaveBeenCalledWith(
+                "Failed to execute command:",
+                failure,
+            );
+            expect(stdout).not.toHaveBeenCalled();
+        },
+    );
 });

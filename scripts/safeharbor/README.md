@@ -47,15 +47,17 @@ The script follows these steps:
 
 2. Builds internal representation of CSV data organized by chains/networks
 
-3. Downloads current on-chain state from SafeHarbor registry
+3. Downloads current on-chain state from the SafeHarbor Agreement
 
 4. Builds comparable internal representation of on-chain state
 
-5. Compares CSV vs on-chain state to identify differences
+5. Collects warnings from CSV and on-chain normalization, then validates the comparable states. Any warning stops generation before diffing or encoding, returning `updates: []`, `solidityCode: ""`, and the collected `validationWarnings`.
 
-6. Generates encoded payload for executing the changes (if any).
+6. If there are no warnings, compares CSV vs on-chain state and encodes the required updates (if any).
 
 7. Generates the solidity code for the updates.
+
+For chains present in both states, EVM recovery addresses are compared in canonical checksummed form; malformed addresses and invalid mixed-case checksums produce warnings. Solana and other non-EVM recovery identifiers are compared exactly, including case. Recovery mismatches produce warnings, not recovery-address updates. An empty `updates` array alone does not establish a successful reconciliation: `validationWarnings` must also be empty.
 
 # Running the script
 
@@ -65,13 +67,17 @@ Required env variables:
 - ETH_RPC_URL: An endpoint to a node that has the registry and the agreement deployed.
 ```
 
+A command is required: `generate`, `inspect`, or `verify`. There is no default command.
+
 Generate a Solidity snippet containing the encoded calls needed to update the agreement:
 
 ```bash
 npm run generate
 ```
 
-Inspect always outputs the complete result as JSON, including `updates`, `solidityCode`, and `validationWarnings`:
+If any validation warning is reported, `generate` exits with code `2` and prints neither Solidity nor a success message.
+
+On successful inspection, `inspect` outputs the result as JSON, including `updates`, `solidityCode`, and `validationWarnings`, and exits with code `0` even when warnings are present. With warnings, the result is diagnostic only: updates and Solidity are empty. Parsing, network, RPC, configuration, and command errors instead exit with code `1` without a JSON result:
 
 ```bash
 npm run inspect
@@ -89,11 +95,11 @@ From the repository root, `make safeharbor-verify` provides the same verificatio
 
 All commands use the following exit codes:
 
-| Exit code | Meaning                                                                                                                          |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `0`       | `generate` or `inspect` completed successfully regardless of reported differences, or `verify` found no differences or warnings. |
-| `1`       | The command could not run because of invalid input, missing configuration, or another operational error.                         |
-| `2`       | `verify` completed successfully but found updates or validation warnings.                                                        |
+| Exit code | Meaning                                                                                                                                           |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `0`       | `generate` completed without warnings; `inspect` completed, including diagnostic results with warnings; or `verify` found no updates or warnings. |
+| `1`       | The command could not run because of invalid input, missing configuration, or another operational error.                                          |
+| `2`       | `generate` was blocked by validation warnings, or `verify` found updates or validation warnings.                                                  |
 
 In order to obtain machine-readable JSON output of the script, use the following command:
 
@@ -101,7 +107,7 @@ In order to obtain machine-readable JSON output of the script, use the following
 npm run --silent inspect > inspect.json
 ```
 
-See the Solidity code to be used in the spell:
+After checking that `validationWarnings` is empty, see the Solidity code to be reviewed for use in the spell:
 
 ```bash
 jq -r .solidityCode inspect.json

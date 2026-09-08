@@ -96,50 +96,11 @@ function generateAccountUpdates(
     return updates;
 }
 
-function validateRecoveryAddress(onChainState, csvState, chainDetails) {
-    const validationWarnings = [];
-
-    for (const chainName of Object.keys(onChainState)) {
-        if (!Object.hasOwn(csvState, chainName)) continue;
-
-        const onchainRecoveryAddress =
-            onChainState[chainName].assetRecoveryAddress;
-        const csvRecoveryAddress = chainDetails.assetRecoveryAddress[chainName];
-
-        if (
-            onchainRecoveryAddress &&
-            csvRecoveryAddress &&
-            onchainRecoveryAddress.toLowerCase() !==
-                csvRecoveryAddress.toLowerCase()
-        ) {
-            validationWarnings.push(
-                `\n\n‼️-----‼️ \nAsset Recovery Address mismatch for chain '${chainName}'. \nOn-chain: ${onchainRecoveryAddress} \nCSV:      ${csvRecoveryAddress} \n‼️-----‼️\n\n`,
-            );
-        }
-    }
-
-    return validationWarnings;
-}
-
 function generateChainUpdates(onChainState, csvState, chainDetails) {
     const updates = [];
-    const validationWarnings = [];
 
     const currentChainNames = Object.keys(onChainState);
-    const chainDetailsChainNames = Object.keys(chainDetails.caip2ChainId);
-    let desiredChainNames = Object.keys(csvState);
-
-    // Filter out chains that don't have complete details
-    desiredChainNames = desiredChainNames.filter((chainName) => {
-        if (!chainDetailsChainNames.includes(chainName)) {
-            validationWarnings.push(
-                `\n\n⚠️-----⚠️ \nUnknown chain details in CSV: name='${chainName}' \nInclude chain details to the chain details tab in the Google Sheet to add coverage to it. \n⚠️-----⚠️\n\n`,
-            );
-            return false;
-        }
-
-        return true;
-    });
+    const desiredChainNames = Object.keys(csvState);
 
     // Find chains to add and remove
     const chainsToRemove = currentChainNames.filter(
@@ -197,21 +158,16 @@ function generateChainUpdates(onChainState, csvState, chainDetails) {
         updates.push(encodeUpdate("addChains", [newChains]));
     }
 
-    return { updates, chainsToRemove, validationWarnings };
+    return { updates, chainsToRemove };
 }
 
+// The caller must validate state before generating executable updates.
 export function generateUpdates(onChainState, csvState, chainDetails) {
-    const validationWarnings = validateRecoveryAddress(
+    const { updates: chainUpdates, chainsToRemove } = generateChainUpdates(
         onChainState,
         csvState,
         chainDetails,
     );
-
-    const {
-        updates: chainUpdates,
-        chainsToRemove,
-        validationWarnings: chainWarnings,
-    } = generateChainUpdates(onChainState, csvState, chainDetails);
     const accountUpdates = generateAccountUpdates(
         onChainState,
         csvState,
@@ -219,8 +175,5 @@ export function generateUpdates(onChainState, csvState, chainDetails) {
         chainsToRemove,
     );
 
-    return {
-        updates: [...chainUpdates, ...accountUpdates],
-        validationWarnings: [...validationWarnings, ...chainWarnings],
-    };
+    return [...chainUpdates, ...accountUpdates];
 }

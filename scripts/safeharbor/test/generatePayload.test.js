@@ -2,6 +2,7 @@ import { test, expect, describe, vi, beforeEach, afterEach } from "vitest";
 import assert from "node:assert";
 import { Interface } from "ethers";
 import { generatePayload } from "../src/generatePayload.js";
+import { generateUpdates } from "../src/generateUpdates.js";
 import { AGREEMENT_V3_ABI } from "../src/abis.js";
 
 // Mock the dependencies
@@ -14,6 +15,7 @@ vi.mock("../src/fetchCSV.js", async (importOriginal) => {
     };
 });
 vi.mock("../src/fetchOnchain.js");
+vi.mock("../src/generateUpdates.js", { spy: true });
 vi.mock("fs", () => ({
     writeFileSync: vi.fn(),
 }));
@@ -26,6 +28,7 @@ import { getNormalizedDataFromOnchainState } from "../src/fetchOnchain.js";
 
 let consoleWarnSpy;
 let consoleErrorSpy;
+let encodeSpy;
 
 // Static synthetic fixtures shaped like production EVM and Solana identifiers.
 const RECOVERY = {
@@ -88,9 +91,10 @@ function mockOnChainState(onChainState, validationWarnings = []) {
     });
 }
 
-describe("inspectPayload E2E Tests", () => {
+describe("generatePayload with normalized input fixtures", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        encodeSpy = vi.spyOn(Interface.prototype, "encodeFunctionData");
         consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
         consoleErrorSpy = vi
             .spyOn(console, "error")
@@ -107,6 +111,7 @@ describe("inspectPayload E2E Tests", () => {
         } finally {
             consoleWarnSpy.mockRestore();
             consoleErrorSpy.mockRestore();
+            encodeSpy.mockRestore();
         }
     });
 
@@ -611,6 +616,35 @@ describe("inspectPayload E2E Tests", () => {
     });
 
     describe("Chain Property Validation", () => {
+        test("should block account updates before encoding on a recovery mismatch", async () => {
+            const result = await generateFrom(
+                {
+                    ETHEREUM: [
+                        { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
+                        { accountAddress: ACCOUNT.ETH3, childContractScope: 0 },
+                    ],
+                },
+                {
+                    ETHEREUM: {
+                        accounts: [
+                            {
+                                accountAddress: ACCOUNT.ETH1,
+                                childContractScope: 0,
+                            },
+                        ],
+                        assetRecoveryAddress: RECOVERY.MISMATCH,
+                    },
+                },
+            );
+
+            expect(result.updates).toEqual([]);
+            expect(result.solidityCode).toBe("");
+            expect(result.validationWarnings).toEqual([
+                expect.stringContaining("Asset Recovery Address mismatch"),
+            ]);
+            expect(encodeSpy).not.toHaveBeenCalled();
+        });
+
         test("should log a warning when asset recovery addresses mismatch", async () => {
             // Arrange
             // Create a specific on-chain state for this test with a mismatch
@@ -646,6 +680,10 @@ describe("inspectPayload E2E Tests", () => {
                 onChainStateWithMismatch,
             );
 
+            expect(result.updates).toEqual([]);
+            expect(result.solidityCode).toBe("");
+            expect(encodeSpy).not.toHaveBeenCalled();
+
             // Assert
             const wasCalledWithMismatchWarning = consoleWarnSpy.mock.calls.some(
                 (call) =>
@@ -680,6 +718,7 @@ describe("inspectPayload E2E Tests", () => {
                 ETHEREUM: [
                     { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
                     { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
+                    { accountAddress: ACCOUNT.ETH3, childContractScope: 0 },
                 ],
                 BASE: [
                     { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
@@ -699,6 +738,9 @@ describe("inspectPayload E2E Tests", () => {
             expect(result.validationWarnings[0]).toContain(
                 "Unknown chain details in CSV: name='UNKNOWN'",
             );
+            expect(result.updates).toEqual([]);
+            expect(result.solidityCode).toBe("");
+            expect(encodeSpy).not.toHaveBeenCalled();
         });
     });
 
@@ -714,6 +756,7 @@ describe("inspectPayload E2E Tests", () => {
                 ETHEREUM: [
                     { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
                     { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
+                    { accountAddress: ACCOUNT.ETH3, childContractScope: 0 },
                 ],
                 BASE: [
                     { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
@@ -727,6 +770,85 @@ describe("inspectPayload E2E Tests", () => {
             const result = await generateFrom(csvData);
 
             expect(result.validationWarnings).toEqual([duplicateWarning]);
+            expect(result.updates).toEqual([]);
+            expect(result.solidityCode).toBe("");
+            expect(encodeSpy).not.toHaveBeenCalled();
+        });
+    });
+
+    describe("Validation warning aggregation", () => {
+        test("should block chain updates on on-chain normalization warnings", async () => {
+            const unknownChainWarning =
+                "Unknown chain details in on-chain state: caip2ChainId='eip155:137'";
+            mockOnChainState({}, [unknownChainWarning]);
+            getNormalizedContractsInScopeFromCSV.mockResolvedValue({
+                ETHEREUM: [
+                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
+                ],
+            });
+
+            const result = await generatePayload("");
+
+            expect(result).toEqual({
+                updates: [],
+                solidityCode: "",
+                validationWarnings: [unknownChainWarning],
+            });
+            expect(encodeSpy).not.toHaveBeenCalled();
+        });
+
+        test("should collect warnings from every stage before encoding updates", async () => {
+            const duplicateWarning =
+                "Duplicate chain name found in CSV: ETHEREUM";
+            const unknownChainWarning =
+                "Unknown chain details in on-chain state: caip2ChainId='eip155:137'";
+            getChainDetailsFromCSV.mockResolvedValue({
+                chainDetails: CHAIN_DETAILS,
+                validationWarnings: [duplicateWarning],
+            });
+            mockOnChainState(
+                {
+                    ETHEREUM: {
+                        accounts: [
+                            {
+                                accountAddress: ACCOUNT.ETH1,
+                                childContractScope: 0,
+                            },
+                        ],
+                        assetRecoveryAddress: RECOVERY.MISMATCH,
+                    },
+                },
+                [unknownChainWarning],
+            );
+            getNormalizedContractsInScopeFromCSV.mockResolvedValue({
+                ETHEREUM: [
+                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
+                    { accountAddress: ACCOUNT.ETH3, childContractScope: 0 },
+                ],
+                UNKNOWN: [
+                    { accountAddress: ACCOUNT.UNKNOWN, childContractScope: 0 },
+                ],
+            });
+
+            const result = await generatePayload("");
+
+            expect(result).toEqual({
+                updates: [],
+                solidityCode: "",
+                validationWarnings: [
+                    duplicateWarning,
+                    unknownChainWarning,
+                    expect.stringContaining("Asset Recovery Address mismatch"),
+                    expect.stringContaining(
+                        "Unknown chain details in CSV: name='UNKNOWN'",
+                    ),
+                ],
+            });
+            for (const warning of result.validationWarnings) {
+                expect(consoleWarnSpy).toHaveBeenCalledWith(warning);
+            }
+            expect(generateUpdates).not.toHaveBeenCalled();
+            expect(encodeSpy).not.toHaveBeenCalled();
         });
     });
 });
@@ -791,8 +913,8 @@ function normalizeDecodedValue(value, param) {
  * Builds the stable payload snapshot for generated Safe Harbor updates.
  *
  * The raw calldata is preserved so the snapshot pins the exact executable
- * bytes. The same calldata is decoded through the Agreement ABI to prove those
- * bytes map back to the expected function name and named arguments.
+ * bytes. The same calldata is decoded through the Agreement ABI to check the
+ * function name and snapshot named arguments for review, without EVM execution.
  *
  * @param {Array<{function: string, calldata: string}>} updates Generated payload updates.
  * @returns {Array<{calldata: string, decodedName: string, decodedArgs: Array<*>}>}
