@@ -3222,8 +3222,9 @@ contract DssSpellTestBase is Config, DssTest {
         if (address(_gem) != address(sky)) {
             assertGe(balance, vestableAmt, _concat(string("TestError/insufficient-transferrable-vest-balance-"), _errSuffix));
         } else {
-            // Note: SKY streams will operate out of buybacks, check that balance is sufficient for short term (20 days)
-            vm.warp(block.timestamp + 20 days);
+            // Note: Change this back to 20 days after 2025-09-10
+            // Note: SKY streams will operate out of buybacks, check that balance is sufficient for short term (16 days)
+            vm.warp(block.timestamp + 16 days);
 
             uint256 requiredBalance;
             for (uint256 i = 1; i <= vest.ids(); i++) {
@@ -3232,7 +3233,7 @@ contract DssSpellTestBase is Config, DssTest {
                 }
             }
 
-            assertGe(_gem.balanceOf(pauseProxy), requiredBalance, _concat(string("TestError/insufficient-transferrable-vest-balance-for-20-days-"), _errSuffix));
+            assertGe(_gem.balanceOf(pauseProxy), requiredBalance, _concat(string("TestError/insufficient-transferrable-vest-balance-for-16-days-"), _errSuffix));
         }
     }
 
