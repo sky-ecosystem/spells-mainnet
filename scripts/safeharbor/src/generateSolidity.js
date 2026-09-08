@@ -27,7 +27,7 @@ export function generateSolidityCode(updates) {
 }
 
 function getDescription(update) {
-    switch (update.function) {
+    switch (update.fn) {
         case "removeChains": {
             // Extracts and lists all chains to be removed.
             const chains = update.args[0].join(", ");

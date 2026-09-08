@@ -10,7 +10,7 @@ test.each([
         scenario: "chain removals in the supplied order",
         updates: [
             {
-                function: "removeChains",
+                fn: "removeChains",
                 args: [["eip155:8453", "eip155:1"]],
                 calldata: "0x1234",
             },
@@ -22,7 +22,7 @@ test.each([
         scenario: "chain additions with and without accounts",
         updates: [
             {
-                function: "addChains",
+                fn: "addChains",
                 args: [
                     [
                         {
@@ -60,7 +60,7 @@ test.each([
         scenario: "account removals in the supplied order",
         updates: [
             {
-                function: "removeAccounts",
+                fn: "removeAccounts",
                 args: [
                     "eip155:1",
                     [
@@ -78,7 +78,7 @@ test.each([
         scenario: "account additions in the supplied order",
         updates: [
             {
-                function: "addAccounts",
+                fn: "addAccounts",
                 args: [
                     "eip155:1",
                     [
@@ -107,7 +107,7 @@ test.each([
 test("rejects unknown operations", () => {
     expect(() =>
         generateSolidityCode([
-            { function: "unknownOperation", args: [], calldata: "0x1234" },
+            { fn: "unknownOperation", args: [], calldata: "0x1234" },
         ]),
     ).toThrow("Unknown update");
 });
@@ -115,12 +115,12 @@ test("rejects unknown operations", () => {
 test("trims each Solidity line while preserving internal spacing and blank lines", () => {
     const code = generateSolidityCode([
         {
-            function: "removeChains",
+            fn: "removeChains",
             args: [["eip155:1 \t"]],
             calldata: "0x1234",
         },
         {
-            function: "removeChains",
+            fn: "removeChains",
             args: [["eip155:8453"]],
             calldata: "0xabcd",
         },

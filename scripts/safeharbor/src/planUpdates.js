@@ -1,9 +1,7 @@
 import { DIAGNOSTIC_CODES as $ } from "./diagnosticCodes.js";
-import { Interface } from "ethers";
-import { AGREEMENT_V3_ABI as AGREEMENT_ABI } from "./abis.js";
 
-// The caller must validate state before generating executable updates.
-export function generateUpdates(onChainState, sheetState, chainDetails) {
+// The caller must validate state before planning updates.
+export function planUpdates(onChainState, sheetState, chainDetails) {
     const [diagnostic] = validateUpdateInputs(onChainState, sheetState);
     if (diagnostic) {
         throw Object.assign(new Error(diagnostic.code), { diagnostic });
@@ -22,16 +20,6 @@ export function generateUpdates(onChainState, sheetState, chainDetails) {
     );
 
     return [...chainUpdates, ...accountUpdates];
-}
-
-const agreementInterface = new Interface(AGREEMENT_ABI);
-
-function encodeUpdate(functionName, args) {
-    return {
-        function: functionName,
-        args,
-        calldata: agreementInterface.encodeFunctionData(functionName, args),
-    };
 }
 
 // Account difference calculation
@@ -93,25 +81,26 @@ function generateAccountUpdates(
 
         // Add replacements first if removing first would leave the chain empty.
         if (removesAllCurrentAccounts && toAdd.length > 0) {
-            updates.push(encodeUpdate("addAccounts", [chainId, toAdd]));
+            updates.push({ fn: "addAccounts", args: [chainId, toAdd] });
         }
 
         // Handle removals - removeAccounts now takes addresses directly
         if (toRemove.length > 0) {
             // Reverse full replacements so swap-and-pop cannot remove a new scope.
-            updates.push(
-                encodeUpdate("removeAccounts", [
+            updates.push({
+                fn: "removeAccounts",
+                args: [
                     chainId,
                     removesAllCurrentAccounts
                         ? [...toRemove].reverse()
                         : toRemove,
-                ]),
-            );
+                ],
+            });
         }
 
         // Handle additions
         if (!removesAllCurrentAccounts && toAdd.length > 0) {
-            updates.push(encodeUpdate("addAccounts", [chainId, toAdd]));
+            updates.push({ fn: "addAccounts", args: [chainId, toAdd] });
         }
     }
 
@@ -137,7 +126,7 @@ function generateChainUpdates(onChainState, sheetState, chainDetails) {
         const chainIdsToRemove = chainsToRemove.map(
             (chainName) => chainDetails.caip2ChainId[chainName],
         );
-        updates.push(encodeUpdate("removeChains", [chainIdsToRemove]));
+        updates.push({ fn: "removeChains", args: [chainIdsToRemove] });
     }
 
     // Add new chains from the Safeharbor Sheet - batch them together
@@ -154,7 +143,7 @@ function generateChainUpdates(onChainState, sheetState, chainDetails) {
             };
         });
 
-        updates.push(encodeUpdate("addChains", [newChains]));
+        updates.push({ fn: "addChains", args: [newChains] });
     }
 
     return { updates, chainsToRemove };

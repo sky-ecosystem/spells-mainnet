@@ -1,56 +1,42 @@
 import { DIAGNOSTIC_CODES as $ } from "./diagnosticCodes.js";
+import { JsonRpcProvider } from "ethers";
+import { createAgreementReader } from "./agreement.js";
 import { formatDiagnostic } from "./formatDiagnostic.js";
+import { createReconciler } from "./reconcile.js";
+import { generate } from "./generate.js";
+import { inspect } from "./inspect.js";
+import { verify } from "./verify.js";
 
-export function createCommandRunner({ generatePayload }) {
-    return async function runCommand(command) {
+export async function main() {
+    const command = process.argv[2];
+    const rpcUrl = process.env.ETH_RPC_URL;
+    const diagnostics = validateOptions({ command, rpcUrl });
+    if (diagnostics.length > 0) {
+        diagnostics.forEach((diagnostic) =>
+            console.error(formatDiagnostic(diagnostic)),
+        );
+        return 1;
+    }
+
+    try {
+        const provider = new JsonRpcProvider(rpcUrl);
         try {
-            const result = await generatePayload();
+            const getAgreementDetails = createAgreementReader({ provider });
+            const reconcile = createReconciler({
+                getAgreementDetails,
+            });
+            const result = await reconcile();
             result.validationWarnings.forEach((diagnostic) =>
                 console.warn(formatDiagnostic(diagnostic)),
             );
-            const warningCount = result.validationWarnings.length;
-
-            if (command === "generate") {
-                if (warningCount > 0) {
-                    console.warn(
-                        `Payload generation blocked: ${warningCount} validation warning(s).`,
-                    );
-                    return 2;
-                }
-
-                if (result.updates.length > 0) {
-                    console.log(result.solidityCode);
-                }
-
-                console.warn(
-                    result.updates.length > 0
-                        ? "Payload generation completed successfully."
-                        : "No updates to generate",
-                );
-                return 0;
-            }
-
-            if (command === "inspect") {
-                console.log(JSON.stringify(result, null, 2));
-                return 0;
-            }
-
-            if (result.updates.length === 0 && warningCount === 0) {
-                console.log(
-                    "SafeHarbor verification passed: no updates or validation warnings.",
-                );
-                return 0;
-            }
-
-            console.log(
-                `SafeHarbor verification failed: ${result.updates.length} update(s), ${warningCount} validation warning(s).`,
-            );
-            return 2;
-        } catch (error) {
-            reportError(error);
-            return 1;
+            return COMMANDS[command](result);
+        } finally {
+            provider.destroy();
         }
-    };
+    } catch (error) {
+        reportError(error);
+        return 1;
+    }
 }
 
 export function reportError(error) {
@@ -64,10 +50,10 @@ export function reportError(error) {
 
 export function validateOptions({ command, rpcUrl }) {
     if (!command) return [{ code: $.COMMAND_REQUIRED }];
-    if (!COMMANDS.has(command)) {
+    if (!Object.hasOwn(COMMANDS, command)) {
         return [{ code: $.UNKNOWN_COMMAND, context: { command } }];
     }
     return rpcUrl ? [] : [{ code: $.RPC_URL_REQUIRED }];
 }
 
-const COMMANDS = new Set(["generate", "inspect", "verify"]);
+const COMMANDS = { generate, inspect, verify };

@@ -1,8 +1,8 @@
-import { Contract, JsonRpcProvider } from "ethers";
+import { Contract, Interface, JsonRpcProvider } from "ethers";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { AGREEMENT_V3_ABI } from "../src/abis.js";
+import { main } from "../src/cli.js";
 
-vi.mock("dotenv/config", () => ({}));
 vi.mock("ethers", async (importOriginal) => ({
     ...(await importOriginal()),
     Contract: vi.fn(),
@@ -11,12 +11,9 @@ vi.mock("ethers", async (importOriginal) => ({
 
 let provider;
 let argv;
-let exitCode;
 
 beforeEach(() => {
-    vi.resetModules();
     argv = process.argv;
-    exitCode = process.exitCode;
     process.argv = ["node", "index.js", "verify"];
     vi.stubEnv("ETH_RPC_URL", "https://rpc.example");
     vi.stubGlobal("fetch", vi.fn());
@@ -29,7 +26,6 @@ beforeEach(() => {
 
 afterEach(() => {
     process.argv = argv;
-    process.exitCode = exitCode;
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
     vi.resetAllMocks();
@@ -52,6 +48,13 @@ test.each([
             "Error: Unknown command 'unknown'\nAvailable commands: generate, inspect, verify\nUsage: npm run <command>",
     },
     {
+        scenario: "inherited object property as command",
+        argv: ["node", "index.js", "toString"],
+        rpcUrl: "https://rpc.example",
+        message:
+            "Error: Unknown command 'toString'\nAvailable commands: generate, inspect, verify\nUsage: npm run <command>",
+    },
+    {
         scenario: "missing RPC configuration",
         argv: ["node", "index.js", "verify"],
         rpcUrl: "",
@@ -62,9 +65,7 @@ test.each([
     process.argv = fixture.argv;
     vi.stubEnv("ETH_RPC_URL", fixture.rpcUrl);
 
-    await import("../index.js");
-
-    expect(process.exitCode).toBe(1);
+    expect(await main()).toBe(1);
     expect(console.error).toHaveBeenCalledExactlyOnceWith(fixture.message);
     expect(console.log).not.toHaveBeenCalled();
     expect(JsonRpcProvider).not.toHaveBeenCalled();
@@ -91,9 +92,7 @@ test("wires the provider through the real pipeline and destroys it after success
             .mockResolvedValue("0x7000000000000000000000000000000000000001"),
     }).mockReturnValueOnce({ getDetails });
 
-    await import("../index.js");
-
-    expect(process.exitCode).toBe(0);
+    expect(await main()).toBe(0);
     expect(JsonRpcProvider).toHaveBeenCalledExactlyOnceWith(
         "https://rpc.example",
     );
@@ -114,9 +113,7 @@ test("destroys the provider after a pipeline failure", async () => {
     const failure = new Error("CSV unavailable");
     fetch.mockRejectedValue(failure);
 
-    await import("../index.js");
-
-    expect(process.exitCode).toBe(1);
+    expect(await main()).toBe(1);
     expect(console.error).toHaveBeenCalledExactlyOnceWith(
         "Failed to execute command:",
         "CSV unavailable",
@@ -130,12 +127,73 @@ test("reports provider construction failures as command errors", async () => {
         throw failure;
     });
 
-    await import("../index.js");
-
-    expect(process.exitCode).toBe(1);
+    expect(await main()).toBe(1);
     expect(console.error).toHaveBeenCalledExactlyOnceWith(
         "Failed to execute command:",
         "Invalid RPC configuration",
     );
     expect(fetch).not.toHaveBeenCalled();
 });
+
+test.each(["encoding", "reporting"])(
+    "reports a %s failure once and destroys the provider",
+    async (stage) => {
+        process.argv = ["node", "index.js", "generate"];
+        fetch
+            .mockResolvedValueOnce(
+                new Response(
+                    "Name,Chain Id,Asset Recovery Address\nETH,eip155:1,0x1000000000000000000000000000000000000001\n",
+                    { headers: { "content-type": "text/csv" } },
+                ),
+            )
+            .mockResolvedValueOnce(
+                new Response("Status,Chain,Address,isFactory\n", {
+                    headers: { "content-type": "text/csv" },
+                }),
+            );
+        Contract.mockReturnValueOnce({
+            "getAddress(bytes32)": vi
+                .fn()
+                .mockResolvedValue(
+                    "0x7000000000000000000000000000000000000001",
+                ),
+        }).mockReturnValueOnce({
+            getDetails: vi.fn().mockResolvedValue({
+                chains: [
+                    {
+                        caip2ChainId: "eip155:1",
+                        assetRecoveryAddress:
+                            "0x1000000000000000000000000000000000000001",
+                        accounts: [
+                            {
+                                accountAddress:
+                                    "0x2000000000000000000000000000000000000001",
+                                childContractScope: 0n,
+                            },
+                        ],
+                    },
+                ],
+            }),
+        });
+        const failure = new Error(`${stage} failed`);
+        if (stage === "encoding") {
+            vi.spyOn(
+                Interface.prototype,
+                "encodeFunctionData",
+            ).mockImplementation(() => {
+                throw failure;
+            });
+        } else {
+            console.log.mockImplementation(() => {
+                throw failure;
+            });
+        }
+
+        expect(await main()).toBe(1);
+        expect(console.error).toHaveBeenCalledExactlyOnceWith(
+            "Failed to execute command:",
+            `${stage} failed`,
+        );
+        expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
+    },
+);

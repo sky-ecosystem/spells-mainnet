@@ -4,10 +4,10 @@ import {
     getChainDetailsFromSheet,
     getNormalizedContractsInScopeFromSheet,
 } from "../src/sheet.js";
-import { createPayloadGenerator } from "../src/generatePayload.js";
+import { createReconciler } from "../src/reconcile.js";
 
 const getAgreementDetails = vi.fn();
-const generatePayload = createPayloadGenerator({ getAgreementDetails });
+const reconcile = createReconciler({ getAgreementDetails });
 
 beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());
@@ -309,7 +309,7 @@ describe("malformed CSV", () => {
     });
 });
 
-describe("CSV validation before payload generation", () => {
+describe("CSV validation before reconciliation", () => {
     test.each([
         {
             scenario: "missing contract headers",
@@ -357,7 +357,7 @@ describe("CSV validation before payload generation", () => {
                 .mockResolvedValueOnce(csvResponse(contractCSV));
             const encode = vi.spyOn(Interface.prototype, "encodeFunctionData");
 
-            await expect(generatePayload()).rejects.toMatchObject(error);
+            await expect(reconcile()).rejects.toMatchObject(error);
             expect(getAgreementDetails).not.toHaveBeenCalled();
             expect(encode).not.toHaveBeenCalled();
         },
@@ -393,19 +393,16 @@ describe("CSV validation before payload generation", () => {
                 ],
             });
 
-            const result = await generatePayload();
+            const result = await reconcile();
 
             expect(result.validationWarnings).toEqual([]);
-            expect(result.updates).toEqual([
+            expect(result.changes).toEqual([
                 {
-                    function: "removeChains",
+                    fn: "removeChains",
                     args: [["eip155:1"]],
-                    calldata: expect.stringMatching(/^0x[0-9a-f]+$/),
                 },
             ]);
-            expect(result.solidityCode).toContain(
-                result.updates[0].calldata.slice(2),
-            );
+            expect(result).not.toHaveProperty("solidityCode");
         },
     );
 });

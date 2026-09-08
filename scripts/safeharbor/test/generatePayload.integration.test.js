@@ -1,11 +1,12 @@
 import { test, expect, describe, vi, beforeEach, afterEach } from "vitest";
 import assert from "node:assert";
 import { Interface } from "ethers";
-import { createPayloadGenerator } from "../src/generatePayload.js";
+import { generatePayload } from "../src/generatePayload.js";
+import { createReconciler } from "../src/reconcile.js";
 import { AGREEMENT_V3_ABI } from "../src/abis.js";
 
 const getAgreementDetails = vi.fn();
-const generatePayload = createPayloadGenerator({ getAgreementDetails });
+const reconcile = createReconciler({ getAgreementDetails });
 
 let consoleWarnSpy;
 let consoleErrorSpy;
@@ -43,7 +44,21 @@ async function generateFrom({ chainCSV, contractCSV, details }) {
             }),
         );
     getAgreementDetails.mockResolvedValue(details);
-    const result = await generatePayload();
+    const report = await reconcile();
+    expect(encodeSpy).not.toHaveBeenCalled();
+    if (report.validationWarnings.length > 0) {
+        expect(report.changes).toBeNull();
+    } else {
+        expect(report.changes).toBeInstanceOf(Array);
+    }
+    const payload =
+        report.changes === null
+            ? { updates: [], solidityCode: "" }
+            : generatePayload(report.changes);
+    const result = {
+        ...payload,
+        validationWarnings: report.validationWarnings,
+    };
     expect(getAgreementDetails).toHaveBeenCalledExactlyOnceWith();
     payloadSnapshot(result.updates);
     return result;
@@ -189,7 +204,7 @@ describe("generatePayload", () => {
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 2);
             const addAccountsUpdates = result.updates.filter(
-                (u) => u.function === "addAccounts",
+                (u) => u.fn === "addAccounts",
             );
             assert.strictEqual(addAccountsUpdates.length, 2);
             const ethereumUpdate = addAccountsUpdates.find(
@@ -264,7 +279,7 @@ describe("generatePayload", () => {
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 2);
             const removeAccountsUpdates = result.updates.filter(
-                (u) => u.function === "removeAccounts",
+                (u) => u.fn === "removeAccounts",
             );
             assert.strictEqual(removeAccountsUpdates.length, 2);
             const ethereumUpdate = removeAccountsUpdates.find(
@@ -335,7 +350,7 @@ describe("generatePayload", () => {
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 1);
             const addChainsUpdates = result.updates.filter(
-                (u) => u.function === "addChains",
+                (u) => u.fn === "addChains",
             );
             assert.strictEqual(addChainsUpdates.length, 1);
             const newChains = addChainsUpdates[0].args[0];
@@ -419,7 +434,7 @@ describe("generatePayload", () => {
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 1);
             const removeChainsUpdates = result.updates.filter(
-                (u) => u.function === "removeChains",
+                (u) => u.fn === "removeChains",
             );
             assert.strictEqual(removeChainsUpdates.length, 1);
             const chainIdsToRemove = removeChainsUpdates[0].args[0];
@@ -484,23 +499,20 @@ describe("generatePayload", () => {
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 5);
             const chainUpdates = result.updates.filter(
-                (u) =>
-                    u.function === "removeChains" || u.function === "addChains",
+                (u) => u.fn === "removeChains" || u.fn === "addChains",
             );
             const accountUpdates = result.updates.filter(
-                (u) =>
-                    u.function === "removeAccounts" ||
-                    u.function === "addAccounts",
+                (u) => u.fn === "removeAccounts" || u.fn === "addAccounts",
             );
             assert.ok(chainUpdates.length > 0, "Should have chain updates");
             assert.ok(accountUpdates.length > 0, "Should have account updates");
             const removeChainUpdate = result.updates.find(
-                (u) => u.function === "removeChains",
+                (u) => u.fn === "removeChains",
             );
             assert.strictEqual(removeChainUpdate.args[0].length, 1);
             assert.ok(removeChainUpdate.args[0].includes("eip155:8453"));
             const addChainUpdate = result.updates.find(
-                (u) => u.function === "addChains",
+                (u) => u.fn === "addChains",
             );
             assert.ok(addChainUpdate.args[0].length, 2);
             const newChain = addChainUpdate.args[0].find(
@@ -509,11 +521,10 @@ describe("generatePayload", () => {
             assert.ok(newChain);
             // Assert that removeAccounts for eip155:1 appears before addAccounts for eip155:1
             const removeAccountIndex = result.updates.findIndex(
-                (u) =>
-                    u.function === "removeAccounts" && u.args[0] === "eip155:1",
+                (u) => u.fn === "removeAccounts" && u.args[0] === "eip155:1",
             );
             const addAccountIndex = result.updates.findIndex(
-                (u) => u.function === "addAccounts" && u.args[0] === "eip155:1",
+                (u) => u.fn === "addAccounts" && u.args[0] === "eip155:1",
             );
             assert.ok(
                 removeAccountIndex > -1 && addAccountIndex > -1,
@@ -532,9 +543,7 @@ describe("generatePayload", () => {
                 { accountAddress: ACCOUNT.ETH3, childContractScope: 0 },
             ]);
             const addAccountUpdate2 = result.updates.find(
-                (u) =>
-                    u.function === "addAccounts" &&
-                    u.args[0] === "eip155:42161",
+                (u) => u.fn === "addAccounts" && u.args[0] === "eip155:42161",
             );
             assert.ok(addAccountUpdate2.args[1].length, 1);
             assert.deepStrictEqual(addAccountUpdate2.args[1], [
@@ -598,7 +607,7 @@ describe("generatePayload", () => {
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 4);
             const addChainUpdate = result.updates.find(
-                (u) => u.function === "addChains",
+                (u) => u.fn === "addChains",
             );
             assert.ok(addChainUpdate);
             const optimismChain = addChainUpdate.args[0].find(
@@ -616,13 +625,12 @@ describe("generatePayload", () => {
             assert.ok(normalAccounts.every((a) => a.childContractScope === 0));
 
             const removeAccountFromEthereumUpdate = result.updates.find(
-                (u) =>
-                    u.function === "removeAccounts" && u.args[0] === "eip155:1",
+                (u) => u.fn === "removeAccounts" && u.args[0] === "eip155:1",
             );
             assert.ok(removeAccountFromEthereumUpdate);
 
             const addAccountToEthereumUpdate = result.updates.find(
-                (u) => u.function === "addAccounts" && u.args[0] === "eip155:1",
+                (u) => u.fn === "addAccounts" && u.args[0] === "eip155:1",
             );
             assert.ok(addAccountToEthereumUpdate);
         });
@@ -684,7 +692,7 @@ describe("generatePayload", () => {
                 (update) => update.args[0] === "eip155:1",
             );
 
-            expect(ethereumUpdates.map((update) => update.function)).toEqual([
+            expect(ethereumUpdates.map((update) => update.fn)).toEqual([
                 "addAccounts",
                 "removeAccounts",
             ]);
@@ -746,7 +754,7 @@ describe("generatePayload", () => {
                 (update) => update.args[0] === "eip155:8453",
             );
 
-            expect(baseUpdates.map((update) => update.function)).toEqual([
+            expect(baseUpdates.map((update) => update.fn)).toEqual([
                 "addAccounts",
                 "removeAccounts",
             ]);
@@ -765,11 +773,11 @@ describe("generatePayload", () => {
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 1);
             const addChainsUpdates = result.updates.filter(
-                (u) => u.function === "addChains",
+                (u) => u.fn === "addChains",
             );
             assert.strictEqual(addChainsUpdates.length, 1);
             const removeUpdates = result.updates.filter((u) =>
-                u.function.includes("remove"),
+                u.fn.includes("remove"),
             );
             assert.strictEqual(removeUpdates.length, 0);
         });
@@ -827,7 +835,7 @@ describe("generatePayload", () => {
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 1);
             const removeChainsUpdates = result.updates.filter(
-                (u) => u.function === "removeChains",
+                (u) => u.fn === "removeChains",
             );
             assert.strictEqual(removeChainsUpdates.length, 1);
             const chainIdsToRemove = removeChainsUpdates[0].args[0];
@@ -1234,7 +1242,7 @@ test.each([
         details: { chains: [] },
         expectedUpdates: [
             {
-                function: "addChains",
+                fn: "addChains",
                 args: [
                     [
                         {
@@ -1264,7 +1272,7 @@ test.each([
         details: { chains: [] },
         expectedUpdates: [
             {
-                function: "addChains",
+                fn: "addChains",
                 args: [
                     [
                         {
@@ -1294,7 +1302,7 @@ test.each([
         details: { chains: [] },
         expectedUpdates: [
             {
-                function: "addChains",
+                fn: "addChains",
                 args: [
                     [
                         {
@@ -1355,7 +1363,7 @@ test.each([
         },
         expectedUpdates: [
             {
-                function: "removeChains",
+                fn: "removeChains",
                 args: [["eip155:1"]],
                 calldata: expect.stringMatching(/^0x[0-9a-f]+$/),
             },
@@ -1938,7 +1946,7 @@ test.each([
         },
         expectedUpdates: [
             {
-                function: "addAccounts",
+                fn: "addAccounts",
                 args: [
                     "eip155:1",
                     [
@@ -1956,7 +1964,7 @@ test.each([
                 ],
             },
             {
-                function: "removeAccounts",
+                fn: "removeAccounts",
                 args: [
                     "eip155:1",
                     ["0x2000000000000000000000000000000000000001"],
@@ -1986,7 +1994,7 @@ test.each([
         },
         expectedUpdates: [
             {
-                function: "addAccounts",
+                fn: "addAccounts",
                 args: [
                     "eip155:1",
                     [
@@ -1999,7 +2007,7 @@ test.each([
                 ],
             },
             {
-                function: "removeAccounts",
+                fn: "removeAccounts",
                 args: [
                     "eip155:1",
                     [
@@ -2033,14 +2041,14 @@ test.each([
         },
         expectedUpdates: [
             {
-                function: "removeAccounts",
+                fn: "removeAccounts",
                 args: [
                     "eip155:1",
                     ["0x2000000000000000000000000000000000000002"],
                 ],
             },
             {
-                function: "addAccounts",
+                fn: "addAccounts",
                 args: [
                     "eip155:1",
                     [
@@ -2096,7 +2104,7 @@ test.each([
         },
         expectedUpdates: [
             {
-                function: "addAccounts",
+                fn: "addAccounts",
                 args: [
                     "eip155:1",
                     [
@@ -2109,7 +2117,7 @@ test.each([
                 ],
             },
             {
-                function: "removeAccounts",
+                fn: "removeAccounts",
                 args: [
                     "eip155:1",
                     ["0x2000000000000000000000000000000000000001"],
@@ -2139,7 +2147,7 @@ test.each([
         },
         expectedUpdates: [
             {
-                function: "addAccounts",
+                fn: "addAccounts",
                 args: [
                     "eip155:1",
                     [
@@ -2157,7 +2165,7 @@ test.each([
                 ],
             },
             {
-                function: "removeAccounts",
+                fn: "removeAccounts",
                 args: [
                     "eip155:1",
                     [
@@ -2190,7 +2198,7 @@ test.each([
         },
         expectedUpdates: [
             {
-                function: "addAccounts",
+                fn: "addAccounts",
                 args: [
                     "eip155:1",
                     [
@@ -2213,7 +2221,7 @@ test.each([
                 ],
             },
             {
-                function: "removeAccounts",
+                fn: "removeAccounts",
                 args: [
                     "eip155:1",
                     [
@@ -2228,12 +2236,9 @@ test.each([
 ])("$scenario", async ({ chainCSV, contractCSV, details, expectedUpdates }) => {
     const result = await generateFrom({ chainCSV, contractCSV, details });
     expect(result.validationWarnings).toEqual([]);
-    expect(
-        result.updates.map(({ function: name, args }) => ({
-            function: name,
-            args,
-        })),
-    ).toEqual(expectedUpdates);
+    expect(result.updates.map(({ fn, args }) => ({ fn, args }))).toEqual(
+        expectedUpdates,
+    );
     if (expectedUpdates.length === 0) {
         expect(result.solidityCode).toBe("");
     } else {
@@ -2307,7 +2312,7 @@ function normalizeDecodedValue(value, param) {
  * function name and every normalized argument against the update, without EVM
  * execution. The named arguments remain in the snapshot for review.
  *
- * @param {Array<{function: string, args: Array<*>, calldata: string}>} updates Generated payload updates.
+ * @param {Array<{fn: string, args: Array<*>, calldata: string}>} updates Generated payload updates.
  * @returns {Array<{calldata: string, decodedName: string, decodedArgs: Array<*>}>}
  */
 function payloadSnapshot(updates) {
@@ -2316,7 +2321,7 @@ function payloadSnapshot(updates) {
             data: update.calldata,
         });
         assert.ok(decoded, `Unable to decode payload update ${index}`);
-        assert.strictEqual(decoded.name, update.function);
+        assert.strictEqual(decoded.name, update.fn);
         const decodedArgs = decoded.fragment.inputs.map((input, inputIndex) =>
             normalizeDecodedValue(decoded.args[inputIndex], input),
         );

@@ -39,7 +39,7 @@ There are a few steps to independently validate that a given agreement can be ad
 
 If all of these steps are done, the agreement can be adopted by Sky protocol.
 
-# General Flow of `generatePayload.js`
+# Reconciliation and commands
 
 The script follows these steps:
 
@@ -51,13 +51,13 @@ The script follows these steps:
 
 4. Builds comparable internal representation of on-chain state
 
-5. Collects warnings from Safeharbor Sheet and on-chain normalization, then validates the comparable states. Any warning stops generation before diffing or encoding, returning `updates: []`, `solidityCode: ""`, and the collected `validationWarnings`.
+5. Collects warnings from Safeharbor Sheet and on-chain normalization, then validates the comparable states. Any warning stops planning before diffing or encoding, returning `changes: null` and the collected `validationWarnings` alongside both normalized states and chain metadata.
 
-6. If there are no warnings, compares Safeharbor Sheet and on-chain state and encodes the required updates (if any).
+6. If there are no warnings, compares Safeharbor Sheet and on-chain state and plans ordered `{ fn, args }` changes (if any).
 
-7. Generates the solidity code for the updates.
+7. Dispatches the reconciliation result to the selected command. Only `generate` encodes the changes and renders Solidity; `inspect` prints the report, while `verify` checks whether reconciliation is clean.
 
-`index.js` validates the command and RPC configuration, creates the provider, and wires the Agreement reader, payload generator, and command runner through creator closures. It destroys the provider when the command finishes. `agreement.js` uses the injected provider to resolve the Agreement address through `chainlog.js`, construct the Agreement instance, and fetch its details. Its pure `normalizeOnchainState` function converts those details into reconciliation state without network access. `sheet.js` reads and normalizes the Safeharbor Sheet; CSV is its transport format. The RPC URL stays at the entrypoint; the Agreement instance stays inside the reader.
+`index.js` loads the environment and dispatches to `cli.js`. The CLI validates the command and RPC configuration, creates the provider, and wires the Agreement reader and reconciler through creator closures. A plain command map dispatches the reconciliation result to `generate.js`, `inspect.js`, or `verify.js`. The CLI destroys the provider when the command finishes, including encoding or reporting failures. `agreement.js` uses the injected provider to resolve the Agreement address through `chainlog.js`, construct the Agreement instance, and fetch its details. Its pure `normalizeOnchainState` function converts those details into reconciliation state without network access. `sheet.js` reads and normalizes the Safeharbor Sheet; CSV is its transport format. The RPC URL stays at the CLI boundary; the Agreement instance stays inside the reader. `planUpdates.js` plans changes without ABI encoding. The synchronous `generatePayload(changes)` delegates encoding to `agreement.js` and rendering to `generateSolidity.js` without fetching or reporting.
 
 Validation returns plain diagnostics with a stable `code` from the frozen `DIAGNOSTIC_CODES` object exported by `diagnosticCodes.js`, and optional `context` containing raw facts. For example:
 
@@ -76,7 +76,7 @@ The contracts tab in the Safeharbor Sheet is exported as CSV and requires `Statu
 
 Nonblank chain metadata rows must contain all three required fields; incomplete rows produce warnings listing the missing fields, even if those chains are not in the desired state. Completely blank rows are ignored. A row with only an extra column populated is incomplete, not blank.
 
-EVM recovery addresses for desired chains, including newly added chains, are validated with ethers `getAddress`; malformed addresses and invalid mixed-case checksums produce warnings, while valid lowercase addresses are accepted. For chains present in both states, missing on-chain recovery addresses produce warnings, and EVM recovery addresses are compared in canonical checksummed form. Only chains absent from the on-chain state skip comparison. Solana and other non-EVM recovery identifiers are compared exactly, including case; no chain-specific syntax validation is performed for them. Recovery mismatches produce warnings, not recovery-address updates. An empty `updates` array alone does not establish a successful reconciliation: `validationWarnings` must also be empty.
+EVM recovery addresses for desired chains, including newly added chains, are validated with ethers `getAddress`; malformed addresses and invalid mixed-case checksums produce warnings, while valid lowercase addresses are accepted. For chains present in both states, missing on-chain recovery addresses produce warnings, and EVM recovery addresses are compared in canonical checksummed form. Only chains absent from the on-chain state skip comparison. Solana and other non-EVM recovery identifiers are compared exactly, including case; no chain-specific syntax validation is performed for them. Recovery mismatches produce warnings, not recovery-address updates. A clean reconciliation requires `changes: []` and no `validationWarnings`; `changes: null` means validation blocked planning.
 
 Duplicate chain names or IDs in complete metadata rows produce warnings without overwriting earlier mappings. Repeated account addresses within a chain in either desired or current state also produce warnings, including when their scopes differ. These checks run before diffing and block all executable output. Account addresses retain the Agreement's exact, case-sensitive string semantics; the same address may legitimately appear on different chains. Canonical EVM comparison applies only to recovery addresses, not account identifiers.
 
@@ -100,7 +100,7 @@ npm run generate
 
 If any validation warning is reported, `generate` exits with code `2` and prints neither Solidity nor a success message.
 
-On successful inspection, `inspect` outputs the result as JSON, including `updates`, `solidityCode`, and `validationWarnings`, and exits with code `0` even when warnings are present. With warnings, the result is diagnostic only: updates and Solidity are empty. Parsing, network, RPC, configuration, and command errors instead exit with code `1` without a JSON result:
+On successful inspection, `inspect` outputs JSON containing `chainDetails`, `onChainState`, `sheetState`, `changes`, and `validationWarnings`, and exits with code `0` even when warnings are present. Changes are unencoded `{ fn, args }` operations: `[]` means no changes are needed, while `null` means warnings blocked planning. Bigint values are serialized as decimal strings only in the JSON output. Inspection includes neither calldata nor Solidity. Parsing, network, RPC, configuration, and command errors instead exit with code `1` without a JSON result:
 
 ```bash
 npm run inspect
@@ -112,7 +112,7 @@ Verify that the sheet and the on-chain agreement match:
 npm run verify
 ```
 
-`verify` succeeds only when there are no updates and no validation warnings.
+`verify` succeeds only when there are no changes and no validation warnings. It never encodes calldata or renders Solidity.
 
 From the repository root, `make safeharbor-verify` provides the same verification as a convenience command. Use `npm run verify` directly when the distinct non-zero exit codes are required.
 
@@ -130,10 +130,10 @@ In order to obtain machine-readable JSON output of the script, use the following
 npm run --silent inspect > inspect.json
 ```
 
-After checking that `validationWarnings` is empty, see the Solidity code to be reviewed for use in the spell:
+Generate the Solidity snippet directly for review and use in the spell; generation performs its own reconciliation and blocks output on warnings:
 
 ```bash
-jq -r .solidityCode inspect.json
+npm run --silent generate
 ```
 
 # Testing and review

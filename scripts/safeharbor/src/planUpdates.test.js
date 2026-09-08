@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { Interface } from "ethers";
-import { generateUpdates } from "./generateUpdates.js";
+import { planUpdates } from "./planUpdates.js";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -106,7 +106,7 @@ test.each([
 
     let failure;
     try {
-        generateUpdates(current, desired, chainDetails);
+        planUpdates(current, desired, chainDetails);
     } catch (error) {
         failure = error;
     }

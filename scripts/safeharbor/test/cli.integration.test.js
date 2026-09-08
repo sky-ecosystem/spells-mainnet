@@ -1,21 +1,35 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { createCommandRunner } from "../src/cli.js";
-import { createPayloadGenerator } from "../src/generatePayload.js";
+import { Contract, JsonRpcProvider } from "ethers";
+import { main } from "../src/cli.js";
 import {
     CHAIN_DETAILS_SHEET_URL,
     CONTRACTS_IN_SCOPE_SHEET_URL,
 } from "../src/sheet.js";
 
+vi.mock("ethers", async (importOriginal) => ({
+    ...(await importOriginal()),
+    Contract: vi.fn(),
+    JsonRpcProvider: vi.fn(),
+}));
+
 let getAgreementDetails;
-let runCommand;
+let argv;
+let provider;
 let stdout;
 let stderr;
 let warnings;
 
 beforeEach(() => {
     getAgreementDetails = vi.fn();
-    const generatePayload = createPayloadGenerator({ getAgreementDetails });
-    runCommand = createCommandRunner({ generatePayload });
+    argv = process.argv;
+    vi.stubEnv("ETH_RPC_URL", "https://rpc.example");
+    provider = { destroy: vi.fn() };
+    JsonRpcProvider.mockReturnValue(provider);
+    Contract.mockReturnValueOnce({
+        "getAddress(bytes32)": vi
+            .fn()
+            .mockResolvedValue("0x7000000000000000000000000000000000000001"),
+    }).mockReturnValueOnce({ getDetails: getAgreementDetails });
     vi.stubGlobal("fetch", vi.fn());
     stdout = vi.spyOn(console, "log").mockImplementation(() => {});
     stderr = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -23,10 +37,17 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+    process.argv = argv;
+    vi.unstubAllEnvs();
     vi.unstubAllGlobals();
     vi.resetAllMocks();
     vi.restoreAllMocks();
 });
+
+async function runCli(command) {
+    process.argv = ["node", "index.js", command];
+    return main();
+}
 
 function mockSources({ chainCSV, contractCSV, details }) {
     fetch
@@ -60,7 +81,44 @@ describe.each([
                 },
             ],
         },
-        result: { updates: [], solidityCode: "", validationWarnings: [] },
+        solidityCode: "",
+        report: {
+            chainDetails: {
+                caip2ChainId: {
+                    ETHEREUM: "eip155:1",
+                },
+                assetRecoveryAddress: {
+                    ETHEREUM: "0x1000000000000000000000000000000000000001",
+                },
+                name: {
+                    "eip155:1": "ETHEREUM",
+                },
+            },
+            onChainState: {
+                ETHEREUM: {
+                    accounts: [
+                        {
+                            accountAddress:
+                                "0x2000000000000000000000000000000000000001",
+                            childContractScope: "0",
+                        },
+                    ],
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                },
+            },
+            sheetState: {
+                ETHEREUM: [
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000001",
+                        childContractScope: 0,
+                    },
+                ],
+            },
+            changes: [],
+            validationWarnings: [],
+        },
         warningMessages: [],
         exitCodes: { generate: 0, inspect: 0, verify: 0 },
         generateMessage: "No updates to generate",
@@ -84,17 +142,40 @@ describe.each([
                 },
             ],
         },
-        result: {
-            updates: [
+        solidityCode:
+            "bytes[] memory calldatas = new bytes[](1);\n\n// Remove chains: eip155:1\ncalldatas[0] = hex'1e12ef2900000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000086569703135353a31000000000000000000000000000000000000000000000000';\n\n_updateSafeHarbor(calldatas);",
+        report: {
+            chainDetails: {
+                caip2ChainId: {
+                    ETHEREUM: "eip155:1",
+                },
+                assetRecoveryAddress: {
+                    ETHEREUM: "0x1000000000000000000000000000000000000001",
+                },
+                name: {
+                    "eip155:1": "ETHEREUM",
+                },
+            },
+            onChainState: {
+                ETHEREUM: {
+                    accounts: [
+                        {
+                            accountAddress:
+                                "0x2000000000000000000000000000000000000001",
+                            childContractScope: "0",
+                        },
+                    ],
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                },
+            },
+            sheetState: {},
+            changes: [
                 {
-                    function: "removeChains",
+                    fn: "removeChains",
                     args: [["eip155:1"]],
-                    calldata:
-                        "0x1e12ef2900000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000086569703135353a31000000000000000000000000000000000000000000000000",
                 },
             ],
-            solidityCode:
-                "bytes[] memory calldatas = new bytes[](1);\n\n// Remove chains: eip155:1\ncalldatas[0] = hex'1e12ef2900000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000086569703135353a31000000000000000000000000000000000000000000000000';\n\n_updateSafeHarbor(calldatas);",
             validationWarnings: [],
         },
         warningMessages: [],
@@ -121,9 +202,42 @@ describe.each([
                 },
             ],
         },
-        result: {
-            updates: [],
-            solidityCode: "",
+        solidityCode: "",
+        report: {
+            chainDetails: {
+                caip2ChainId: {
+                    ETHEREUM: "eip155:1",
+                },
+                assetRecoveryAddress: {
+                    ETHEREUM: "0x1000000000000000000000000000000000000001",
+                },
+                name: {
+                    "eip155:1": "ETHEREUM",
+                },
+            },
+            onChainState: {
+                ETHEREUM: {
+                    accounts: [
+                        {
+                            accountAddress:
+                                "0x2000000000000000000000000000000000000001",
+                            childContractScope: "0",
+                        },
+                    ],
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000002",
+                },
+            },
+            sheetState: {
+                ETHEREUM: [
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000001",
+                        childContractScope: 0,
+                    },
+                ],
+            },
+            changes: null,
             validationWarnings: [
                 {
                     code: "RECOVERY_ADDRESS_MISMATCH",
@@ -163,9 +277,47 @@ describe.each([
                 },
             ],
         },
-        result: {
-            updates: [],
-            solidityCode: "",
+        solidityCode: "",
+        report: {
+            chainDetails: {
+                caip2ChainId: {
+                    ETHEREUM: "eip155:1",
+                },
+                assetRecoveryAddress: {
+                    ETHEREUM: "0x1000000000000000000000000000000000000001",
+                },
+                name: {
+                    "eip155:1": "ETHEREUM",
+                },
+            },
+            onChainState: {
+                ETHEREUM: {
+                    accounts: [
+                        {
+                            accountAddress:
+                                "0x2000000000000000000000000000000000000001",
+                            childContractScope: "0",
+                        },
+                    ],
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000002",
+                },
+            },
+            sheetState: {
+                ETHEREUM: [
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000002",
+                        childContractScope: 0,
+                    },
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000002",
+                        childContractScope: 2,
+                    },
+                ],
+            },
+            changes: null,
             validationWarnings: [
                 {
                     code: "RECOVERY_ADDRESS_MISMATCH",
@@ -201,25 +353,24 @@ describe.each([
         async (command) => {
             mockSources(fixture);
 
-            expect(await runCommand(command)).toBe(fixture.exitCodes[command]);
+            expect(await runCli(command)).toBe(fixture.exitCodes[command]);
             expect(fetch.mock.calls).toEqual([
                 [CHAIN_DETAILS_SHEET_URL],
                 [CONTRACTS_IN_SCOPE_SHEET_URL],
             ]);
             expect(getAgreementDetails).toHaveBeenCalledExactlyOnceWith();
+            expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
             expect(stderr).not.toHaveBeenCalled();
 
             if (command === "inspect") {
                 expect(stdout.mock.calls).toEqual([
-                    [JSON.stringify(fixture.result, null, 2)],
+                    [JSON.stringify(fixture.report, null, 2)],
                 ]);
             } else if (command === "verify") {
                 expect(stdout.mock.calls).toEqual([[fixture.verifyMessage]]);
             } else {
                 expect(stdout.mock.calls).toEqual(
-                    fixture.result.solidityCode
-                        ? [[fixture.result.solidityCode]]
-                        : [],
+                    fixture.solidityCode ? [[fixture.solidityCode]] : [],
                 );
                 expect(warnings).toHaveBeenLastCalledWith(
                     fixture.generateMessage,
@@ -232,7 +383,7 @@ describe.each([
             if (command === "generate")
                 expectedWarnings.push([fixture.generateMessage]);
             expect(warnings.mock.calls).toEqual(expectedWarnings);
-            if (fixture.result.validationWarnings.length > 0) {
+            if (fixture.report.validationWarnings.length > 0) {
                 expect(warnings).not.toHaveBeenCalledWith(
                     "Payload generation completed successfully.",
                 );
@@ -292,7 +443,7 @@ describe.each([
         async (command) => {
             mockSources(fixture);
 
-            expect(await runCommand(command)).toBe(1);
+            expect(await runCli(command)).toBe(1);
             expect(stdout).not.toHaveBeenCalled();
             expect(stderr).toHaveBeenCalledExactlyOnceWith(
                 "Failed to execute command:",
@@ -315,7 +466,7 @@ describe.each(["generate", "inspect", "verify"])(
             const failure = new Error("CSV unavailable");
             fetch.mockRejectedValue(failure);
 
-            expect(await runCommand(command)).toBe(1);
+            expect(await runCli(command)).toBe(1);
             expect(stderr).toHaveBeenCalledExactlyOnceWith(
                 "Failed to execute command:",
                 "CSV unavailable",
@@ -339,7 +490,7 @@ describe.each(["generate", "inspect", "verify"])(
             const failure = new Error("Agreement state unavailable");
             getAgreementDetails.mockRejectedValue(failure);
 
-            expect(await runCommand(command)).toBe(1);
+            expect(await runCli(command)).toBe(1);
             expect(stderr).toHaveBeenCalledExactlyOnceWith(
                 "Failed to execute command:",
                 "Agreement state unavailable",
