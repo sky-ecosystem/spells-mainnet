@@ -16,11 +16,16 @@ async function downloadAndParse(url) {
             );
         }
 
-        return parse(csvText, {
-            columns: true,
+        let headers = [];
+        const records = parse(csvText, {
+            columns: (columns) => {
+                headers = columns;
+                return columns;
+            },
             skip_empty_lines: true,
             trim: true,
         });
+        return { headers, records };
     } catch (error) {
         console.error("Error downloading CSV:", error.message);
         if (error.message.includes("HTML")) {
@@ -32,6 +37,17 @@ async function downloadAndParse(url) {
             );
         }
         throw error;
+    }
+}
+
+function validateHeaders(headers, requiredHeaders) {
+    const missingHeaders = requiredHeaders.filter(
+        (header) => !headers.includes(header),
+    );
+    if (missingHeaders.length > 0) {
+        throw new Error(
+            `Missing required CSV headers: ${missingHeaders.join(", ")}`,
+        );
     }
 }
 
@@ -57,12 +73,19 @@ function normalizeContractsInScope(records) {
 }
 
 export async function getNormalizedContractsInScopeFromCSV(url) {
-    const records = await downloadAndParse(url);
+    const { headers, records } = await downloadAndParse(url);
+    validateHeaders(headers, [
+        "Status",
+        "Chain",
+        "Address",
+        headers.includes("IsFactory") ? "IsFactory" : "isFactory",
+    ]);
     return normalizeContractsInScope(records);
 }
 
 export async function getChainDetailsFromCSV(url) {
-    const records = await downloadAndParse(url);
+    const { headers, records } = await downloadAndParse(url);
+    validateHeaders(headers, ["Name", "Chain Id", "Asset Recovery Address"]);
     const validationWarnings = [];
 
     // Normalize chain details data
