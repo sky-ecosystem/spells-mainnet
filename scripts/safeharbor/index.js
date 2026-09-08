@@ -1,8 +1,11 @@
 import "dotenv/config";
 import { JsonRpcProvider } from "ethers";
 import { createAgreementReader } from "./src/agreement.js";
-import { createCommandRunner, reportError } from "./src/cli.js";
-import { validateOptions } from "./src/validateOptions.js";
+import {
+    createCommandRunner,
+    reportError,
+    validateOptions,
+} from "./src/cli.js";
 import { formatDiagnostic } from "./src/formatDiagnostic.js";
 import { createPayloadGenerator } from "./src/generatePayload.js";
 

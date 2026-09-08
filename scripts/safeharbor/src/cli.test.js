@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { validateOptions } from "./validateOptions.js";
+import { validateOptions } from "./cli.js";
 
 test.each([
     {
