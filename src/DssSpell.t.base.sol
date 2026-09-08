@@ -3222,7 +3222,7 @@ contract DssSpellTestBase is Config, DssTest {
         if (address(_gem) != address(sky)) {
             assertGe(balance, vestableAmt, _concat(string("TestError/insufficient-transferrable-vest-balance-"), _errSuffix));
         } else {
-            // Note: Change this back to 20 days after 2025-09-10
+            // Note: Change this back to 20 days after 2026-09-10
             // Note: SKY streams will operate out of buybacks, check that balance is sufficient for short term (16 days)
             vm.warp(block.timestamp + 16 days);
 
