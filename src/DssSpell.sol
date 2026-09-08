@@ -112,7 +112,6 @@ contract DssSpellAction is DssAction {
     function actions() public override {
         // ---------- Monthly Settlement Cycle for August 2026 ----------
         // Forum: https://forum.skyeco.com/t/msc-12-settlement-summary-august-2026/28217
-        // Forum: https://forum.skyeco.com/t/treasury-management-function-tmf-configurations/28153/5
         // Atlas: https://sky-atlas.io/#6f8d5065-d6ff-4add-9a28-eadeffa7ed1a
 
         // Mint 6,357,912 USDS debt in ALLOCATOR-SPARK-A and transfer the amount to the surplus buffer.
@@ -146,6 +145,7 @@ contract DssSpellAction is DssAction {
         _transferUsds(OSERO_SUBPROXY, 30_156 * WAD);
 
         // Send 3,149,060 USDS from the surplus buffer to the Core Council Buffer (0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364)
+        // Forum: https://forum.skyeco.com/t/treasury-management-function-tmf-configurations/28153/5
         _transferUsds(CORE_COUNCIL_BUDGET_MULTISIG, 3_149_060 * WAD);
 
         // ---------- Treasury Management Function ----------
