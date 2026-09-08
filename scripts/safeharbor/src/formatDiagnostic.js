@@ -37,6 +37,16 @@ export const diagnosticTemplates = {
         "Problematic accounts found in chain {chainName}: {accounts}",
 };
 
+export function formatDiagnostic({ code, context = {} }) {
+    if (!Object.hasOwn(diagnosticTemplates, code)) {
+        throw new Error(`Unknown diagnostic code: ${code}`);
+    }
+    return renderTemplate(diagnosticTemplates[code], {
+        ...context,
+        ...formatContext[code]?.(context),
+    });
+}
+
 const formatContext = {
     INVALID_EVM_RECOVERY_ADDRESS: (context) => ({
         onchainRecoveryAddress: context.isNewChain
@@ -55,16 +65,6 @@ const formatContext = {
         ),
     }),
 };
-
-export function formatDiagnostic({ code, context = {} }) {
-    if (!Object.hasOwn(diagnosticTemplates, code)) {
-        throw new Error(`Unknown diagnostic code: ${code}`);
-    }
-    return renderTemplate(diagnosticTemplates[code], {
-        ...context,
-        ...formatContext[code]?.(context),
-    });
-}
 
 function renderTemplate(template, values) {
     return template.replace(/\{(\w+)\}/g, (_, key) => {

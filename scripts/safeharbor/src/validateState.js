@@ -94,12 +94,6 @@ export function createStateValidators(onChainState, sheetState, chainDetails) {
     };
 }
 
-function findDuplicateAccountAddresses(accounts) {
-    const addresses = accounts.map(({ accountAddress }) => accountAddress);
-    const duplicateIndexes = findDuplicateIndexes(addresses);
-    return [...new Set([...duplicateIndexes].map((index) => addresses[index]))];
-}
-
 export function createRecoveryAddressValidator(
     chainId,
     { chainName, isNewChain, onchainRecoveryAddress, sheetRecoveryAddress },
@@ -141,4 +135,10 @@ export function createRecoveryAddressValidator(
     return chainId?.startsWith("eip155:")
         ? validateEvmRecoveryAddress
         : validateNonEvmRecoveryAddress;
+}
+
+function findDuplicateAccountAddresses(accounts) {
+    const addresses = accounts.map(({ accountAddress }) => accountAddress);
+    const duplicateIndexes = findDuplicateIndexes(addresses);
+    return [...new Set([...duplicateIndexes].map((index) => addresses[index]))];
 }

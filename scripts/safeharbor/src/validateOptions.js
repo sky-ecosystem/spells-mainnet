@@ -1,5 +1,3 @@
-const COMMANDS = new Set(["generate", "inspect", "verify"]);
-
 export function validateOptions({ command, rpcUrl }) {
     if (!command) return [{ code: "COMMAND_REQUIRED" }];
     if (!COMMANDS.has(command)) {
@@ -7,3 +5,5 @@ export function validateOptions({ command, rpcUrl }) {
     }
     return rpcUrl ? [] : [{ code: "RPC_URL_REQUIRED" }];
 }
+
+const COMMANDS = new Set(["generate", "inspect", "verify"]);

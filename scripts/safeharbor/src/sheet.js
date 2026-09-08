@@ -2,6 +2,29 @@ import { parse } from "csv-parse/sync";
 import { findDuplicateIndexes } from "./utils/findDuplicateIndexes.js";
 import { validateHeaders } from "./validateHeaders.js";
 
+export async function getNormalizedContractsInScopeFromSheet(url) {
+    const { headers, records } = await downloadAndParse(url);
+    const [diagnostic] = validateHeaders(headers, [
+        "Status",
+        "Chain",
+        "Address",
+        headers.includes("IsFactory") ? "IsFactory" : "isFactory",
+    ]);
+    if (diagnostic) {
+        throw Object.assign(new Error(diagnostic.code), { diagnostic });
+    }
+    return normalizeContractsInScope(records);
+}
+
+export async function getChainDetailsFromSheet(url) {
+    const { headers, records } = await downloadAndParse(url);
+    const [diagnostic] = validateHeaders(headers, CHAIN_DETAILS_HEADERS);
+    if (diagnostic) {
+        throw Object.assign(new Error(diagnostic.code), { diagnostic });
+    }
+    return normalizeChainDetails(records);
+}
+
 const CHAIN_DETAILS_HEADERS = ["Name", "Chain Id", "Asset Recovery Address"];
 
 async function downloadAndParse(url) {
@@ -46,29 +69,6 @@ function normalizeContractsInScope(records) {
             });
             return chains;
         }, {});
-}
-
-export async function getNormalizedContractsInScopeFromSheet(url) {
-    const { headers, records } = await downloadAndParse(url);
-    const [diagnostic] = validateHeaders(headers, [
-        "Status",
-        "Chain",
-        "Address",
-        headers.includes("IsFactory") ? "IsFactory" : "isFactory",
-    ]);
-    if (diagnostic) {
-        throw Object.assign(new Error(diagnostic.code), { diagnostic });
-    }
-    return normalizeContractsInScope(records);
-}
-
-export async function getChainDetailsFromSheet(url) {
-    const { headers, records } = await downloadAndParse(url);
-    const [diagnostic] = validateHeaders(headers, CHAIN_DETAILS_HEADERS);
-    if (diagnostic) {
-        throw Object.assign(new Error(diagnostic.code), { diagnostic });
-    }
-    return normalizeChainDetails(records);
 }
 
 function normalizeChainDetails(records) {

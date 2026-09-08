@@ -1,6 +1,28 @@
 import { Interface } from "ethers";
 import { AGREEMENT_V3_ABI as AGREEMENT_ABI } from "./abis.js";
 
+// The caller must validate state before generating executable updates.
+export function generateUpdates(onChainState, sheetState, chainDetails) {
+    const [diagnostic] = validateUpdateInputs(onChainState, sheetState);
+    if (diagnostic) {
+        throw Object.assign(new Error(diagnostic.code), { diagnostic });
+    }
+
+    const { updates: chainUpdates, chainsToRemove } = generateChainUpdates(
+        onChainState,
+        sheetState,
+        chainDetails,
+    );
+    const accountUpdates = generateAccountUpdates(
+        onChainState,
+        sheetState,
+        chainDetails,
+        chainsToRemove,
+    );
+
+    return [...chainUpdates, ...accountUpdates];
+}
+
 const agreementInterface = new Interface(AGREEMENT_ABI);
 
 function encodeUpdate(functionName, args) {
@@ -135,28 +157,6 @@ function generateChainUpdates(onChainState, sheetState, chainDetails) {
     }
 
     return { updates, chainsToRemove };
-}
-
-// The caller must validate state before generating executable updates.
-export function generateUpdates(onChainState, sheetState, chainDetails) {
-    const [diagnostic] = validateUpdateInputs(onChainState, sheetState);
-    if (diagnostic) {
-        throw Object.assign(new Error(diagnostic.code), { diagnostic });
-    }
-
-    const { updates: chainUpdates, chainsToRemove } = generateChainUpdates(
-        onChainState,
-        sheetState,
-        chainDetails,
-    );
-    const accountUpdates = generateAccountUpdates(
-        onChainState,
-        sheetState,
-        chainDetails,
-        chainsToRemove,
-    );
-
-    return [...chainUpdates, ...accountUpdates];
 }
 
 function validateUpdateInputs(onChainState, sheetState) {
