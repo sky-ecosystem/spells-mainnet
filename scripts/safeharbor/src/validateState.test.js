@@ -3,7 +3,7 @@ import {
     createRecoveryAddressValidator,
     createStateValidators,
     validateState,
-} from "../src/validateState.js";
+} from "./validateState.js";
 
 describe("duplicate account validation", () => {
     test.each([

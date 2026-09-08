@@ -1,5 +1,5 @@
 import { getAddress } from "ethers";
-import { findDuplicateIndexes } from "./utils/findDuplicateIndexes.js";
+import { findDuplicateIndexes } from "./findDuplicateIndexes.js";
 
 export function validateState(onChainState, sheetState, chainDetails) {
     const {

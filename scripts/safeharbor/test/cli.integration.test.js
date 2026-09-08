@@ -4,7 +4,7 @@ import { createPayloadGenerator } from "../src/generatePayload.js";
 import {
     CHAIN_DETAILS_SHEET_URL,
     CONTRACTS_IN_SCOPE_SHEET_URL,
-} from "../src/constants.js";
+} from "../src/sheet.js";
 
 let getAgreementDetails;
 let runCommand;

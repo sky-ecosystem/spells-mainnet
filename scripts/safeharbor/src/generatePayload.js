@@ -1,15 +1,13 @@
 import {
     getChainDetailsFromSheet,
     getNormalizedContractsInScopeFromSheet,
+    CHAIN_DETAILS_SHEET_URL,
+    CONTRACTS_IN_SCOPE_SHEET_URL,
 } from "./sheet.js";
 import { normalizeOnchainState } from "./agreement.js";
 import { validateState } from "./validateState.js";
 import { generateUpdates } from "./generateUpdates.js";
-import { generateSolidityCode } from "./utils/generateSolidity.js";
-import {
-    CHAIN_DETAILS_SHEET_URL,
-    CONTRACTS_IN_SCOPE_SHEET_URL,
-} from "./constants.js";
+import { generateSolidityCode } from "./generateSolidity.js";
 
 /**
  * Create a generator that reconciles Safeharbor Sheet and Agreement state without reporting.

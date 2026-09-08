@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { Interface } from "ethers";
-import { generateUpdates } from "../src/generateUpdates.js";
+import { generateUpdates } from "./generateUpdates.js";
 
 afterEach(() => vi.restoreAllMocks());
 

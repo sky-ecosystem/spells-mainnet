@@ -1,7 +1,6 @@
 import { Contract } from "ethers";
 import { AGREEMENT_V3_ABI } from "./abis.js";
 import { getChainlogAddress } from "./chainlog.js";
-import { AGREEMENT_CHAINLOG_KEY } from "./constants.js";
 
 export function createAgreementReader({ provider }) {
     return async function getAgreementDetails() {
@@ -43,3 +42,5 @@ export function normalizeOnchainState(details, chainDetails) {
 
     return { onChainState, validationWarnings };
 }
+
+const AGREEMENT_CHAINLOG_KEY = "SAFE_HARBOR_AGREEMENT";

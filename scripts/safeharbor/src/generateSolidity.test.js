@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { generateSolidityCode } from "../src/utils/generateSolidity.js";
+import { generateSolidityCode } from "./generateSolidity.js";
 
 test("wraps update calldata in the SafeHarbor Solidity template", () => {
     const code = generateSolidityCode([

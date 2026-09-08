@@ -1,6 +1,7 @@
 import { Contract, encodeBytes32String } from "ethers";
 import { CHAINLOG_ABI } from "./abis.js";
-import { CHAINLOG_ADDRESS } from "./constants.js";
+
+export const CHAINLOG_ADDRESS = "0xdA0Ab1e0017DEbCd72Be8599041a2aa3bA7e740F";
 
 export async function getChainlogAddress(provider, key) {
     const chainlogInstance = new Contract(
