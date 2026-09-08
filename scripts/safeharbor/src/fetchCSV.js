@@ -1,6 +1,8 @@
 import { parse } from "csv-parse/sync";
 import { findDuplicateIndexes } from "./utils/findDuplicateIndexes.js";
 
+const CHAIN_DETAILS_HEADERS = ["Name", "Chain Id", "Asset Recovery Address"];
+
 async function downloadAndParse(url) {
     console.warn(`Fetching CSV from ${url}`);
     try {
@@ -86,16 +88,13 @@ export async function getNormalizedContractsInScopeFromCSV(url) {
 
 export async function getChainDetailsFromCSV(url) {
     const { headers, records } = await downloadAndParse(url);
-    validateHeaders(headers, ["Name", "Chain Id", "Asset Recovery Address"]);
+    validateHeaders(headers, CHAIN_DETAILS_HEADERS);
     return normalizeChainDetails(records);
 }
 
 function normalizeChainDetails(records) {
     const chains = records.filter(
-        (record) =>
-            record.Name &&
-            record["Chain Id"] &&
-            record["Asset Recovery Address"],
+        (record) => getMissingChainFields(record).length === 0,
     );
     const duplicateNameIndexes = findDuplicateIndexes(
         chains.map((chain) => chain.Name),
@@ -122,13 +121,26 @@ function normalizeChainDetails(records) {
                 uniqueChains.map((chain) => [chain["Chain Id"], chain.Name]),
             ),
         },
-        validationWarnings: chains.flatMap((chain, index) => [
-            ...(duplicateNameIndexes.has(index)
-                ? [`Duplicate chain name found in CSV: ${chain.Name}`]
-                : []),
-            ...(duplicateIdIndexes.has(index)
-                ? [`Duplicate chain ID found in CSV: ${chain["Chain Id"]}`]
-                : []),
-        ]),
+        validationWarnings: [
+            ...records
+                .filter((record) => Object.values(record).some(Boolean))
+                .filter((record) => getMissingChainFields(record).length > 0)
+                .map(
+                    (record) =>
+                        `Incomplete chain details in CSV: name='${record.Name}', chainId='${record["Chain Id"]}'; missing ${getMissingChainFields(record).join(", ")}`,
+                ),
+            ...chains.flatMap((chain, index) => [
+                ...(duplicateNameIndexes.has(index)
+                    ? [`Duplicate chain name found in CSV: ${chain.Name}`]
+                    : []),
+                ...(duplicateIdIndexes.has(index)
+                    ? [`Duplicate chain ID found in CSV: ${chain["Chain Id"]}`]
+                    : []),
+            ]),
+        ],
     };
+}
+
+function getMissingChainFields(record) {
+    return CHAIN_DETAILS_HEADERS.filter((field) => !record[field]);
 }

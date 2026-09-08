@@ -2,54 +2,54 @@ import { test, expect, describe, vi, beforeEach, afterEach } from "vitest";
 import assert from "node:assert";
 import { Interface } from "ethers";
 import { generatePayload } from "../src/generatePayload.js";
-import { generateUpdates } from "../src/generateUpdates.js";
 import { AGREEMENT_V3_ABI } from "../src/abis.js";
-
-// Mock the dependencies
-vi.mock("../src/fetchCSV.js", async (importOriginal) => {
-    const actual = await importOriginal();
-    return {
-        ...actual,
-        getNormalizedContractsInScopeFromCSV: vi.fn(),
-        getChainDetailsFromCSV: vi.fn(),
-    };
-});
-vi.mock("../src/fetchOnchain.js");
-vi.mock("../src/generateUpdates.js", { spy: true });
-vi.mock("fs", () => ({
-    writeFileSync: vi.fn(),
-}));
-
-import {
-    getNormalizedContractsInScopeFromCSV,
-    getChainDetailsFromCSV,
-} from "../src/fetchCSV.js";
-import { getNormalizedDataFromOnchainState } from "../src/fetchOnchain.js";
 
 let consoleWarnSpy;
 let consoleErrorSpy;
 let encodeSpy;
 
+beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn());
+    consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    encodeSpy = vi.spyOn(Interface.prototype, "encodeFunctionData");
+});
+
+afterEach(() => {
+    try {
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+    } finally {
+        vi.restoreAllMocks();
+        vi.unstubAllGlobals();
+    }
+});
+
+async function generateFrom({ chainCSV, contractCSV, details }) {
+    fetch
+        .mockResolvedValueOnce(
+            new Response(chainCSV, { headers: { "content-type": "text/csv" } }),
+        )
+        .mockResolvedValueOnce(
+            new Response(contractCSV, {
+                headers: { "content-type": "text/csv" },
+            }),
+        );
+    return generatePayload({ getDetails: vi.fn().mockResolvedValue(details) });
+}
+
 // Static synthetic fixtures shaped like production EVM and Solana identifiers.
 const RECOVERY = {
     ETH: "0x1000000000000000000000000000000000000001",
-    BASE: "0x1000000000000000000000000000000000000002",
-    ARB: "0x1000000000000000000000000000000000000003",
     OP: "0x1000000000000000000000000000000000000004",
     SOL: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
     MISMATCH: "0x10000000000000000000000000000000000000ff",
 };
 
 const ACCOUNT = {
-    ETH1: "0x2000000000000000000000000000000000000001",
     ETH2: "0x2000000000000000000000000000000000000002",
     ETH3: "0x2000000000000000000000000000000000000003",
-    ETHF: "0x2000000000000000000000000000000000000004",
-    ETHR: "0x2000000000000000000000000000000000000005",
-    BASE1: "0x3000000000000000000000000000000000000001",
     BASE2: "0x3000000000000000000000000000000000000002",
     ARB1: "0x4000000000000000000000000000000000000001",
-    ARB2: "0x4000000000000000000000000000000000000002",
     ARB3: "0x4000000000000000000000000000000000000003",
     OP1: "0x5000000000000000000000000000000000000001",
     OP2: "0x5000000000000000000000000000000000000002",
@@ -57,112 +57,62 @@ const ACCOUNT = {
     OPR1: "0x5000000000000000000000000000000000000004",
     OPR2: "0x5000000000000000000000000000000000000005",
     SOL1: "3EKkiwNLWqoUbzFkPrmKbtUB4EweE6f4STzevYUmezeL",
-    UNKNOWN: "0x6000000000000000000000000000000000000001",
 };
 
-const CHAIN_DETAILS = {
-    caip2ChainId: {
-        ETHEREUM: "eip155:1",
-        BASE: "eip155:8453",
-        ARBITRUM: "eip155:42161",
-        OPTIMISM: "eip155:10",
-        SOLANA: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
-    },
-    assetRecoveryAddress: {
-        ETHEREUM: RECOVERY.ETH,
-        BASE: RECOVERY.BASE,
-        ARBITRUM: RECOVERY.ARB,
-        OPTIMISM: RECOVERY.OP,
-        SOLANA: RECOVERY.SOL,
-    },
-    name: {
-        "eip155:1": "ETHEREUM",
-        "eip155:8453": "BASE",
-        "eip155:42161": "ARBITRUM",
-        "eip155:10": "OPTIMISM",
-        "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp": "SOLANA",
-    },
-};
-
-function mockOnChainState(onChainState, validationWarnings = []) {
-    getNormalizedDataFromOnchainState.mockResolvedValue({
-        onChainState,
-        validationWarnings,
-    });
-}
-
-describe("generatePayload with normalized input fixtures", () => {
-    beforeEach(() => {
-        vi.clearAllMocks();
-        encodeSpy = vi.spyOn(Interface.prototype, "encodeFunctionData");
-        consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-        consoleErrorSpy = vi
-            .spyOn(console, "error")
-            .mockImplementation(() => {});
-        getChainDetailsFromCSV.mockResolvedValue({
-            chainDetails: CHAIN_DETAILS,
-            validationWarnings: [],
-        });
-    });
-
-    afterEach(() => {
-        try {
-            expect(consoleErrorSpy).not.toHaveBeenCalled();
-        } finally {
-            consoleWarnSpy.mockRestore();
-            consoleErrorSpy.mockRestore();
-            encodeSpy.mockRestore();
-        }
-    });
-
-    const INITIAL_ONCHAIN_STATE = {
-        ETHEREUM: {
-            accounts: [
-                { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
-                { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
-            ],
-            assetRecoveryAddress: RECOVERY.ETH,
-        },
-        BASE: {
-            accounts: [
-                { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
-            ],
-            assetRecoveryAddress: RECOVERY.BASE,
-        },
-        ARBITRUM: {
-            accounts: [
-                { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
-                { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
-            ],
-            assetRecoveryAddress: RECOVERY.ARB,
-        },
-    };
-    async function generateFrom(
-        csvState,
-        onChainState = INITIAL_ONCHAIN_STATE,
-    ) {
-        mockOnChainState(onChainState);
-        getNormalizedContractsInScopeFromCSV.mockResolvedValue(csvState);
-        return generatePayload("");
-    }
-
+describe("generatePayload", () => {
     describe("No changes scenario", () => {
         test("should generate no updates when onchain and CSV data match", async () => {
-            const csvData = {
-                ETHEREUM: [
-                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
-                    { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
-                ],
-                BASE: [
-                    { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
-                ],
-                ARBITRUM: [
-                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
-                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
-                ],
-            };
-
-            const result = await generateFrom(csvData);
+            const result = await generateFrom({
+                chainCSV:
+                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
+                contractCSV:
+                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE\nACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE\n",
+                details: {
+                    chains: [
+                        {
+                            caip2ChainId: "eip155:1",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000001",
+                            accounts: [
+                                [
+                                    "0x2000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                                [
+                                    "0x2000000000000000000000000000000000000002",
+                                    2n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:8453",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000002",
+                            accounts: [
+                                [
+                                    "0x3000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:42161",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000003",
+                            accounts: [
+                                [
+                                    "0x4000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                                [
+                                    "0x4000000000000000000000000000000000000002",
+                                    0n,
+                                ],
+                            ],
+                        },
+                    ],
+                },
+            });
 
             // Assert - should have empty result since no changes needed
             assert.strictEqual(result.updates.length, 0);
@@ -173,23 +123,57 @@ describe("generatePayload with normalized input fixtures", () => {
 
     describe("Account addition scenarios", () => {
         test("should generate addAccounts updates when new accounts are added to existing chains", async () => {
-            const csvData = {
-                ETHEREUM: [
-                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
-                    { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
-                    { accountAddress: ACCOUNT.ETH3, childContractScope: 0 },
-                ],
-                BASE: [
-                    { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
-                    { accountAddress: ACCOUNT.BASE2, childContractScope: 2 },
-                ],
-                ARBITRUM: [
-                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
-                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
-                ],
-            };
-
-            const result = await generateFrom(csvData);
+            const result = await generateFrom({
+                chainCSV:
+                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
+                contractCSV:
+                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE\nACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE\nACTIVE,BASE,0x3000000000000000000000000000000000000002,TRUE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE\n",
+                details: {
+                    chains: [
+                        {
+                            caip2ChainId: "eip155:1",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000001",
+                            accounts: [
+                                [
+                                    "0x2000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                                [
+                                    "0x2000000000000000000000000000000000000002",
+                                    2n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:8453",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000002",
+                            accounts: [
+                                [
+                                    "0x3000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:42161",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000003",
+                            accounts: [
+                                [
+                                    "0x4000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                                [
+                                    "0x4000000000000000000000000000000000000002",
+                                    0n,
+                                ],
+                            ],
+                        },
+                    ],
+                },
+            });
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 2);
             const addAccountsUpdates = result.updates.filter(
@@ -214,19 +198,57 @@ describe("generatePayload with normalized input fixtures", () => {
     });
     describe("Account removal scenarios", () => {
         test("should generate removeAccounts updates when accounts are removed", async () => {
-            const csvData = {
-                ETHEREUM: [
-                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
-                ],
-                BASE: [
-                    { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
-                ],
-                ARBITRUM: [
-                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
-                ],
-            };
-
-            const result = await generateFrom(csvData);
+            const result = await generateFrom({
+                chainCSV:
+                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
+                contractCSV:
+                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE\n",
+                details: {
+                    chains: [
+                        {
+                            caip2ChainId: "eip155:1",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000001",
+                            accounts: [
+                                [
+                                    "0x2000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                                [
+                                    "0x2000000000000000000000000000000000000002",
+                                    2n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:8453",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000002",
+                            accounts: [
+                                [
+                                    "0x3000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:42161",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000003",
+                            accounts: [
+                                [
+                                    "0x4000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                                [
+                                    "0x4000000000000000000000000000000000000002",
+                                    0n,
+                                ],
+                            ],
+                        },
+                    ],
+                },
+            });
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 2);
             const removeAccountsUpdates = result.updates.filter(
@@ -247,28 +269,57 @@ describe("generatePayload with normalized input fixtures", () => {
     });
     describe("Chain addition scenarios", () => {
         test("should generate addChains updates when new chains are introduced", async () => {
-            const csvData = {
-                ETHEREUM: [
-                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
-                    { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
-                ],
-                BASE: [
-                    { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
-                ],
-                ARBITRUM: [
-                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
-                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
-                ],
-                OPTIMISM: [
-                    { accountAddress: ACCOUNT.OP1, childContractScope: 0 },
-                    { accountAddress: ACCOUNT.OP2, childContractScope: 2 },
-                ],
-                SOLANA: [
-                    { accountAddress: ACCOUNT.SOL1, childContractScope: 0 },
-                ],
-            };
-
-            const result = await generateFrom(csvData);
+            const result = await generateFrom({
+                chainCSV:
+                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
+                contractCSV:
+                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE\nACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE\nACTIVE,OPTIMISM,0x5000000000000000000000000000000000000001,FALSE\nACTIVE,OPTIMISM,0x5000000000000000000000000000000000000002,TRUE\nACTIVE,SOLANA,3EKkiwNLWqoUbzFkPrmKbtUB4EweE6f4STzevYUmezeL,FALSE\n",
+                details: {
+                    chains: [
+                        {
+                            caip2ChainId: "eip155:1",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000001",
+                            accounts: [
+                                [
+                                    "0x2000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                                [
+                                    "0x2000000000000000000000000000000000000002",
+                                    2n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:8453",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000002",
+                            accounts: [
+                                [
+                                    "0x3000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:42161",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000003",
+                            accounts: [
+                                [
+                                    "0x4000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                                [
+                                    "0x4000000000000000000000000000000000000002",
+                                    0n,
+                                ],
+                            ],
+                        },
+                    ],
+                },
+            });
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 1);
             const addChainsUpdates = result.updates.filter(
@@ -299,45 +350,60 @@ describe("generatePayload with normalized input fixtures", () => {
                 { accountAddress: ACCOUNT.SOL1, childContractScope: 0 },
             ]);
         });
-        test("should reject adding a new chain without accounts", async () => {
-            const csvData = {
-                ETHEREUM: [
-                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
-                    { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
-                ],
-                BASE: [
-                    { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
-                ],
-                ARBITRUM: [
-                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
-                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
-                ],
-                OPTIMISM: [],
-            };
-
-            await assert.rejects(
-                () => generateFrom(csvData),
-                /Cannot add chain 'OPTIMISM' without accounts/,
-            );
-            expect(consoleErrorSpy).toHaveBeenCalledWith(
-                "Error generating update payload:",
-                expect.objectContaining({
-                    message: "Cannot add chain 'OPTIMISM' without accounts",
-                }),
-            );
-            consoleErrorSpy.mockClear();
-        });
     });
     describe("Chain removal scenarios", () => {
         test("should generate removeChains updates when chains are removed", async () => {
-            const csvData = {
-                ETHEREUM: [
-                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
-                    { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
-                ],
-            };
-
-            const result = await generateFrom(csvData);
+            const result = await generateFrom({
+                chainCSV:
+                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
+                contractCSV:
+                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE\n",
+                details: {
+                    chains: [
+                        {
+                            caip2ChainId: "eip155:1",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000001",
+                            accounts: [
+                                [
+                                    "0x2000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                                [
+                                    "0x2000000000000000000000000000000000000002",
+                                    2n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:8453",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000002",
+                            accounts: [
+                                [
+                                    "0x3000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:42161",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000003",
+                            accounts: [
+                                [
+                                    "0x4000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                                [
+                                    "0x4000000000000000000000000000000000000002",
+                                    0n,
+                                ],
+                            ],
+                        },
+                    ],
+                },
+            });
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 1);
             const removeChainsUpdates = result.updates.filter(
@@ -352,22 +418,57 @@ describe("generatePayload with normalized input fixtures", () => {
     });
     describe("Complex mixed scenarios", () => {
         test("should handle simultaneous chain additions, removals, and account changes", async () => {
-            const csvData = {
-                ETHEREUM: [
-                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
-                    { accountAddress: ACCOUNT.ETH3, childContractScope: 0 },
-                ],
-                ARBITRUM: [
-                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
-                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
-                    { accountAddress: ACCOUNT.ARB3, childContractScope: 2 },
-                ],
-                OPTIMISM: [
-                    { accountAddress: ACCOUNT.OP1, childContractScope: 0 },
-                ],
-            };
-
-            const result = await generateFrom(csvData);
+            const result = await generateFrom({
+                chainCSV:
+                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
+                contractCSV:
+                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000003,TRUE\nACTIVE,OPTIMISM,0x5000000000000000000000000000000000000001,FALSE\n",
+                details: {
+                    chains: [
+                        {
+                            caip2ChainId: "eip155:1",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000001",
+                            accounts: [
+                                [
+                                    "0x2000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                                [
+                                    "0x2000000000000000000000000000000000000002",
+                                    2n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:8453",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000002",
+                            accounts: [
+                                [
+                                    "0x3000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:42161",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000003",
+                            accounts: [
+                                [
+                                    "0x4000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                                [
+                                    "0x4000000000000000000000000000000000000002",
+                                    0n,
+                                ],
+                            ],
+                        },
+                    ],
+                },
+            });
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 5);
             const chainUpdates = result.updates.filter(
@@ -431,19 +532,57 @@ describe("generatePayload with normalized input fixtures", () => {
             expect(result.validationWarnings).toEqual([]);
         });
         test("should preserve childContractScope values correctly in complex scenarios", async () => {
-            const csvData = {
-                ETHEREUM: [
-                    { accountAddress: ACCOUNT.ETHF, childContractScope: 2 },
-                    { accountAddress: ACCOUNT.ETHR, childContractScope: 0 },
-                ],
-                OPTIMISM: [
-                    { accountAddress: ACCOUNT.OPF, childContractScope: 2 },
-                    { accountAddress: ACCOUNT.OPR1, childContractScope: 0 },
-                    { accountAddress: ACCOUNT.OPR2, childContractScope: 0 },
-                ],
-            };
-
-            const result = await generateFrom(csvData);
+            const result = await generateFrom({
+                chainCSV:
+                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
+                contractCSV:
+                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000004,TRUE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000005,FALSE\nACTIVE,OPTIMISM,0x5000000000000000000000000000000000000003,TRUE\nACTIVE,OPTIMISM,0x5000000000000000000000000000000000000004,FALSE\nACTIVE,OPTIMISM,0x5000000000000000000000000000000000000005,FALSE\n",
+                details: {
+                    chains: [
+                        {
+                            caip2ChainId: "eip155:1",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000001",
+                            accounts: [
+                                [
+                                    "0x2000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                                [
+                                    "0x2000000000000000000000000000000000000002",
+                                    2n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:8453",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000002",
+                            accounts: [
+                                [
+                                    "0x3000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:42161",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000003",
+                            accounts: [
+                                [
+                                    "0x4000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                                [
+                                    "0x4000000000000000000000000000000000000002",
+                                    0n,
+                                ],
+                            ],
+                        },
+                    ],
+                },
+            });
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 4);
             const addChainUpdate = result.updates.find(
@@ -477,49 +616,58 @@ describe("generatePayload with normalized input fixtures", () => {
         });
     });
     describe("Edge cases", () => {
-        test("should reject an existing chain without desired accounts", async () => {
-            const csvData = {
-                ETHEREUM: [
-                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
-                    { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
-                ],
-                BASE: [],
-                ARBITRUM: [
-                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
-                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
-                ],
-            };
-
-            await assert.rejects(
-                () => generateFrom(csvData),
-                /Chain 'BASE' must be removed instead of configured without accounts/,
-            );
-            expect(consoleErrorSpy).toHaveBeenCalledWith(
-                "Error generating update payload:",
-                expect.objectContaining({
-                    message:
-                        "Chain 'BASE' must be removed instead of configured without accounts",
-                }),
-            );
-            consoleErrorSpy.mockClear();
-        });
-
         test("should add before removing for a full account replacement", async () => {
-            const csvData = {
-                ETHEREUM: [
-                    { accountAddress: ACCOUNT.ETH3, childContractScope: 0 },
-                    { accountAddress: ACCOUNT.ETHF, childContractScope: 2 },
-                ],
-                BASE: [
-                    { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
-                ],
-                ARBITRUM: [
-                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
-                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
-                ],
-            };
-
-            const result = await generateFrom(csvData);
+            const result = await generateFrom({
+                chainCSV:
+                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
+                contractCSV:
+                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000004,TRUE\nACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE\n",
+                details: {
+                    chains: [
+                        {
+                            caip2ChainId: "eip155:1",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000001",
+                            accounts: [
+                                [
+                                    "0x2000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                                [
+                                    "0x2000000000000000000000000000000000000002",
+                                    2n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:8453",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000002",
+                            accounts: [
+                                [
+                                    "0x3000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:42161",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000003",
+                            accounts: [
+                                [
+                                    "0x4000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                                [
+                                    "0x4000000000000000000000000000000000000002",
+                                    0n,
+                                ],
+                            ],
+                        },
+                    ],
+                },
+            });
             const ethereumUpdates = result.updates.filter(
                 (update) => update.args[0] === "eip155:1",
             );
@@ -531,21 +679,57 @@ describe("generatePayload with normalized input fixtures", () => {
         });
 
         test("should add before removing for a sole-account scope change", async () => {
-            const csvData = {
-                ETHEREUM: [
-                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
-                    { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
-                ],
-                BASE: [
-                    { accountAddress: ACCOUNT.BASE1, childContractScope: 2 },
-                ],
-                ARBITRUM: [
-                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
-                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
-                ],
-            };
-
-            const result = await generateFrom(csvData);
+            const result = await generateFrom({
+                chainCSV:
+                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
+                contractCSV:
+                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE\nACTIVE,BASE,0x3000000000000000000000000000000000000001,TRUE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE\n",
+                details: {
+                    chains: [
+                        {
+                            caip2ChainId: "eip155:1",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000001",
+                            accounts: [
+                                [
+                                    "0x2000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                                [
+                                    "0x2000000000000000000000000000000000000002",
+                                    2n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:8453",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000002",
+                            accounts: [
+                                [
+                                    "0x3000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:42161",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000003",
+                            accounts: [
+                                [
+                                    "0x4000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                                [
+                                    "0x4000000000000000000000000000000000000002",
+                                    0n,
+                                ],
+                            ],
+                        },
+                    ],
+                },
+            });
             const baseUpdates = result.updates.filter(
                 (update) => update.args[0] === "eip155:8453",
             );
@@ -557,12 +741,15 @@ describe("generatePayload with normalized input fixtures", () => {
         });
 
         test("should handle completely empty onchain state", async () => {
-            const csvData = {
-                ETHEREUM: [
-                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
-                ],
-            };
-            const result = await generateFrom(csvData, {});
+            const result = await generateFrom({
+                chainCSV:
+                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
+                contractCSV:
+                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+                details: {
+                    chains: [],
+                },
+            });
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 1);
             const addChainsUpdates = result.updates.filter(
@@ -575,7 +762,56 @@ describe("generatePayload with normalized input fixtures", () => {
             assert.strictEqual(removeUpdates.length, 0);
         });
         test("should handle completely empty CSV state", async () => {
-            const result = await generateFrom({});
+            const result = await generateFrom({
+                chainCSV:
+                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
+                contractCSV: "Status,Chain,Address,isFactory\n",
+                details: {
+                    chains: [
+                        {
+                            caip2ChainId: "eip155:1",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000001",
+                            accounts: [
+                                [
+                                    "0x2000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                                [
+                                    "0x2000000000000000000000000000000000000002",
+                                    2n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:8453",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000002",
+                            accounts: [
+                                [
+                                    "0x3000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:42161",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000003",
+                            accounts: [
+                                [
+                                    "0x4000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                                [
+                                    "0x4000000000000000000000000000000000000002",
+                                    0n,
+                                ],
+                            ],
+                        },
+                    ],
+                },
+            });
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
             assert.strictEqual(result.updates.length, 1);
             const removeChainsUpdates = result.updates.filter(
@@ -589,46 +825,84 @@ describe("generatePayload with normalized input fixtures", () => {
             assert.ok(chainIdsToRemove.includes("eip155:42161"));
         });
         test("shoud handle account scope changes", async () => {
-            const csvData = {
-                ETHEREUM: [
-                    { accountAddress: ACCOUNT.ETH1, childContractScope: 2 },
-                    { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
-                ],
-                BASE: [
-                    { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
-                ],
-                ARBITRUM: [
-                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
-                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
-                ],
-            };
-
-            const result = await generateFrom(csvData);
+            const result = await generateFrom({
+                chainCSV:
+                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
+                contractCSV:
+                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE\nACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE\n",
+                details: {
+                    chains: [
+                        {
+                            caip2ChainId: "eip155:1",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000001",
+                            accounts: [
+                                [
+                                    "0x2000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                                [
+                                    "0x2000000000000000000000000000000000000002",
+                                    2n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:8453",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000002",
+                            accounts: [
+                                [
+                                    "0x3000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:42161",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000003",
+                            accounts: [
+                                [
+                                    "0x4000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                                [
+                                    "0x4000000000000000000000000000000000000002",
+                                    0n,
+                                ],
+                            ],
+                        },
+                    ],
+                },
+            });
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
         });
     });
 
     describe("Chain Property Validation", () => {
         test("should block account updates before encoding on a recovery mismatch", async () => {
-            const result = await generateFrom(
-                {
-                    ETHEREUM: [
-                        { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
-                        { accountAddress: ACCOUNT.ETH3, childContractScope: 0 },
+            const result = await generateFrom({
+                chainCSV:
+                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
+                contractCSV:
+                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE\n",
+                details: {
+                    chains: [
+                        {
+                            caip2ChainId: "eip155:1",
+                            assetRecoveryAddress:
+                                "0x10000000000000000000000000000000000000ff",
+                            accounts: [
+                                [
+                                    "0x2000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                            ],
+                        },
                     ],
                 },
-                {
-                    ETHEREUM: {
-                        accounts: [
-                            {
-                                accountAddress: ACCOUNT.ETH1,
-                                childContractScope: 0,
-                            },
-                        ],
-                        assetRecoveryAddress: RECOVERY.MISMATCH,
-                    },
-                },
-            );
+            });
 
             expect(result.updates).toEqual([]);
             expect(result.solidityCode).toBe("");
@@ -639,39 +913,38 @@ describe("generatePayload with normalized input fixtures", () => {
         });
 
         test("should log a warning when asset recovery addresses mismatch", async () => {
-            // Arrange
-            // Create a specific on-chain state for this test with a mismatch
-            const onChainStateWithMismatch = {
-                ETHEREUM: {
-                    accounts: [
-                        { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
-                    ],
-                    assetRecoveryAddress: RECOVERY.MISMATCH, // Mismatch
-                },
-                BASE: {
-                    accounts: [
+            const result = await generateFrom({
+                chainCSV:
+                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
+                contractCSV:
+                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE\n",
+                details: {
+                    chains: [
                         {
-                            accountAddress: ACCOUNT.BASE1,
-                            childContractScope: 0,
+                            caip2ChainId: "eip155:1",
+                            assetRecoveryAddress:
+                                "0x10000000000000000000000000000000000000ff",
+                            accounts: [
+                                [
+                                    "0x2000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:8453",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000002",
+                            accounts: [
+                                [
+                                    "0x3000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                            ],
                         },
                     ],
-                    assetRecoveryAddress: RECOVERY.BASE, // Match
                 },
-            };
-
-            const csvData = {
-                ETHEREUM: [
-                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
-                ],
-                BASE: [
-                    { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
-                ],
-            };
-
-            const result = await generateFrom(
-                csvData,
-                onChainStateWithMismatch,
-            );
+            });
 
             expect(result.updates).toEqual([]);
             expect(result.solidityCode).toBe("");
@@ -707,25 +980,57 @@ describe("generatePayload with normalized input fixtures", () => {
         });
 
         test("should collect unknown CSV chains as validation warnings", async () => {
-            const csvData = {
-                ETHEREUM: [
-                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
-                    { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
-                    { accountAddress: ACCOUNT.ETH3, childContractScope: 0 },
-                ],
-                BASE: [
-                    { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
-                ],
-                ARBITRUM: [
-                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
-                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
-                ],
-                UNKNOWN: [
-                    { accountAddress: ACCOUNT.UNKNOWN, childContractScope: 0 },
-                ],
-            };
-
-            const result = await generateFrom(csvData);
+            const result = await generateFrom({
+                chainCSV:
+                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
+                contractCSV:
+                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE\nACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE\nACTIVE,UNKNOWN,0x6000000000000000000000000000000000000001,FALSE\n",
+                details: {
+                    chains: [
+                        {
+                            caip2ChainId: "eip155:1",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000001",
+                            accounts: [
+                                [
+                                    "0x2000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                                [
+                                    "0x2000000000000000000000000000000000000002",
+                                    2n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:8453",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000002",
+                            accounts: [
+                                [
+                                    "0x3000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:42161",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000003",
+                            accounts: [
+                                [
+                                    "0x4000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                                [
+                                    "0x4000000000000000000000000000000000000002",
+                                    0n,
+                                ],
+                            ],
+                        },
+                    ],
+                },
+            });
 
             expect(result.validationWarnings).toHaveLength(1);
             expect(result.validationWarnings[0]).toContain(
@@ -741,26 +1046,58 @@ describe("generatePayload with normalized input fixtures", () => {
         test("should collect chain metadata warnings in the payload result", async () => {
             const duplicateWarning =
                 "Duplicate chain name found in CSV: ETHEREUM";
-            getChainDetailsFromCSV.mockResolvedValue({
-                chainDetails: CHAIN_DETAILS,
-                validationWarnings: [duplicateWarning],
-            });
-            const csvData = {
-                ETHEREUM: [
-                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
-                    { accountAddress: ACCOUNT.ETH2, childContractScope: 2 },
-                    { accountAddress: ACCOUNT.ETH3, childContractScope: 0 },
-                ],
-                BASE: [
-                    { accountAddress: ACCOUNT.BASE1, childContractScope: 0 },
-                ],
-                ARBITRUM: [
-                    { accountAddress: ACCOUNT.ARB1, childContractScope: 0 },
-                    { accountAddress: ACCOUNT.ARB2, childContractScope: 0 },
-                ],
-            };
 
-            const result = await generateFrom(csvData);
+            const result = await generateFrom({
+                chainCSV:
+                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\nETHEREUM,eip155:2,0x1000000000000000000000000000000000000001\n",
+                contractCSV:
+                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE\nACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE\n",
+                details: {
+                    chains: [
+                        {
+                            caip2ChainId: "eip155:1",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000001",
+                            accounts: [
+                                [
+                                    "0x2000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                                [
+                                    "0x2000000000000000000000000000000000000002",
+                                    2n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:8453",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000002",
+                            accounts: [
+                                [
+                                    "0x3000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:42161",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000003",
+                            accounts: [
+                                [
+                                    "0x4000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                                [
+                                    "0x4000000000000000000000000000000000000002",
+                                    0n,
+                                ],
+                            ],
+                        },
+                    ],
+                },
+            });
 
             expect(result.validationWarnings).toEqual([duplicateWarning]);
             expect(result.updates).toEqual([]);
@@ -772,15 +1109,29 @@ describe("generatePayload with normalized input fixtures", () => {
     describe("Validation warning aggregation", () => {
         test("should block chain updates on on-chain normalization warnings", async () => {
             const unknownChainWarning =
-                "Unknown chain details in on-chain state: caip2ChainId='eip155:137'";
-            mockOnChainState({}, [unknownChainWarning]);
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue({
-                ETHEREUM: [
-                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
-                ],
-            });
+                "Unknown chain details in on-chain state: caip2ChainId='eip155:137'.\nTo either remove or keep this chain, please add the chain details to the chain details tab in the Google Sheet.";
 
-            const result = await generatePayload("");
+            const result = await generateFrom({
+                chainCSV:
+                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
+                contractCSV:
+                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+                details: {
+                    chains: [
+                        {
+                            caip2ChainId: "eip155:137",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000001",
+                            accounts: [
+                                [
+                                    "0x6000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                            ],
+                        },
+                    ],
+                },
+            });
 
             expect(result).toEqual({
                 updates: [],
@@ -794,36 +1145,40 @@ describe("generatePayload with normalized input fixtures", () => {
             const duplicateWarning =
                 "Duplicate chain name found in CSV: ETHEREUM";
             const unknownChainWarning =
-                "Unknown chain details in on-chain state: caip2ChainId='eip155:137'";
-            getChainDetailsFromCSV.mockResolvedValue({
-                chainDetails: CHAIN_DETAILS,
-                validationWarnings: [duplicateWarning],
-            });
-            mockOnChainState(
-                {
-                    ETHEREUM: {
-                        accounts: [
-                            {
-                                accountAddress: ACCOUNT.ETH1,
-                                childContractScope: 0,
-                            },
-                        ],
-                        assetRecoveryAddress: RECOVERY.MISMATCH,
-                    },
-                },
-                [unknownChainWarning],
-            );
-            getNormalizedContractsInScopeFromCSV.mockResolvedValue({
-                ETHEREUM: [
-                    { accountAddress: ACCOUNT.ETH1, childContractScope: 0 },
-                    { accountAddress: ACCOUNT.ETH3, childContractScope: 0 },
-                ],
-                UNKNOWN: [
-                    { accountAddress: ACCOUNT.UNKNOWN, childContractScope: 0 },
-                ],
-            });
+                "Unknown chain details in on-chain state: caip2ChainId='eip155:137'.\nTo either remove or keep this chain, please add the chain details to the chain details tab in the Google Sheet.";
 
-            const result = await generatePayload("");
+            const result = await generateFrom({
+                chainCSV:
+                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\nETHEREUM,eip155:2,0x1000000000000000000000000000000000000001\n",
+                contractCSV:
+                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE\nACTIVE,UNKNOWN,0x6000000000000000000000000000000000000001,FALSE\n",
+                details: {
+                    chains: [
+                        {
+                            caip2ChainId: "eip155:1",
+                            assetRecoveryAddress:
+                                "0x10000000000000000000000000000000000000ff",
+                            accounts: [
+                                [
+                                    "0x2000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "eip155:137",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000001",
+                            accounts: [
+                                [
+                                    "0x6000000000000000000000000000000000000001",
+                                    0n,
+                                ],
+                            ],
+                        },
+                    ],
+                },
+            });
 
             expect(result).toEqual({
                 updates: [],
@@ -840,11 +1195,582 @@ describe("generatePayload with normalized input fixtures", () => {
             for (const warning of result.validationWarnings) {
                 expect(consoleWarnSpy).toHaveBeenCalledWith(warning);
             }
-            expect(generateUpdates).not.toHaveBeenCalled();
             expect(encodeSpy).not.toHaveBeenCalled();
         });
     });
 });
+
+test.each([
+    {
+        scenario:
+            "a new EVM chain with a lowercase recovery address and blank metadata rows",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\n,,\nETHEREUM,eip155:1,0x8ba1f109551bd432803012645ac136ddd64dba72\n,,\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+        details: { chains: [] },
+        expectedUpdates: [
+            {
+                function: "addChains",
+                args: [
+                    [
+                        {
+                            caip2ChainId: "eip155:1",
+                            assetRecoveryAddress:
+                                "0x8ba1f109551bd432803012645ac136ddd64dba72",
+                            accounts: [
+                                {
+                                    accountAddress:
+                                        "0x2000000000000000000000000000000000000001",
+                                    childContractScope: 0,
+                                },
+                            ],
+                        },
+                    ],
+                ],
+                calldata: expect.stringMatching(/^0x[0-9a-f]+$/),
+            },
+        ],
+    },
+    {
+        scenario: "a new EVM chain with a checksummed recovery address",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x8ba1f109551bD432803012645Ac136ddd64DBA72\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+        details: { chains: [] },
+        expectedUpdates: [
+            {
+                function: "addChains",
+                args: [
+                    [
+                        {
+                            caip2ChainId: "eip155:1",
+                            assetRecoveryAddress:
+                                "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
+                            accounts: [
+                                {
+                                    accountAddress:
+                                        "0x2000000000000000000000000000000000000001",
+                                    childContractScope: 0,
+                                },
+                            ],
+                        },
+                    ],
+                ],
+                calldata: expect.stringMatching(/^0x[0-9a-f]+$/),
+            },
+        ],
+    },
+    {
+        scenario: "a new Solana chain preserving its exact recovery identifier",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,SOLANA,So11111111111111111111111111111111111111112,FALSE\n",
+        details: { chains: [] },
+        expectedUpdates: [
+            {
+                function: "addChains",
+                args: [
+                    [
+                        {
+                            caip2ChainId:
+                                "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+                            assetRecoveryAddress:
+                                "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+                            accounts: [
+                                {
+                                    accountAddress:
+                                        "So11111111111111111111111111111111111111112",
+                                    childContractScope: 0,
+                                },
+                            ],
+                        },
+                    ],
+                ],
+                calldata: expect.stringMatching(/^0x[0-9a-f]+$/),
+            },
+        ],
+    },
+    {
+        scenario: "an EVM recovery-address case difference on a retained chain",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x8ba1f109551bd432803012645ac136ddd64dba72\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress:
+                        "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
+                    accounts: [
+                        ["0x2000000000000000000000000000000000000001", 0n],
+                    ],
+                },
+            ],
+        },
+        expectedUpdates: [],
+    },
+    {
+        scenario: "blank metadata rows with an otherwise valid chain removal",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n,,\n",
+        contractCSV: "Status,Chain,Address,isFactory\n",
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                    accounts: [
+                        ["0x2000000000000000000000000000000000000001", 0n],
+                    ],
+                },
+            ],
+        },
+        expectedUpdates: [
+            {
+                function: "removeChains",
+                args: [["eip155:1"]],
+                calldata: expect.stringMatching(/^0x[0-9a-f]+$/),
+            },
+        ],
+    },
+])(
+    "accepts $scenario",
+    async ({ chainCSV, contractCSV, details, expectedUpdates }) => {
+        const result = await generateFrom({ chainCSV, contractCSV, details });
+
+        expect(result.validationWarnings).toEqual([]);
+        expect(result.updates).toEqual(expectedUpdates);
+        if (expectedUpdates.length === 0) {
+            expect(result.solidityCode).toBe("");
+        } else {
+            for (const update of result.updates) {
+                expect(result.solidityCode).toContain(update.calldata.slice(2));
+            }
+        }
+    },
+);
+
+test.each([
+    {
+        scenario:
+            "an existing ETHEREUM chain with an undefined recovery address",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress: undefined,
+                    accounts: [
+                        ["0x2000000000000000000000000000000000000001", 0n],
+                    ],
+                },
+            ],
+        },
+        expectedWarnings: [
+            "Missing on-chain Asset Recovery Address for existing chain 'ETHEREUM'",
+        ],
+    },
+    {
+        scenario: "an existing ETHEREUM chain with an null recovery address",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress: null,
+                    accounts: [
+                        ["0x2000000000000000000000000000000000000001", 0n],
+                    ],
+                },
+            ],
+        },
+        expectedWarnings: [
+            "Missing on-chain Asset Recovery Address for existing chain 'ETHEREUM'",
+        ],
+    },
+    {
+        scenario: "an existing ETHEREUM chain with an empty recovery address",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress: "",
+                    accounts: [
+                        ["0x2000000000000000000000000000000000000001", 0n],
+                    ],
+                },
+            ],
+        },
+        expectedWarnings: [
+            "Missing on-chain Asset Recovery Address for existing chain 'ETHEREUM'",
+        ],
+    },
+    {
+        scenario: "an existing SOLANA chain with an undefined recovery address",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,SOLANA,So11111111111111111111111111111111111111112,FALSE\n",
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+                    assetRecoveryAddress: undefined,
+                    accounts: [
+                        ["So11111111111111111111111111111111111111112", 0n],
+                    ],
+                },
+            ],
+        },
+        expectedWarnings: [
+            "Missing on-chain Asset Recovery Address for existing chain 'SOLANA'",
+        ],
+    },
+    {
+        scenario: "an existing SOLANA chain with an null recovery address",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,SOLANA,So11111111111111111111111111111111111111112,FALSE\n",
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+                    assetRecoveryAddress: null,
+                    accounts: [
+                        ["So11111111111111111111111111111111111111112", 0n],
+                    ],
+                },
+            ],
+        },
+        expectedWarnings: [
+            "Missing on-chain Asset Recovery Address for existing chain 'SOLANA'",
+        ],
+    },
+    {
+        scenario: "an existing SOLANA chain with an empty recovery address",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,SOLANA,So11111111111111111111111111111111111111112,FALSE\n",
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+                    assetRecoveryAddress: "",
+                    accounts: [
+                        ["So11111111111111111111111111111111111111112", 0n],
+                    ],
+                },
+            ],
+        },
+        expectedWarnings: [
+            "Missing on-chain Asset Recovery Address for existing chain 'SOLANA'",
+        ],
+    },
+    {
+        scenario: "validation warnings before diffing an invalid new account",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nETHEREUM,eip155:2,0x1000000000000000000000000000000000000002\n",
+        contractCSV: "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,,FALSE\n",
+        details: { chains: [] },
+        expectedWarnings: ["Duplicate chain name found in CSV: ETHEREUM"],
+    },
+    {
+        scenario: "a malformed recovery address on a new EVM chain",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,not-an-address\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+        details: { chains: [] },
+        expectedWarnings: [
+            "Invalid EVM Asset Recovery Address for chain 'ETHEREUM'. On-chain: not registered; CSV: not-an-address",
+        ],
+    },
+    {
+        scenario: "an invalid recovery checksum on a new EVM chain",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x8Ba1f109551bD432803012645Ac136ddd64DBA72\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+        details: { chains: [] },
+        expectedWarnings: [
+            "Invalid EVM Asset Recovery Address for chain 'ETHEREUM'. On-chain: not registered; CSV: 0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
+        ],
+    },
+    {
+        scenario: "a Solana recovery-address case mismatch",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2s7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,SOLANA,So11111111111111111111111111111111111111112,FALSE\n",
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+                    assetRecoveryAddress:
+                        "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+                    accounts: [
+                        ["So11111111111111111111111111111111111111112", 0n],
+                    ],
+                },
+            ],
+        },
+        expectedWarnings: [
+            "Asset Recovery Address mismatch for chain 'SOLANA'.\nOn-chain: 29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\nCSV:      29d2s7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+        ],
+    },
+    {
+        scenario:
+            "incomplete unused metadata with an otherwise valid chain removal",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,\n",
+        contractCSV: "Status,Chain,Address,isFactory\n",
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                    accounts: [
+                        ["0x2000000000000000000000000000000000000001", 0n],
+                    ],
+                },
+            ],
+        },
+        expectedWarnings: [
+            "Incomplete chain details in CSV: name='BASE', chainId='eip155:8453'; missing Asset Recovery Address",
+        ],
+    },
+    {
+        scenario: "multiple incomplete rows without otherwise required updates",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nBASE,eip155:8453,\n,eip155:1,0x1000000000000000000000000000000000000001\n",
+        contractCSV: "Status,Chain,Address,isFactory\n",
+        details: { chains: [] },
+        expectedWarnings: [
+            "Incomplete chain details in CSV: name='BASE', chainId='eip155:8453'; missing Asset Recovery Address",
+            "Incomplete chain details in CSV: name='', chainId='eip155:1'; missing Name",
+        ],
+    },
+    {
+        scenario: "duplicate chain names",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nETHEREUM,eip155:2,0x1000000000000000000000000000000000000002\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE\n",
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                    accounts: [
+                        ["0x2000000000000000000000000000000000000001", 0n],
+                    ],
+                },
+            ],
+        },
+        expectedWarnings: ["Duplicate chain name found in CSV: ETHEREUM"],
+    },
+    {
+        scenario: "duplicate chain IDs",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nOTHER,eip155:1,0x1000000000000000000000000000000000000002\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE\n",
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                    accounts: [
+                        ["0x2000000000000000000000000000000000000001", 0n],
+                    ],
+                },
+            ],
+        },
+        expectedWarnings: ["Duplicate chain ID found in CSV: eip155:1"],
+    },
+    {
+        scenario: "duplicate additions to an existing chain",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE\n",
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                    accounts: [
+                        ["0x2000000000000000000000000000000000000001", 0n],
+                    ],
+                },
+            ],
+        },
+        expectedWarnings: [
+            "Duplicate account address in CSV state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000002",
+        ],
+    },
+    {
+        scenario: "duplicate accounts in a new chain",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+        details: { chains: [] },
+        expectedWarnings: [
+            "Duplicate account address in CSV state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000001",
+        ],
+    },
+    {
+        scenario: "conflicting desired scopes",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE\n",
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                    accounts: [
+                        ["0x2000000000000000000000000000000000000001", 0n],
+                    ],
+                },
+            ],
+        },
+        expectedWarnings: [
+            "Duplicate account address in CSV state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000001",
+        ],
+    },
+    {
+        scenario: "duplicate current accounts with no other differences",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                    accounts: [
+                        ["0x2000000000000000000000000000000000000001", 0n],
+                        ["0x2000000000000000000000000000000000000001", 0n],
+                    ],
+                },
+            ],
+        },
+        expectedWarnings: [
+            "Duplicate account address in on-chain state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000001",
+        ],
+    },
+    {
+        scenario: "conflicting current scopes",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                    accounts: [
+                        ["0x2000000000000000000000000000000000000001", 0n],
+                        ["0x2000000000000000000000000000000000000001", 2n],
+                    ],
+                },
+            ],
+        },
+        expectedWarnings: [
+            "Duplicate account address in on-chain state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000001",
+        ],
+    },
+    {
+        scenario: "duplicate current accounts on a removed chain",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
+        contractCSV: "Status,Chain,Address,isFactory\n",
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                    accounts: [
+                        ["0x2000000000000000000000000000000000000001", 0n],
+                        ["0x2000000000000000000000000000000000000001", 0n],
+                    ],
+                },
+            ],
+        },
+        expectedWarnings: [
+            "Duplicate account address in on-chain state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000001",
+        ],
+    },
+    {
+        scenario: "duplicate accounts in both sources",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE\n",
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                    accounts: [
+                        ["0x2000000000000000000000000000000000000002", 0n],
+                        ["0x2000000000000000000000000000000000000002", 2n],
+                    ],
+                },
+            ],
+        },
+        expectedWarnings: [
+            "Duplicate account address in CSV state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000001",
+            "Duplicate account address in on-chain state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000002",
+        ],
+    },
+])(
+    "returns diagnostics only for $scenario",
+    async ({ chainCSV, contractCSV, details, expectedWarnings }) => {
+        await expect(
+            generateFrom({ chainCSV, contractCSV, details }),
+        ).resolves.toEqual({
+            updates: [],
+            solidityCode: "",
+            validationWarnings: expectedWarnings,
+        });
+        expect(encodeSpy).not.toHaveBeenCalled();
+        for (const warning of expectedWarnings) {
+            expect(consoleWarnSpy).toHaveBeenCalledWith(warning);
+        }
+    },
+);
 
 const agreementInterface = new Interface(AGREEMENT_V3_ABI);
 

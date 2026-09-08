@@ -62,6 +62,69 @@ describe("getNormalizedDataFromOnchainState", () => {
 
 describe("getChainDetailsFromCSV", () => {
     test.each([
+        {
+            scenario: "missing recovery address",
+            csv: "Name,Chain Id,Asset Recovery Address\nBASE,eip155:8453,\n",
+            warnings: [
+                "Incomplete chain details in CSV: name='BASE', chainId='eip155:8453'; missing Asset Recovery Address",
+            ],
+        },
+        {
+            scenario: "missing chain name",
+            csv: "Name,Chain Id,Asset Recovery Address\n,eip155:8453,0x1000000000000000000000000000000000000001\n",
+            warnings: [
+                "Incomplete chain details in CSV: name='', chainId='eip155:8453'; missing Name",
+            ],
+        },
+        {
+            scenario: "missing chain ID",
+            csv: "Name,Chain Id,Asset Recovery Address\nBASE,,0x1000000000000000000000000000000000000001\n",
+            warnings: [
+                "Incomplete chain details in CSV: name='BASE', chainId=''; missing Chain Id",
+            ],
+        },
+        {
+            scenario: "multiple missing fields",
+            csv: "Name,Chain Id,Asset Recovery Address\nBASE,,\n",
+            warnings: [
+                "Incomplete chain details in CSV: name='BASE', chainId=''; missing Chain Id, Asset Recovery Address",
+            ],
+        },
+        {
+            scenario: "only an extra column is populated",
+            csv: "Name,Chain Id,Asset Recovery Address,Notes\n,,,draft\n",
+            warnings: [
+                "Incomplete chain details in CSV: name='', chainId=''; missing Name, Chain Id, Asset Recovery Address",
+            ],
+        },
+        {
+            scenario: "completely blank rows",
+            csv: "Name,Chain Id,Asset Recovery Address,Notes\n,,,\n   ,   ,   ,   \n\n",
+            warnings: [],
+        },
+    ])("handles $scenario", async ({ csv, warnings }) => {
+        vi.stubGlobal(
+            "fetch",
+            vi.fn().mockResolvedValue(
+                new Response(csv, {
+                    headers: { "content-type": "text/csv" },
+                }),
+            ),
+        );
+
+        await expect(
+            getChainDetailsFromCSV("https://example.test/chains.csv"),
+        ).resolves.toEqual({
+            chainDetails: {
+                caip2ChainId: {},
+                assetRecoveryAddress: {},
+                name: {},
+            },
+            validationWarnings: warnings,
+        });
+    });
+
+    test.each([
         [
             "chain name",
             "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nETHEREUM,eip155:2,0x1000000000000000000000000000000000000002",

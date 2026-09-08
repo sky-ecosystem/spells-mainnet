@@ -40,9 +40,7 @@ export function createStateValidators(onChainState, csvState, chainDetails) {
     }
 
     function validateRecoveryAddresses() {
-        return Object.keys(onChainState)
-            .filter((chainName) => Object.hasOwn(csvState, chainName))
-            .flatMap(validateRecoveryAddress);
+        return Object.keys(csvState).flatMap(validateRecoveryAddress);
     }
 
     function validateKnownChains() {
@@ -58,15 +56,27 @@ export function createStateValidators(onChainState, csvState, chainDetails) {
     }
 
     function validateRecoveryAddress(chainName) {
+        const isNewChain = !Object.hasOwn(onChainState, chainName);
         const onchainRecoveryAddress =
-            onChainState[chainName].assetRecoveryAddress;
+            onChainState[chainName]?.assetRecoveryAddress;
         const csvRecoveryAddress = chainDetails.assetRecoveryAddress[chainName];
 
-        if (!onchainRecoveryAddress || !csvRecoveryAddress) return [];
+        if (!isNewChain && !onchainRecoveryAddress) {
+            return [
+                `Missing on-chain Asset Recovery Address for existing chain '${chainName}'`,
+            ];
+        }
+
+        if (!csvRecoveryAddress) return [];
 
         const validate = createRecoveryAddressValidator(
             chainDetails.caip2ChainId[chainName],
-            { chainName, onchainRecoveryAddress, csvRecoveryAddress },
+            {
+                chainName,
+                isNewChain,
+                onchainRecoveryAddress,
+                csvRecoveryAddress,
+            },
         );
         return validate();
     }
@@ -86,25 +96,27 @@ function findDuplicateAccountAddresses(accounts) {
 
 export function createRecoveryAddressValidator(
     chainId,
-    { chainName, onchainRecoveryAddress, csvRecoveryAddress },
+    { chainName, isNewChain, onchainRecoveryAddress, csvRecoveryAddress },
 ) {
     const mismatchWarning = `Asset Recovery Address mismatch for chain '${chainName}'.\nOn-chain: ${onchainRecoveryAddress}\nCSV:      ${csvRecoveryAddress}`;
 
     function validateEvmRecoveryAddress() {
         try {
-            return getAddress(onchainRecoveryAddress) ===
-                getAddress(csvRecoveryAddress)
+            const csvAddress = getAddress(csvRecoveryAddress);
+            if (isNewChain) return [];
+
+            return getAddress(onchainRecoveryAddress) === csvAddress
                 ? []
                 : [mismatchWarning];
         } catch {
             return [
-                `Invalid EVM Asset Recovery Address for chain '${chainName}'. On-chain: ${onchainRecoveryAddress}; CSV: ${csvRecoveryAddress}`,
+                `Invalid EVM Asset Recovery Address for chain '${chainName}'. On-chain: ${isNewChain ? "not registered" : onchainRecoveryAddress}; CSV: ${csvRecoveryAddress}`,
             ];
         }
     }
 
     function validateNonEvmRecoveryAddress() {
-        return onchainRecoveryAddress === csvRecoveryAddress
+        return isNewChain || onchainRecoveryAddress === csvRecoveryAddress
             ? []
             : [mismatchWarning];
     }
