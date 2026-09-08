@@ -6,7 +6,7 @@ function normalize(details, chainDetails) {
 
         if (!chainName) {
             validationWarnings.push(
-                `\n\n⚠️-----⚠️ \nUnknown chain details in on-chain state: caip2ChainId='${chain.caip2ChainId}'. \nTo either remove or keep this chain, please add the chain details to the chain details tab in the Google Sheet. \n⚠️-----⚠️\n\n`,
+                `Unknown chain details in on-chain state: caip2ChainId='${chain.caip2ChainId}'.\nTo either remove or keep this chain, please add the chain details to the chain details tab in the Google Sheet.`,
             );
             return chains;
         }

@@ -1,4 +1,5 @@
 import { parse } from "csv-parse/sync";
+import { findDuplicateIndexes } from "./utils/findDuplicateIndexes.js";
 
 async function downloadAndParse(url) {
     console.warn(`Fetching CSV from ${url}`);
@@ -86,41 +87,48 @@ export async function getNormalizedContractsInScopeFromCSV(url) {
 export async function getChainDetailsFromCSV(url) {
     const { headers, records } = await downloadAndParse(url);
     validateHeaders(headers, ["Name", "Chain Id", "Asset Recovery Address"]);
-    const validationWarnings = [];
+    return normalizeChainDetails(records);
+}
 
-    // Normalize chain details data
-    const caip2ChainId = {};
-    const assetRecoveryAddress = {};
-    const name = {};
-
-    records.forEach((record) => {
-        const chainName = record["Name"];
-        const chainId = record["Chain Id"];
-        const chainAssetRecoveryAddress = record["Asset Recovery Address"];
-
-        if (chainName && chainId && chainAssetRecoveryAddress) {
-            // Check for duplicate names - if key already exists in object
-            if (caip2ChainId[chainName]) {
-                validationWarnings.push(
-                    `⚠️  Warning: Duplicate chain name found in CSV: ${chainName} ⚠️`,
-                );
-            }
-
-            // Check for duplicate chain IDs - if key already exists in object
-            if (name[chainId]) {
-                validationWarnings.push(
-                    `⚠️  Warning: Duplicate chain ID found in CSV: ${chainId} ⚠️`,
-                );
-            }
-
-            caip2ChainId[chainName] = chainId;
-            assetRecoveryAddress[chainName] = chainAssetRecoveryAddress;
-            name[chainId] = chainName;
-        }
-    });
-
+function normalizeChainDetails(records) {
+    const chains = records.filter(
+        (record) =>
+            record.Name &&
+            record["Chain Id"] &&
+            record["Asset Recovery Address"],
+    );
+    const duplicateNameIndexes = findDuplicateIndexes(
+        chains.map((chain) => chain.Name),
+    );
+    const duplicateIdIndexes = findDuplicateIndexes(
+        chains.map((chain) => chain["Chain Id"]),
+    );
+    const uniqueChains = chains.filter(
+        (_chain, index) =>
+            !duplicateNameIndexes.has(index) && !duplicateIdIndexes.has(index),
+    );
     return {
-        chainDetails: { caip2ChainId, assetRecoveryAddress, name },
-        validationWarnings,
+        chainDetails: {
+            caip2ChainId: Object.fromEntries(
+                uniqueChains.map((chain) => [chain.Name, chain["Chain Id"]]),
+            ),
+            assetRecoveryAddress: Object.fromEntries(
+                uniqueChains.map((chain) => [
+                    chain.Name,
+                    chain["Asset Recovery Address"],
+                ]),
+            ),
+            name: Object.fromEntries(
+                uniqueChains.map((chain) => [chain["Chain Id"], chain.Name]),
+            ),
+        },
+        validationWarnings: chains.flatMap((chain, index) => [
+            ...(duplicateNameIndexes.has(index)
+                ? [`Duplicate chain name found in CSV: ${chain.Name}`]
+                : []),
+            ...(duplicateIdIndexes.has(index)
+                ? [`Duplicate chain ID found in CSV: ${chain["Chain Id"]}`]
+                : []),
+        ]),
     };
 }

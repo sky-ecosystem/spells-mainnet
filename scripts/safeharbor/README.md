@@ -61,6 +61,8 @@ The contracts CSV requires `Status`, `Chain`, `Address`, and either `isFactory` 
 
 For chains present in both states, EVM recovery addresses are compared in canonical checksummed form; malformed addresses and invalid mixed-case checksums produce warnings. Solana and other non-EVM recovery identifiers are compared exactly, including case. Recovery mismatches produce warnings, not recovery-address updates. An empty `updates` array alone does not establish a successful reconciliation: `validationWarnings` must also be empty.
 
+Duplicate chain names or IDs in complete metadata rows produce warnings without overwriting earlier mappings. Repeated account addresses within a chain in either desired or current state also produce warnings, including when their scopes differ. These checks run before diffing and block all executable output. Account addresses retain the Agreement's exact, case-sensitive string semantics; the same address may legitimately appear on different chains. Canonical EVM comparison applies only to recovery addresses, not account identifiers.
+
 # Running the script
 
 Required env variables:

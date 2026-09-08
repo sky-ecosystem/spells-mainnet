@@ -2,7 +2,361 @@ import { describe, expect, test } from "vitest";
 import {
     createRecoveryAddressValidator,
     createStateValidators,
+    validateState,
 } from "../src/validateState.js";
+
+describe("duplicate account validation", () => {
+    test.each([
+        {
+            scenario: "warnings follow the first repeated occurrence",
+            current: {},
+            desired: {
+                ETHEREUM: [
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000001",
+                        childContractScope: 0,
+                    },
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000002",
+                        childContractScope: 0,
+                    },
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000002",
+                        childContractScope: 2,
+                    },
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000001",
+                        childContractScope: 2,
+                    },
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000002",
+                        childContractScope: 0,
+                    },
+                ],
+            },
+            warnings: [
+                "Duplicate account address in CSV state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000002",
+                "Duplicate account address in CSV state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000001",
+            ],
+        },
+        {
+            scenario: "duplicate desired accounts on a new chain",
+            current: {},
+            desired: {
+                ETHEREUM: [
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000001",
+                        childContractScope: 0,
+                    },
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000001",
+                        childContractScope: 0,
+                    },
+                ],
+            },
+            warnings: [
+                "Duplicate account address in CSV state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000001",
+            ],
+        },
+        {
+            scenario: "conflicting desired scopes on an existing chain",
+            current: {
+                ETHEREUM: {
+                    accounts: [
+                        {
+                            accountAddress:
+                                "0x2000000000000000000000000000000000000001",
+                            childContractScope: 0n,
+                        },
+                    ],
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                },
+            },
+            desired: {
+                ETHEREUM: [
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000001",
+                        childContractScope: 0,
+                    },
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000001",
+                        childContractScope: 2,
+                    },
+                ],
+            },
+            warnings: [
+                "Duplicate account address in CSV state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000001",
+            ],
+        },
+        {
+            scenario: "duplicate current accounts on a removed chain",
+            current: {
+                ETHEREUM: {
+                    accounts: [
+                        {
+                            accountAddress:
+                                "0x2000000000000000000000000000000000000001",
+                            childContractScope: 0n,
+                        },
+                        {
+                            accountAddress:
+                                "0x2000000000000000000000000000000000000001",
+                            childContractScope: 0n,
+                        },
+                    ],
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                },
+            },
+            desired: {},
+            warnings: [
+                "Duplicate account address in on-chain state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000001",
+            ],
+        },
+        {
+            scenario: "conflicting current scopes on a retained chain",
+            current: {
+                ETHEREUM: {
+                    accounts: [
+                        {
+                            accountAddress:
+                                "0x2000000000000000000000000000000000000001",
+                            childContractScope: 0n,
+                        },
+                        {
+                            accountAddress:
+                                "0x2000000000000000000000000000000000000001",
+                            childContractScope: 2n,
+                        },
+                    ],
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                },
+            },
+            desired: {
+                ETHEREUM: [
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000001",
+                        childContractScope: 0,
+                    },
+                ],
+            },
+            warnings: [
+                "Duplicate account address in on-chain state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000001",
+            ],
+        },
+        {
+            scenario: "multiple duplicate addresses in both sources",
+            current: {
+                ETHEREUM: {
+                    accounts: [
+                        {
+                            accountAddress:
+                                "0x2000000000000000000000000000000000000002",
+                            childContractScope: 0n,
+                        },
+                        {
+                            accountAddress:
+                                "0x2000000000000000000000000000000000000002",
+                            childContractScope: 2n,
+                        },
+                    ],
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                },
+            },
+            desired: {
+                ETHEREUM: [
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000001",
+                        childContractScope: 0,
+                    },
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000001",
+                        childContractScope: 2,
+                    },
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000001",
+                        childContractScope: 0,
+                    },
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000002",
+                        childContractScope: 0,
+                    },
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000002",
+                        childContractScope: 0,
+                    },
+                ],
+            },
+            warnings: [
+                "Duplicate account address in CSV state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000001",
+                "Duplicate account address in CSV state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000002",
+                "Duplicate account address in on-chain state for chain 'ETHEREUM': 0x2000000000000000000000000000000000000002",
+            ],
+        },
+        {
+            scenario: "the same account on different chains",
+            current: {
+                ETHEREUM: {
+                    accounts: [
+                        {
+                            accountAddress:
+                                "0x2000000000000000000000000000000000000001",
+                            childContractScope: 0n,
+                        },
+                    ],
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                },
+                BASE: {
+                    accounts: [
+                        {
+                            accountAddress:
+                                "0x2000000000000000000000000000000000000001",
+                            childContractScope: 2n,
+                        },
+                    ],
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000002",
+                },
+            },
+            desired: {
+                ETHEREUM: [
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000001",
+                        childContractScope: 0,
+                    },
+                ],
+                BASE: [
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000001",
+                        childContractScope: 2,
+                    },
+                ],
+            },
+            warnings: [],
+        },
+        {
+            scenario: "distinct case-sensitive EVM account strings",
+            current: {
+                ETHEREUM: {
+                    accounts: [
+                        {
+                            accountAddress:
+                                "0x8ba1f109551bd432803012645ac136ddd64dba72",
+                            childContractScope: 0n,
+                        },
+                        {
+                            accountAddress:
+                                "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
+                            childContractScope: 2n,
+                        },
+                    ],
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                },
+            },
+            desired: {
+                ETHEREUM: [
+                    {
+                        accountAddress:
+                            "0x8ba1f109551bd432803012645ac136ddd64dba72",
+                        childContractScope: 0,
+                    },
+                    {
+                        accountAddress:
+                            "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
+                        childContractScope: 2,
+                    },
+                ],
+            },
+            warnings: [],
+        },
+        {
+            scenario: "distinct case-sensitive Solana account strings",
+            current: {
+                SOLANA: {
+                    accounts: [
+                        {
+                            accountAddress:
+                                "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+                            childContractScope: 0n,
+                        },
+                        {
+                            accountAddress:
+                                "29d2s7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+                            childContractScope: 2n,
+                        },
+                    ],
+                    assetRecoveryAddress:
+                        "3EKkiwNLWqoUbzFkPrmKbtUB4EweE6f4STzevYUmezeL",
+                },
+            },
+            desired: {
+                SOLANA: [
+                    {
+                        accountAddress:
+                            "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+                        childContractScope: 0,
+                    },
+                    {
+                        accountAddress:
+                            "29d2s7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+                        childContractScope: 2,
+                    },
+                ],
+            },
+            warnings: [],
+        },
+        { scenario: "empty states", current: {}, desired: {}, warnings: [] },
+    ])("$scenario", ({ current, desired, warnings }) => {
+        const chainDetails = {
+            caip2ChainId: {
+                ETHEREUM: "eip155:1",
+                BASE: "eip155:8453",
+                SOLANA: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+            },
+            assetRecoveryAddress: {
+                ETHEREUM: "0x1000000000000000000000000000000000000001",
+                BASE: "0x1000000000000000000000000000000000000002",
+                SOLANA: "3EKkiwNLWqoUbzFkPrmKbtUB4EweE6f4STzevYUmezeL",
+            },
+            name: {
+                "eip155:1": "ETHEREUM",
+                "eip155:8453": "BASE",
+                "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp": "SOLANA",
+            },
+        };
+
+        expect(validateState(current, desired, chainDetails)).toEqual(warnings);
+        const { validateUniqueAccounts } = createStateValidators(
+            current,
+            desired,
+            chainDetails,
+        );
+        expect(validateUniqueAccounts()).toEqual(warnings);
+        expect(validateUniqueAccounts()).toEqual(warnings);
+    });
+});
 
 describe("recovery address comparison", () => {
     test.each([
@@ -135,12 +489,10 @@ describe("known-chain validation", () => {
             );
 
         expect(validateRecoveryAddresses()).toEqual([
-            expect.stringContaining("Asset Recovery Address mismatch"),
+            "Asset Recovery Address mismatch for chain 'ETHEREUM'.\nOn-chain: 0x1000000000000000000000000000000000000001\nCSV:      0x1000000000000000000000000000000000000002",
         ]);
         expect(validateKnownChains()).toEqual([
-            expect.stringContaining(
-                "Unknown chain details in CSV: name='UNKNOWN'",
-            ),
+            "Unknown chain details in CSV: name='UNKNOWN'\nInclude chain details to the chain details tab in the Google Sheet to add coverage to it.",
         ]);
     });
 

@@ -428,14 +428,7 @@ describe("generatePayload with normalized input fixtures", () => {
                 { accountAddress: ACCOUNT.ARB3, childContractScope: 2 },
             ]);
 
-            // Assert no warnings were logged
-            const hasWarnings = consoleWarnSpy.mock.calls.some(
-                (call) => call[0].includes("‼️") || call[0].includes("⚠️"),
-            );
-            assert.ok(
-                !hasWarnings,
-                "Console should not contain warning markers (‼️ or ⚠️)",
-            );
+            expect(result.validationWarnings).toEqual([]);
         });
         test("should preserve childContractScope values correctly in complex scenarios", async () => {
             const csvData = {
@@ -747,7 +740,7 @@ describe("generatePayload with normalized input fixtures", () => {
     describe("Chain Details Duplicate Validation", () => {
         test("should collect chain metadata warnings in the payload result", async () => {
             const duplicateWarning =
-                "⚠️  Warning: Duplicate chain name found in CSV: ETHEREUM ⚠️";
+                "Duplicate chain name found in CSV: ETHEREUM";
             getChainDetailsFromCSV.mockResolvedValue({
                 chainDetails: CHAIN_DETAILS,
                 validationWarnings: [duplicateWarning],
