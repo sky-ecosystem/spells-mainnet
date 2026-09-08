@@ -78,6 +78,7 @@ contract DssSpellAction is DssAction {
     address internal immutable MCD_JUG                  = DssExecLib.jug();
     address internal immutable MCD_VOW                  = DssExecLib.vow();
     address internal immutable DAI                      = DssExecLib.dai();
+    address internal immutable MCD_IAM_AUTO_LINE        = DssExecLib.autoLine();
     address internal immutable DAI_USDS                 = DssExecLib.getChangelogAddress("DAI_USDS");
     address internal immutable ALLOCATOR_SPARK_A_VAULT  = DssExecLib.getChangelogAddress("ALLOCATOR_SPARK_A_VAULT");
     address internal immutable SPARK_SUBPROXY           = DssExecLib.getChangelogAddress("SPARK_SUBPROXY");
@@ -96,7 +97,6 @@ contract DssSpellAction is DssAction {
     address internal immutable MKR_SKY                  = DssExecLib.getChangelogAddress("MKR_SKY");
     address internal immutable SPARK_STARGUARD          = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
     address internal immutable GROVE_STARGUARD          = DssExecLib.getChangelogAddress("GROVE_STARGUARD");
-    address internal immutable MCD_IAM_AUTO_LINE        = DssExecLib.getChangelogAddress("MCD_IAM_AUTO_LINE");
 
     // ---------- Wallets ----------
     address internal constant CORE_COUNCIL_BUDGET_MULTISIG = 0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364;
