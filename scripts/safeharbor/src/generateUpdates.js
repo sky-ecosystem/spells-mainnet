@@ -84,7 +84,15 @@ function generateAccountUpdates(
 
         // Handle removals - removeAccounts now takes addresses directly
         if (toRemove.length > 0) {
-            updates.push(encodeUpdate("removeAccounts", [chainId, toRemove]));
+            // Reverse full replacements so swap-and-pop cannot remove a new scope.
+            updates.push(
+                encodeUpdate("removeAccounts", [
+                    chainId,
+                    removesAllCurrentAccounts
+                        ? [...toRemove].reverse()
+                        : toRemove,
+                ]),
+            );
         }
 
         // Handle additions
