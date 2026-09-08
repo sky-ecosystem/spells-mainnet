@@ -112,6 +112,7 @@ contract DssSpellAction is DssAction {
     function actions() public override {
         // ---------- Monthly Settlement Cycle for August 2026 ----------
         // Forum: https://forum.skyeco.com/t/msc-12-settlement-summary-august-2026/28217
+        // Forum: https://forum.skyeco.com/t/treasury-management-function-tmf-configurations/28153/5
         // Atlas: https://sky-atlas.io/#6f8d5065-d6ff-4add-9a28-eadeffa7ed1a
 
         // Mint 6,357,912 USDS debt in ALLOCATOR-SPARK-A and transfer the amount to the surplus buffer.
@@ -170,6 +171,7 @@ contract DssSpellAction is DssAction {
         DssExecLib.setValue(MCD_SPLIT, "hop", 2_504);
 
         // Decrease rewardsDuration in REWARDS_LSSKY_USDS by 1,244 seconds from 3,748 seconds to 2,504 seconds
+        // Note: REWARDS_LSSKY_USDS ownership was transferred to REWARDS_OWNER_LSSKY_USDS in the 2026-08-13 spell, so this has to be routed through the FarmOwner
         FarmOwnerLike(REWARDS_OWNER_LSSKY_USDS).setRewardsDuration(2_504);
 
         // ---------- Increase the MKR-SKY Delayed Upgrade Penalty ----------

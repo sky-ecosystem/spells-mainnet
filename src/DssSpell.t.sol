@@ -773,9 +773,9 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestedRewardsDist() public skipped { // add the `skipped` modifier to skip
-        uint256 expectedVestIdBefore = 15;
-        uint256 expectedVestIdAfter = 16;
+    function testVestedRewardsDist() public { // add the `skipped` modifier to skip
+        uint256 expectedVestIdBefore = 16;
+        uint256 expectedVestIdAfter = 17;
 
         address rewardsDist = addr.addr("REWARDS_DIST_LSSKY_SKY");
         address stakingRewards = addr.addr("REWARDS_LSSKY_SKY");
