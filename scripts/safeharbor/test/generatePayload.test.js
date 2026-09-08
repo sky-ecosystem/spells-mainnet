@@ -34,7 +34,11 @@ async function generateFrom({ chainCSV, contractCSV, details }) {
                 headers: { "content-type": "text/csv" },
             }),
         );
-    return generatePayload({ getDetails: vi.fn().mockResolvedValue(details) });
+    const result = await generatePayload({
+        getDetails: vi.fn().mockResolvedValue(details),
+    });
+    payloadSnapshot(result.updates);
+    return result;
 }
 
 // Static synthetic fixtures shaped like production EVM and Solana identifiers.
@@ -2159,9 +2163,10 @@ function normalizeDecodedValue(value, param) {
  *
  * The raw calldata is preserved so the snapshot pins the exact executable
  * bytes. The same calldata is decoded through the Agreement ABI to check the
- * function name and snapshot named arguments for review, without EVM execution.
+ * function name and every normalized argument against the update, without EVM
+ * execution. The named arguments remain in the snapshot for review.
  *
- * @param {Array<{function: string, calldata: string}>} updates Generated payload updates.
+ * @param {Array<{function: string, args: Array<*>, calldata: string}>} updates Generated payload updates.
  * @returns {Array<{calldata: string, decodedName: string, decodedArgs: Array<*>}>}
  */
 function payloadSnapshot(updates) {
@@ -2171,13 +2176,15 @@ function payloadSnapshot(updates) {
         });
         assert.ok(decoded, `Unable to decode payload update ${index}`);
         assert.strictEqual(decoded.name, update.function);
+        const decodedArgs = decoded.fragment.inputs.map((input, inputIndex) =>
+            normalizeDecodedValue(decoded.args[inputIndex], input),
+        );
+        assert.deepStrictEqual(decodedArgs, update.args);
 
         return {
             calldata: update.calldata,
             decodedName: decoded.name,
-            decodedArgs: decoded.fragment.inputs.map((input, inputIndex) =>
-                normalizeDecodedValue(decoded.args[inputIndex], input),
-            ),
+            decodedArgs,
         };
     });
 }
