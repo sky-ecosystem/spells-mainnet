@@ -5,7 +5,7 @@ import { generatePayload } from "../src/generation/index.js";
 import { reconcile } from "../src/reconciliation/index.js";
 import { createAgreementReader } from "../src/agreement/index.js";
 import { getSheetChainDetails, getSheetState } from "../src/sheet/index.js";
-import { AGREEMENT_V3_ABI } from "../src/agreement/abis.js";
+import AGREEMENT_V3_ABI from "../src/agreement/abis/agreement.json" with { type: "json" };
 
 vi.mock("ethers", async (importOriginal) => ({
     ...(await importOriginal()),

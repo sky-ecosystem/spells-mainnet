@@ -1,5 +1,6 @@
 import { Contract, Interface } from "ethers";
-import { AGREEMENT_V3_ABI } from "./abis.js";
+// Verified ABI: https://etherscan.io/address/0xf17bB418B4EC251f300Aa3517Cb37349f17697A1#code
+import AGREEMENT_V3_ABI from "./abis/agreement.json" with { type: "json" };
 import { getChainlogAddress } from "./chainlog.js";
 import { normalizeOnChainState } from "./normalize.js";
 

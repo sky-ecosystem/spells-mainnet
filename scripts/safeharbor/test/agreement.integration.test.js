@@ -1,6 +1,6 @@
 import { Contract } from "ethers";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { AGREEMENT_V3_ABI } from "../src/agreement/abis.js";
+import AGREEMENT_V3_ABI from "../src/agreement/abis/agreement.json" with { type: "json" };
 import { createAgreementReader } from "../src/agreement/index.js";
 import { getChainlogAddress } from "../src/agreement/chainlog.js";
 
