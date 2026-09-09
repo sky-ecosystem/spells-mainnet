@@ -133,7 +133,7 @@ test.each([
                     "0x7000000000000000000000000000000000000001",
                 ),
         }).mockReturnValueOnce({ getDetails });
-        const getAgreementState = vi.fn(createAgreementReader({ provider }));
+        const getAgreementState = vi.fn(createAgreementReader(provider));
 
         expect(
             await reconcile({

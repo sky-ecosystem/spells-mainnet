@@ -23,7 +23,7 @@ export async function main() {
         const provider = new JsonRpcProvider(rpcUrl);
         try {
             const result = await reconcile({
-                getAgreementState: createAgreementReader({ provider }),
+                getAgreementState: createAgreementReader(provider),
                 getSheetState,
                 getSheetChainDetails,
             });

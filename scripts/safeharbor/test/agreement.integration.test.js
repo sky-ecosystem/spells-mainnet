@@ -1,4 +1,4 @@
-import { Contract, JsonRpcProvider } from "ethers";
+import { Contract } from "ethers";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { AGREEMENT_V3_ABI } from "../src/agreement/abis.js";
 import { createAgreementReader } from "../src/agreement/index.js";
@@ -13,16 +13,14 @@ vi.mock("../src/agreement/chainlog.js", () => ({
     getChainlogAddress: vi.fn(),
 }));
 
-let provider;
+const provider = {};
 let getAgreementState;
 
 beforeEach(() => {
-    provider = new JsonRpcProvider("https://rpc.example");
-    getAgreementState = createAgreementReader({ provider });
+    getAgreementState = createAgreementReader(provider);
 });
 
 afterEach(() => {
-    provider.destroy();
     vi.resetAllMocks();
 });
 

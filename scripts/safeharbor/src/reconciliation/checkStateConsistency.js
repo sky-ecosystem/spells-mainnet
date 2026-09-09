@@ -44,91 +44,77 @@ function validateRecoveryAddresses(onChainState, sheetState, chainDetails) {
             ];
         }
 
-        return getRecoveryAddressValidator(
-            chainDetails.caip2ChainId[chainName],
-        )({
-            chainName,
-            isNewChain,
+        const chainId = chainDetails.caip2ChainId[chainName];
+        const addContext = ({ code }) => ({
+            code,
+            context: {
+                chainName,
+                ...(code === $.INVALID_EVM_RECOVERY_ADDRESS
+                    ? { isNewChain }
+                    : {}),
+                onChainRecoveryAddress,
+                sheetRecoveryAddress,
+            },
+        });
+
+        if (isNewChain) {
+            return checkNewRecoveryAddress(chainId, sheetRecoveryAddress).map(
+                addContext,
+            );
+        }
+
+        return getRecoveryAddressComparator(chainId)(
             onChainRecoveryAddress,
             sheetRecoveryAddress,
-        });
+        ).map(addContext);
     };
 
     return Object.keys(sheetState).flatMap(validateRecoveryAddress);
 }
 
-function getRecoveryAddressValidator(chainId) {
+function checkNewRecoveryAddress(chainId, address) {
     if (chainId?.startsWith("eip155:")) {
-        return validateEvmRecoveryAddress;
+        return checkEvmRecoveryAddress(address);
     }
 
-    return validateNonEvmRecoveryAddress;
+    return [];
 }
 
-function validateEvmRecoveryAddress({
-    chainName,
-    isNewChain,
-    onChainRecoveryAddress,
-    sheetRecoveryAddress,
-}) {
+function getRecoveryAddressComparator(chainId) {
+    if (chainId?.startsWith("eip155:")) {
+        return compareEvmRecoveryAddresses;
+    }
+
+    return compareNonEvmRecoveryAddresses;
+}
+
+function checkEvmRecoveryAddress(address) {
     try {
-        if (isNewChain) {
-            getAddress(sheetRecoveryAddress);
-            return [];
-        }
-
-        if (
-            getAddress(onChainRecoveryAddress) ===
-            getAddress(sheetRecoveryAddress)
-        ) {
-            return [];
-        }
-
-        return [
-            {
-                code: $.RECOVERY_ADDRESS_MISMATCH,
-                context: {
-                    chainName,
-                    onChainRecoveryAddress,
-                    sheetRecoveryAddress,
-                },
-            },
-        ];
+        getAddress(address);
+        return [];
     } catch {
-        return [
-            {
-                code: $.INVALID_EVM_RECOVERY_ADDRESS,
-                context: {
-                    chainName,
-                    isNewChain,
-                    onChainRecoveryAddress,
-                    sheetRecoveryAddress,
-                },
-            },
-        ];
+        return [{ code: $.INVALID_EVM_RECOVERY_ADDRESS }];
     }
 }
 
-function validateNonEvmRecoveryAddress({
-    chainName,
-    isNewChain,
-    onChainRecoveryAddress,
-    sheetRecoveryAddress,
-}) {
-    if (isNewChain || onChainRecoveryAddress === sheetRecoveryAddress) {
+function compareEvmRecoveryAddresses(onChainAddress, sheetAddress) {
+    try {
+        if (getAddress(onChainAddress) === getAddress(sheetAddress)) {
+            return [];
+        }
+
+        return [{ code: $.RECOVERY_ADDRESS_MISMATCH }];
+    } catch {
+        return [{ code: $.INVALID_EVM_RECOVERY_ADDRESS }];
+    }
+}
+
+function compareNonEvmRecoveryAddresses(onChainAddress, sheetAddress) {
+    if (onChainAddress === sheetAddress) {
         return [];
     }
 
-    return [
-        {
-            code: $.RECOVERY_ADDRESS_MISMATCH,
-            context: {
-                chainName,
-                onChainRecoveryAddress,
-                sheetRecoveryAddress,
-            },
-        },
-    ];
+    return [{ code: $.RECOVERY_ADDRESS_MISMATCH }];
 }
 
 function findDuplicateAccountAddresses(accounts) {

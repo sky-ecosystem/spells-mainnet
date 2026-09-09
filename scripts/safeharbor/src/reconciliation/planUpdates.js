@@ -7,19 +7,10 @@ export function planUpdates(onChainState, sheetState, chainDetails) {
         throw Object.assign(new Error(diagnostic.code), { diagnostic });
     }
 
-    const { updates: chainUpdates, chainsToRemove } = generateChainUpdates(
-        onChainState,
-        sheetState,
-        chainDetails,
-    );
-    const accountUpdates = generateAccountUpdates(
-        onChainState,
-        sheetState,
-        chainDetails,
-        chainsToRemove,
-    );
-
-    return [...chainUpdates, ...accountUpdates];
+    return [
+        ...generateChainUpdates(onChainState, sheetState, chainDetails),
+        ...generateAccountUpdates(onChainState, sheetState, chainDetails),
+    ];
 }
 
 // Account difference calculation
@@ -51,19 +42,14 @@ function calculateAccountDifferences(currentAccounts, desiredAccounts) {
     return { toAdd, toRemove };
 }
 
-function generateAccountUpdates(
-    onChainState,
-    sheetState,
-    chainDetails,
-    chainsToRemove = [],
-) {
+function generateAccountUpdates(onChainState, sheetState, chainDetails) {
     const updates = [];
 
     // Iterate through each chain that exists in onChainState
     // New chains are handled by generateChainUpdates
     for (const chainName of Object.keys(onChainState)) {
         // Skip chains that are being removed
-        if (chainsToRemove.includes(chainName)) {
+        if (!Object.hasOwn(sheetState, chainName)) {
             continue;
         }
 
@@ -146,7 +132,7 @@ function generateChainUpdates(onChainState, sheetState, chainDetails) {
         updates.push({ fn: "addChains", args: [newChains] });
     }
 
-    return { updates, chainsToRemove };
+    return updates;
 }
 
 function validateUpdateInputs(onChainState, sheetState) {

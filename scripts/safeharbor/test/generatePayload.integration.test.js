@@ -59,7 +59,7 @@ async function generateFrom({ chainCSV, contractCSV, details }) {
         );
     getDetails.mockResolvedValue(details);
     const report = await reconcile({
-        getAgreementState: createAgreementReader({ provider }),
+        getAgreementState: createAgreementReader(provider),
         getSheetState,
         getSheetChainDetails,
     });

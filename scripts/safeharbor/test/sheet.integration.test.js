@@ -388,7 +388,7 @@ describe("CSV validation before reconciliation", () => {
 
             await expect(
                 reconcile({
-                    getAgreementState: createAgreementReader({ provider }),
+                    getAgreementState: createAgreementReader(provider),
                     getSheetState,
                     getSheetChainDetails,
                 }),
@@ -428,7 +428,7 @@ describe("CSV validation before reconciliation", () => {
             });
 
             const result = await reconcile({
-                getAgreementState: createAgreementReader({ provider }),
+                getAgreementState: createAgreementReader(provider),
                 getSheetState,
                 getSheetChainDetails,
             });

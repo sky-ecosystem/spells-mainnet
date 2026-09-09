@@ -3,7 +3,7 @@ import { AGREEMENT_V3_ABI } from "./abis.js";
 import { getChainlogAddress } from "./chainlog.js";
 import { normalizeOnChainState } from "./normalize.js";
 
-export function createAgreementReader({ provider }) {
+export function createAgreementReader(provider) {
     return async function getAgreementState(chainDetails) {
         const address = await getChainlogAddress(
             provider,
