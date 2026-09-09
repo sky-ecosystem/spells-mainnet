@@ -1489,12 +1489,12 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(
             sky.totalSupply(),
             skyTotalSupplyBefore - 2_860_943.76 ether,
-            "SKY should be burned"
+            "TestError/invalid-total-supply"
         );
         assertEq(
             sky.balanceOf(address(pauseProxy)),
             skyTreasuryBalanceBefore - 2_860_943.76 ether - distributed,
-            "SKY treasury balance should have decreased by the burn and the vest distribution"
+            "TestError/invalid-treasury-balance"
         );
     }
 
