@@ -6,30 +6,34 @@ export async function reconcile({
     getSheetState,
     getSheetChainDetails,
 }) {
-    const { chainDetails, validationWarnings: chainDetailsWarnings } =
-        await getSheetChainDetails();
-    const [
-        { state: sheetState, warnings: sheetWarnings },
-        { state: onChainState, warnings: onChainWarnings },
-    ] = await Promise.all([
-        getSheetState(chainDetails),
-        getAgreementState(chainDetails),
+    const chainDetailsResult = await getSheetChainDetails();
+    const [sheetResult, onChainResult] = await Promise.all([
+        getSheetState(chainDetailsResult.value),
+        getAgreementState(chainDetailsResult.value),
     ]);
     const validationWarnings = [
-        ...chainDetailsWarnings,
-        ...onChainWarnings,
-        ...sheetWarnings,
-        ...checkStateConsistency(onChainState, sheetState, chainDetails),
+        ...chainDetailsResult.warnings,
+        ...onChainResult.warnings,
+        ...sheetResult.warnings,
+        ...checkStateConsistency(
+            onChainResult.value,
+            sheetResult.value,
+            chainDetailsResult.value,
+        ),
     ];
 
     return {
-        chainDetails,
-        onChainState,
-        sheetState,
+        chainDetails: chainDetailsResult.value,
+        onChainState: onChainResult.value,
+        sheetState: sheetResult.value,
         changes:
             validationWarnings.length > 0
                 ? []
-                : planUpdates(onChainState, sheetState, chainDetails),
+                : planUpdates(
+                      onChainResult.value,
+                      sheetResult.value,
+                      chainDetailsResult.value,
+                  ),
         validationWarnings,
     };
 }

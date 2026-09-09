@@ -154,7 +154,7 @@ describe("contracts CSV headers", () => {
                 name: { "eip155:1": "ETHEREUM" },
             }),
         ).resolves.toEqual({
-            state: {
+            value: {
                 ETHEREUM: [
                     {
                         accountAddress:
@@ -229,12 +229,12 @@ describe("chain metadata CSV headers", () => {
         );
 
         await expect(getSheetChainDetails()).resolves.toEqual({
-            chainDetails: {
+            value: {
                 caip2ChainId: {},
                 assetRecoveryAddress: {},
                 name: {},
             },
-            validationWarnings: [],
+            warnings: [],
         });
     });
 
@@ -246,14 +246,14 @@ describe("chain metadata CSV headers", () => {
         );
 
         await expect(getSheetChainDetails()).resolves.toEqual({
-            chainDetails: {
+            value: {
                 caip2ChainId: { ETHEREUM: "eip155:1" },
                 assetRecoveryAddress: {
                     ETHEREUM: "0x1000000000000000000000000000000000000001",
                 },
                 name: { "eip155:1": "ETHEREUM" },
             },
-            validationWarnings: [],
+            warnings: [],
         });
     });
 
@@ -265,14 +265,14 @@ describe("chain metadata CSV headers", () => {
         );
 
         await expect(getSheetChainDetails()).resolves.toEqual({
-            chainDetails: {
+            value: {
                 caip2ChainId: { ETHEREUM: "eip155:1" },
                 assetRecoveryAddress: {
                     ETHEREUM: "0x1000000000000000000000000000000000000001",
                 },
                 name: { "eip155:1": "ETHEREUM" },
             },
-            validationWarnings: [],
+            warnings: [],
         });
         expect(fetch).toHaveBeenCalledExactlyOnceWith(
             "https://docs.google.com/spreadsheets/d/1e_KOYOeBGaA5EG3Xqco6lOP_a0zV4Vrm3w5-dqFk00U/export?format=csv&gid=1620276618",

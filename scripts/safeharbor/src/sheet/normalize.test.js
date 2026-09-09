@@ -26,7 +26,7 @@ test("accepts required headers with extra columns", () => {
             },
             { caip2ChainId: {}, assetRecoveryAddress: {}, name: {} },
         ),
-    ).toEqual({ state: {}, warnings: [] });
+    ).toEqual({ value: {}, warnings: [] });
 });
 
 describe("normalizeChainDetails", () => {
@@ -186,12 +186,12 @@ describe("normalizeChainDetails", () => {
         },
     ])("handles $scenario", ({ sheet, warnings }) => {
         expect(normalizeChainDetails(sheet)).toEqual({
-            chainDetails: {
+            value: {
                 caip2ChainId: {},
                 assetRecoveryAddress: {},
                 name: {},
             },
-            validationWarnings: warnings,
+            warnings,
         });
     });
 
@@ -244,11 +244,10 @@ describe("normalizeChainDetails", () => {
     ])(
         "preserves earlier mappings for a duplicate %s",
         (_case, sheet, warning) => {
-            const { chainDetails, validationWarnings } =
-                normalizeChainDetails(sheet);
+            const { value, warnings } = normalizeChainDetails(sheet);
 
-            expect(validationWarnings).toEqual([warning]);
-            expect(chainDetails).toEqual({
+            expect(warnings).toEqual([warning]);
+            expect(value).toEqual({
                 caip2ChainId: { ETHEREUM: "eip155:1" },
                 assetRecoveryAddress: {
                     ETHEREUM: "0x1000000000000000000000000000000000000001",
@@ -383,7 +382,7 @@ describe("normalizeChainDetails", () => {
         "diagnoses %s while retaining unrelated mappings",
         (_scenario, sheet, warnings) => {
             expect(normalizeChainDetails(sheet)).toEqual({
-                chainDetails: {
+                value: {
                     caip2ChainId: { ETHEREUM: "eip155:1", BASE: "eip155:8453" },
                     assetRecoveryAddress: {
                         ETHEREUM: "0x1000000000000000000000000000000000000001",
@@ -391,7 +390,7 @@ describe("normalizeChainDetails", () => {
                     },
                     name: { "eip155:1": "ETHEREUM", "eip155:8453": "BASE" },
                 },
-                validationWarnings: warnings,
+                warnings,
             });
         },
     );
@@ -469,8 +468,8 @@ test("groups active contracts in order with exact addresses and both factory ali
         },
     );
 
-    expect(Object.keys(result.state)).toEqual(["SOLANA", "ETHEREUM"]);
-    expect(result.state).toEqual({
+    expect(Object.keys(result.value)).toEqual(["SOLANA", "ETHEREUM"]);
+    expect(result.value).toEqual({
         SOLANA: [
             { accountAddress: "AccountUpperCase", childContractScope: 2 },
             { accountAddress: "accountUpperCase", childContractScope: 0 },
@@ -548,7 +547,7 @@ test("reports unknown chains and duplicate accounts without dropping records", (
             { caip2ChainId: {}, assetRecoveryAddress: {}, name: {} },
         ),
     ).toEqual({
-        state: {
+        value: {
             ETHEREUM: [
                 {
                     accountAddress:

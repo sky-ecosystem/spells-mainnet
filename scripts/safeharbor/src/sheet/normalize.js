@@ -11,7 +11,7 @@ export function normalizeContractsInScope({ headers, records }, chainDetails) {
     if (diagnostic) {
         throw Object.assign(new Error(diagnostic.code), { diagnostic });
     }
-    const state = records
+    const value = records
         .filter((record) => record.Status === "ACTIVE")
         .reduce((chains, record) => {
             const chain = record.Chain;
@@ -31,10 +31,10 @@ export function normalizeContractsInScope({ headers, records }, chainDetails) {
         }, {});
 
     return {
-        state,
+        value,
         warnings: [
-            ...validateKnownChains(state, chainDetails),
-            ...validateUniqueAccounts(state),
+            ...validateKnownChains(value, chainDetails),
+            ...validateUniqueAccounts(value),
         ],
     };
 }
@@ -58,7 +58,7 @@ export function normalizeChainDetails({ headers, records }) {
             !duplicateNameIndexes.has(index) && !duplicateIdIndexes.has(index),
     );
     return {
-        chainDetails: {
+        value: {
             caip2ChainId: Object.fromEntries(
                 uniqueChains.map((chain) => [chain.Name, chain["Chain Id"]]),
             ),
@@ -72,7 +72,7 @@ export function normalizeChainDetails({ headers, records }) {
                 uniqueChains.map((chain) => [chain["Chain Id"], chain.Name]),
             ),
         },
-        validationWarnings: [
+        warnings: [
             ...records
                 .filter((record) => Object.values(record).some(Boolean))
                 .filter((record) => getMissingChainFields(record).length > 0)

@@ -25,7 +25,7 @@ test("waits for metadata before reading the Sheet state and Agreement concurrent
     const getSheetChainDetails = vi.fn(() => metadata);
     const getSheetState = vi.fn(() => sheetState);
     const getAgreementState = vi.fn().mockResolvedValue({
-        state: {},
+        value: {},
         warnings: [],
     });
     const settled = vi.fn();
@@ -41,8 +41,8 @@ test("waits for metadata before reading the Sheet state and Agreement concurrent
     expect(getAgreementState).not.toHaveBeenCalled();
 
     resolveMetadata({
-        chainDetails: { caip2ChainId: {}, assetRecoveryAddress: {}, name: {} },
-        validationWarnings: [],
+        value: { caip2ChainId: {}, assetRecoveryAddress: {}, name: {} },
+        warnings: [],
     });
     await setImmediate();
 
@@ -58,7 +58,7 @@ test("waits for metadata before reading the Sheet state and Agreement concurrent
     });
     expect(settled).not.toHaveBeenCalled();
 
-    resolveSheetState({ state: {}, warnings: [] });
+    resolveSheetState({ value: {}, warnings: [] });
     await expect(result).resolves.toMatchObject({
         changes: [],
         validationWarnings: [],

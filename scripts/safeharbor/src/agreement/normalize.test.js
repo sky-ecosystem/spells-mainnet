@@ -4,7 +4,7 @@ import { normalizeOnChainState } from "./normalize.js";
 describe("normalizeOnChainState", () => {
     test("returns an empty state without warnings", () => {
         expect(normalizeOnChainState({ chains: [] }, { name: {} })).toEqual({
-            state: {},
+            value: {},
             warnings: [],
         });
     });
@@ -36,7 +36,7 @@ describe("normalizeOnChainState", () => {
                 name: { "eip155:1": "ETHEREUM" },
             }),
         ).toEqual({
-            state: {
+            value: {
                 ETHEREUM: {
                     accounts: [
                         {
@@ -96,13 +96,13 @@ describe("normalizeOnChainState", () => {
             },
         };
 
-        const { state, warnings } = normalizeOnChainState(
+        const { value, warnings } = normalizeOnChainState(
             details,
             chainDetails,
         );
 
-        expect(Object.keys(state)).toEqual(["SOLANA", "ETHEREUM"]);
-        expect(state).toEqual({
+        expect(Object.keys(value)).toEqual(["SOLANA", "ETHEREUM"]);
+        expect(value).toEqual({
             SOLANA: {
                 accounts: [
                     {

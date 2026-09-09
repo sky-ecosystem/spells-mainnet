@@ -2,7 +2,7 @@ import { DIAGNOSTIC_CODES as $ } from "../diagnosticCodes.js";
 
 export function normalizeOnChainState(details, chainDetails) {
     const warnings = [];
-    const state = details.chains.reduce((chains, chain) => {
+    const value = details.chains.reduce((chains, chain) => {
         const chainName = chainDetails.name[chain.caip2ChainId];
 
         if (!chainName) {
@@ -23,5 +23,5 @@ export function normalizeOnChainState(details, chainDetails) {
         return chains;
     }, {});
 
-    return { state, warnings };
+    return { value, warnings };
 }

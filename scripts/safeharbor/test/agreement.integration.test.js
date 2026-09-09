@@ -54,7 +54,7 @@ test("resolves the Agreement and returns normalized state with diagnostics", asy
     expect(
         await getAgreementState({ name: { "eip155:1": "ETHEREUM" } }),
     ).toEqual({
-        state: {
+        value: {
             ETHEREUM: {
                 accounts: [
                     {
