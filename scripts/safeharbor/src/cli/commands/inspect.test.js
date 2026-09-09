@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { Interface } from "ethers";
-import { generateSolidityCode } from "./generateSolidity.js";
+import { generateSolidity } from "../../generation/solidity.js";
 import { inspect } from "./inspect.js";
 
-vi.mock("./generateSolidity.js", () => ({ generateSolidityCode: vi.fn() }));
+vi.mock("../../generation/solidity.js", () => ({
+    generateSolidity: vi.fn(),
+}));
 
 beforeEach(() => {
     vi.clearAllMocks();
@@ -37,7 +39,7 @@ test("prints an empty changes array for clean state", () => {
     ]);
     expect(console.warn).not.toHaveBeenCalled();
     expect(Interface.prototype.encodeFunctionData).not.toHaveBeenCalled();
-    expect(generateSolidityCode).not.toHaveBeenCalled();
+    expect(generateSolidity).not.toHaveBeenCalled();
 });
 
 test("prints raw state and changes with bigint values as decimal strings without mutation", () => {
@@ -116,7 +118,7 @@ test("prints raw state and changes with bigint values as decimal strings without
     ]);
     expect(console.warn).not.toHaveBeenCalled();
     expect(Interface.prototype.encodeFunctionData).not.toHaveBeenCalled();
-    expect(generateSolidityCode).not.toHaveBeenCalled();
+    expect(generateSolidity).not.toHaveBeenCalled();
 });
 
 test("prints blocked planning as null with diagnostics and no executable artifacts", () => {
@@ -155,5 +157,5 @@ test("prints blocked planning as null with diagnostics and no executable artifac
     expect(report.changes).toBeNull();
     expect(console.warn).not.toHaveBeenCalled();
     expect(Interface.prototype.encodeFunctionData).not.toHaveBeenCalled();
-    expect(generateSolidityCode).not.toHaveBeenCalled();
+    expect(generateSolidity).not.toHaveBeenCalled();
 });

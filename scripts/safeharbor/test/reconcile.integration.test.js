@@ -1,10 +1,24 @@
-import { Interface } from "ethers";
-import { afterEach, expect, test, vi } from "vitest";
-import { createReconciler } from "../src/reconcile.js";
+import { Contract, Interface, JsonRpcProvider } from "ethers";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { createReconciler } from "../src/reconciliation/index.js";
+import { createAgreementReader } from "../src/agreement/index.js";
+
+vi.mock("ethers", async (importOriginal) => ({
+    ...(await importOriginal()),
+    Contract: vi.fn(),
+}));
+
+let provider;
+
+beforeEach(() => {
+    provider = new JsonRpcProvider("https://rpc.example");
+});
 
 afterEach(() => {
+    provider.destroy();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    vi.resetAllMocks();
 });
 
 test.each([
@@ -110,11 +124,22 @@ test.each([
                     }),
                 ),
         );
-        const getAgreementDetails = vi.fn().mockResolvedValue(details);
-        const reconcile = createReconciler({ getAgreementDetails });
+        const getDetails = vi.fn().mockResolvedValue(details);
+        Contract.mockReturnValueOnce({
+            "getAddress(bytes32)": vi
+                .fn()
+                .mockResolvedValue(
+                    "0x7000000000000000000000000000000000000001",
+                ),
+        }).mockReturnValueOnce({ getDetails });
+        const getAgreementState = vi.fn(createAgreementReader({ provider }));
+        const reconcile = createReconciler({ getAgreementState });
 
         expect(await reconcile()).toEqual(expected);
-        expect(getAgreementDetails).toHaveBeenCalledExactlyOnceWith();
+        expect(getAgreementState).toHaveBeenCalledExactlyOnceWith(
+            expected.chainDetails,
+        );
+        expect(getDetails).toHaveBeenCalledExactlyOnceWith();
         expect(encoding).not.toHaveBeenCalled();
         expect(stdout).not.toHaveBeenCalled();
         expect(stderr).not.toHaveBeenCalled();

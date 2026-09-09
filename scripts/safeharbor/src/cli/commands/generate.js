@@ -1,4 +1,4 @@
-import { generatePayload } from "./generatePayload.js";
+import { generatePayload } from "../../generation/index.js";
 
 export function generate(report) {
     const warningCount = report.validationWarnings.length;

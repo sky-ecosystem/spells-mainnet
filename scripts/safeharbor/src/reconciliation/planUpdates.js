@@ -1,4 +1,4 @@
-import { DIAGNOSTIC_CODES as $ } from "./diagnosticCodes.js";
+import { DIAGNOSTIC_CODES as $ } from "../diagnosticCodes.js";
 
 // The caller must validate state before planning updates.
 export function planUpdates(onChainState, sheetState, chainDetails) {

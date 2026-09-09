@@ -1,6 +1,6 @@
-import { DIAGNOSTIC_CODES as $ } from "./diagnosticCodes.js";
+import { DIAGNOSTIC_CODES as $ } from "../diagnosticCodes.js";
 import { getAddress } from "ethers";
-import { findDuplicateIndexes } from "./findDuplicateIndexes.js";
+import { findDuplicateIndexes } from "../findDuplicateIndexes.js";
 
 export function validateState(onChainState, sheetState, chainDetails) {
     const {
@@ -60,12 +60,12 @@ export function createStateValidators(onChainState, sheetState, chainDetails) {
 
     function validateRecoveryAddress(chainName) {
         const isNewChain = !Object.hasOwn(onChainState, chainName);
-        const onchainRecoveryAddress =
+        const onChainRecoveryAddress =
             onChainState[chainName]?.assetRecoveryAddress;
         const sheetRecoveryAddress =
             chainDetails.assetRecoveryAddress[chainName];
 
-        if (!isNewChain && !onchainRecoveryAddress) {
+        if (!isNewChain && !onChainRecoveryAddress) {
             return [
                 {
                     code: $.MISSING_ONCHAIN_RECOVERY_ADDRESS,
@@ -81,7 +81,7 @@ export function createStateValidators(onChainState, sheetState, chainDetails) {
             {
                 chainName,
                 isNewChain,
-                onchainRecoveryAddress,
+                onChainRecoveryAddress,
                 sheetRecoveryAddress,
             },
         );
@@ -97,11 +97,11 @@ export function createStateValidators(onChainState, sheetState, chainDetails) {
 
 export function createRecoveryAddressValidator(
     chainId,
-    { chainName, isNewChain, onchainRecoveryAddress, sheetRecoveryAddress },
+    { chainName, isNewChain, onChainRecoveryAddress, sheetRecoveryAddress },
 ) {
     const mismatchWarning = {
         code: $.RECOVERY_ADDRESS_MISMATCH,
-        context: { chainName, onchainRecoveryAddress, sheetRecoveryAddress },
+        context: { chainName, onChainRecoveryAddress, sheetRecoveryAddress },
     };
 
     function validateEvmRecoveryAddress() {
@@ -109,7 +109,7 @@ export function createRecoveryAddressValidator(
             const sheetAddress = getAddress(sheetRecoveryAddress);
             if (isNewChain) return [];
 
-            return getAddress(onchainRecoveryAddress) === sheetAddress
+            return getAddress(onChainRecoveryAddress) === sheetAddress
                 ? []
                 : [mismatchWarning];
         } catch {
@@ -119,7 +119,7 @@ export function createRecoveryAddressValidator(
                     context: {
                         chainName,
                         isNewChain,
-                        onchainRecoveryAddress,
+                        onChainRecoveryAddress,
                         sheetRecoveryAddress,
                     },
                 },
@@ -128,7 +128,7 @@ export function createRecoveryAddressValidator(
     }
 
     function validateNonEvmRecoveryAddress() {
-        return isNewChain || onchainRecoveryAddress === sheetRecoveryAddress
+        return isNewChain || onChainRecoveryAddress === sheetRecoveryAddress
             ? []
             : [mismatchWarning];
     }

@@ -57,8 +57,6 @@ The script follows these steps:
 
 7. Dispatches the reconciliation result to the selected command. Only `generate` encodes the changes and renders Solidity; `inspect` prints the report, while `verify` checks whether reconciliation is clean.
 
-`index.js` loads the environment and dispatches to `cli.js`. The CLI validates the command and RPC configuration, creates the provider, and wires the Agreement reader and reconciler through creator closures. A plain command map dispatches the reconciliation result to `generate.js`, `inspect.js`, or `verify.js`. The CLI destroys the provider when the command finishes, including encoding or reporting failures. `agreement.js` uses the injected provider to resolve the Agreement address through `chainlog.js`, construct the Agreement instance, and fetch its details. Its pure `normalizeOnchainState` function converts those details into reconciliation state without network access. `sheet.js` reads and normalizes the Safeharbor Sheet; CSV is its transport format. The RPC URL stays at the CLI boundary; the Agreement instance stays inside the reader. `planUpdates.js` plans changes without ABI encoding. The synchronous `generatePayload(changes)` delegates encoding to `agreement.js` and rendering to `generateSolidity.js` without fetching or reporting.
-
 Validation returns plain diagnostics with a stable `code` from the frozen `DIAGNOSTIC_CODES` object exported by `diagnosticCodes.js`, and optional `context` containing raw facts. For example:
 
 ```json
@@ -68,7 +66,7 @@ Validation returns plain diagnostics with a stable `code` from the frozen `DIAGN
 }
 ```
 
-Diagnostics contain no human-readable messages. `formatDiagnostic.js` owns their wording; the CLI prints each diagnostic to stderr once. `generate` and `verify` also print their command summaries; `inspect` prints JSON instead. The generator, CSV adapter, validators, and diff logic do not print progress or errors. Fatal application checks propagate native `Error` objects carrying a `diagnostic`; parser, fetch, and RPC exceptions propagate unchanged and are reported once at the CLI boundary. Command and header checks still exit `1`, while reconciliation warnings retain their command-specific exit behavior.
+Diagnostics contain no human-readable messages. `cli/formatDiagnostic.js` owns their wording; the CLI prints each diagnostic to stderr once. `generate` and `verify` also print their command summaries; `inspect` prints JSON instead. The generator, CSV adapter, validators, and diff logic do not print progress or errors. Fatal application checks propagate native `Error` objects carrying a `diagnostic`; parser, fetch, and RPC exceptions propagate unchanged and are reported once at the CLI boundary. Command and header checks still exit `1`, while reconciliation warnings retain their command-specific exit behavior.
 
 The `validationWarnings` field is retained, but its entries are now diagnostic objects rather than strings. This also changes the `inspect` JSON contract: consumers should use `code` and `context`, not parse warning text. `inspect` continues to print human-readable diagnostics to stderr, keeping stdout reserved for JSON.
 

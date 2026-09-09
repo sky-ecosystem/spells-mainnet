@@ -1,6 +1,6 @@
 import { JsonRpcProvider } from "ethers";
 import { expect, test, vi } from "vitest";
-import { getChainlogAddress } from "../src/chainlog.js";
+import { getChainlogAddress } from "../src/agreement/chainlog.js";
 
 test("loads the Safe Harbor agreement address from the Chainlog", async () => {
     const provider = new JsonRpcProvider("https://rpc.example");

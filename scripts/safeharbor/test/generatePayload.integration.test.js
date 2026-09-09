@@ -1,19 +1,34 @@
 import { test, expect, describe, vi, beforeEach, afterEach } from "vitest";
 import assert from "node:assert";
-import { Interface } from "ethers";
-import { generatePayload } from "../src/generatePayload.js";
-import { createReconciler } from "../src/reconcile.js";
-import { AGREEMENT_V3_ABI } from "../src/abis.js";
+import { Contract, Interface, JsonRpcProvider } from "ethers";
+import { generatePayload } from "../src/generation/index.js";
+import { createReconciler } from "../src/reconciliation/index.js";
+import { createAgreementReader } from "../src/agreement/index.js";
+import { AGREEMENT_V3_ABI } from "../src/agreement/abis.js";
 
-const getAgreementDetails = vi.fn();
-const reconcile = createReconciler({ getAgreementDetails });
+vi.mock("ethers", async (importOriginal) => ({
+    ...(await importOriginal()),
+    Contract: vi.fn(),
+}));
 
+const getDetails = vi.fn();
+
+let provider;
+let reconcile;
 let consoleWarnSpy;
 let consoleErrorSpy;
 let consoleLogSpy;
 let encodeSpy;
 
 beforeEach(() => {
+    provider = new JsonRpcProvider("https://rpc.example");
+    const getAgreementState = createAgreementReader({ provider });
+    reconcile = createReconciler({ getAgreementState });
+    Contract.mockReturnValueOnce({
+        "getAddress(bytes32)": vi
+            .fn()
+            .mockResolvedValue("0x7000000000000000000000000000000000000001"),
+    }).mockReturnValueOnce({ getDetails });
     vi.stubGlobal("fetch", vi.fn());
     consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -27,6 +42,7 @@ afterEach(() => {
         expect(consoleErrorSpy).not.toHaveBeenCalled();
         expect(consoleLogSpy).not.toHaveBeenCalled();
     } finally {
+        provider.destroy();
         vi.restoreAllMocks();
         vi.unstubAllGlobals();
         vi.resetAllMocks();
@@ -43,7 +59,7 @@ async function generateFrom({ chainCSV, contractCSV, details }) {
                 headers: { "content-type": "text/csv" },
             }),
         );
-    getAgreementDetails.mockResolvedValue(details);
+    getDetails.mockResolvedValue(details);
     const report = await reconcile();
     expect(encodeSpy).not.toHaveBeenCalled();
     if (report.validationWarnings.length > 0) {
@@ -59,7 +75,7 @@ async function generateFrom({ chainCSV, contractCSV, details }) {
         ...payload,
         validationWarnings: report.validationWarnings,
     };
-    expect(getAgreementDetails).toHaveBeenCalledExactlyOnceWith();
+    expect(getDetails).toHaveBeenCalledExactlyOnceWith();
     payloadSnapshot(result.updates);
     return result;
 }
@@ -88,7 +104,7 @@ const ACCOUNT = {
 
 describe("generatePayload", () => {
     describe("No changes scenario", () => {
-        test("should generate no updates when onchain and CSV data match", async () => {
+        test("should generate no updates when onChain and CSV data match", async () => {
             const result = await generateFrom({
                 chainCSV:
                     "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
@@ -760,7 +776,7 @@ describe("generatePayload", () => {
             ]);
         });
 
-        test("should handle completely empty onchain state", async () => {
+        test("should handle completely empty onChain state", async () => {
             const result = await generateFrom({
                 chainCSV:
                     "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
@@ -931,7 +947,7 @@ describe("generatePayload", () => {
                     code: "RECOVERY_ADDRESS_MISMATCH",
                     context: {
                         chainName: "ETHEREUM",
-                        onchainRecoveryAddress:
+                        onChainRecoveryAddress:
                             "0x10000000000000000000000000000000000000ff",
                         sheetRecoveryAddress:
                             "0x1000000000000000000000000000000000000001",
@@ -984,7 +1000,7 @@ describe("generatePayload", () => {
                     code: "RECOVERY_ADDRESS_MISMATCH",
                     context: {
                         chainName: "ETHEREUM",
-                        onchainRecoveryAddress:
+                        onChainRecoveryAddress:
                             "0x10000000000000000000000000000000000000ff",
                         sheetRecoveryAddress:
                             "0x1000000000000000000000000000000000000001",
@@ -1214,7 +1230,7 @@ describe("generatePayload", () => {
                         code: "RECOVERY_ADDRESS_MISMATCH",
                         context: {
                             chainName: "ETHEREUM",
-                            onchainRecoveryAddress:
+                            onChainRecoveryAddress:
                                 "0x10000000000000000000000000000000000000ff",
                             sheetRecoveryAddress:
                                 "0x1000000000000000000000000000000000000001",
@@ -1558,7 +1574,7 @@ test.each([
                 context: {
                     chainName: "ETHEREUM",
                     isNewChain: true,
-                    onchainRecoveryAddress: undefined,
+                    onChainRecoveryAddress: undefined,
                     sheetRecoveryAddress: "not-an-address",
                 },
             },
@@ -1577,7 +1593,7 @@ test.each([
                 context: {
                     chainName: "ETHEREUM",
                     isNewChain: true,
-                    onchainRecoveryAddress: undefined,
+                    onChainRecoveryAddress: undefined,
                     sheetRecoveryAddress:
                         "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
                 },
@@ -1607,7 +1623,7 @@ test.each([
                 code: "RECOVERY_ADDRESS_MISMATCH",
                 context: {
                     chainName: "SOLANA",
-                    onchainRecoveryAddress:
+                    onChainRecoveryAddress:
                         "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
                     sheetRecoveryAddress:
                         "29d2s7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",

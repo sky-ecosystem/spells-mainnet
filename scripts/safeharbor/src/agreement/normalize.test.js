@@ -1,9 +1,9 @@
 import { describe, expect, test } from "vitest";
-import { normalizeOnchainState } from "./agreement.js";
+import { normalizeOnChainState } from "./normalize.js";
 
-describe("normalizeOnchainState", () => {
+describe("normalizeOnChainState", () => {
     test("returns an empty state without warnings", () => {
-        expect(normalizeOnchainState({ chains: [] }, { name: {} })).toEqual({
+        expect(normalizeOnChainState({ chains: [] }, { name: {} })).toEqual({
             onChainState: {},
             validationWarnings: [],
         });
@@ -32,7 +32,7 @@ describe("normalizeOnchainState", () => {
         };
 
         expect(
-            normalizeOnchainState(details, {
+            normalizeOnChainState(details, {
                 name: { "eip155:1": "ETHEREUM" },
             }),
         ).toEqual({
@@ -96,7 +96,7 @@ describe("normalizeOnchainState", () => {
             },
         };
 
-        const { onChainState, validationWarnings } = normalizeOnchainState(
+        const { onChainState, validationWarnings } = normalizeOnChainState(
             details,
             chainDetails,
         );

@@ -1,4 +1,4 @@
-import { DIAGNOSTIC_CODES as $ } from "./diagnosticCodes.js";
+import { DIAGNOSTIC_CODES as $ } from "../diagnosticCodes.js";
 
 export const diagnosticTemplates = {
     [$.DUPLICATE_SHEET_ACCOUNT]:
@@ -12,9 +12,9 @@ export const diagnosticTemplates = {
     [$.MISSING_ONCHAIN_RECOVERY_ADDRESS]:
         "Missing on-chain Asset Recovery Address for existing chain '{chainName}'",
     [$.RECOVERY_ADDRESS_MISMATCH]:
-        "Asset Recovery Address mismatch for chain '{chainName}'.\nOn-chain: {onchainRecoveryAddress}\nSafeharbor Sheet: {sheetRecoveryAddress}",
+        "Asset Recovery Address mismatch for chain '{chainName}'.\nOn-chain: {onChainRecoveryAddress}\nSafeharbor Sheet: {sheetRecoveryAddress}",
     [$.INVALID_EVM_RECOVERY_ADDRESS]:
-        "Invalid EVM Asset Recovery Address for chain '{chainName}'. On-chain: {onchainRecoveryAddress}; Safeharbor Sheet: {sheetRecoveryAddress}",
+        "Invalid EVM Asset Recovery Address for chain '{chainName}'. On-chain: {onChainRecoveryAddress}; Safeharbor Sheet: {sheetRecoveryAddress}",
     [$.INCOMPLETE_CHAIN_METADATA]:
         "Incomplete chain details in Safeharbor Sheet: name='{chainName}', chainId='{chainId}'; missing {missingFields}",
     [$.DUPLICATE_CHAIN_NAME]:
@@ -51,9 +51,9 @@ export function formatDiagnostic({ code, context = {} }) {
 
 const formatContext = {
     [$.INVALID_EVM_RECOVERY_ADDRESS]: (context) => ({
-        onchainRecoveryAddress: context.isNewChain
+        onChainRecoveryAddress: context.isNewChain
             ? "not registered"
-            : context.onchainRecoveryAddress,
+            : context.onChainRecoveryAddress,
     }),
     [$.INCOMPLETE_CHAIN_METADATA]: (context) => ({
         missingFields: context.missingFields.join(", "),

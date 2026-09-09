@@ -3,21 +3,19 @@ import {
     getNormalizedContractsInScopeFromSheet,
     CHAIN_DETAILS_SHEET_URL,
     CONTRACTS_IN_SCOPE_SHEET_URL,
-} from "./sheet.js";
-import { normalizeOnchainState } from "./agreement.js";
+} from "../sheet/index.js";
 import { validateState } from "./validateState.js";
 import { planUpdates } from "./planUpdates.js";
 
-export function createReconciler({ getAgreementDetails }) {
+export function createReconciler({ getAgreementState }) {
     return async function reconcile() {
         const { chainDetails, validationWarnings: chainDetailsWarnings } =
             await getChainDetailsFromSheet(CHAIN_DETAILS_SHEET_URL);
         const sheetState = await getNormalizedContractsInScopeFromSheet(
             CONTRACTS_IN_SCOPE_SHEET_URL,
         );
-        const details = await getAgreementDetails();
         const { onChainState, validationWarnings: onChainWarnings } =
-            normalizeOnchainState(details, chainDetails);
+            await getAgreementState(chainDetails);
         const validationWarnings = [
             ...chainDetailsWarnings,
             ...onChainWarnings,

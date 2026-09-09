@@ -1,15 +1,30 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { Interface } from "ethers";
+import { Contract, Interface, JsonRpcProvider } from "ethers";
 import {
     getChainDetailsFromSheet,
     getNormalizedContractsInScopeFromSheet,
-} from "../src/sheet.js";
-import { createReconciler } from "../src/reconcile.js";
+} from "../src/sheet/index.js";
+import { createReconciler } from "../src/reconciliation/index.js";
+import { createAgreementReader } from "../src/agreement/index.js";
 
-const getAgreementDetails = vi.fn();
-const reconcile = createReconciler({ getAgreementDetails });
+vi.mock("ethers", async (importOriginal) => ({
+    ...(await importOriginal()),
+    Contract: vi.fn(),
+}));
+
+const getDetails = vi.fn();
+let provider;
+let reconcile;
 
 beforeEach(() => {
+    provider = new JsonRpcProvider("https://rpc.example");
+    const getAgreementState = createAgreementReader({ provider });
+    reconcile = createReconciler({ getAgreementState });
+    Contract.mockReturnValueOnce({
+        "getAddress(bytes32)": vi
+            .fn()
+            .mockResolvedValue("0x7000000000000000000000000000000000000001"),
+    }).mockReturnValueOnce({ getDetails });
     vi.stubGlobal("fetch", vi.fn());
     vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
@@ -22,6 +37,7 @@ afterEach(() => {
         expect(console.error).not.toHaveBeenCalled();
         expect(console.log).not.toHaveBeenCalled();
     } finally {
+        provider.destroy();
         vi.unstubAllGlobals();
         vi.restoreAllMocks();
         vi.resetAllMocks();
@@ -248,6 +264,27 @@ describe("chain metadata CSV headers", () => {
             validationWarnings: [],
         });
     });
+
+    test("trims headers and values and ignores blank rows", async () => {
+        fetch.mockResolvedValue(
+            csvResponse(
+                " Name , Chain Id , Asset Recovery Address , Notes \n,,,\n   ,   ,   ,   \n\n ETHEREUM , eip155:1 , 0x1000000000000000000000000000000000000001 , reviewed \n",
+            ),
+        );
+
+        await expect(
+            getChainDetailsFromSheet("https://example.test/chains.csv"),
+        ).resolves.toEqual({
+            chainDetails: {
+                caip2ChainId: { ETHEREUM: "eip155:1" },
+                assetRecoveryAddress: {
+                    ETHEREUM: "0x1000000000000000000000000000000000000001",
+                },
+                name: { "eip155:1": "ETHEREUM" },
+            },
+            validationWarnings: [],
+        });
+    });
 });
 
 describe("malformed CSV", () => {
@@ -358,7 +395,7 @@ describe("CSV validation before reconciliation", () => {
             const encode = vi.spyOn(Interface.prototype, "encodeFunctionData");
 
             await expect(reconcile()).rejects.toMatchObject(error);
-            expect(getAgreementDetails).not.toHaveBeenCalled();
+            expect(getDetails).not.toHaveBeenCalled();
             expect(encode).not.toHaveBeenCalled();
         },
     );
@@ -380,7 +417,7 @@ describe("CSV validation before reconciliation", () => {
                     ),
                 )
                 .mockResolvedValueOnce(csvResponse(contractCSV));
-            getAgreementDetails.mockResolvedValue({
+            getDetails.mockResolvedValue({
                 chains: [
                     {
                         caip2ChainId: "eip155:1",

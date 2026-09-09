@@ -418,7 +418,7 @@ describe("recovery address comparison", () => {
             scenario: "a new chain accepts a lowercase EVM recovery address",
             chainId: "eip155:1",
             isNewChain: true,
-            onchainState: {},
+            onChainState: {},
             sheetAddress: "0x8ba1f109551bd432803012645ac136ddd64dba72",
             warning: null,
         },
@@ -426,7 +426,7 @@ describe("recovery address comparison", () => {
             scenario: "a new chain accepts a checksummed EVM recovery address",
             chainId: "eip155:1",
             isNewChain: true,
-            onchainState: {},
+            onChainState: {},
             sheetAddress: "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
             warning: null,
         },
@@ -434,14 +434,14 @@ describe("recovery address comparison", () => {
             scenario: "a new chain rejects an invalid EVM checksum",
             chainId: "eip155:1",
             isNewChain: true,
-            onchainState: {},
+            onChainState: {},
             sheetAddress: "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
             warning: {
                 code: "INVALID_EVM_RECOVERY_ADDRESS",
                 context: {
                     chainName: "CHAIN",
                     isNewChain: true,
-                    onchainRecoveryAddress: undefined,
+                    onChainRecoveryAddress: undefined,
                     sheetRecoveryAddress:
                         "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
                 },
@@ -451,14 +451,14 @@ describe("recovery address comparison", () => {
             scenario: "a new chain rejects a malformed EVM recovery address",
             chainId: "eip155:1",
             isNewChain: true,
-            onchainState: {},
+            onChainState: {},
             sheetAddress: "not-an-address",
             warning: {
                 code: "INVALID_EVM_RECOVERY_ADDRESS",
                 context: {
                     chainName: "CHAIN",
                     isNewChain: true,
-                    onchainRecoveryAddress: undefined,
+                    onChainRecoveryAddress: undefined,
                     sheetRecoveryAddress: "not-an-address",
                 },
             },
@@ -468,7 +468,7 @@ describe("recovery address comparison", () => {
                 "a new Solana chain has no current recovery address to compare",
             chainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
             isNewChain: true,
-            onchainState: {},
+            onChainState: {},
             sheetAddress: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
             warning: null,
         },
@@ -476,7 +476,7 @@ describe("recovery address comparison", () => {
             scenario: "lowercase and checksummed EVM addresses match",
             chainId: "eip155:1",
             isNewChain: false,
-            onchainState: {
+            onChainState: {
                 CHAIN: {
                     accounts: [],
                     assetRecoveryAddress:
@@ -490,7 +490,7 @@ describe("recovery address comparison", () => {
             scenario: "checksummed and lowercase EVM addresses match",
             chainId: "eip155:8453",
             isNewChain: false,
-            onchainState: {
+            onChainState: {
                 CHAIN: {
                     accounts: [],
                     assetRecoveryAddress:
@@ -504,7 +504,7 @@ describe("recovery address comparison", () => {
             scenario: "different valid EVM addresses mismatch",
             chainId: "eip155:1",
             isNewChain: false,
-            onchainState: {
+            onChainState: {
                 CHAIN: {
                     accounts: [],
                     assetRecoveryAddress:
@@ -516,7 +516,7 @@ describe("recovery address comparison", () => {
                 code: "RECOVERY_ADDRESS_MISMATCH",
                 context: {
                     chainName: "CHAIN",
-                    onchainRecoveryAddress:
+                    onChainRecoveryAddress:
                         "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
                     sheetRecoveryAddress:
                         "0x1000000000000000000000000000000000000001",
@@ -528,7 +528,7 @@ describe("recovery address comparison", () => {
                 "an invalid Safeharbor Sheet checksum is not normalized away",
             chainId: "eip155:1",
             isNewChain: false,
-            onchainState: {
+            onChainState: {
                 CHAIN: {
                     accounts: [],
                     assetRecoveryAddress:
@@ -541,7 +541,7 @@ describe("recovery address comparison", () => {
                 context: {
                     chainName: "CHAIN",
                     isNewChain: false,
-                    onchainRecoveryAddress:
+                    onChainRecoveryAddress:
                         "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
                     sheetRecoveryAddress:
                         "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
@@ -552,7 +552,7 @@ describe("recovery address comparison", () => {
             scenario: "an invalid on-chain checksum is not normalized away",
             chainId: "eip155:1",
             isNewChain: false,
-            onchainState: {
+            onChainState: {
                 CHAIN: {
                     accounts: [],
                     assetRecoveryAddress:
@@ -565,7 +565,7 @@ describe("recovery address comparison", () => {
                 context: {
                     chainName: "CHAIN",
                     isNewChain: false,
-                    onchainRecoveryAddress:
+                    onChainRecoveryAddress:
                         "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
                     sheetRecoveryAddress:
                         "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
@@ -576,7 +576,7 @@ describe("recovery address comparison", () => {
             scenario: "a malformed EVM address produces a validation warning",
             chainId: "eip155:1",
             isNewChain: false,
-            onchainState: {
+            onChainState: {
                 CHAIN: {
                     accounts: [],
                     assetRecoveryAddress:
@@ -589,7 +589,7 @@ describe("recovery address comparison", () => {
                 context: {
                     chainName: "CHAIN",
                     isNewChain: false,
-                    onchainRecoveryAddress:
+                    onChainRecoveryAddress:
                         "0x1000000000000000000000000000000000000001",
                     sheetRecoveryAddress: "not-an-address",
                 },
@@ -599,7 +599,7 @@ describe("recovery address comparison", () => {
             scenario: "identical malformed EVM addresses are still invalid",
             chainId: "eip155:1",
             isNewChain: false,
-            onchainState: {
+            onChainState: {
                 CHAIN: { accounts: [], assetRecoveryAddress: "not-an-address" },
             },
             sheetAddress: "not-an-address",
@@ -608,7 +608,7 @@ describe("recovery address comparison", () => {
                 context: {
                     chainName: "CHAIN",
                     isNewChain: false,
-                    onchainRecoveryAddress: "not-an-address",
+                    onChainRecoveryAddress: "not-an-address",
                     sheetRecoveryAddress: "not-an-address",
                 },
             },
@@ -617,7 +617,7 @@ describe("recovery address comparison", () => {
             scenario: "identical Solana identifiers match",
             chainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
             isNewChain: false,
-            onchainState: {
+            onChainState: {
                 CHAIN: {
                     accounts: [],
                     assetRecoveryAddress:
@@ -631,7 +631,7 @@ describe("recovery address comparison", () => {
             scenario: "a Solana case difference is a mismatch",
             chainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
             isNewChain: false,
-            onchainState: {
+            onChainState: {
                 CHAIN: {
                     accounts: [],
                     assetRecoveryAddress:
@@ -643,7 +643,7 @@ describe("recovery address comparison", () => {
                 code: "RECOVERY_ADDRESS_MISMATCH",
                 context: {
                     chainName: "CHAIN",
-                    onchainRecoveryAddress:
+                    onChainRecoveryAddress:
                         "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
                     sheetRecoveryAddress:
                         "29d2s7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
@@ -654,7 +654,7 @@ describe("recovery address comparison", () => {
             scenario: "other non-EVM identifiers match exactly",
             chainId: "cosmos:cosmoshub-4",
             isNewChain: false,
-            onchainState: {
+            onChainState: {
                 CHAIN: {
                     accounts: [],
                     assetRecoveryAddress: "recovery-identifier",
@@ -667,7 +667,7 @@ describe("recovery address comparison", () => {
             scenario: "other non-EVM case differences remain mismatches",
             chainId: "cosmos:cosmoshub-4",
             isNewChain: false,
-            onchainState: {
+            onChainState: {
                 CHAIN: {
                     accounts: [],
                     assetRecoveryAddress: "Recovery-identifier",
@@ -678,26 +678,26 @@ describe("recovery address comparison", () => {
                 code: "RECOVERY_ADDRESS_MISMATCH",
                 context: {
                     chainName: "CHAIN",
-                    onchainRecoveryAddress: "Recovery-identifier",
+                    onChainRecoveryAddress: "Recovery-identifier",
                     sheetRecoveryAddress: "recovery-identifier",
                 },
             },
         },
     ])(
         "$scenario",
-        ({ chainId, isNewChain, onchainState, sheetAddress, warning }) => {
-            const onchainAddress = onchainState.CHAIN?.assetRecoveryAddress;
+        ({ chainId, isNewChain, onChainState, sheetAddress, warning }) => {
+            const onChainAddress = onChainState.CHAIN?.assetRecoveryAddress;
             const validateRecoveryAddress = createRecoveryAddressValidator(
                 chainId,
                 {
                     chainName: "CHAIN",
                     isNewChain,
-                    onchainRecoveryAddress: onchainAddress,
+                    onChainRecoveryAddress: onChainAddress,
                     sheetRecoveryAddress: sheetAddress,
                 },
             );
             const { validateRecoveryAddresses } = createStateValidators(
-                onchainState,
+                onChainState,
                 { CHAIN: [] },
                 {
                     caip2ChainId: { CHAIN: chainId },
@@ -738,7 +738,7 @@ describe("known-chain validation", () => {
                 code: "RECOVERY_ADDRESS_MISMATCH",
                 context: {
                     chainName: "ETHEREUM",
-                    onchainRecoveryAddress:
+                    onChainRecoveryAddress:
                         "0x1000000000000000000000000000000000000001",
                     sheetRecoveryAddress:
                         "0x1000000000000000000000000000000000000002",

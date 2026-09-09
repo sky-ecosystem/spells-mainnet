@@ -1,8 +1,8 @@
 import { expect, test } from "vitest";
-import { generateSolidityCode } from "./generateSolidity.js";
+import { generateSolidity } from "./solidity.js";
 
 test("returns an empty snippet when there are no updates", () => {
-    expect(generateSolidityCode([])).toBe("");
+    expect(generateSolidity([])).toBe("");
 });
 
 test.each([
@@ -101,19 +101,19 @@ test.each([
             "bytes[] memory calldatas = new bytes[](1);\n\n// Add accounts to eip155:1 chain: 0x2000000000000000000000000000000000000002, 0x2000000000000000000000000000000000000001\ncalldatas[0] = hex'1234';\n\n_updateSafeHarbor(calldatas);",
     },
 ])("renders $scenario", ({ updates, expected }) => {
-    expect(generateSolidityCode(updates)).toBe(expected);
+    expect(generateSolidity(updates)).toBe(expected);
 });
 
 test("rejects unknown operations", () => {
     expect(() =>
-        generateSolidityCode([
+        generateSolidity([
             { fn: "unknownOperation", args: [], calldata: "0x1234" },
         ]),
     ).toThrow("Unknown update");
 });
 
 test("trims each Solidity line while preserving internal spacing and blank lines", () => {
-    const code = generateSolidityCode([
+    const code = generateSolidity([
         {
             fn: "removeChains",
             args: [["eip155:1 \t"]],

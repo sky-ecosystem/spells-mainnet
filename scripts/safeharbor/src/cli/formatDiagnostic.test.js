@@ -83,7 +83,7 @@ test.each([
             code: "RECOVERY_ADDRESS_MISMATCH",
             context: {
                 chainName: "SOLANA",
-                onchainRecoveryAddress: "RecoveryUpperCase",
+                onChainRecoveryAddress: "RecoveryUpperCase",
                 sheetRecoveryAddress: "recoveryUpperCase",
             },
         },
@@ -96,7 +96,7 @@ test.each([
             context: {
                 chainName: "BASE",
                 isNewChain: true,
-                onchainRecoveryAddress: undefined,
+                onChainRecoveryAddress: undefined,
                 sheetRecoveryAddress: "invalid",
             },
         },
@@ -109,7 +109,7 @@ test.each([
             context: {
                 chainName: "BASE",
                 isNewChain: false,
-                onchainRecoveryAddress: "invalid",
+                onChainRecoveryAddress: "invalid",
                 sheetRecoveryAddress:
                     "0x1000000000000000000000000000000000000001",
             },

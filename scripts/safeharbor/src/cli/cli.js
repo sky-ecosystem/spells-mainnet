@@ -1,11 +1,11 @@
-import { DIAGNOSTIC_CODES as $ } from "./diagnosticCodes.js";
+import { DIAGNOSTIC_CODES as $ } from "../diagnosticCodes.js";
 import { JsonRpcProvider } from "ethers";
-import { createAgreementReader } from "./agreement.js";
+import { createAgreementReader } from "../agreement/index.js";
 import { formatDiagnostic } from "./formatDiagnostic.js";
-import { createReconciler } from "./reconcile.js";
-import { generate } from "./generate.js";
-import { inspect } from "./inspect.js";
-import { verify } from "./verify.js";
+import { createReconciler } from "../reconciliation/index.js";
+import { generate } from "./commands/generate.js";
+import { inspect } from "./commands/inspect.js";
+import { verify } from "./commands/verify.js";
 
 export async function main() {
     const command = process.argv[2];
@@ -21,9 +21,9 @@ export async function main() {
     try {
         const provider = new JsonRpcProvider(rpcUrl);
         try {
-            const getAgreementDetails = createAgreementReader({ provider });
+            const getAgreementState = createAgreementReader({ provider });
             const reconcile = createReconciler({
-                getAgreementDetails,
+                getAgreementState,
             });
             const result = await reconcile();
             result.validationWarnings.forEach((diagnostic) =>

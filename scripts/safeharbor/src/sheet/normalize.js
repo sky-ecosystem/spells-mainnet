@@ -1,15 +1,7 @@
-import { DIAGNOSTIC_CODES as $ } from "./diagnosticCodes.js";
-import { parse } from "csv-parse/sync";
-import { findDuplicateIndexes } from "./findDuplicateIndexes.js";
+import { DIAGNOSTIC_CODES as $ } from "../diagnosticCodes.js";
+import { findDuplicateIndexes } from "../findDuplicateIndexes.js";
 
-const WORKBOOK_URL =
-    "https://docs.google.com/spreadsheets/d/1e_KOYOeBGaA5EG3Xqco6lOP_a0zV4Vrm3w5-dqFk00U";
-
-export const CONTRACTS_IN_SCOPE_SHEET_URL = `${WORKBOOK_URL}/export?format=csv&gid=1121763694`;
-export const CHAIN_DETAILS_SHEET_URL = `${WORKBOOK_URL}/export?format=csv&gid=1620276618`;
-
-export async function getNormalizedContractsInScopeFromSheet(url) {
-    const { headers, records } = await downloadAndParse(url);
+export function normalizeContractsInScope({ headers, records }) {
     const [diagnostic] = validateHeaders(headers, [
         "Status",
         "Chain",
@@ -19,61 +11,6 @@ export async function getNormalizedContractsInScopeFromSheet(url) {
     if (diagnostic) {
         throw Object.assign(new Error(diagnostic.code), { diagnostic });
     }
-    return normalizeContractsInScope(records);
-}
-
-export async function getChainDetailsFromSheet(url) {
-    const { headers, records } = await downloadAndParse(url);
-    const [diagnostic] = validateHeaders(headers, CHAIN_DETAILS_HEADERS);
-    if (diagnostic) {
-        throw Object.assign(new Error(diagnostic.code), { diagnostic });
-    }
-    return normalizeChainDetails(records);
-}
-
-export function validateHeaders(headers, requiredHeaders) {
-    const missingHeaders = requiredHeaders.filter(
-        (header) => !headers.includes(header),
-    );
-    return missingHeaders.length > 0
-        ? [
-              {
-                  code: $.MISSING_SHEET_HEADERS,
-                  context: { missingHeaders },
-              },
-          ]
-        : [];
-}
-
-const CHAIN_DETAILS_HEADERS = ["Name", "Chain Id", "Asset Recovery Address"];
-
-async function downloadAndParse(url) {
-    const response = await fetch(url);
-    const diagnostic = !response.ok
-        ? {
-              code: $.HTTP_ERROR,
-              context: { status: response.status },
-          }
-        : !response.headers.get("content-type")?.includes("text/csv")
-          ? { code: $.INVALID_CSV_CONTENT_TYPE }
-          : undefined;
-    if (diagnostic) {
-        throw Object.assign(new Error(diagnostic.code), { diagnostic });
-    }
-    const csvText = await response.text();
-    let headers = [];
-    const records = parse(csvText, {
-        columns: (columns) => {
-            headers = columns;
-            return columns;
-        },
-        skip_empty_lines: true,
-        trim: true,
-    });
-    return { headers, records };
-}
-
-function normalizeContractsInScope(records) {
     return records
         .filter((record) => record.Status === "ACTIVE")
         .reduce((chains, record) => {
@@ -94,7 +31,11 @@ function normalizeContractsInScope(records) {
         }, {});
 }
 
-function normalizeChainDetails(records) {
+export function normalizeChainDetails({ headers, records }) {
+    const [diagnostic] = validateHeaders(headers, CHAIN_DETAILS_HEADERS);
+    if (diagnostic) {
+        throw Object.assign(new Error(diagnostic.code), { diagnostic });
+    }
     const chains = records.filter(
         (record) => getMissingChainFields(record).length === 0,
     );
@@ -156,6 +97,22 @@ function normalizeChainDetails(records) {
         ],
     };
 }
+
+export function validateHeaders(headers, requiredHeaders) {
+    const missingHeaders = requiredHeaders.filter(
+        (header) => !headers.includes(header),
+    );
+    return missingHeaders.length > 0
+        ? [
+              {
+                  code: $.MISSING_SHEET_HEADERS,
+                  context: { missingHeaders },
+              },
+          ]
+        : [];
+}
+
+const CHAIN_DETAILS_HEADERS = ["Name", "Chain Id", "Asset Recovery Address"];
 
 function getMissingChainFields(record) {
     return CHAIN_DETAILS_HEADERS.filter((field) => !record[field]);

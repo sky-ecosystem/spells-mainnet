@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { Contract, JsonRpcProvider } from "ethers";
-import { main } from "../src/cli.js";
+import { main } from "../src/cli/index.js";
 import {
     CHAIN_DETAILS_SHEET_URL,
     CONTRACTS_IN_SCOPE_SHEET_URL,
-} from "../src/sheet.js";
+} from "../src/sheet/index.js";
 
 vi.mock("ethers", async (importOriginal) => ({
     ...(await importOriginal()),
@@ -12,7 +12,7 @@ vi.mock("ethers", async (importOriginal) => ({
     JsonRpcProvider: vi.fn(),
 }));
 
-let getAgreementDetails;
+let getDetails;
 let argv;
 let provider;
 let stdout;
@@ -20,7 +20,7 @@ let stderr;
 let warnings;
 
 beforeEach(() => {
-    getAgreementDetails = vi.fn();
+    getDetails = vi.fn();
     argv = process.argv;
     vi.stubEnv("ETH_RPC_URL", "https://rpc.example");
     provider = { destroy: vi.fn() };
@@ -29,7 +29,7 @@ beforeEach(() => {
         "getAddress(bytes32)": vi
             .fn()
             .mockResolvedValue("0x7000000000000000000000000000000000000001"),
-    }).mockReturnValueOnce({ getDetails: getAgreementDetails });
+    }).mockReturnValueOnce({ getDetails });
     vi.stubGlobal("fetch", vi.fn());
     stdout = vi.spyOn(console, "log").mockImplementation(() => {});
     stderr = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -59,7 +59,7 @@ function mockSources({ chainCSV, contractCSV, details }) {
                 headers: { "content-type": "text/csv" },
             }),
         );
-    getAgreementDetails.mockResolvedValue(details);
+    getDetails.mockResolvedValue(details);
 }
 
 describe.each([
@@ -243,7 +243,7 @@ describe.each([
                     code: "RECOVERY_ADDRESS_MISMATCH",
                     context: {
                         chainName: "ETHEREUM",
-                        onchainRecoveryAddress:
+                        onChainRecoveryAddress:
                             "0x1000000000000000000000000000000000000002",
                         sheetRecoveryAddress:
                             "0x1000000000000000000000000000000000000001",
@@ -323,7 +323,7 @@ describe.each([
                     code: "RECOVERY_ADDRESS_MISMATCH",
                     context: {
                         chainName: "ETHEREUM",
-                        onchainRecoveryAddress:
+                        onChainRecoveryAddress:
                             "0x1000000000000000000000000000000000000002",
                         sheetRecoveryAddress:
                             "0x1000000000000000000000000000000000000001",
@@ -358,7 +358,7 @@ describe.each([
                 [CHAIN_DETAILS_SHEET_URL],
                 [CONTRACTS_IN_SCOPE_SHEET_URL],
             ]);
-            expect(getAgreementDetails).toHaveBeenCalledExactlyOnceWith();
+            expect(getDetails).toHaveBeenCalledExactlyOnceWith();
             expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
             expect(stderr).not.toHaveBeenCalled();
 
@@ -449,7 +449,7 @@ describe.each([
                 "Failed to execute command:",
                 fixture.errorMessage,
             );
-            expect(getAgreementDetails).not.toHaveBeenCalled();
+            expect(getDetails).not.toHaveBeenCalled();
             expect(warnings).not.toHaveBeenCalledWith("Generating updates...");
             expect(warnings).not.toHaveBeenCalledWith(
                 "Payload generation completed successfully.",
@@ -472,7 +472,7 @@ describe.each(["generate", "inspect", "verify"])(
                 "CSV unavailable",
             );
             expect(stdout).not.toHaveBeenCalled();
-            expect(getAgreementDetails).not.toHaveBeenCalled();
+            expect(getDetails).not.toHaveBeenCalled();
         });
 
         test("exits 1 when fetching Agreement details fails", async () => {
@@ -488,7 +488,7 @@ describe.each(["generate", "inspect", "verify"])(
                     }),
                 );
             const failure = new Error("Agreement state unavailable");
-            getAgreementDetails.mockRejectedValue(failure);
+            getDetails.mockRejectedValue(failure);
 
             expect(await runCli(command)).toBe(1);
             expect(stderr).toHaveBeenCalledExactlyOnceWith(

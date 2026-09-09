@@ -1,5 +1,5 @@
 // Generate solidity code from updates
-export function generateSolidityCode(updates) {
+export function generateSolidity(updates) {
     if (updates.length === 0) {
         return "";
     }

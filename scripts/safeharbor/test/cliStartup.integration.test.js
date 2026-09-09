@@ -1,7 +1,7 @@
 import { Contract, Interface, JsonRpcProvider } from "ethers";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { AGREEMENT_V3_ABI } from "../src/abis.js";
-import { main } from "../src/cli.js";
+import { AGREEMENT_V3_ABI } from "../src/agreement/abis.js";
+import { main } from "../src/cli/index.js";
 
 vi.mock("ethers", async (importOriginal) => ({
     ...(await importOriginal()),

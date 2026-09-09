@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { Interface } from "ethers";
-import { generateSolidityCode } from "./generateSolidity.js";
+import { generateSolidity } from "../../generation/solidity.js";
 import { verify } from "./verify.js";
 
-vi.mock("./generateSolidity.js", () => ({ generateSolidityCode: vi.fn() }));
+vi.mock("../../generation/solidity.js", () => ({
+    generateSolidity: vi.fn(),
+}));
 
 beforeEach(() => {
     vi.clearAllMocks();
@@ -66,6 +68,6 @@ test.each([
         expect(console.log.mock.calls).toEqual([[message]]);
         expect(console.warn).not.toHaveBeenCalled();
         expect(Interface.prototype.encodeFunctionData).not.toHaveBeenCalled();
-        expect(generateSolidityCode).not.toHaveBeenCalled();
+        expect(generateSolidity).not.toHaveBeenCalled();
     },
 );
