@@ -164,7 +164,9 @@ function validateUpdateInputs(onChainState, sheetState) {
                     },
                 ];
             }
-            if (!isNewChain) return [];
+            if (!isNewChain) {
+                return [];
+            }
 
             const invalidAccounts = accounts.filter(
                 (account) =>

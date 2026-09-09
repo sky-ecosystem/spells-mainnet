@@ -1,9 +1,5 @@
 import { describe, expect, test } from "vitest";
-import {
-    createRecoveryAddressValidator,
-    createStateValidators,
-    checkStateConsistency,
-} from "./checkStateConsistency.js";
+import { checkStateConsistency } from "./checkStateConsistency.js";
 
 describe("duplicate account validation", () => {
     test.each([
@@ -404,22 +400,95 @@ describe("duplicate account validation", () => {
         expect(checkStateConsistency(current, desired, chainDetails)).toEqual(
             warnings,
         );
-        const { validateUniqueAccounts } = createStateValidators(
-            current,
-            desired,
-            chainDetails,
-        );
-        expect(validateUniqueAccounts()).toEqual(warnings);
-        expect(validateUniqueAccounts()).toEqual(warnings);
     });
 });
 
 describe("recovery address comparison", () => {
+    test("reports a missing on-chain recovery address even when the Sheet address is absent", () => {
+        expect(
+            checkStateConsistency(
+                {
+                    ETHEREUM: {
+                        accounts: [],
+                        assetRecoveryAddress: undefined,
+                    },
+                },
+                { ETHEREUM: [] },
+                {
+                    caip2ChainId: { ETHEREUM: "eip155:1" },
+                    assetRecoveryAddress: {},
+                    name: { "eip155:1": "ETHEREUM" },
+                },
+            ),
+        ).toEqual([
+            {
+                code: "MISSING_ONCHAIN_RECOVERY_ADDRESS",
+                context: { chainName: "ETHEREUM" },
+            },
+        ]);
+    });
+
+    test("uses each call's recovery data without retaining previous inputs", () => {
+        const matchingState = {
+            ETHEREUM: {
+                accounts: [],
+                assetRecoveryAddress:
+                    "0x1000000000000000000000000000000000000001",
+            },
+        };
+        const chainDetails = {
+            caip2ChainId: { ETHEREUM: "eip155:1", BASE: "eip155:8453" },
+            assetRecoveryAddress: {
+                ETHEREUM: "0x1000000000000000000000000000000000000001",
+                BASE: "0x1000000000000000000000000000000000000003",
+            },
+            name: { "eip155:1": "ETHEREUM", "eip155:8453": "BASE" },
+        };
+
+        expect(
+            checkStateConsistency(
+                matchingState,
+                { ETHEREUM: [] },
+                chainDetails,
+            ),
+        ).toEqual([]);
+        expect(
+            checkStateConsistency(
+                {
+                    BASE: {
+                        accounts: [],
+                        assetRecoveryAddress:
+                            "0x1000000000000000000000000000000000000002",
+                    },
+                },
+                { BASE: [] },
+                chainDetails,
+            ),
+        ).toEqual([
+            {
+                code: "RECOVERY_ADDRESS_MISMATCH",
+                context: {
+                    chainName: "BASE",
+                    onChainRecoveryAddress:
+                        "0x1000000000000000000000000000000000000002",
+                    sheetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000003",
+                },
+            },
+        ]);
+        expect(
+            checkStateConsistency(
+                matchingState,
+                { ETHEREUM: [] },
+                chainDetails,
+            ),
+        ).toEqual([]);
+    });
+
     test.each([
         {
             scenario: "a new chain accepts a lowercase EVM recovery address",
             chainId: "eip155:1",
-            isNewChain: true,
             onChainState: {},
             sheetAddress: "0x8ba1f109551bd432803012645ac136ddd64dba72",
             warning: null,
@@ -427,7 +496,6 @@ describe("recovery address comparison", () => {
         {
             scenario: "a new chain accepts a checksummed EVM recovery address",
             chainId: "eip155:1",
-            isNewChain: true,
             onChainState: {},
             sheetAddress: "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
             warning: null,
@@ -435,7 +503,6 @@ describe("recovery address comparison", () => {
         {
             scenario: "a new chain rejects an invalid EVM checksum",
             chainId: "eip155:1",
-            isNewChain: true,
             onChainState: {},
             sheetAddress: "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
             warning: {
@@ -452,7 +519,6 @@ describe("recovery address comparison", () => {
         {
             scenario: "a new chain rejects a malformed EVM recovery address",
             chainId: "eip155:1",
-            isNewChain: true,
             onChainState: {},
             sheetAddress: "not-an-address",
             warning: {
@@ -469,7 +535,6 @@ describe("recovery address comparison", () => {
             scenario:
                 "a new Solana chain has no current recovery address to compare",
             chainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
-            isNewChain: true,
             onChainState: {},
             sheetAddress: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
             warning: null,
@@ -477,7 +542,6 @@ describe("recovery address comparison", () => {
         {
             scenario: "lowercase and checksummed EVM addresses match",
             chainId: "eip155:1",
-            isNewChain: false,
             onChainState: {
                 CHAIN: {
                     accounts: [],
@@ -491,7 +555,6 @@ describe("recovery address comparison", () => {
         {
             scenario: "checksummed and lowercase EVM addresses match",
             chainId: "eip155:8453",
-            isNewChain: false,
             onChainState: {
                 CHAIN: {
                     accounts: [],
@@ -505,7 +568,6 @@ describe("recovery address comparison", () => {
         {
             scenario: "different valid EVM addresses mismatch",
             chainId: "eip155:1",
-            isNewChain: false,
             onChainState: {
                 CHAIN: {
                     accounts: [],
@@ -529,7 +591,6 @@ describe("recovery address comparison", () => {
             scenario:
                 "an invalid Safeharbor Sheet checksum is not normalized away",
             chainId: "eip155:1",
-            isNewChain: false,
             onChainState: {
                 CHAIN: {
                     accounts: [],
@@ -553,7 +614,6 @@ describe("recovery address comparison", () => {
         {
             scenario: "an invalid on-chain checksum is not normalized away",
             chainId: "eip155:1",
-            isNewChain: false,
             onChainState: {
                 CHAIN: {
                     accounts: [],
@@ -577,7 +637,6 @@ describe("recovery address comparison", () => {
         {
             scenario: "a malformed EVM address produces a validation warning",
             chainId: "eip155:1",
-            isNewChain: false,
             onChainState: {
                 CHAIN: {
                     accounts: [],
@@ -600,7 +659,6 @@ describe("recovery address comparison", () => {
         {
             scenario: "identical malformed EVM addresses are still invalid",
             chainId: "eip155:1",
-            isNewChain: false,
             onChainState: {
                 CHAIN: { accounts: [], assetRecoveryAddress: "not-an-address" },
             },
@@ -618,7 +676,6 @@ describe("recovery address comparison", () => {
         {
             scenario: "identical Solana identifiers match",
             chainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
-            isNewChain: false,
             onChainState: {
                 CHAIN: {
                     accounts: [],
@@ -632,7 +689,6 @@ describe("recovery address comparison", () => {
         {
             scenario: "a Solana case difference is a mismatch",
             chainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
-            isNewChain: false,
             onChainState: {
                 CHAIN: {
                     accounts: [],
@@ -655,7 +711,6 @@ describe("recovery address comparison", () => {
         {
             scenario: "other non-EVM identifiers match exactly",
             chainId: "cosmos:cosmoshub-4",
-            isNewChain: false,
             onChainState: {
                 CHAIN: {
                     accounts: [],
@@ -668,7 +723,6 @@ describe("recovery address comparison", () => {
         {
             scenario: "other non-EVM case differences remain mismatches",
             chainId: "cosmos:cosmoshub-4",
-            isNewChain: false,
             onChainState: {
                 CHAIN: {
                     accounts: [],
@@ -685,20 +739,9 @@ describe("recovery address comparison", () => {
                 },
             },
         },
-    ])(
-        "$scenario",
-        ({ chainId, isNewChain, onChainState, sheetAddress, warning }) => {
-            const onChainAddress = onChainState.CHAIN?.assetRecoveryAddress;
-            const validateRecoveryAddress = createRecoveryAddressValidator(
-                chainId,
-                {
-                    chainName: "CHAIN",
-                    isNewChain,
-                    onChainRecoveryAddress: onChainAddress,
-                    sheetRecoveryAddress: sheetAddress,
-                },
-            );
-            const { validateRecoveryAddresses } = createStateValidators(
+    ])("$scenario", ({ chainId, onChainState, sheetAddress, warning }) => {
+        expect(
+            checkStateConsistency(
                 onChainState,
                 { CHAIN: [] },
                 {
@@ -706,21 +749,18 @@ describe("recovery address comparison", () => {
                     assetRecoveryAddress: { CHAIN: sheetAddress },
                     name: { [chainId]: "CHAIN" },
                 },
-            );
-            const warnings = validateRecoveryAddresses();
-
-            expect(warnings).toEqual(warning ? [warning] : []);
-            expect(validateRecoveryAddress()).toEqual(warning ? [warning] : []);
-        },
-    );
+            ),
+        ).toEqual(warning ? [warning] : []);
+    });
 });
 
 describe("known-chain validation", () => {
-    test("returns unknown-chain warnings independently of recovery warnings", () => {
-        const { validateRecoveryAddresses, validateKnownChains } =
-            createStateValidators(
+    test("reports recovery and unknown-chain warnings together", () => {
+        expect(
+            checkStateConsistency(
                 {
                     ETHEREUM: {
+                        accounts: [],
                         assetRecoveryAddress:
                             "0x1000000000000000000000000000000000000001",
                     },
@@ -733,9 +773,8 @@ describe("known-chain validation", () => {
                     },
                     name: { "eip155:1": "ETHEREUM" },
                 },
-            );
-
-        expect(validateRecoveryAddresses()).toEqual([
+            ),
+        ).toEqual([
             {
                 code: "RECOVERY_ADDRESS_MISMATCH",
                 context: {
@@ -746,8 +785,6 @@ describe("known-chain validation", () => {
                         "0x1000000000000000000000000000000000000002",
                 },
             },
-        ]);
-        expect(validateKnownChains()).toEqual([
             { code: "UNKNOWN_SHEET_CHAIN", context: { chainName: "UNKNOWN" } },
         ]);
     });
@@ -756,45 +793,38 @@ describe("known-chain validation", () => {
         ["known chains", { ETHEREUM: [] }],
         ["no desired chains", {}],
     ])("returns no warnings for %s", (_scenario, sheetState) => {
-        const { validateKnownChains } = createStateValidators({}, sheetState, {
-            caip2ChainId: { ETHEREUM: "eip155:1" },
-            assetRecoveryAddress: {
-                ETHEREUM: "0x1000000000000000000000000000000000000001",
-            },
-            name: { "eip155:1": "ETHEREUM" },
-        });
-
-        expect(validateKnownChains()).toEqual([]);
-    });
-
-    test("each factory instance captures its own chain metadata", () => {
-        const ethereum = createStateValidators(
-            {},
-            { ETHEREUM: [] },
-            {
+        expect(
+            checkStateConsistency({}, sheetState, {
                 caip2ChainId: { ETHEREUM: "eip155:1" },
                 assetRecoveryAddress: {
                     ETHEREUM: "0x1000000000000000000000000000000000000001",
                 },
                 name: { "eip155:1": "ETHEREUM" },
-            },
-        );
-        const base = createStateValidators(
-            {},
-            { ETHEREUM: [] },
-            {
-                caip2ChainId: { BASE: "eip155:8453" },
-                assetRecoveryAddress: {
-                    BASE: "0x1000000000000000000000000000000000000002",
-                },
-                name: { "eip155:8453": "BASE" },
-            },
-        );
+            }),
+        ).toEqual([]);
+    });
 
-        expect(ethereum.validateKnownChains()).toEqual([]);
-        expect(base.validateKnownChains()).toEqual([
+    test("uses the chain metadata supplied to each call", () => {
+        const sheetState = { ETHEREUM: [] };
+        const ethereum = {
+            caip2ChainId: { ETHEREUM: "eip155:1" },
+            assetRecoveryAddress: {
+                ETHEREUM: "0x1000000000000000000000000000000000000001",
+            },
+            name: { "eip155:1": "ETHEREUM" },
+        };
+        const base = {
+            caip2ChainId: { BASE: "eip155:8453" },
+            assetRecoveryAddress: {
+                BASE: "0x1000000000000000000000000000000000000002",
+            },
+            name: { "eip155:8453": "BASE" },
+        };
+
+        expect(checkStateConsistency({}, sheetState, ethereum)).toEqual([]);
+        expect(checkStateConsistency({}, sheetState, base)).toEqual([
             { code: "UNKNOWN_SHEET_CHAIN", context: { chainName: "ETHEREUM" } },
         ]);
-        expect(ethereum.validateKnownChains()).toEqual([]);
+        expect(checkStateConsistency({}, sheetState, ethereum)).toEqual([]);
     });
 });

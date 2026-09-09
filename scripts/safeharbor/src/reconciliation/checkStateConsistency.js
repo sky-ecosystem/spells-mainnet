@@ -3,69 +3,60 @@ import { getAddress } from "ethers";
 import { findDuplicateIndexes } from "../findDuplicateIndexes.js";
 
 export function checkStateConsistency(onChainState, sheetState, chainDetails) {
-    const {
-        validateRecoveryAddresses,
-        validateKnownChains,
-        validateUniqueAccounts,
-    } = createStateValidators(onChainState, sheetState, chainDetails);
-
     return [
-        ...validateRecoveryAddresses(),
-        ...validateKnownChains(),
-        ...validateUniqueAccounts(),
+        ...validateRecoveryAddresses(onChainState, sheetState, chainDetails),
+        ...validateKnownChains(sheetState, chainDetails),
+        ...validateUniqueAccounts(onChainState, sheetState),
     ];
 }
 
-export function createStateValidators(onChainState, sheetState, chainDetails) {
-    function validateUniqueAccounts() {
-        return [
-            ...Object.keys(sheetState).flatMap(validateSheetAccounts),
-            ...Object.keys(onChainState).flatMap(validateOnChainAccounts),
-        ];
-    }
+function validateUniqueAccounts(onChainState, sheetState) {
+    const validateSheetAccounts = (chainName) =>
+        findDuplicateAccountAddresses(sheetState[chainName]).map((address) => ({
+            code: $.DUPLICATE_SHEET_ACCOUNT,
+            context: { chainName, address },
+        }));
 
-    function validateSheetAccounts(chainName) {
-        return findDuplicateAccountAddresses(sheetState[chainName]).map(
+    const validateOnChainAccounts = (chainName) =>
+        findDuplicateAccountAddresses(onChainState[chainName].accounts).map(
             (address) => ({
-                code: $.DUPLICATE_SHEET_ACCOUNT,
+                code: $.DUPLICATE_ONCHAIN_ACCOUNT,
                 context: { chainName, address },
             }),
         );
-    }
 
-    function validateOnChainAccounts(chainName) {
-        return findDuplicateAccountAddresses(
-            onChainState[chainName].accounts,
-        ).map((address) => ({
-            code: $.DUPLICATE_ONCHAIN_ACCOUNT,
-            context: { chainName, address },
+    return [
+        ...Object.keys(sheetState).flatMap(validateSheetAccounts),
+        ...Object.keys(onChainState).flatMap(validateOnChainAccounts),
+    ];
+}
+
+function validateKnownChains(sheetState, chainDetails) {
+    return Object.keys(sheetState)
+        .filter(
+            (chainName) => !Object.hasOwn(chainDetails.caip2ChainId, chainName),
+        )
+        .map((chainName) => ({
+            code: $.UNKNOWN_SHEET_CHAIN,
+            context: { chainName },
         }));
-    }
+}
 
-    function validateRecoveryAddresses() {
-        return Object.keys(sheetState).flatMap(validateRecoveryAddress);
-    }
-
-    function validateKnownChains() {
-        return Object.keys(sheetState)
-            .filter(
-                (chainName) =>
-                    !Object.hasOwn(chainDetails.caip2ChainId, chainName),
-            )
-            .map((chainName) => ({
-                code: $.UNKNOWN_SHEET_CHAIN,
-                context: { chainName },
-            }));
-    }
-
-    function validateRecoveryAddress(chainName) {
+function validateRecoveryAddresses(onChainState, sheetState, chainDetails) {
+    const validateRecoveryAddress = (chainName) => {
         const isNewChain = !Object.hasOwn(onChainState, chainName);
         const onChainRecoveryAddress =
             onChainState[chainName]?.assetRecoveryAddress;
         const sheetRecoveryAddress =
             chainDetails.assetRecoveryAddress[chainName];
+        const missingOnChainRecoveryAddress =
+            !isNewChain && !onChainRecoveryAddress;
 
-        if (!isNewChain && !onChainRecoveryAddress) {
+        if (!sheetRecoveryAddress && !missingOnChainRecoveryAddress) {
+            return [];
+        }
+
+        if (missingOnChainRecoveryAddress) {
             return [
                 {
                     code: $.MISSING_ONCHAIN_RECOVERY_ADDRESS,
@@ -74,72 +65,100 @@ export function createStateValidators(onChainState, sheetState, chainDetails) {
             ];
         }
 
-        if (!sheetRecoveryAddress) return [];
-
-        const validate = createRecoveryAddressValidator(
+        return getRecoveryAddressValidator(
             chainDetails.caip2ChainId[chainName],
+        )({
+            chainName,
+            isNewChain,
+            onChainRecoveryAddress,
+            sheetRecoveryAddress,
+        });
+    };
+
+    return Object.keys(sheetState).flatMap(validateRecoveryAddress);
+}
+
+function getRecoveryAddressValidator(chainId) {
+    if (chainId?.startsWith("eip155:")) {
+        return validateEvmRecoveryAddress;
+    }
+
+    return validateNonEvmRecoveryAddress;
+}
+
+function validateEvmRecoveryAddress({
+    chainName,
+    isNewChain,
+    onChainRecoveryAddress,
+    sheetRecoveryAddress,
+}) {
+    try {
+        if (isNewChain) {
+            getAddress(sheetRecoveryAddress);
+            return [];
+        }
+
+        if (
+            getAddress(onChainRecoveryAddress) ===
+            getAddress(sheetRecoveryAddress)
+        ) {
+            return [];
+        }
+
+        return [
             {
+                code: $.RECOVERY_ADDRESS_MISMATCH,
+                context: {
+                    chainName,
+                    onChainRecoveryAddress,
+                    sheetRecoveryAddress,
+                },
+            },
+        ];
+    } catch {
+        return [
+            {
+                code: $.INVALID_EVM_RECOVERY_ADDRESS,
+                context: {
+                    chainName,
+                    isNewChain,
+                    onChainRecoveryAddress,
+                    sheetRecoveryAddress,
+                },
+            },
+        ];
+    }
+}
+
+function validateNonEvmRecoveryAddress({
+    chainName,
+    isNewChain,
+    onChainRecoveryAddress,
+    sheetRecoveryAddress,
+}) {
+    if (isNewChain || onChainRecoveryAddress === sheetRecoveryAddress) {
+        return [];
+    }
+
+    return [
+        {
+            code: $.RECOVERY_ADDRESS_MISMATCH,
+            context: {
                 chainName,
-                isNewChain,
                 onChainRecoveryAddress,
                 sheetRecoveryAddress,
             },
-        );
-        return validate();
-    }
-
-    return {
-        validateRecoveryAddresses,
-        validateKnownChains,
-        validateUniqueAccounts,
-    };
-}
-
-export function createRecoveryAddressValidator(
-    chainId,
-    { chainName, isNewChain, onChainRecoveryAddress, sheetRecoveryAddress },
-) {
-    const mismatchWarning = {
-        code: $.RECOVERY_ADDRESS_MISMATCH,
-        context: { chainName, onChainRecoveryAddress, sheetRecoveryAddress },
-    };
-
-    function validateEvmRecoveryAddress() {
-        try {
-            const sheetAddress = getAddress(sheetRecoveryAddress);
-            if (isNewChain) return [];
-
-            return getAddress(onChainRecoveryAddress) === sheetAddress
-                ? []
-                : [mismatchWarning];
-        } catch {
-            return [
-                {
-                    code: $.INVALID_EVM_RECOVERY_ADDRESS,
-                    context: {
-                        chainName,
-                        isNewChain,
-                        onChainRecoveryAddress,
-                        sheetRecoveryAddress,
-                    },
-                },
-            ];
-        }
-    }
-
-    function validateNonEvmRecoveryAddress() {
-        return isNewChain || onChainRecoveryAddress === sheetRecoveryAddress
-            ? []
-            : [mismatchWarning];
-    }
-
-    return chainId?.startsWith("eip155:")
-        ? validateEvmRecoveryAddress
-        : validateNonEvmRecoveryAddress;
+        },
+    ];
 }
 
 function findDuplicateAccountAddresses(accounts) {
     const addresses = accounts.map(({ accountAddress }) => accountAddress);
-    const duplicateIndexes = findDuplicateIndexes(addresses);
-    return [...new Set([...duplicateIndexes].map((index) => addresses[index]))];
+    return [
+        ...new Set(
+            [...findDuplicateIndexes(addresses)].map(
+                (index) => addresses[index],
+            ),
+        ),
+    ];
 }

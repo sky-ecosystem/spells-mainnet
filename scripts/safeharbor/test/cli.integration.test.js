@@ -373,8 +373,9 @@ describe.each([
             const expectedWarnings = fixture.warningMessages.map((message) => [
                 message,
             ]);
-            if (command === "generate")
+            if (command === "generate") {
                 expectedWarnings.push([fixture.generateMessage]);
+            }
             expect(warnings.mock.calls).toEqual(expectedWarnings);
             if (fixture.report.validationWarnings.length > 0) {
                 expect(warnings).not.toHaveBeenCalledWith(

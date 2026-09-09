@@ -49,7 +49,9 @@ export function reportError(error) {
 }
 
 export function validateOptions({ command, rpcUrl }) {
-    if (!command) return [{ code: $.COMMAND_REQUIRED }];
+    if (!command) {
+        return [{ code: $.COMMAND_REQUIRED }];
+    }
     if (!Object.hasOwn(COMMANDS, command)) {
         return [{ code: $.UNKNOWN_COMMAND, context: { command } }];
     }
