@@ -2,15 +2,12 @@ import { DIAGNOSTIC_CODES as $ } from "../diagnosticCodes.js";
 import { findDuplicateIndexes } from "../findDuplicateIndexes.js";
 
 export function normalizeContractsInScope({ headers, records }, chainDetails) {
-    const [diagnostic] = validateHeaders(headers, [
+    assertHeaders(headers, [
         "Status",
         "Chain",
         "Address",
         headers.includes("IsFactory") ? "IsFactory" : "isFactory",
     ]);
-    if (diagnostic) {
-        throw Object.assign(new Error(diagnostic.code), { diagnostic });
-    }
     const value = records
         .filter((record) => record.Status === "ACTIVE")
         .reduce((chains, record) => {
@@ -40,10 +37,7 @@ export function normalizeContractsInScope({ headers, records }, chainDetails) {
 }
 
 export function normalizeChainDetails({ headers, records }) {
-    const [diagnostic] = validateHeaders(headers, CHAIN_DETAILS_HEADERS);
-    if (diagnostic) {
-        throw Object.assign(new Error(diagnostic.code), { diagnostic });
-    }
+    assertHeaders(headers, CHAIN_DETAILS_HEADERS);
     const chains = records.filter(
         (record) => getMissingChainFields(record).length === 0,
     );
@@ -133,18 +127,18 @@ function validateUniqueAccounts(sheetState) {
     });
 }
 
-function validateHeaders(headers, requiredHeaders) {
+function assertHeaders(headers, requiredHeaders) {
     const missingHeaders = requiredHeaders.filter(
         (header) => !headers.includes(header),
     );
-    return missingHeaders.length > 0
-        ? [
-              {
-                  code: $.MISSING_SHEET_HEADERS,
-                  context: { missingHeaders },
-              },
-          ]
-        : [];
+    if (missingHeaders.length === 0) {
+        return;
+    }
+    const diagnostic = {
+        code: $.MISSING_SHEET_HEADERS,
+        context: { missingHeaders },
+    };
+    throw Object.assign(new Error(diagnostic.code), { diagnostic });
 }
 
 const CHAIN_DETAILS_HEADERS = ["Name", "Chain Id", "Asset Recovery Address"];

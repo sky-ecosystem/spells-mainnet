@@ -13,64 +13,49 @@ export function planUpdates(onChainState, sheetState, chainDetails) {
     ];
 }
 
-// Account difference calculation
 function calculateAccountDifferences(currentAccounts, desiredAccounts) {
-    const currentKeys = new Set(
-        currentAccounts.map(
-            (acc) => `${acc.accountAddress}-${acc.childContractScope}`,
-        ),
-    );
-    const desiredKeys = new Set(
-        desiredAccounts.map(
-            (acc) => `${acc.accountAddress}-${acc.childContractScope}`,
-        ),
-    );
+    const currentKeys = new Set(currentAccounts.map(getAccountKey));
+    const desiredKeys = new Set(desiredAccounts.map(getAccountKey));
 
     const toRemove = currentAccounts
-        .filter(
-            (acc) =>
-                !desiredKeys.has(
-                    `${acc.accountAddress}-${acc.childContractScope}`,
-                ),
-        )
+        .filter((acc) => !desiredKeys.has(getAccountKey(acc)))
         .map((acc) => acc.accountAddress);
     const toAdd = desiredAccounts.filter(
-        (acc) =>
-            !currentKeys.has(`${acc.accountAddress}-${acc.childContractScope}`),
+        (acc) => !currentKeys.has(getAccountKey(acc)),
     );
 
     return { toAdd, toRemove };
 }
 
+function getAccountKey(account) {
+    return `${account.accountAddress}-${account.childContractScope}`;
+}
+
 function generateAccountUpdates(onChainState, sheetState, chainDetails) {
     const updates = [];
 
-    // Iterate through each chain that exists in onChainState
     // New chains are handled by generateChainUpdates
     for (const chainName of Object.keys(onChainState)) {
-        // Skip chains that are being removed
         if (!Object.hasOwn(sheetState, chainName)) {
             continue;
         }
 
         const chainId = chainDetails.caip2ChainId[chainName];
-        const currentAccounts = onChainState[chainName] || [];
-        const desiredAccounts = sheetState[chainName] || [];
+        const currentAccounts = onChainState[chainName].accounts;
 
         const { toAdd, toRemove } = calculateAccountDifferences(
-            currentAccounts.accounts,
-            desiredAccounts,
+            currentAccounts,
+            sheetState[chainName],
         );
 
         const removesAllCurrentAccounts =
-            toRemove.length === currentAccounts.accounts.length;
+            toRemove.length === currentAccounts.length;
 
         // Add replacements first if removing first would leave the chain empty.
         if (removesAllCurrentAccounts && toAdd.length > 0) {
             updates.push({ fn: "addAccounts", args: [chainId, toAdd] });
         }
 
-        // Handle removals - removeAccounts now takes addresses directly
         if (toRemove.length > 0) {
             // Reverse full replacements so swap-and-pop cannot remove a new scope.
             updates.push({
@@ -84,7 +69,6 @@ function generateAccountUpdates(onChainState, sheetState, chainDetails) {
             });
         }
 
-        // Handle additions
         if (!removesAllCurrentAccounts && toAdd.length > 0) {
             updates.push({ fn: "addAccounts", args: [chainId, toAdd] });
         }
@@ -99,7 +83,6 @@ function generateChainUpdates(onChainState, sheetState, chainDetails) {
     const currentChainNames = Object.keys(onChainState);
     const desiredChainNames = Object.keys(sheetState);
 
-    // Find chains to add and remove
     const chainsToRemove = currentChainNames.filter(
         (chain) => !desiredChainNames.includes(chain),
     );
@@ -117,19 +100,17 @@ function generateChainUpdates(onChainState, sheetState, chainDetails) {
 
     // Add new chains from the Safeharbor Sheet - batch them together
     if (chainsToAdd.length > 0) {
-        const newChains = chainsToAdd.map((chainName) => {
-            const chainId = chainDetails.caip2ChainId[chainName];
-            const accounts = sheetState[chainName] || [];
-
-            return {
-                assetRecoveryAddress:
-                    chainDetails.assetRecoveryAddress[chainName],
-                accounts: accounts,
-                caip2ChainId: chainId,
-            };
+        updates.push({
+            fn: "addChains",
+            args: [
+                chainsToAdd.map((chainName) => ({
+                    assetRecoveryAddress:
+                        chainDetails.assetRecoveryAddress[chainName],
+                    accounts: sheetState[chainName],
+                    caip2ChainId: chainDetails.caip2ChainId[chainName],
+                })),
+            ],
         });
-
-        updates.push({ fn: "addChains", args: [newChains] });
     }
 
     return updates;

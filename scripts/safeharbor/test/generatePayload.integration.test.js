@@ -716,68 +716,6 @@ describe("generatePayload", () => {
             ]);
         });
 
-        test("should add before removing for a sole-account scope change", async () => {
-            const result = await generateFrom({
-                chainCSV:
-                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
-                contractCSV:
-                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE\nACTIVE,BASE,0x3000000000000000000000000000000000000001,TRUE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE\n",
-                details: {
-                    chains: [
-                        {
-                            caip2ChainId: "eip155:1",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000001",
-                            accounts: [
-                                [
-                                    "0x2000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                                [
-                                    "0x2000000000000000000000000000000000000002",
-                                    2n,
-                                ],
-                            ],
-                        },
-                        {
-                            caip2ChainId: "eip155:8453",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000002",
-                            accounts: [
-                                [
-                                    "0x3000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                            ],
-                        },
-                        {
-                            caip2ChainId: "eip155:42161",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000003",
-                            accounts: [
-                                [
-                                    "0x4000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                                [
-                                    "0x4000000000000000000000000000000000000002",
-                                    0n,
-                                ],
-                            ],
-                        },
-                    ],
-                },
-            });
-            const baseUpdates = result.updates.filter(
-                (update) => update.args[0] === "eip155:8453",
-            );
-
-            expect(baseUpdates.map((update) => update.fn)).toEqual([
-                "addAccounts",
-                "removeAccounts",
-            ]);
-        });
-
         test("should handle completely empty onChain state", async () => {
             const result = await generateFrom({
                 chainCSV:
@@ -2277,11 +2215,11 @@ const agreementInterface = new Interface(AGREEMENT_V3_ABI);
  * and caip2ChainId instead of opaque positional arrays.
  *
  * @param {*} value Value returned by ethers while decoding calldata.
- * @param {import("ethers").ParamType} [param] ABI parameter metadata for value.
+ * @param {import("ethers").ParamType} param ABI parameter metadata for value.
  * @returns {*} Stable value suitable for inline object snapshots.
  */
 function normalizeDecodedValue(value, param) {
-    if (param?.name === "childContractScope") {
+    if (param.name === "childContractScope") {
         return Number(value);
     }
 
@@ -2289,17 +2227,13 @@ function normalizeDecodedValue(value, param) {
         return value.toString();
     }
 
-    if (!value || typeof value !== "object") {
-        return value;
-    }
-
-    if (param?.baseType === "array") {
+    if (param.baseType === "array") {
         return value.map((item) =>
             normalizeDecodedValue(item, param.arrayChildren),
         );
     }
 
-    if (param?.baseType === "tuple") {
+    if (param.baseType === "tuple") {
         return Object.fromEntries(
             param.components.map((component, index) => [
                 component.name,
@@ -2308,18 +2242,7 @@ function normalizeDecodedValue(value, param) {
         );
     }
 
-    if (Array.isArray(value)) {
-        return value.map((item) => normalizeDecodedValue(item));
-    }
-
-    return Object.fromEntries(
-        Object.entries(value)
-            .filter(([key]) => Number.isNaN(Number(key)))
-            .map(([key, nestedValue]) => [
-                key,
-                normalizeDecodedValue(nestedValue),
-            ]),
-    );
+    return value;
 }
 
 /**

@@ -3,20 +3,19 @@ import { parse } from "csv-parse/sync";
 
 export async function downloadAndParse(url) {
     const response = await fetch(url);
-    const diagnostic = !response.ok
-        ? {
-              code: $.HTTP_ERROR,
-              context: { status: response.status },
-          }
-        : !response.headers.get("content-type")?.includes("text/csv")
-          ? { code: $.INVALID_CSV_CONTENT_TYPE }
-          : undefined;
-    if (diagnostic) {
+    if (!response.ok) {
+        const diagnostic = {
+            code: $.HTTP_ERROR,
+            context: { status: response.status },
+        };
         throw Object.assign(new Error(diagnostic.code), { diagnostic });
     }
-    const csvText = await response.text();
+    if (!response.headers.get("content-type")?.includes("text/csv")) {
+        const diagnostic = { code: $.INVALID_CSV_CONTENT_TYPE };
+        throw Object.assign(new Error(diagnostic.code), { diagnostic });
+    }
     let headers = [];
-    const records = parse(csvText, {
+    const records = parse(await response.text(), {
         columns: (columns) => {
             headers = columns;
             return columns;

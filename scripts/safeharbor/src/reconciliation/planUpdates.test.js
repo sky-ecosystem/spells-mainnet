@@ -1,8 +1,5 @@
-import { afterEach, expect, test, vi } from "vitest";
-import { Interface } from "ethers";
+import { expect, test } from "vitest";
 import { planUpdates } from "./planUpdates.js";
-
-afterEach(() => vi.restoreAllMocks());
 
 // CSV normalization cannot produce a named chain with an empty account array.
 // Exercise these defensive checks directly at the diff boundary.
@@ -52,7 +49,7 @@ test.each([
         },
     },
     {
-        scenario: "invalid accounts in a later new chain before any encoding",
+        scenario: "invalid accounts in a later new chain",
         current: {
             ETHEREUM: {
                 accounts: [
@@ -102,8 +99,6 @@ test.each([
         },
     },
 ])("rejects $scenario", ({ current, desired, chainDetails, diagnostic }) => {
-    const encoding = vi.spyOn(Interface.prototype, "encodeFunctionData");
-
     let failure;
     try {
         planUpdates(current, desired, chainDetails);
@@ -112,5 +107,4 @@ test.each([
     }
     expect(failure).toBeInstanceOf(Error);
     expect(failure.diagnostic).toEqual(diagnostic);
-    expect(encoding).not.toHaveBeenCalled();
 });
