@@ -10,15 +10,20 @@ export function checkStateConsistency(onChainState, sheetState, chainDetails) {
 }
 
 function validateUniqueAccounts(onChainState) {
-    const validateOnChainAccounts = (chainName) =>
-        findDuplicateAccountAddresses(onChainState[chainName].accounts).map(
-            (address) => ({
-                code: $.DUPLICATE_ONCHAIN_ACCOUNT,
-                context: { chainName, address },
-            }),
-        );
-
-    return Object.keys(onChainState).flatMap(validateOnChainAccounts);
+    return Object.entries(onChainState).flatMap(([chainName, { accounts }]) => {
+        const addresses = accounts.map(({ accountAddress }) => accountAddress);
+        return [...findDuplicateIndexes(addresses)].map((index) => ({
+            code: $.DUPLICATE_ONCHAIN_ACCOUNT,
+            context: {
+                chainName,
+                address: addresses[index],
+                firstScope:
+                    accounts[addresses.indexOf(addresses[index])]
+                        .childContractScope,
+                duplicateScope: accounts[index].childContractScope,
+            },
+        }));
+    });
 }
 
 function validateRecoveryAddresses(onChainState, sheetState, chainDetails) {
@@ -115,15 +120,4 @@ function compareNonEvmRecoveryAddresses(onChainAddress, sheetAddress) {
     }
 
     return [{ code: $.RECOVERY_ADDRESS_MISMATCH }];
-}
-
-function findDuplicateAccountAddresses(accounts) {
-    const addresses = accounts.map(({ accountAddress }) => accountAddress);
-    return [
-        ...new Set(
-            [...findDuplicateIndexes(addresses)].map(
-                (index) => addresses[index],
-            ),
-        ),
-    ];
 }

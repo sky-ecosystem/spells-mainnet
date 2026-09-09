@@ -4,7 +4,8 @@ import { checkStateConsistency } from "./checkStateConsistency.js";
 describe("duplicate account validation", () => {
     test.each([
         {
-            scenario: "duplicate current accounts on a removed chain",
+            scenario:
+                "repeated current accounts with identical and conflicting scopes on a removed chain",
             current: {
                 ETHEREUM: {
                     accounts: [
@@ -18,6 +19,11 @@ describe("duplicate account validation", () => {
                                 "0x2000000000000000000000000000000000000001",
                             childContractScope: 0n,
                         },
+                        {
+                            accountAddress:
+                                "0x2000000000000000000000000000000000000001",
+                            childContractScope: 2n,
+                        },
                     ],
                     assetRecoveryAddress:
                         "0x1000000000000000000000000000000000000001",
@@ -30,6 +36,17 @@ describe("duplicate account validation", () => {
                     context: {
                         chainName: "ETHEREUM",
                         address: "0x2000000000000000000000000000000000000001",
+                        firstScope: 0n,
+                        duplicateScope: 0n,
+                    },
+                },
+                {
+                    code: "DUPLICATE_ONCHAIN_ACCOUNT",
+                    context: {
+                        chainName: "ETHEREUM",
+                        address: "0x2000000000000000000000000000000000000001",
+                        firstScope: 0n,
+                        duplicateScope: 2n,
                     },
                 },
             ],
@@ -69,6 +86,8 @@ describe("duplicate account validation", () => {
                     context: {
                         chainName: "ETHEREUM",
                         address: "0x2000000000000000000000000000000000000001",
+                        firstScope: 0n,
+                        duplicateScope: 2n,
                     },
                 },
             ],

@@ -23,10 +23,15 @@ test("inserts placeholder-like and replacement-pattern text literally", () => {
     expect(
         formatDiagnostic({
             code: "DUPLICATE_SHEET_ACCOUNT",
-            context: { chainName: "{address}", address: "$& $1 $$" },
+            context: {
+                chainName: "{address}",
+                address: "$& $1 $$",
+                firstScope: 0,
+                duplicateScope: 2,
+            },
         }),
     ).toBe(
-        "Duplicate account address in Safeharbor Sheet for chain '{address}': $& $1 $$",
+        "Duplicate account address in Safeharbor Sheet for chain '{address}': $& $1 $$; first scope=0, duplicate scope=2",
     );
 });
 
@@ -34,18 +39,28 @@ test.each([
     {
         diagnostic: {
             code: "DUPLICATE_SHEET_ACCOUNT",
-            context: { chainName: "SOLANA", address: "AccountCaseSensitive" },
+            context: {
+                chainName: "SOLANA",
+                address: "AccountCaseSensitive",
+                firstScope: 0,
+                duplicateScope: 2,
+            },
         },
         message:
-            "Duplicate account address in Safeharbor Sheet for chain 'SOLANA': AccountCaseSensitive",
+            "Duplicate account address in Safeharbor Sheet for chain 'SOLANA': AccountCaseSensitive; first scope=0, duplicate scope=2",
     },
     {
         diagnostic: {
             code: "DUPLICATE_ONCHAIN_ACCOUNT",
-            context: { chainName: "SOLANA", address: "AccountCaseSensitive" },
+            context: {
+                chainName: "SOLANA",
+                address: "AccountCaseSensitive",
+                firstScope: 0n,
+                duplicateScope: 2n,
+            },
         },
         message:
-            "Duplicate account address in on-chain state for chain 'SOLANA': AccountCaseSensitive",
+            "Duplicate account address in on-chain state for chain 'SOLANA': AccountCaseSensitive; first scope=0, duplicate scope=2",
     },
     {
         diagnostic: {
@@ -125,16 +140,26 @@ test.each([
     {
         diagnostic: {
             code: "DUPLICATE_CHAIN_NAME",
-            context: { chainName: "BASE" },
+            context: {
+                chainName: "BASE",
+                firstChainId: "eip155:8453",
+                duplicateChainId: "eip155:1",
+            },
         },
-        message: "Duplicate chain name found in Safeharbor Sheet: BASE",
+        message:
+            "Duplicate chain name found in Safeharbor Sheet: name='BASE', first='eip155:8453', duplicate='eip155:1'",
     },
     {
         diagnostic: {
             code: "DUPLICATE_CHAIN_ID",
-            context: { chainId: "eip155:8453" },
+            context: {
+                chainId: "eip155:8453",
+                firstChainName: "BASE",
+                duplicateChainName: "OTHER",
+            },
         },
-        message: "Duplicate chain ID found in Safeharbor Sheet: eip155:8453",
+        message:
+            "Duplicate chain ID found in Safeharbor Sheet: chainId='eip155:8453', first='BASE', duplicate='OTHER'",
     },
     {
         diagnostic: {

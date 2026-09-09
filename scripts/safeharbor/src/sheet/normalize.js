@@ -41,12 +41,10 @@ export function normalizeChainDetails({ headers, records }) {
     const chains = records.filter(
         (record) => getMissingChainFields(record).length === 0,
     );
-    const duplicateNameIndexes = findDuplicateIndexes(
-        chains.map((chain) => chain.Name),
-    );
-    const duplicateIdIndexes = findDuplicateIndexes(
-        chains.map((chain) => chain["Chain Id"]),
-    );
+    const chainNames = chains.map((chain) => chain.Name);
+    const chainIds = chains.map((chain) => chain["Chain Id"]);
+    const duplicateNameIndexes = findDuplicateIndexes(chainNames);
+    const duplicateIdIndexes = findDuplicateIndexes(chainIds);
     const uniqueChains = chains.filter(
         (_chain, index) =>
             !duplicateNameIndexes.has(index) && !duplicateIdIndexes.has(index),
@@ -83,7 +81,12 @@ export function normalizeChainDetails({ headers, records }) {
                     ? [
                           {
                               code: $.DUPLICATE_CHAIN_NAME,
-                              context: { chainName: chain.Name },
+                              context: {
+                                  chainName: chain.Name,
+                                  firstChainId:
+                                      chainIds[chainNames.indexOf(chain.Name)],
+                                  duplicateChainId: chain["Chain Id"],
+                              },
                           },
                       ]
                     : []),
@@ -91,7 +94,14 @@ export function normalizeChainDetails({ headers, records }) {
                     ? [
                           {
                               code: $.DUPLICATE_CHAIN_ID,
-                              context: { chainId: chain["Chain Id"] },
+                              context: {
+                                  chainId: chain["Chain Id"],
+                                  firstChainName:
+                                      chainNames[
+                                          chainIds.indexOf(chain["Chain Id"])
+                                      ],
+                                  duplicateChainName: chain.Name,
+                              },
                           },
                       ]
                     : []),
@@ -114,15 +124,16 @@ function validateKnownChains(sheetState, chainDetails) {
 function validateUniqueAccounts(sheetState) {
     return Object.entries(sheetState).flatMap(([chainName, accounts]) => {
         const addresses = accounts.map(({ accountAddress }) => accountAddress);
-        return [
-            ...new Set(
-                [...findDuplicateIndexes(addresses)].map(
-                    (index) => addresses[index],
-                ),
-            ),
-        ].map((address) => ({
+        return [...findDuplicateIndexes(addresses)].map((index) => ({
             code: $.DUPLICATE_SHEET_ACCOUNT,
-            context: { chainName, address },
+            context: {
+                chainName,
+                address: addresses[index],
+                firstScope:
+                    accounts[addresses.indexOf(addresses[index])]
+                        .childContractScope,
+                duplicateScope: accounts[index].childContractScope,
+            },
         }));
     });
 }

@@ -217,7 +217,11 @@ describe("normalizeChainDetails", () => {
             },
             {
                 code: "DUPLICATE_CHAIN_NAME",
-                context: { chainName: "ETHEREUM" },
+                context: {
+                    chainName: "ETHEREUM",
+                    firstChainId: "eip155:1",
+                    duplicateChainId: "eip155:2",
+                },
             },
         ],
         [
@@ -239,7 +243,14 @@ describe("normalizeChainDetails", () => {
                     },
                 ],
             },
-            { code: "DUPLICATE_CHAIN_ID", context: { chainId: "eip155:1" } },
+            {
+                code: "DUPLICATE_CHAIN_ID",
+                context: {
+                    chainId: "eip155:1",
+                    firstChainName: "ETHEREUM",
+                    duplicateChainName: "ETH_DUPLICATE",
+                },
+            },
         ],
     ])(
         "preserves earlier mappings for a duplicate %s",
@@ -286,11 +297,19 @@ describe("normalizeChainDetails", () => {
             [
                 {
                     code: "DUPLICATE_CHAIN_NAME",
-                    context: { chainName: "ETHEREUM" },
+                    context: {
+                        chainName: "ETHEREUM",
+                        firstChainId: "eip155:1",
+                        duplicateChainId: "eip155:1",
+                    },
                 },
                 {
                     code: "DUPLICATE_CHAIN_ID",
-                    context: { chainId: "eip155:1" },
+                    context: {
+                        chainId: "eip155:1",
+                        firstChainName: "ETHEREUM",
+                        duplicateChainName: "ETHEREUM",
+                    },
                 },
             ],
         ],
@@ -328,11 +347,19 @@ describe("normalizeChainDetails", () => {
             [
                 {
                     code: "DUPLICATE_CHAIN_NAME",
-                    context: { chainName: "ETHEREUM" },
+                    context: {
+                        chainName: "ETHEREUM",
+                        firstChainId: "eip155:1",
+                        duplicateChainId: "eip155:2",
+                    },
                 },
                 {
                     code: "DUPLICATE_CHAIN_ID",
-                    context: { chainId: "eip155:2" },
+                    context: {
+                        chainId: "eip155:2",
+                        firstChainName: "ETHEREUM",
+                        duplicateChainName: "OTHER",
+                    },
                 },
             ],
         ],
@@ -370,11 +397,19 @@ describe("normalizeChainDetails", () => {
             [
                 {
                     code: "DUPLICATE_CHAIN_ID",
-                    context: { chainId: "eip155:1" },
+                    context: {
+                        chainId: "eip155:1",
+                        firstChainName: "ETHEREUM",
+                        duplicateChainName: "OTHER",
+                    },
                 },
                 {
                     code: "DUPLICATE_CHAIN_NAME",
-                    context: { chainName: "OTHER" },
+                    context: {
+                        chainName: "OTHER",
+                        firstChainId: "eip155:1",
+                        duplicateChainId: "eip155:2",
+                    },
                 },
             ],
         ],
@@ -489,7 +524,12 @@ test("groups active contracts in order with exact addresses and both factory ali
     expect(result.warnings).toEqual([
         {
             code: "DUPLICATE_SHEET_ACCOUNT",
-            context: { chainName: "SOLANA", address: "AccountUpperCase" },
+            context: {
+                chainName: "SOLANA",
+                address: "AccountUpperCase",
+                firstScope: 2,
+                duplicateScope: 0,
+            },
         },
     ]);
 });
@@ -591,6 +631,8 @@ test("reports unknown chains and duplicate accounts without dropping records", (
                 context: {
                     chainName: "ETHEREUM",
                     address: "0x2000000000000000000000000000000000000002",
+                    firstScope: 0,
+                    duplicateScope: 0,
                 },
             },
             {
@@ -598,6 +640,17 @@ test("reports unknown chains and duplicate accounts without dropping records", (
                 context: {
                     chainName: "ETHEREUM",
                     address: "0x2000000000000000000000000000000000000001",
+                    firstScope: 0,
+                    duplicateScope: 2,
+                },
+            },
+            {
+                code: "DUPLICATE_SHEET_ACCOUNT",
+                context: {
+                    chainName: "ETHEREUM",
+                    address: "0x2000000000000000000000000000000000000002",
+                    firstScope: 0,
+                    duplicateScope: 2,
                 },
             },
         ],

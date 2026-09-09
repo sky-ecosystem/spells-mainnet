@@ -1,27 +1,31 @@
 import { DIAGNOSTIC_CODES as $ } from "../diagnosticCodes.js";
 
 export function normalizeOnChainState(details, chainDetails) {
-    const warnings = [];
-    const value = details.chains.reduce((chains, chain) => {
-        const chainName = chainDetails.name[chain.caip2ChainId];
+    return details.chains.reduce(
+        ({ value, warnings }, chain) => {
+            const chainName = chainDetails.name[chain.caip2ChainId];
 
-        if (!chainName) {
-            warnings.push({
-                code: $.UNKNOWN_ONCHAIN_CHAIN,
-                context: { chainId: chain.caip2ChainId },
-            });
-            return chains;
-        }
+            if (!chainName) {
+                warnings.push({
+                    code: $.UNKNOWN_ONCHAIN_CHAIN,
+                    context: { chainId: chain.caip2ChainId },
+                });
+                return { value, warnings };
+            }
 
-        chains[chainName] = {
-            accounts: chain.accounts.map((account) => ({
-                accountAddress: account[0],
-                childContractScope: account[1],
-            })),
-            assetRecoveryAddress: chain.assetRecoveryAddress,
-        };
-        return chains;
-    }, {});
-
-    return { value, warnings };
+            return {
+                value: Object.assign(value, {
+                    [chainName]: {
+                        accounts: chain.accounts.map((account) => ({
+                            accountAddress: account[0],
+                            childContractScope: account[1],
+                        })),
+                        assetRecoveryAddress: chain.assetRecoveryAddress,
+                    },
+                }),
+                warnings,
+            };
+        },
+        { value: {}, warnings: [] },
+    );
 }

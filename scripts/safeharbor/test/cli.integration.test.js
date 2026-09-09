@@ -320,6 +320,8 @@ describe.each([
                     context: {
                         chainName: "ETHEREUM",
                         address: "0x2000000000000000000000000000000000000002",
+                        firstScope: 0,
+                        duplicateScope: 2,
                     },
                 },
                 {
@@ -335,7 +337,7 @@ describe.each([
             ],
         },
         warningMessages: [
-            "Duplicate account address in Safeharbor Sheet for chain 'ETHEREUM': 0x2000000000000000000000000000000000000002",
+            "Duplicate account address in Safeharbor Sheet for chain 'ETHEREUM': 0x2000000000000000000000000000000000000002; first scope=0, duplicate scope=2",
             "Asset Recovery Address mismatch for chain 'ETHEREUM'.\nOn-chain: 0x1000000000000000000000000000000000000002\nSafeharbor Sheet: 0x1000000000000000000000000000000000000001",
         ],
         exitCodes: { generate: 2, inspect: 0, verify: 2 },

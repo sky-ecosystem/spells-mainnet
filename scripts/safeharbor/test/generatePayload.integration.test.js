@@ -1018,7 +1018,11 @@ describe("generatePayload", () => {
         test("should collect chain metadata warnings in the payload result", async () => {
             const duplicateWarning = {
                 code: "DUPLICATE_CHAIN_NAME",
-                context: { chainName: "ETHEREUM" },
+                context: {
+                    chainName: "ETHEREUM",
+                    firstChainId: "eip155:1",
+                    duplicateChainId: "eip155:2",
+                },
             };
 
             const result = await generateFrom({
@@ -1120,7 +1124,11 @@ describe("generatePayload", () => {
         test("should collect warnings from every stage before encoding updates", async () => {
             const duplicateWarning = {
                 code: "DUPLICATE_CHAIN_NAME",
-                context: { chainName: "ETHEREUM" },
+                context: {
+                    chainName: "ETHEREUM",
+                    firstChainId: "eip155:1",
+                    duplicateChainId: "eip155:2",
+                },
             };
             const unknownChainWarning = {
                 code: "UNKNOWN_ONCHAIN_CHAIN",
@@ -1497,7 +1505,11 @@ test.each([
         expectedWarnings: [
             {
                 code: "DUPLICATE_CHAIN_NAME",
-                context: { chainName: "ETHEREUM" },
+                context: {
+                    chainName: "ETHEREUM",
+                    firstChainId: "eip155:1",
+                    duplicateChainId: "eip155:2",
+                },
             },
         ],
     },
@@ -1646,7 +1658,11 @@ test.each([
         expectedWarnings: [
             {
                 code: "DUPLICATE_CHAIN_NAME",
-                context: { chainName: "ETHEREUM" },
+                context: {
+                    chainName: "ETHEREUM",
+                    firstChainId: "eip155:1",
+                    duplicateChainId: "eip155:2",
+                },
             },
         ],
     },
@@ -1669,7 +1685,14 @@ test.each([
             ],
         },
         expectedWarnings: [
-            { code: "DUPLICATE_CHAIN_ID", context: { chainId: "eip155:1" } },
+            {
+                code: "DUPLICATE_CHAIN_ID",
+                context: {
+                    chainId: "eip155:1",
+                    firstChainName: "ETHEREUM",
+                    duplicateChainName: "OTHER",
+                },
+            },
         ],
     },
     {
@@ -1696,6 +1719,8 @@ test.each([
                 context: {
                     chainName: "ETHEREUM",
                     address: "0x2000000000000000000000000000000000000002",
+                    firstScope: 0,
+                    duplicateScope: 0,
                 },
             },
         ],
@@ -1713,6 +1738,8 @@ test.each([
                 context: {
                     chainName: "ETHEREUM",
                     address: "0x2000000000000000000000000000000000000001",
+                    firstScope: 0,
+                    duplicateScope: 0,
                 },
             },
         ],
@@ -1741,6 +1768,8 @@ test.each([
                 context: {
                     chainName: "ETHEREUM",
                     address: "0x2000000000000000000000000000000000000001",
+                    firstScope: 0,
+                    duplicateScope: 2,
                 },
             },
         ],
@@ -1770,6 +1799,8 @@ test.each([
                 context: {
                     chainName: "ETHEREUM",
                     address: "0x2000000000000000000000000000000000000001",
+                    firstScope: 0n,
+                    duplicateScope: 0n,
                 },
             },
         ],
@@ -1799,6 +1830,8 @@ test.each([
                 context: {
                     chainName: "ETHEREUM",
                     address: "0x2000000000000000000000000000000000000001",
+                    firstScope: 0n,
+                    duplicateScope: 2n,
                 },
             },
         ],
@@ -1827,6 +1860,8 @@ test.each([
                 context: {
                     chainName: "ETHEREUM",
                     address: "0x2000000000000000000000000000000000000001",
+                    firstScope: 0n,
+                    duplicateScope: 0n,
                 },
             },
         ],
@@ -1856,6 +1891,8 @@ test.each([
                 context: {
                     chainName: "ETHEREUM",
                     address: "0x2000000000000000000000000000000000000001",
+                    firstScope: 0,
+                    duplicateScope: 2,
                 },
             },
             {
@@ -1863,6 +1900,8 @@ test.each([
                 context: {
                     chainName: "ETHEREUM",
                     address: "0x2000000000000000000000000000000000000002",
+                    firstScope: 0n,
+                    duplicateScope: 2n,
                 },
             },
         ],

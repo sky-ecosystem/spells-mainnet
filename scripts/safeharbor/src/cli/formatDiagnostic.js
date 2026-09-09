@@ -2,9 +2,9 @@ import { DIAGNOSTIC_CODES as $ } from "../diagnosticCodes.js";
 
 export const diagnosticTemplates = {
     [$.DUPLICATE_SHEET_ACCOUNT]:
-        "Duplicate account address in Safeharbor Sheet for chain '{chainName}': {address}",
+        "Duplicate account address in Safeharbor Sheet for chain '{chainName}': {address}; first scope={firstScope}, duplicate scope={duplicateScope}",
     [$.DUPLICATE_ONCHAIN_ACCOUNT]:
-        "Duplicate account address in on-chain state for chain '{chainName}': {address}",
+        "Duplicate account address in on-chain state for chain '{chainName}': {address}; first scope={firstScope}, duplicate scope={duplicateScope}",
     [$.UNKNOWN_SHEET_CHAIN]:
         "Unknown chain details in Safeharbor Sheet: name='{chainName}'\nInclude chain details to the chain details tab in the Safeharbor Sheet to add coverage to it.",
     [$.UNKNOWN_ONCHAIN_CHAIN]:
@@ -18,9 +18,9 @@ export const diagnosticTemplates = {
     [$.INCOMPLETE_CHAIN_METADATA]:
         "Incomplete chain details in Safeharbor Sheet: name='{chainName}', chainId='{chainId}'; missing {missingFields}",
     [$.DUPLICATE_CHAIN_NAME]:
-        "Duplicate chain name found in Safeharbor Sheet: {chainName}",
+        "Duplicate chain name found in Safeharbor Sheet: name='{chainName}', first='{firstChainId}', duplicate='{duplicateChainId}'",
     [$.DUPLICATE_CHAIN_ID]:
-        "Duplicate chain ID found in Safeharbor Sheet: {chainId}",
+        "Duplicate chain ID found in Safeharbor Sheet: chainId='{chainId}', first='{firstChainName}', duplicate='{duplicateChainName}'",
     [$.MISSING_SHEET_HEADERS]: "Missing required CSV headers: {missingHeaders}",
     [$.COMMAND_REQUIRED]:
         "Error: Command is required\nAvailable commands: generate, inspect, verify\nUsage: npm run <command>",
