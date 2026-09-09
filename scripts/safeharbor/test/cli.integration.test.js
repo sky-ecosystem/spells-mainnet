@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { Contract, JsonRpcProvider } from "ethers";
+import { dedent } from "./helpers/dedent.js";
 import { main } from "../src/cli/index.js";
 
 vi.mock("ethers", async (importOriginal) => ({
@@ -138,8 +139,14 @@ describe.each([
                 },
             ],
         },
-        solidityCode:
-            "bytes[] memory calldatas = new bytes[](1);\n\n// Remove chains: eip155:1\ncalldatas[0] = hex'1e12ef2900000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000086569703135353a31000000000000000000000000000000000000000000000000';\n\n_updateSafeHarbor(calldatas);",
+        solidityCode: dedent`
+            bytes[] memory calldatas = new bytes[](1);
+
+            // Remove chains: eip155:1
+            calldatas[0] = hex'1e12ef2900000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000086569703135353a31000000000000000000000000000000000000000000000000';
+
+            _updateSafeHarbor(calldatas);
+        `,
         report: {
             chainDetails: {
                 caip2ChainId: {

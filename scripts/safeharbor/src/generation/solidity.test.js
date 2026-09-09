@@ -1,4 +1,5 @@
 import { expect, test } from "vitest";
+import { dedent } from "../../test/helpers/dedent.js";
 import { generateSolidity } from "./solidity.js";
 
 test("returns an empty snippet when there are no updates", () => {
@@ -15,8 +16,14 @@ test.each([
                 calldata: "0x1234",
             },
         ],
-        expected:
-            "bytes[] memory calldatas = new bytes[](1);\n\n// Remove chains: eip155:8453, eip155:1\ncalldatas[0] = hex'1234';\n\n_updateSafeHarbor(calldatas);",
+        expected: dedent`
+            bytes[] memory calldatas = new bytes[](1);
+
+            // Remove chains: eip155:8453, eip155:1
+            calldatas[0] = hex'1234';
+
+            _updateSafeHarbor(calldatas);
+        `,
     },
     {
         scenario: "chain additions with and without accounts",
@@ -53,8 +60,14 @@ test.each([
                 calldata: "abcd",
             },
         ],
-        expected:
-            "bytes[] memory calldatas = new bytes[](1);\n\n// Add new eip155:8453 with recovery address 0x1000000000000000000000000000000000000002 and accounts: 0x3000000000000000000000000000000000000002, 0x3000000000000000000000000000000000000001; Add new eip155:1 with recovery address 0x1000000000000000000000000000000000000001 and no accounts\ncalldatas[0] = hex'abcd';\n\n_updateSafeHarbor(calldatas);",
+        expected: dedent`
+            bytes[] memory calldatas = new bytes[](1);
+
+            // Add new eip155:8453 with recovery address 0x1000000000000000000000000000000000000002 and accounts: 0x3000000000000000000000000000000000000002, 0x3000000000000000000000000000000000000001; Add new eip155:1 with recovery address 0x1000000000000000000000000000000000000001 and no accounts
+            calldatas[0] = hex'abcd';
+
+            _updateSafeHarbor(calldatas);
+        `,
     },
     {
         scenario: "account removals in the supplied order",
@@ -71,8 +84,14 @@ test.each([
                 calldata: "0xabcd",
             },
         ],
-        expected:
-            "bytes[] memory calldatas = new bytes[](1);\n\n// Remove accounts from eip155:1 chain: 0x2000000000000000000000000000000000000002, 0x2000000000000000000000000000000000000001\ncalldatas[0] = hex'abcd';\n\n_updateSafeHarbor(calldatas);",
+        expected: dedent`
+            bytes[] memory calldatas = new bytes[](1);
+
+            // Remove accounts from eip155:1 chain: 0x2000000000000000000000000000000000000002, 0x2000000000000000000000000000000000000001
+            calldatas[0] = hex'abcd';
+
+            _updateSafeHarbor(calldatas);
+        `,
     },
     {
         scenario: "account additions in the supplied order",
@@ -97,8 +116,14 @@ test.each([
                 calldata: "1234",
             },
         ],
-        expected:
-            "bytes[] memory calldatas = new bytes[](1);\n\n// Add accounts to eip155:1 chain: 0x2000000000000000000000000000000000000002, 0x2000000000000000000000000000000000000001\ncalldatas[0] = hex'1234';\n\n_updateSafeHarbor(calldatas);",
+        expected: dedent`
+            bytes[] memory calldatas = new bytes[](1);
+
+            // Add accounts to eip155:1 chain: 0x2000000000000000000000000000000000000002, 0x2000000000000000000000000000000000000001
+            calldatas[0] = hex'1234';
+
+            _updateSafeHarbor(calldatas);
+        `,
     },
 ])("renders $scenario", ({ updates, expected }) => {
     expect(generateSolidity(updates)).toBe(expected);
@@ -127,6 +152,16 @@ test("trims each Solidity line while preserving internal spacing and blank lines
     ]);
 
     expect(code).toBe(
-        "bytes[] memory calldatas = new bytes[](2);\n\n// Remove chains: eip155:1\ncalldatas[0] = hex'1234';\n\n// Remove chains: eip155:8453\ncalldatas[1] = hex'abcd';\n\n_updateSafeHarbor(calldatas);",
+        dedent`
+            bytes[] memory calldatas = new bytes[](2);
+
+            // Remove chains: eip155:1
+            calldatas[0] = hex'1234';
+
+            // Remove chains: eip155:8453
+            calldatas[1] = hex'abcd';
+
+            _updateSafeHarbor(calldatas);
+        `,
     );
 });
