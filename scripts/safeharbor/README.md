@@ -51,7 +51,7 @@ The script follows these steps:
 
 4. Builds comparable internal representation of on-chain state
 
-5. Collects warnings from Safeharbor Sheet and on-chain normalization, then validates the comparable states. Any warning stops planning before diffing or encoding, returning `changes: null` and the collected `validationWarnings` alongside both normalized states and chain metadata.
+5. Collects warnings from Safeharbor Sheet and on-chain normalization, then checks the comparable states for consistency. Any warning stops planning before diffing or encoding, returning `changes: []` and the collected `validationWarnings` alongside both normalized states and chain metadata.
 
 6. If there are no warnings, compares Safeharbor Sheet and on-chain state and plans ordered `{ fn, args }` changes (if any).
 
@@ -74,7 +74,7 @@ The contracts tab in the Safeharbor Sheet is exported as CSV and requires `Statu
 
 Nonblank chain metadata rows must contain all three required fields; incomplete rows produce warnings listing the missing fields, even if those chains are not in the desired state. Completely blank rows are ignored. A row with only an extra column populated is incomplete, not blank.
 
-EVM recovery addresses for desired chains, including newly added chains, are validated with ethers `getAddress`; malformed addresses and invalid mixed-case checksums produce warnings, while valid lowercase addresses are accepted. For chains present in both states, missing on-chain recovery addresses produce warnings, and EVM recovery addresses are compared in canonical checksummed form. Only chains absent from the on-chain state skip comparison. Solana and other non-EVM recovery identifiers are compared exactly, including case; no chain-specific syntax validation is performed for them. Recovery mismatches produce warnings, not recovery-address updates. A clean reconciliation requires `changes: []` and no `validationWarnings`; `changes: null` means validation blocked planning.
+EVM recovery addresses for desired chains, including newly added chains, are validated with ethers `getAddress`; malformed addresses and invalid mixed-case checksums produce warnings, while valid lowercase addresses are accepted. For chains present in both states, missing on-chain recovery addresses produce warnings, and EVM recovery addresses are compared in canonical checksummed form. Only chains absent from the on-chain state skip comparison. Solana and other non-EVM recovery identifiers are compared exactly, including case; no chain-specific syntax validation is performed for them. Recovery mismatches produce warnings, not recovery-address updates. A clean reconciliation requires `changes: []` and no `validationWarnings`; warnings mean planning was blocked, even though `changes` is empty.
 
 Duplicate chain names or IDs in complete metadata rows produce warnings without overwriting earlier mappings. Repeated account addresses within a chain in either desired or current state also produce warnings, including when their scopes differ. These checks run before diffing and block all executable output. Account addresses retain the Agreement's exact, case-sensitive string semantics; the same address may legitimately appear on different chains. Canonical EVM comparison applies only to recovery addresses, not account identifiers.
 
@@ -98,7 +98,7 @@ npm run generate
 
 If any validation warning is reported, `generate` exits with code `2` and prints neither Solidity nor a success message.
 
-On successful inspection, `inspect` outputs JSON containing `chainDetails`, `onChainState`, `sheetState`, `changes`, and `validationWarnings`, and exits with code `0` even when warnings are present. Changes are unencoded `{ fn, args }` operations: `[]` means no changes are needed, while `null` means warnings blocked planning. Bigint values are serialized as decimal strings only in the JSON output. Inspection includes neither calldata nor Solidity. Parsing, network, RPC, configuration, and command errors instead exit with code `1` without a JSON result:
+On successful inspection, `inspect` outputs JSON containing `chainDetails`, `onChainState`, `sheetState`, `changes`, and `validationWarnings`, and exits with code `0` even when warnings are present. Changes are an array of unencoded `{ fn, args }` operations. An empty array means either no updates are needed or warnings blocked planning; check `validationWarnings` to distinguish them. Bigint values are serialized as decimal strings only in the JSON output. Inspection includes neither calldata nor Solidity. Parsing, network, RPC, configuration, and command errors instead exit with code `1` without a JSON result:
 
 ```bash
 npm run inspect

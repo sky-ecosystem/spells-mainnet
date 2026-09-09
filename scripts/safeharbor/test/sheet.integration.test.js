@@ -69,9 +69,9 @@ test.each([
     async ({ status, headers, diagnostic }) => {
         fetch.mockResolvedValue(new Response(null, { status, headers }));
 
-        await expect(
-            getChainDetailsFromSheet("https://example.test/chains.csv"),
-        ).rejects.toMatchObject({ diagnostic });
+        await expect(getChainDetailsFromSheet()).rejects.toMatchObject({
+            diagnostic,
+        });
     },
 );
 
@@ -79,9 +79,7 @@ test("propagates fetch failures unchanged without reporting", async () => {
     const failure = new Error("Network unavailable");
     fetch.mockRejectedValue(failure);
 
-    await expect(
-        getChainDetailsFromSheet("https://example.test/chains.csv"),
-    ).rejects.toBe(failure);
+    await expect(getChainDetailsFromSheet()).rejects.toBe(failure);
 });
 
 describe("contracts CSV headers", () => {
@@ -124,9 +122,7 @@ describe("contracts CSV headers", () => {
         fetch.mockResolvedValue(csvResponse(csv));
 
         await expect(
-            getNormalizedContractsInScopeFromSheet(
-                "https://example.test/contracts.csv",
-            ),
+            getNormalizedContractsInScopeFromSheet(),
         ).rejects.toMatchObject({
             diagnostic: {
                 code: "MISSING_SHEET_HEADERS",
@@ -157,24 +153,25 @@ describe("contracts CSV headers", () => {
     ])("accepts %s", async (_scenario, csv) => {
         fetch.mockResolvedValue(csvResponse(csv));
 
-        await expect(
-            getNormalizedContractsInScopeFromSheet(
-                "https://example.test/contracts.csv",
-            ),
-        ).resolves.toEqual({
-            ETHEREUM: [
-                {
-                    accountAddress:
-                        "0x2000000000000000000000000000000000000001",
-                    childContractScope: 2,
-                },
-                {
-                    accountAddress:
-                        "0x2000000000000000000000000000000000000002",
-                    childContractScope: 0,
-                },
-            ],
-        });
+        await expect(getNormalizedContractsInScopeFromSheet()).resolves.toEqual(
+            {
+                ETHEREUM: [
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000001",
+                        childContractScope: 2,
+                    },
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000002",
+                        childContractScope: 0,
+                    },
+                ],
+            },
+        );
+        expect(fetch).toHaveBeenCalledExactlyOnceWith(
+            "https://docs.google.com/spreadsheets/d/1e_KOYOeBGaA5EG3Xqco6lOP_a0zV4Vrm3w5-dqFk00U/export?format=csv&gid=1121763694",
+        );
     });
 });
 
@@ -215,9 +212,7 @@ describe("chain metadata CSV headers", () => {
     ])("rejects missing %s", async (_scenario, csv, missingHeader) => {
         fetch.mockResolvedValue(csvResponse(csv));
 
-        await expect(
-            getChainDetailsFromSheet("https://example.test/chains.csv"),
-        ).rejects.toMatchObject({
+        await expect(getChainDetailsFromSheet()).rejects.toMatchObject({
             diagnostic: {
                 code: "MISSING_SHEET_HEADERS",
                 context: {
@@ -232,9 +227,7 @@ describe("chain metadata CSV headers", () => {
             csvResponse("Name,Chain Id,Asset Recovery Address\n"),
         );
 
-        await expect(
-            getChainDetailsFromSheet("https://example.test/chains.csv"),
-        ).resolves.toEqual({
+        await expect(getChainDetailsFromSheet()).resolves.toEqual({
             chainDetails: {
                 caip2ChainId: {},
                 assetRecoveryAddress: {},
@@ -251,9 +244,7 @@ describe("chain metadata CSV headers", () => {
             ),
         );
 
-        await expect(
-            getChainDetailsFromSheet("https://example.test/chains.csv"),
-        ).resolves.toEqual({
+        await expect(getChainDetailsFromSheet()).resolves.toEqual({
             chainDetails: {
                 caip2ChainId: { ETHEREUM: "eip155:1" },
                 assetRecoveryAddress: {
@@ -272,9 +263,7 @@ describe("chain metadata CSV headers", () => {
             ),
         );
 
-        await expect(
-            getChainDetailsFromSheet("https://example.test/chains.csv"),
-        ).resolves.toEqual({
+        await expect(getChainDetailsFromSheet()).resolves.toEqual({
             chainDetails: {
                 caip2ChainId: { ETHEREUM: "eip155:1" },
                 assetRecoveryAddress: {
@@ -284,6 +273,9 @@ describe("chain metadata CSV headers", () => {
             },
             validationWarnings: [],
         });
+        expect(fetch).toHaveBeenCalledExactlyOnceWith(
+            "https://docs.google.com/spreadsheets/d/1e_KOYOeBGaA5EG3Xqco6lOP_a0zV4Vrm3w5-dqFk00U/export?format=csv&gid=1620276618",
+        );
     });
 });
 
@@ -340,9 +332,7 @@ describe("malformed CSV", () => {
     ])("rejects %s", async (_scenario, readCSV, csv, code) => {
         fetch.mockResolvedValue(csvResponse(csv));
 
-        await expect(
-            readCSV("https://example.test/input.csv"),
-        ).rejects.toMatchObject({ code });
+        await expect(readCSV()).rejects.toMatchObject({ code });
     });
 });
 

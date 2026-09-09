@@ -50,7 +50,7 @@ test("blocks generation on validation warnings without printing individual diagn
         chainDetails: {},
         onChainState: {},
         sheetState: {},
-        changes: null,
+        changes: [],
         validationWarnings: [
             {
                 code: "UNKNOWN_ONCHAIN_CHAIN",

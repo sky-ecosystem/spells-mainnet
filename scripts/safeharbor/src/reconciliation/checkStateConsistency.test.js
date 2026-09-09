@@ -2,8 +2,8 @@ import { describe, expect, test } from "vitest";
 import {
     createRecoveryAddressValidator,
     createStateValidators,
-    validateState,
-} from "./validateState.js";
+    checkStateConsistency,
+} from "./checkStateConsistency.js";
 
 describe("duplicate account validation", () => {
     test.each([
@@ -401,7 +401,9 @@ describe("duplicate account validation", () => {
             },
         };
 
-        expect(validateState(current, desired, chainDetails)).toEqual(warnings);
+        expect(checkStateConsistency(current, desired, chainDetails)).toEqual(
+            warnings,
+        );
         const { validateUniqueAccounts } = createStateValidators(
             current,
             desired,

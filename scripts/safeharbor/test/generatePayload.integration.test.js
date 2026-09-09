@@ -63,12 +63,12 @@ async function generateFrom({ chainCSV, contractCSV, details }) {
     const report = await reconcile();
     expect(encodeSpy).not.toHaveBeenCalled();
     if (report.validationWarnings.length > 0) {
-        expect(report.changes).toBeNull();
+        expect(report.changes).toEqual([]);
     } else {
         expect(report.changes).toBeInstanceOf(Array);
     }
     const payload =
-        report.changes === null
+        report.validationWarnings.length > 0
             ? { updates: [], solidityCode: "" }
             : generatePayload(report.changes);
     const result = {

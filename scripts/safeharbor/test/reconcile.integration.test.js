@@ -96,7 +96,7 @@ test.each([
                     },
                 ],
             },
-            changes: null,
+            changes: [],
             validationWarnings: [
                 { code: "UNKNOWN_SHEET_CHAIN", context: { chainName: "BASE" } },
             ],

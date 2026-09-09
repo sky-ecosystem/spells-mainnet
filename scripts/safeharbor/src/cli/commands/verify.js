@@ -1,5 +1,5 @@
 export function verify(report) {
-    const updateCount = report.changes?.length ?? 0;
+    const updateCount = report.changes.length;
     const warningCount = report.validationWarnings.length;
     if (updateCount === 0 && warningCount === 0) {
         console.log(

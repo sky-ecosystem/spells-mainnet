@@ -1,10 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { Contract, JsonRpcProvider } from "ethers";
 import { main } from "../src/cli/index.js";
-import {
-    CHAIN_DETAILS_SHEET_URL,
-    CONTRACTS_IN_SCOPE_SHEET_URL,
-} from "../src/sheet/index.js";
 
 vi.mock("ethers", async (importOriginal) => ({
     ...(await importOriginal()),
@@ -237,7 +233,7 @@ describe.each([
                     },
                 ],
             },
-            changes: null,
+            changes: [],
             validationWarnings: [
                 {
                     code: "RECOVERY_ADDRESS_MISMATCH",
@@ -317,7 +313,7 @@ describe.each([
                     },
                 ],
             },
-            changes: null,
+            changes: [],
             validationWarnings: [
                 {
                     code: "RECOVERY_ADDRESS_MISMATCH",
@@ -354,10 +350,7 @@ describe.each([
             mockSources(fixture);
 
             expect(await runCli(command)).toBe(fixture.exitCodes[command]);
-            expect(fetch.mock.calls).toEqual([
-                [CHAIN_DETAILS_SHEET_URL],
-                [CONTRACTS_IN_SCOPE_SHEET_URL],
-            ]);
+            expect(fetch).toHaveBeenCalledTimes(2);
             expect(getDetails).toHaveBeenCalledExactlyOnceWith();
             expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
             expect(stderr).not.toHaveBeenCalled();

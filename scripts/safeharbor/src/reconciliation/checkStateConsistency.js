@@ -2,7 +2,7 @@ import { DIAGNOSTIC_CODES as $ } from "../diagnosticCodes.js";
 import { getAddress } from "ethers";
 import { findDuplicateIndexes } from "../findDuplicateIndexes.js";
 
-export function validateState(onChainState, sheetState, chainDetails) {
+export function checkStateConsistency(onChainState, sheetState, chainDetails) {
     const {
         validateRecoveryAddresses,
         validateKnownChains,

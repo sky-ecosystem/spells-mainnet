@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { Interface } from "ethers";
-import { generateSolidity } from "../../generation/solidity.js";
+import { generatePayload } from "../../generation/index.js";
 import { inspect } from "./inspect.js";
 
-vi.mock("../../generation/solidity.js", () => ({
-    generateSolidity: vi.fn(),
+vi.mock("../../generation/index.js", () => ({
+    generatePayload: vi.fn(),
 }));
 
 beforeEach(() => {
@@ -39,7 +39,7 @@ test("prints an empty changes array for clean state", () => {
     ]);
     expect(console.warn).not.toHaveBeenCalled();
     expect(Interface.prototype.encodeFunctionData).not.toHaveBeenCalled();
-    expect(generateSolidity).not.toHaveBeenCalled();
+    expect(generatePayload).not.toHaveBeenCalled();
 });
 
 test("prints raw state and changes with bigint values as decimal strings without mutation", () => {
@@ -118,15 +118,15 @@ test("prints raw state and changes with bigint values as decimal strings without
     ]);
     expect(console.warn).not.toHaveBeenCalled();
     expect(Interface.prototype.encodeFunctionData).not.toHaveBeenCalled();
-    expect(generateSolidity).not.toHaveBeenCalled();
+    expect(generatePayload).not.toHaveBeenCalled();
 });
 
-test("prints blocked planning as null with diagnostics and no executable artifacts", () => {
+test("prints no changes with diagnostics when planning is blocked", () => {
     const report = {
         chainDetails: {},
         onChainState: {},
         sheetState: {},
-        changes: null,
+        changes: [],
         validationWarnings: [
             {
                 code: "UNKNOWN_ONCHAIN_CHAIN",
@@ -142,7 +142,7 @@ test("prints blocked planning as null with diagnostics and no executable artifac
   "chainDetails": {},
   "onChainState": {},
   "sheetState": {},
-  "changes": null,
+  "changes": [],
   "validationWarnings": [
     {
       "code": "UNKNOWN_ONCHAIN_CHAIN",
@@ -154,8 +154,8 @@ test("prints blocked planning as null with diagnostics and no executable artifac
 }`,
         ],
     ]);
-    expect(report.changes).toBeNull();
+    expect(report.changes).toEqual([]);
     expect(console.warn).not.toHaveBeenCalled();
     expect(Interface.prototype.encodeFunctionData).not.toHaveBeenCalled();
-    expect(generateSolidity).not.toHaveBeenCalled();
+    expect(generatePayload).not.toHaveBeenCalled();
 });

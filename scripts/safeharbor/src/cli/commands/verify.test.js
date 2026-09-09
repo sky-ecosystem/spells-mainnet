@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { Interface } from "ethers";
-import { generateSolidity } from "../../generation/solidity.js";
+import { generatePayload } from "../../generation/index.js";
 import { verify } from "./verify.js";
 
-vi.mock("../../generation/solidity.js", () => ({
-    generateSolidity: vi.fn(),
+vi.mock("../../generation/index.js", () => ({
+    generatePayload: vi.fn(),
 }));
 
 beforeEach(() => {
@@ -49,7 +49,7 @@ test.each([
             chainDetails: {},
             onChainState: {},
             sheetState: {},
-            changes: null,
+            changes: [],
             validationWarnings: [
                 {
                     code: "UNKNOWN_ONCHAIN_CHAIN",
@@ -68,6 +68,6 @@ test.each([
         expect(console.log.mock.calls).toEqual([[message]]);
         expect(console.warn).not.toHaveBeenCalled();
         expect(Interface.prototype.encodeFunctionData).not.toHaveBeenCalled();
-        expect(generateSolidity).not.toHaveBeenCalled();
+        expect(generatePayload).not.toHaveBeenCalled();
     },
 );
