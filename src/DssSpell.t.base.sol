@@ -3222,8 +3222,11 @@ contract DssSpellTestBase is Config, DssTest {
         if (address(_gem) != address(sky)) {
             assertGe(balance, vestableAmt, _concat(string("TestError/insufficient-transferrable-vest-balance-"), _errSuffix));
         } else {
-            // TODO: Change this back to 20 days after 2026-09-10
             // Note: SKY streams will operate out of buybacks, check that balance is sufficient for short term (16 days)
+            // Note: Reduced from 20 days to 16 days for the 2026-09-10 spell, as the balance of the PauseProxy is
+            //       not enough to cover 20 days of the new vest stream. Realistically the buybacks will cover this,
+            //       but this test deliberately does not account for them to test the worst-case scenario.
+            // TODO: Restore to 20 days once the PauseProxy balance covers the longer buffer on its own.
             vm.warp(block.timestamp + 16 days);
 
             uint256 requiredBalance;
@@ -3233,7 +3236,7 @@ contract DssSpellTestBase is Config, DssTest {
                 }
             }
 
-            // TODO: Change this back to 20 days after 2026-09-10
+            // TODO: Restore to 20 days once the PauseProxy balance covers the longer buffer on its own. For more information see note above.
             assertGe(_gem.balanceOf(pauseProxy), requiredBalance, _concat(string("TestError/insufficient-transferrable-vest-balance-for-16-days-"), _errSuffix));
         }
     }

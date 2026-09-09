@@ -153,7 +153,8 @@ contract DssSpellAction is DssAction {
         // Atlas: https://sky-atlas.io/#f67a5780-11d5-4014-8254-795080c77133
 
         // Burn 2,860,943.76 SKY tokens from the PauseProxy Balance
-        SkyLike(SKY).burn(address(this), 2_860_943.76 ether); // Note: `ether` is only used as a keyword. Only SKY is being burned.
+        // Note: `ether` is only used as a keyword. Only SKY is being burned.
+        SkyLike(SKY).burn(address(this), 2_860_943.76 ether);
 
         // Update LSSKY->SKY Farm vest by calling `TreasuryFundedFarmingInit.updateFarmVest()` with params:
         TreasuryFundedFarmingInit.updateFarmVest(FarmingUpdateVestParams({
