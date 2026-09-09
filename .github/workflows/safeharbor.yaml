@@ -3,9 +3,11 @@ name: SafeHarbor Tests
 on:
   push:
     paths:
+      - "Makefile"
       - "scripts/safeharbor/**"
   pull_request:
     paths:
+      - "Makefile"
       - "scripts/safeharbor/**"
 
 permissions:
