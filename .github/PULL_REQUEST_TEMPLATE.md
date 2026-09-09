@@ -25,5 +25,5 @@ _Provide links to relevant issues, previous PRs, incidents, documentation, or di
 - [ ] The CI tests pass;
 - [ ] Update the PR template according to the PR type (e.g., removing Maintenance PR sections for a Spell PR);
 - [ ] All the required information for the current PR type has been filled in above;
-- [ ] IF this is a Spell PR, only the current spell-related contracts and tests have been updated and archived; no existing base test has been modified;
+- [ ] IF this is a Spell PR, only the current spell-related contracts and tests have been updated and archived; no existing base test has been modified unless explicitly required by the spell process;
 - [ ] IF this is a Spell PR, the executive sheet link is included in the Description.
