@@ -4,13 +4,14 @@ import {
     normalizeContractsInScope,
 } from "./normalize.js";
 
-export async function getNormalizedContractsInScopeFromSheet() {
+export async function getSheetState(chainDetails) {
     return normalizeContractsInScope(
         await downloadAndParse(CONTRACTS_IN_SCOPE_SHEET_URL),
+        chainDetails,
     );
 }
 
-export async function getChainDetailsFromSheet() {
+export async function getSheetChainDetails() {
     return normalizeChainDetails(
         await downloadAndParse(CHAIN_DETAILS_SHEET_URL),
     );

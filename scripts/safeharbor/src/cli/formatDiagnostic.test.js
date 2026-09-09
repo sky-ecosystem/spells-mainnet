@@ -1,12 +1,5 @@
 import { expect, test } from "vitest";
-import { diagnosticTemplates, formatDiagnostic } from "./formatDiagnostic.js";
-
-test("exports the diagnostic templates", () => {
-    expect(diagnosticTemplates).toHaveProperty(
-        "HTTP_ERROR",
-        "HTTP error! status: {status}",
-    );
-});
+import { formatDiagnostic } from "./formatDiagnostic.js";
 
 test("rejects missing template values", () => {
     expect(() =>

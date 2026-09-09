@@ -1,1 +1,1 @@
-export { createReconciler } from "./reconcile.js";
+export { reconcile } from "./reconcile.js";

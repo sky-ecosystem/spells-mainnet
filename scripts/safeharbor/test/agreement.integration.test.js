@@ -54,7 +54,7 @@ test("resolves the Agreement and returns normalized state with diagnostics", asy
     expect(
         await getAgreementState({ name: { "eip155:1": "ETHEREUM" } }),
     ).toEqual({
-        onChainState: {
+        state: {
             ETHEREUM: {
                 accounts: [
                     {
@@ -67,7 +67,7 @@ test("resolves the Agreement and returns normalized state with diagnostics", asy
                     "0x1000000000000000000000000000000000000001",
             },
         },
-        validationWarnings: [
+        warnings: [
             {
                 code: "UNKNOWN_ONCHAIN_CHAIN",
                 context: { chainId: "eip155:999999" },

@@ -2,8 +2,9 @@ import { test, expect, describe, vi, beforeEach, afterEach } from "vitest";
 import assert from "node:assert";
 import { Contract, Interface, JsonRpcProvider } from "ethers";
 import { generatePayload } from "../src/generation/index.js";
-import { createReconciler } from "../src/reconciliation/index.js";
+import { reconcile } from "../src/reconciliation/index.js";
 import { createAgreementReader } from "../src/agreement/index.js";
+import { getSheetChainDetails, getSheetState } from "../src/sheet/index.js";
 import { AGREEMENT_V3_ABI } from "../src/agreement/abis.js";
 
 vi.mock("ethers", async (importOriginal) => ({
@@ -14,7 +15,6 @@ vi.mock("ethers", async (importOriginal) => ({
 const getDetails = vi.fn();
 
 let provider;
-let reconcile;
 let consoleWarnSpy;
 let consoleErrorSpy;
 let consoleLogSpy;
@@ -22,8 +22,6 @@ let encodeSpy;
 
 beforeEach(() => {
     provider = new JsonRpcProvider("https://rpc.example");
-    const getAgreementState = createAgreementReader({ provider });
-    reconcile = createReconciler({ getAgreementState });
     Contract.mockReturnValueOnce({
         "getAddress(bytes32)": vi
             .fn()
@@ -60,7 +58,11 @@ async function generateFrom({ chainCSV, contractCSV, details }) {
             }),
         );
     getDetails.mockResolvedValue(details);
-    const report = await reconcile();
+    const report = await reconcile({
+        getAgreementState: createAgreementReader({ provider }),
+        getSheetState,
+        getSheetChainDetails,
+    });
     expect(encodeSpy).not.toHaveBeenCalled();
     if (report.validationWarnings.length > 0) {
         expect(report.changes).toEqual([]);
@@ -1227,6 +1229,10 @@ describe("generatePayload", () => {
                     duplicateWarning,
                     unknownChainWarning,
                     {
+                        code: "UNKNOWN_SHEET_CHAIN",
+                        context: { chainName: "UNKNOWN" },
+                    },
+                    {
                         code: "RECOVERY_ADDRESS_MISMATCH",
                         context: {
                             chainName: "ETHEREUM",
@@ -1235,10 +1241,6 @@ describe("generatePayload", () => {
                             sheetRecoveryAddress:
                                 "0x1000000000000000000000000000000000000001",
                         },
-                    },
-                    {
-                        code: "UNKNOWN_SHEET_CHAIN",
-                        context: { chainName: "UNKNOWN" },
                     },
                 ],
             });

@@ -2,24 +2,31 @@ import { describe, expect, test } from "vitest";
 import {
     normalizeChainDetails,
     normalizeContractsInScope,
-    validateHeaders,
 } from "./normalize.js";
 
-test("returns every missing header in required order", () => {
-    expect(validateHeaders(["Status"], ["Status", "Chain", "Address"])).toEqual(
-        [
-            {
+test("rejects missing headers in required order", () => {
+    expect(() =>
+        normalizeContractsInScope({ headers: ["Status"], records: [] }),
+    ).toThrow(
+        expect.objectContaining({
+            diagnostic: {
                 code: "MISSING_SHEET_HEADERS",
-                context: { missingHeaders: ["Chain", "Address"] },
+                context: { missingHeaders: ["Chain", "Address", "isFactory"] },
             },
-        ],
+        }),
     );
 });
 
 test("accepts required headers with extra columns", () => {
     expect(
-        validateHeaders(["Notes", "Chain", "Status"], ["Status", "Chain"]),
-    ).toEqual([]);
+        normalizeContractsInScope(
+            {
+                headers: ["Notes", "Chain", "Status", "Address", "isFactory"],
+                records: [],
+            },
+            { caip2ChainId: {}, assetRecoveryAddress: {}, name: {} },
+        ),
+    ).toEqual({ state: {}, warnings: [] });
 });
 
 describe("normalizeChainDetails", () => {
@@ -391,63 +398,79 @@ describe("normalizeChainDetails", () => {
 });
 
 test("groups active contracts in order with exact addresses and both factory aliases", () => {
-    const result = normalizeContractsInScope({
-        headers: ["Status", "Chain", "Address", "isFactory", "IsFactory"],
-        records: [
-            {
-                Status: "INACTIVE",
-                Chain: "IGNORED",
-                Address: "InactiveAccount",
-                isFactory: "TRUE",
-                IsFactory: "TRUE",
+    const result = normalizeContractsInScope(
+        {
+            headers: ["Status", "Chain", "Address", "isFactory", "IsFactory"],
+            records: [
+                {
+                    Status: "INACTIVE",
+                    Chain: "IGNORED",
+                    Address: "InactiveAccount",
+                    isFactory: "TRUE",
+                    IsFactory: "TRUE",
+                },
+                {
+                    Status: "ACTIVE",
+                    Chain: "SOLANA",
+                    Address: "AccountUpperCase",
+                    isFactory: "FALSE",
+                    IsFactory: "TRUE",
+                },
+                {
+                    Status: "ACTIVE",
+                    Chain: "ETHEREUM",
+                    Address: "0xA000000000000000000000000000000000000001",
+                    isFactory: "TRUE",
+                    IsFactory: "FALSE",
+                },
+                {
+                    Status: "ACTIVE",
+                    Chain: "SOLANA",
+                    Address: "accountUpperCase",
+                    isFactory: "FALSE",
+                    IsFactory: "FALSE",
+                },
+                {
+                    Status: "ACTIVE",
+                    Chain: "SOLANA",
+                    Address: "AccountUpperCase",
+                    isFactory: "FALSE",
+                    IsFactory: "FALSE",
+                },
+                {
+                    Status: "ACTIVE",
+                    Chain: "ETHEREUM",
+                    Address: "0xa000000000000000000000000000000000000001",
+                    isFactory: "true",
+                    IsFactory: "FALSE",
+                },
+                {
+                    Status: "active",
+                    Chain: "IGNORED",
+                    Address: "LowercaseStatusAccount",
+                    isFactory: "FALSE",
+                    IsFactory: "FALSE",
+                },
+            ],
+        },
+        {
+            caip2ChainId: {
+                SOLANA: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+                ETHEREUM: "eip155:1",
             },
-            {
-                Status: "ACTIVE",
-                Chain: "SOLANA",
-                Address: "AccountUpperCase",
-                isFactory: "FALSE",
-                IsFactory: "TRUE",
+            assetRecoveryAddress: {
+                SOLANA: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+                ETHEREUM: "0x1000000000000000000000000000000000000001",
             },
-            {
-                Status: "ACTIVE",
-                Chain: "ETHEREUM",
-                Address: "0xA000000000000000000000000000000000000001",
-                isFactory: "TRUE",
-                IsFactory: "FALSE",
+            name: {
+                "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp": "SOLANA",
+                "eip155:1": "ETHEREUM",
             },
-            {
-                Status: "ACTIVE",
-                Chain: "SOLANA",
-                Address: "accountUpperCase",
-                isFactory: "FALSE",
-                IsFactory: "FALSE",
-            },
-            {
-                Status: "ACTIVE",
-                Chain: "SOLANA",
-                Address: "AccountUpperCase",
-                isFactory: "FALSE",
-                IsFactory: "FALSE",
-            },
-            {
-                Status: "ACTIVE",
-                Chain: "ETHEREUM",
-                Address: "0xa000000000000000000000000000000000000001",
-                isFactory: "true",
-                IsFactory: "FALSE",
-            },
-            {
-                Status: "active",
-                Chain: "IGNORED",
-                Address: "LowercaseStatusAccount",
-                isFactory: "FALSE",
-                IsFactory: "FALSE",
-            },
-        ],
-    });
+        },
+    );
 
-    expect(Object.keys(result)).toEqual(["SOLANA", "ETHEREUM"]);
-    expect(result).toEqual({
+    expect(Object.keys(result.state)).toEqual(["SOLANA", "ETHEREUM"]);
+    expect(result.state).toEqual({
         SOLANA: [
             { accountAddress: "AccountUpperCase", childContractScope: 2 },
             { accountAddress: "accountUpperCase", childContractScope: 0 },
@@ -461,6 +484,122 @@ test("groups active contracts in order with exact addresses and both factory ali
             {
                 accountAddress: "0xa000000000000000000000000000000000000001",
                 childContractScope: 0,
+            },
+        ],
+    });
+    expect(result.warnings).toEqual([
+        {
+            code: "DUPLICATE_SHEET_ACCOUNT",
+            context: { chainName: "SOLANA", address: "AccountUpperCase" },
+        },
+    ]);
+});
+
+test("reports unknown chains and duplicate accounts without dropping records", () => {
+    expect(
+        normalizeContractsInScope(
+            {
+                headers: ["Status", "Chain", "Address", "isFactory"],
+                records: [
+                    {
+                        Status: "ACTIVE",
+                        Chain: "ETHEREUM",
+                        Address: "0x2000000000000000000000000000000000000001",
+                        isFactory: "FALSE",
+                    },
+                    {
+                        Status: "ACTIVE",
+                        Chain: "ETHEREUM",
+                        Address: "0x2000000000000000000000000000000000000002",
+                        isFactory: "FALSE",
+                    },
+                    {
+                        Status: "ACTIVE",
+                        Chain: "ETHEREUM",
+                        Address: "0x2000000000000000000000000000000000000002",
+                        isFactory: "FALSE",
+                    },
+                    {
+                        Status: "ACTIVE",
+                        Chain: "ETHEREUM",
+                        Address: "0x2000000000000000000000000000000000000001",
+                        isFactory: "TRUE",
+                    },
+                    {
+                        Status: "ACTIVE",
+                        Chain: "ETHEREUM",
+                        Address: "0x2000000000000000000000000000000000000002",
+                        isFactory: "TRUE",
+                    },
+                    {
+                        Status: "ACTIVE",
+                        Chain: "BASE",
+                        Address: "0x2000000000000000000000000000000000000001",
+                        isFactory: "TRUE",
+                    },
+                    {
+                        Status: "INACTIVE",
+                        Chain: "IGNORED",
+                        Address: "0x2000000000000000000000000000000000000001",
+                        isFactory: "FALSE",
+                    },
+                ],
+            },
+            { caip2ChainId: {}, assetRecoveryAddress: {}, name: {} },
+        ),
+    ).toEqual({
+        state: {
+            ETHEREUM: [
+                {
+                    accountAddress:
+                        "0x2000000000000000000000000000000000000001",
+                    childContractScope: 0,
+                },
+                {
+                    accountAddress:
+                        "0x2000000000000000000000000000000000000002",
+                    childContractScope: 0,
+                },
+                {
+                    accountAddress:
+                        "0x2000000000000000000000000000000000000002",
+                    childContractScope: 0,
+                },
+                {
+                    accountAddress:
+                        "0x2000000000000000000000000000000000000001",
+                    childContractScope: 2,
+                },
+                {
+                    accountAddress:
+                        "0x2000000000000000000000000000000000000002",
+                    childContractScope: 2,
+                },
+            ],
+            BASE: [
+                {
+                    accountAddress:
+                        "0x2000000000000000000000000000000000000001",
+                    childContractScope: 2,
+                },
+            ],
+        },
+        warnings: [
+            { code: "UNKNOWN_SHEET_CHAIN", context: { chainName: "ETHEREUM" } },
+            { code: "UNKNOWN_SHEET_CHAIN", context: { chainName: "BASE" } },
+            {
+                code: "DUPLICATE_SHEET_ACCOUNT",
+                context: {
+                    chainName: "ETHEREUM",
+                    address: "0x2000000000000000000000000000000000000002",
+                },
+            },
+            {
+                code: "DUPLICATE_SHEET_ACCOUNT",
+                context: {
+                    chainName: "ETHEREUM",
+                    address: "0x2000000000000000000000000000000000000001",
+                },
             },
         ],
     });

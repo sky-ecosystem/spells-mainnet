@@ -1,6 +1,6 @@
 import { Contract, Interface, JsonRpcProvider } from "ethers";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { AGREEMENT_V3_ABI } from "../src/agreement/abis.js";
+import { setImmediate } from "node:timers/promises";
 import { main } from "../src/cli/index.js";
 
 vi.mock("ethers", async (importOriginal) => ({
@@ -96,11 +96,6 @@ test("wires the provider through the real pipeline and destroys it after success
     expect(JsonRpcProvider).toHaveBeenCalledExactlyOnceWith(
         "https://rpc.example",
     );
-    expect(Contract).toHaveBeenLastCalledWith(
-        "0x7000000000000000000000000000000000000001",
-        AGREEMENT_V3_ABI,
-        provider,
-    );
     expect(getDetails).toHaveBeenCalledExactlyOnceWith();
     expect(console.log).toHaveBeenCalledExactlyOnceWith(
         "SafeHarbor verification passed: no updates or validation warnings.",
@@ -119,6 +114,50 @@ test("destroys the provider after a pipeline failure", async () => {
         "CSV unavailable",
     );
     expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
+});
+
+test("reports a Sheet failure and destroys the provider without waiting for an in-flight Agreement read", async () => {
+    let rejectSheet;
+    const sheet = new Promise((_resolve, reject) => {
+        rejectSheet = reject;
+    });
+    let rejectAgreement;
+    const agreement = new Promise((_resolve, reject) => {
+        rejectAgreement = reject;
+    });
+    fetch
+        .mockResolvedValueOnce(
+            new Response("Name,Chain Id,Asset Recovery Address\n", {
+                headers: { "content-type": "text/csv" },
+            }),
+        )
+        .mockReturnValueOnce(sheet);
+    const getDetails = vi.fn(() => agreement);
+    Contract.mockReturnValueOnce({
+        "getAddress(bytes32)": vi
+            .fn()
+            .mockResolvedValue("0x7000000000000000000000000000000000000001"),
+    }).mockReturnValueOnce({ getDetails });
+
+    const result = main();
+    await setImmediate();
+
+    expect(getDetails).toHaveBeenCalledExactlyOnceWith();
+    rejectSheet(new Error("Contracts unavailable"));
+    await setImmediate();
+
+    expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
+    expect(await result).toBe(1);
+
+    rejectAgreement(new Error("Agreement unavailable"));
+    await setImmediate();
+
+    expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
+    expect(console.error).toHaveBeenCalledExactlyOnceWith(
+        "Failed to execute command:",
+        "Contracts unavailable",
+    );
+    expect(console.log).not.toHaveBeenCalled();
 });
 
 test("reports provider construction failures as command errors", async () => {

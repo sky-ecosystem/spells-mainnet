@@ -4,8 +4,8 @@ import { normalizeOnChainState } from "./normalize.js";
 describe("normalizeOnChainState", () => {
     test("returns an empty state without warnings", () => {
         expect(normalizeOnChainState({ chains: [] }, { name: {} })).toEqual({
-            onChainState: {},
-            validationWarnings: [],
+            state: {},
+            warnings: [],
         });
     });
 
@@ -36,7 +36,7 @@ describe("normalizeOnChainState", () => {
                 name: { "eip155:1": "ETHEREUM" },
             }),
         ).toEqual({
-            onChainState: {
+            state: {
                 ETHEREUM: {
                     accounts: [
                         {
@@ -49,7 +49,7 @@ describe("normalizeOnChainState", () => {
                         "0x1000000000000000000000000000000000000001",
                 },
             },
-            validationWarnings: [
+            warnings: [
                 {
                     code: "UNKNOWN_ONCHAIN_CHAIN",
                     context: { chainId: "eip155:999999" },
@@ -96,13 +96,13 @@ describe("normalizeOnChainState", () => {
             },
         };
 
-        const { onChainState, validationWarnings } = normalizeOnChainState(
+        const { state, warnings } = normalizeOnChainState(
             details,
             chainDetails,
         );
 
-        expect(Object.keys(onChainState)).toEqual(["SOLANA", "ETHEREUM"]);
-        expect(onChainState).toEqual({
+        expect(Object.keys(state)).toEqual(["SOLANA", "ETHEREUM"]);
+        expect(state).toEqual({
             SOLANA: {
                 accounts: [
                     {
@@ -128,7 +128,7 @@ describe("normalizeOnChainState", () => {
                     "0x1000000000000000000000000000000000000001",
             },
         });
-        expect(validationWarnings).toEqual([
+        expect(warnings).toEqual([
             {
                 code: "UNKNOWN_ONCHAIN_CHAIN",
                 context: { chainId: "unknown:first" },

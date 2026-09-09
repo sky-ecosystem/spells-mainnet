@@ -316,6 +316,13 @@ describe.each([
             changes: [],
             validationWarnings: [
                 {
+                    code: "DUPLICATE_SHEET_ACCOUNT",
+                    context: {
+                        chainName: "ETHEREUM",
+                        address: "0x2000000000000000000000000000000000000002",
+                    },
+                },
+                {
                     code: "RECOVERY_ADDRESS_MISMATCH",
                     context: {
                         chainName: "ETHEREUM",
@@ -325,18 +332,11 @@ describe.each([
                             "0x1000000000000000000000000000000000000001",
                     },
                 },
-                {
-                    code: "DUPLICATE_SHEET_ACCOUNT",
-                    context: {
-                        chainName: "ETHEREUM",
-                        address: "0x2000000000000000000000000000000000000002",
-                    },
-                },
             ],
         },
         warningMessages: [
-            "Asset Recovery Address mismatch for chain 'ETHEREUM'.\nOn-chain: 0x1000000000000000000000000000000000000002\nSafeharbor Sheet: 0x1000000000000000000000000000000000000001",
             "Duplicate account address in Safeharbor Sheet for chain 'ETHEREUM': 0x2000000000000000000000000000000000000002",
+            "Asset Recovery Address mismatch for chain 'ETHEREUM'.\nOn-chain: 0x1000000000000000000000000000000000000002\nSafeharbor Sheet: 0x1000000000000000000000000000000000000001",
         ],
         exitCodes: { generate: 2, inspect: 0, verify: 2 },
         generateMessage: "Payload generation blocked: 2 validation warning(s).",
@@ -443,7 +443,6 @@ describe.each([
                 "Failed to execute command:",
                 fixture.errorMessage,
             );
-            expect(getDetails).not.toHaveBeenCalled();
             expect(warnings).not.toHaveBeenCalledWith("Generating updates...");
             expect(warnings).not.toHaveBeenCalledWith(
                 "Payload generation completed successfully.",

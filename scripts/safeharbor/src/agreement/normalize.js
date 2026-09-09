@@ -1,12 +1,12 @@
 import { DIAGNOSTIC_CODES as $ } from "../diagnosticCodes.js";
 
 export function normalizeOnChainState(details, chainDetails) {
-    const validationWarnings = [];
-    const onChainState = details.chains.reduce((chains, chain) => {
+    const warnings = [];
+    const state = details.chains.reduce((chains, chain) => {
         const chainName = chainDetails.name[chain.caip2ChainId];
 
         if (!chainName) {
-            validationWarnings.push({
+            warnings.push({
                 code: $.UNKNOWN_ONCHAIN_CHAIN,
                 context: { chainId: chain.caip2ChainId },
             });
@@ -23,5 +23,5 @@ export function normalizeOnChainState(details, chainDetails) {
         return chains;
     }, {});
 
-    return { onChainState, validationWarnings };
+    return { state, warnings };
 }

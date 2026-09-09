@@ -43,13 +43,13 @@ If all of these steps are done, the agreement can be adopted by Sky protocol.
 
 The script follows these steps:
 
-1. Downloads the Safeharbor Sheet as CSV and parses it locally
+1. Downloads the chain metadata tab of the Safeharbor Sheet as CSV and parses it locally
 
-2. Validates CSV headers before building the internal representation organized by chains/networks
+2. Validates its CSV headers before building the chain metadata
 
-3. Downloads current on-chain state from the SafeHarbor Agreement
+3. Reads the contracts tab and current on-chain state from the SafeHarbor Agreement concurrently
 
-4. Builds comparable internal representation of on-chain state
+4. Validates contracts CSV headers and builds comparable internal representations of both states
 
 5. Collects warnings from Safeharbor Sheet and on-chain normalization, then checks the comparable states for consistency. Any warning stops planning before diffing or encoding, returning `changes: []` and the collected `validationWarnings` alongside both normalized states and chain metadata.
 

@@ -1,4 +1,1 @@
-export {
-    getChainDetailsFromSheet,
-    getNormalizedContractsInScopeFromSheet,
-} from "./sheet.js";
+export { getSheetChainDetails, getSheetState } from "./sheet.js";

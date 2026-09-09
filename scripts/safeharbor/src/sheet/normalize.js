@@ -1,7 +1,7 @@
 import { DIAGNOSTIC_CODES as $ } from "../diagnosticCodes.js";
 import { findDuplicateIndexes } from "../findDuplicateIndexes.js";
 
-export function normalizeContractsInScope({ headers, records }) {
+export function normalizeContractsInScope({ headers, records }, chainDetails) {
     const [diagnostic] = validateHeaders(headers, [
         "Status",
         "Chain",
@@ -11,7 +11,7 @@ export function normalizeContractsInScope({ headers, records }) {
     if (diagnostic) {
         throw Object.assign(new Error(diagnostic.code), { diagnostic });
     }
-    return records
+    const state = records
         .filter((record) => record.Status === "ACTIVE")
         .reduce((chains, record) => {
             const chain = record.Chain;
@@ -29,6 +29,14 @@ export function normalizeContractsInScope({ headers, records }) {
             });
             return chains;
         }, {});
+
+    return {
+        state,
+        warnings: [
+            ...validateKnownChains(state, chainDetails),
+            ...validateUniqueAccounts(state),
+        ],
+    };
 }
 
 export function normalizeChainDetails({ headers, records }) {
@@ -98,7 +106,34 @@ export function normalizeChainDetails({ headers, records }) {
     };
 }
 
-export function validateHeaders(headers, requiredHeaders) {
+function validateKnownChains(sheetState, chainDetails) {
+    return Object.keys(sheetState)
+        .filter(
+            (chainName) => !Object.hasOwn(chainDetails.caip2ChainId, chainName),
+        )
+        .map((chainName) => ({
+            code: $.UNKNOWN_SHEET_CHAIN,
+            context: { chainName },
+        }));
+}
+
+function validateUniqueAccounts(sheetState) {
+    return Object.entries(sheetState).flatMap(([chainName, accounts]) => {
+        const addresses = accounts.map(({ accountAddress }) => accountAddress);
+        return [
+            ...new Set(
+                [...findDuplicateIndexes(addresses)].map(
+                    (index) => addresses[index],
+                ),
+            ),
+        ].map((address) => ({
+            code: $.DUPLICATE_SHEET_ACCOUNT,
+            context: { chainName, address },
+        }));
+    });
+}
+
+function validateHeaders(headers, requiredHeaders) {
     const missingHeaders = requiredHeaders.filter(
         (header) => !headers.includes(header),
     );

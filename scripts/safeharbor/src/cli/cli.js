@@ -1,8 +1,9 @@
 import { DIAGNOSTIC_CODES as $ } from "../diagnosticCodes.js";
 import { JsonRpcProvider } from "ethers";
 import { createAgreementReader } from "../agreement/index.js";
+import { getSheetChainDetails, getSheetState } from "../sheet/index.js";
 import { formatDiagnostic } from "./formatDiagnostic.js";
-import { createReconciler } from "../reconciliation/index.js";
+import { reconcile } from "../reconciliation/index.js";
 import { generate } from "./commands/generate.js";
 import { inspect } from "./commands/inspect.js";
 import { verify } from "./commands/verify.js";
@@ -21,11 +22,11 @@ export async function main() {
     try {
         const provider = new JsonRpcProvider(rpcUrl);
         try {
-            const getAgreementState = createAgreementReader({ provider });
-            const reconcile = createReconciler({
-                getAgreementState,
+            const result = await reconcile({
+                getAgreementState: createAgreementReader({ provider }),
+                getSheetState,
+                getSheetChainDetails,
             });
-            const result = await reconcile();
             result.validationWarnings.forEach((diagnostic) =>
                 console.warn(formatDiagnostic(diagnostic)),
             );
@@ -39,7 +40,7 @@ export async function main() {
     }
 }
 
-export function reportError(error) {
+function reportError(error) {
     console.error(
         "Failed to execute command:",
         error?.diagnostic
@@ -48,7 +49,7 @@ export function reportError(error) {
     );
 }
 
-export function validateOptions({ command, rpcUrl }) {
+function validateOptions({ command, rpcUrl }) {
     if (!command) {
         return [{ code: $.COMMAND_REQUIRED }];
     }

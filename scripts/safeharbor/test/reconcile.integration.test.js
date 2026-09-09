@@ -1,7 +1,8 @@
 import { Contract, Interface, JsonRpcProvider } from "ethers";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { createReconciler } from "../src/reconciliation/index.js";
+import { reconcile } from "../src/reconciliation/index.js";
 import { createAgreementReader } from "../src/agreement/index.js";
+import { getSheetChainDetails, getSheetState } from "../src/sheet/index.js";
 
 vi.mock("ethers", async (importOriginal) => ({
     ...(await importOriginal()),
@@ -133,9 +134,14 @@ test.each([
                 ),
         }).mockReturnValueOnce({ getDetails });
         const getAgreementState = vi.fn(createAgreementReader({ provider }));
-        const reconcile = createReconciler({ getAgreementState });
 
-        expect(await reconcile()).toEqual(expected);
+        expect(
+            await reconcile({
+                getAgreementState,
+                getSheetState,
+                getSheetChainDetails,
+            }),
+        ).toEqual(expected);
         expect(getAgreementState).toHaveBeenCalledExactlyOnceWith(
             expected.chainDetails,
         );

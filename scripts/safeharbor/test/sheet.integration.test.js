@@ -1,10 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { Contract, Interface, JsonRpcProvider } from "ethers";
-import {
-    getChainDetailsFromSheet,
-    getNormalizedContractsInScopeFromSheet,
-} from "../src/sheet/index.js";
-import { createReconciler } from "../src/reconciliation/index.js";
+import { getSheetChainDetails, getSheetState } from "../src/sheet/index.js";
+import { reconcile } from "../src/reconciliation/index.js";
 import { createAgreementReader } from "../src/agreement/index.js";
 
 vi.mock("ethers", async (importOriginal) => ({
@@ -14,12 +11,9 @@ vi.mock("ethers", async (importOriginal) => ({
 
 const getDetails = vi.fn();
 let provider;
-let reconcile;
 
 beforeEach(() => {
     provider = new JsonRpcProvider("https://rpc.example");
-    const getAgreementState = createAgreementReader({ provider });
-    reconcile = createReconciler({ getAgreementState });
     Contract.mockReturnValueOnce({
         "getAddress(bytes32)": vi
             .fn()
@@ -69,7 +63,7 @@ test.each([
     async ({ status, headers, diagnostic }) => {
         fetch.mockResolvedValue(new Response(null, { status, headers }));
 
-        await expect(getChainDetailsFromSheet()).rejects.toMatchObject({
+        await expect(getSheetChainDetails()).rejects.toMatchObject({
             diagnostic,
         });
     },
@@ -79,7 +73,7 @@ test("propagates fetch failures unchanged without reporting", async () => {
     const failure = new Error("Network unavailable");
     fetch.mockRejectedValue(failure);
 
-    await expect(getChainDetailsFromSheet()).rejects.toBe(failure);
+    await expect(getSheetChainDetails()).rejects.toBe(failure);
 });
 
 describe("contracts CSV headers", () => {
@@ -121,9 +115,7 @@ describe("contracts CSV headers", () => {
     ])("rejects missing %s", async (_scenario, csv, missingHeader) => {
         fetch.mockResolvedValue(csvResponse(csv));
 
-        await expect(
-            getNormalizedContractsInScopeFromSheet(),
-        ).rejects.toMatchObject({
+        await expect(getSheetState()).rejects.toMatchObject({
             diagnostic: {
                 code: "MISSING_SHEET_HEADERS",
                 context: {
@@ -153,8 +145,16 @@ describe("contracts CSV headers", () => {
     ])("accepts %s", async (_scenario, csv) => {
         fetch.mockResolvedValue(csvResponse(csv));
 
-        await expect(getNormalizedContractsInScopeFromSheet()).resolves.toEqual(
-            {
+        await expect(
+            getSheetState({
+                caip2ChainId: { ETHEREUM: "eip155:1" },
+                assetRecoveryAddress: {
+                    ETHEREUM: "0x1000000000000000000000000000000000000001",
+                },
+                name: { "eip155:1": "ETHEREUM" },
+            }),
+        ).resolves.toEqual({
+            state: {
                 ETHEREUM: [
                     {
                         accountAddress:
@@ -168,7 +168,8 @@ describe("contracts CSV headers", () => {
                     },
                 ],
             },
-        );
+            warnings: [],
+        });
         expect(fetch).toHaveBeenCalledExactlyOnceWith(
             "https://docs.google.com/spreadsheets/d/1e_KOYOeBGaA5EG3Xqco6lOP_a0zV4Vrm3w5-dqFk00U/export?format=csv&gid=1121763694",
         );
@@ -212,7 +213,7 @@ describe("chain metadata CSV headers", () => {
     ])("rejects missing %s", async (_scenario, csv, missingHeader) => {
         fetch.mockResolvedValue(csvResponse(csv));
 
-        await expect(getChainDetailsFromSheet()).rejects.toMatchObject({
+        await expect(getSheetChainDetails()).rejects.toMatchObject({
             diagnostic: {
                 code: "MISSING_SHEET_HEADERS",
                 context: {
@@ -227,7 +228,7 @@ describe("chain metadata CSV headers", () => {
             csvResponse("Name,Chain Id,Asset Recovery Address\n"),
         );
 
-        await expect(getChainDetailsFromSheet()).resolves.toEqual({
+        await expect(getSheetChainDetails()).resolves.toEqual({
             chainDetails: {
                 caip2ChainId: {},
                 assetRecoveryAddress: {},
@@ -244,7 +245,7 @@ describe("chain metadata CSV headers", () => {
             ),
         );
 
-        await expect(getChainDetailsFromSheet()).resolves.toEqual({
+        await expect(getSheetChainDetails()).resolves.toEqual({
             chainDetails: {
                 caip2ChainId: { ETHEREUM: "eip155:1" },
                 assetRecoveryAddress: {
@@ -263,7 +264,7 @@ describe("chain metadata CSV headers", () => {
             ),
         );
 
-        await expect(getChainDetailsFromSheet()).resolves.toEqual({
+        await expect(getSheetChainDetails()).resolves.toEqual({
             chainDetails: {
                 caip2ChainId: { ETHEREUM: "eip155:1" },
                 assetRecoveryAddress: {
@@ -283,49 +284,49 @@ describe("malformed CSV", () => {
     test.each([
         [
             "contracts with a malformed header",
-            getNormalizedContractsInScopeFromSheet,
+            getSheetState,
             'Status,Chain,Address,"isFactory\n',
             "CSV_QUOTE_NOT_CLOSED",
         ],
         [
             "contracts with an unterminated quote",
-            getNormalizedContractsInScopeFromSheet,
+            getSheetState,
             'Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,"0x2000000000000000000000000000000000000001,FALSE\n',
             "CSV_QUOTE_NOT_CLOSED",
         ],
         [
             "contracts with too few fields",
-            getNormalizedContractsInScopeFromSheet,
+            getSheetState,
             "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001\n",
             "CSV_RECORD_INCONSISTENT_COLUMNS",
         ],
         [
             "contracts with too many fields",
-            getNormalizedContractsInScopeFromSheet,
+            getSheetState,
             "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE,EXTRA\n",
             "CSV_RECORD_INCONSISTENT_COLUMNS",
         ],
         [
             "chain metadata with a malformed header",
-            getChainDetailsFromSheet,
+            getSheetChainDetails,
             'Name,Chain Id,"Asset Recovery Address\n',
             "CSV_QUOTE_NOT_CLOSED",
         ],
         [
             "chain metadata with an unterminated quote",
-            getChainDetailsFromSheet,
+            getSheetChainDetails,
             'Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,"0x1000000000000000000000000000000000000001\n',
             "CSV_QUOTE_NOT_CLOSED",
         ],
         [
             "chain metadata with too few fields",
-            getChainDetailsFromSheet,
+            getSheetChainDetails,
             "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1\n",
             "CSV_RECORD_INCONSISTENT_COLUMNS",
         ],
         [
             "chain metadata with too many fields",
-            getChainDetailsFromSheet,
+            getSheetChainDetails,
             "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001,EXTRA\n",
             "CSV_RECORD_INCONSISTENT_COLUMNS",
         ],
@@ -377,15 +378,21 @@ describe("CSV validation before reconciliation", () => {
             error: { code: "CSV_QUOTE_NOT_CLOSED" },
         },
     ])(
-        "rejects $scenario before reading state or encoding removals",
+        "rejects $scenario without encoding removals",
         async ({ chainCSV, contractCSV, error }) => {
             fetch
                 .mockResolvedValueOnce(csvResponse(chainCSV))
                 .mockResolvedValueOnce(csvResponse(contractCSV));
+            getDetails.mockResolvedValue({ chains: [] });
             const encode = vi.spyOn(Interface.prototype, "encodeFunctionData");
 
-            await expect(reconcile()).rejects.toMatchObject(error);
-            expect(getDetails).not.toHaveBeenCalled();
+            await expect(
+                reconcile({
+                    getAgreementState: createAgreementReader({ provider }),
+                    getSheetState,
+                    getSheetChainDetails,
+                }),
+            ).rejects.toMatchObject(error);
             expect(encode).not.toHaveBeenCalled();
         },
     );
@@ -420,7 +427,11 @@ describe("CSV validation before reconciliation", () => {
                 ],
             });
 
-            const result = await reconcile();
+            const result = await reconcile({
+                getAgreementState: createAgreementReader({ provider }),
+                getSheetState,
+                getSheetChainDetails,
+            });
 
             expect(result.validationWarnings).toEqual([]);
             expect(result.changes).toEqual([

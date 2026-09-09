@@ -5,18 +5,11 @@ import { findDuplicateIndexes } from "../findDuplicateIndexes.js";
 export function checkStateConsistency(onChainState, sheetState, chainDetails) {
     return [
         ...validateRecoveryAddresses(onChainState, sheetState, chainDetails),
-        ...validateKnownChains(sheetState, chainDetails),
-        ...validateUniqueAccounts(onChainState, sheetState),
+        ...validateUniqueAccounts(onChainState),
     ];
 }
 
-function validateUniqueAccounts(onChainState, sheetState) {
-    const validateSheetAccounts = (chainName) =>
-        findDuplicateAccountAddresses(sheetState[chainName]).map((address) => ({
-            code: $.DUPLICATE_SHEET_ACCOUNT,
-            context: { chainName, address },
-        }));
-
+function validateUniqueAccounts(onChainState) {
     const validateOnChainAccounts = (chainName) =>
         findDuplicateAccountAddresses(onChainState[chainName].accounts).map(
             (address) => ({
@@ -25,21 +18,7 @@ function validateUniqueAccounts(onChainState, sheetState) {
             }),
         );
 
-    return [
-        ...Object.keys(sheetState).flatMap(validateSheetAccounts),
-        ...Object.keys(onChainState).flatMap(validateOnChainAccounts),
-    ];
-}
-
-function validateKnownChains(sheetState, chainDetails) {
-    return Object.keys(sheetState)
-        .filter(
-            (chainName) => !Object.hasOwn(chainDetails.caip2ChainId, chainName),
-        )
-        .map((chainName) => ({
-            code: $.UNKNOWN_SHEET_CHAIN,
-            context: { chainName },
-        }));
+    return Object.keys(onChainState).flatMap(validateOnChainAccounts);
 }
 
 function validateRecoveryAddresses(onChainState, sheetState, chainDetails) {
