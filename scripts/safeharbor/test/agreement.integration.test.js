@@ -2,7 +2,7 @@ import { Contract } from "ethers";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import AGREEMENT_V3_ABI from "../src/agreement/abis/agreement.json" with { type: "json" };
 import { createAgreementReader } from "../src/agreement/index.js";
-import { getChainlogAddress } from "../src/agreement/chainlog.js";
+import { createChainlogReader } from "../src/agreement/chainlog.js";
 
 vi.mock("ethers", async (importOriginal) => ({
     ...(await importOriginal()),
@@ -10,13 +10,15 @@ vi.mock("ethers", async (importOriginal) => ({
 }));
 
 vi.mock("../src/agreement/chainlog.js", () => ({
-    getChainlogAddress: vi.fn(),
+    createChainlogReader: vi.fn(),
 }));
 
 const provider = {};
+const getChainlogAddress = vi.fn();
 let getAgreementState;
 
 beforeEach(() => {
+    createChainlogReader.mockReturnValue(getChainlogAddress);
     getAgreementState = createAgreementReader(provider);
 });
 
@@ -25,6 +27,7 @@ afterEach(() => {
 });
 
 test("resolves the Agreement and returns normalized state with diagnostics", async () => {
+    expect(createChainlogReader).toHaveBeenCalledExactlyOnceWith(provider);
     expect(getChainlogAddress).not.toHaveBeenCalled();
     expect(Contract).not.toHaveBeenCalled();
     const details = {
@@ -74,7 +77,6 @@ test("resolves the Agreement and returns normalized state with diagnostics", asy
     });
 
     expect(getChainlogAddress).toHaveBeenCalledExactlyOnceWith(
-        provider,
         "SAFE_HARBOR_AGREEMENT",
     );
     expect(Contract).toHaveBeenCalledExactlyOnceWith(
@@ -83,6 +85,42 @@ test("resolves the Agreement and returns normalized state with diagnostics", asy
         provider,
     );
     expect(getDetails).toHaveBeenCalledExactlyOnceWith();
+});
+
+test("reuses the Chainlog reader without caching the resolved Agreement address", async () => {
+    getChainlogAddress
+        .mockResolvedValueOnce("0x7000000000000000000000000000000000000001")
+        .mockResolvedValueOnce("0x7000000000000000000000000000000000000002");
+    Contract.mockReturnValue({
+        getDetails: vi.fn().mockResolvedValue({ chains: [] }),
+    });
+
+    await expect(getAgreementState({ name: {} })).resolves.toEqual({
+        value: {},
+        warnings: [],
+    });
+    await expect(getAgreementState({ name: {} })).resolves.toEqual({
+        value: {},
+        warnings: [],
+    });
+
+    expect(createChainlogReader).toHaveBeenCalledExactlyOnceWith(provider);
+    expect(getChainlogAddress.mock.calls).toEqual([
+        ["SAFE_HARBOR_AGREEMENT"],
+        ["SAFE_HARBOR_AGREEMENT"],
+    ]);
+    expect(Contract.mock.calls).toEqual([
+        [
+            "0x7000000000000000000000000000000000000001",
+            AGREEMENT_V3_ABI,
+            provider,
+        ],
+        [
+            "0x7000000000000000000000000000000000000002",
+            AGREEMENT_V3_ABI,
+            provider,
+        ],
+    ]);
 });
 
 test("propagates Chainlog lookup failures", async () => {

@@ -174,6 +174,20 @@ test("reports provider construction failures as command errors", async () => {
     expect(fetch).not.toHaveBeenCalled();
 });
 
+test("reports Chainlog construction failures and destroys the provider", async () => {
+    Contract.mockImplementation(() => {
+        throw new Error("Chainlog construction failed");
+    });
+
+    expect(await main()).toBe(1);
+    expect(console.error).toHaveBeenCalledExactlyOnceWith(
+        "Failed to execute command:",
+        "Chainlog construction failed",
+    );
+    expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
+    expect(fetch).not.toHaveBeenCalled();
+});
+
 test.each(["encoding", "reporting"])(
     "reports a %s failure once and destroys the provider",
     async (stage) => {

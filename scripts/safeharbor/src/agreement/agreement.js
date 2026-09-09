@@ -1,15 +1,14 @@
 import { Contract, Interface } from "ethers";
 // Verified ABI: https://etherscan.io/address/0xf17bB418B4EC251f300Aa3517Cb37349f17697A1#code
 import AGREEMENT_V3_ABI from "./abis/agreement.json" with { type: "json" };
-import { getChainlogAddress } from "./chainlog.js";
+import { createChainlogReader } from "./chainlog.js";
 import { normalizeOnChainState } from "./normalize.js";
 
 export function createAgreementReader(provider) {
+    const getChainlogAddress = createChainlogReader(provider);
+
     return async function getAgreementState(chainDetails) {
-        const address = await getChainlogAddress(
-            provider,
-            AGREEMENT_CHAINLOG_KEY,
-        );
+        const address = await getChainlogAddress(AGREEMENT_CHAINLOG_KEY);
         const agreementInstance = new Contract(
             address,
             AGREEMENT_V3_ABI,
