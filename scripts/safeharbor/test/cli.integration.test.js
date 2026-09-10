@@ -608,8 +608,11 @@ describe.each([
                 },
             ],
         },
-        errorMessage:
-            "Missing required CSV headers: Status, Chain, Address, isFactory",
+        errorMessage: dedent`
+            ❌ Failed to execute command:
+                   Source: Safeharbor Sheet contracts
+                   Missing required CSV headers: Status, Chain, Address, isFactory
+        `,
     },
     {
         scenario: "malformed contracts CSV",
@@ -633,8 +636,12 @@ describe.each([
                 },
             ],
         },
-        errorMessage:
-            "Quote Not Closed: the parsing is finished with an opening quote at line 2",
+        errorMessage: dedent`
+            ❌ Failed to execute command:
+                   Source: Safeharbor Sheet contracts
+                   Quote Not Closed: the parsing is finished with an opening quote at line 2
+                   Code: CSV_QUOTE_NOT_CLOSED
+        `,
     },
 ])("$scenario", (fixture) => {
     test.each(["generate", "inspect", "verify"])(
@@ -645,10 +652,7 @@ describe.each([
             expect(await runCli(command)).toBe(1);
             expect(stdout).not.toHaveBeenCalled();
             expect(stderr).toHaveBeenCalledExactlyOnceWith(
-                dedent`
-                    ❌ Failed to execute command:
-                           ${fixture.errorMessage}
-                `,
+                fixture.errorMessage,
             );
             expect(warnings).not.toHaveBeenCalledWith("Generating updates...");
             expect(warnings).not.toHaveBeenCalledWith(
@@ -672,6 +676,7 @@ describe.each(["generate", "inspect", "verify"])(
             expect(stderr).toHaveBeenCalledExactlyOnceWith(
                 dedent`
                     ❌ Failed to execute command:
+                           Source: Safeharbor Sheet chain metadata
                            CSV unavailable
                 `,
             );
@@ -698,6 +703,7 @@ describe.each(["generate", "inspect", "verify"])(
             expect(stderr).toHaveBeenCalledExactlyOnceWith(
                 dedent`
                     ❌ Failed to execute command:
+                           Source: Agreement state
                            Agreement state unavailable
                 `,
             );

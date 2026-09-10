@@ -117,21 +117,127 @@ test("wires the provider through the real pipeline and destroys it after success
     expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
 });
 
-test("indents multiline pipeline errors and destroys the provider", async () => {
-    const failure = new Error(dedent`
-        CSV unavailable
-        Connection closed
-    `);
+test("indents multiline pipeline errors and nested codes without displaying the source wrapper as a cause", async () => {
+    const failure = Object.assign(
+        new Error(
+            dedent`
+                CSV unavailable
+                Connection closed
+            `,
+            {
+                cause: Object.assign(
+                    new AggregateError(
+                        [new Error("private AggregateError member")],
+                        "Request to https://rpc.example/private-key failed",
+                        {
+                            cause: Object.assign(
+                                new Error("private connection details"),
+                                { code: "ECONNREFUSED" },
+                            ),
+                        },
+                    ),
+                    { code: "NETWORK_ERROR" },
+                ),
+            },
+        ),
+        { code: "FETCH_FAILED" },
+    );
     fetch.mockRejectedValue(failure);
 
     expect(await main()).toBe(1);
     expect(console.error).toHaveBeenCalledExactlyOnceWith(
         dedent`
             ❌ Failed to execute command:
+                   Source: Safeharbor Sheet chain metadata
                    CSV unavailable
                    Connection closed
+                   Code: FETCH_FAILED
+                       Cause: NETWORK_ERROR
+                           Cause: ECONNREFUSED
         `,
     );
+    expect(console.log).not.toHaveBeenCalled();
+    expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
+});
+
+test.each([
+    { scenario: "missing", code: undefined },
+    { scenario: "null", code: null },
+    { scenario: "numeric", code: 503 },
+    { scenario: "object", code: { secret: "private code metadata" } },
+    { scenario: "array", code: ["NETWORK_ERROR"] },
+    { scenario: "empty", code: "" },
+    { scenario: "lowercase", code: "econnreset" },
+    { scenario: "numeric prefix", code: "1ERROR" },
+    { scenario: "underscore prefix", code: "_ERROR" },
+    { scenario: "hyphenated", code: "NETWORK-ERROR" },
+    { scenario: "multiline", code: "NETWORK_ERROR\nprivate token" },
+    { scenario: "URL", code: "https://rpc.example/private-key" },
+])(
+    "omits $scenario codes without increasing cause indentation",
+    async ({ code }) => {
+        const failure = Object.assign(
+            new Error("CSV unavailable", {
+                cause: Object.assign(
+                    new Error("private network details", {
+                        cause: new Error("codeless private details", {
+                            cause: Object.assign(
+                                new Error("private invalid-code details", {
+                                    cause: Object.assign(
+                                        new Error("private socket details"),
+                                        { code: "ECONNRESET" },
+                                    ),
+                                }),
+                                { code },
+                            ),
+                        }),
+                    }),
+                    { code: "NETWORK_ERROR" },
+                ),
+            }),
+            { code },
+        );
+        fetch.mockRejectedValue(failure);
+
+        expect(await main()).toBe(1);
+        expect(console.error).toHaveBeenCalledExactlyOnceWith(
+            dedent`
+                ❌ Failed to execute command:
+                       Source: Safeharbor Sheet chain metadata
+                       CSV unavailable
+                           Cause: NETWORK_ERROR
+                               Cause: ECONNRESET
+            `,
+        );
+        expect(console.log).not.toHaveBeenCalled();
+        expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
+    },
+);
+
+test("retains repeated codes on distinct causes and stops at a repeated object", async () => {
+    const firstCause = Object.assign(new Error("first private failure"), {
+        code: "NETWORK_ERROR",
+    });
+    const secondCause = Object.assign(
+        new Error("second private failure", { cause: firstCause }),
+        { code: "NETWORK_ERROR" },
+    );
+    firstCause.cause = secondCause;
+    fetch.mockRejectedValue(
+        new Error("CSV unavailable", { cause: firstCause }),
+    );
+
+    expect(await main()).toBe(1);
+    expect(console.error).toHaveBeenCalledExactlyOnceWith(
+        dedent`
+            ❌ Failed to execute command:
+                   Source: Safeharbor Sheet chain metadata
+                   CSV unavailable
+                       Cause: NETWORK_ERROR
+                           Cause: NETWORK_ERROR
+        `,
+    );
+    expect(console.log).not.toHaveBeenCalled();
     expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
 });
 
@@ -175,6 +281,7 @@ test("reports a Sheet failure and destroys the provider without waiting for an i
     expect(console.error).toHaveBeenCalledExactlyOnceWith(
         dedent`
             ❌ Failed to execute command:
+                   Source: Safeharbor Sheet contracts
                    Contracts unavailable
         `,
     );
@@ -182,7 +289,9 @@ test("reports a Sheet failure and destroys the provider without waiting for an i
 });
 
 test("reports provider construction failures as command errors", async () => {
-    const failure = new Error("Invalid RPC configuration");
+    const failure = Object.assign(new Error("Invalid RPC configuration"), {
+        code: "INVALID_ARGUMENT",
+    });
     JsonRpcProvider.mockImplementation(() => {
         throw failure;
     });
@@ -192,6 +301,7 @@ test("reports provider construction failures as command errors", async () => {
         dedent`
             ❌ Failed to execute command:
                    Invalid RPC configuration
+                   Code: INVALID_ARGUMENT
         `,
     );
     expect(fetch).not.toHaveBeenCalled();

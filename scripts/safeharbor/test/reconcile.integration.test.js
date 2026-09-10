@@ -1540,7 +1540,7 @@ describe("CSV validation before reconciliation", () => {
                 getSheetState,
                 getSheetChainDetails,
             }),
-        ).rejects.toMatchObject(error);
+        ).rejects.toMatchObject({ cause: error });
     });
 
     test.each([

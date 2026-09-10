@@ -47,12 +47,46 @@ export async function main() {
 }
 
 function reportError(error) {
-    console.error(
-        `❌ Failed to execute command:\n       ${(error?.diagnostic
+    const source = Object.hasOwn(ERROR_SOURCES, error?.source)
+        ? ERROR_SOURCES[error.source]
+        : undefined;
+    const details = [
+        ...(source ? [`Source: ${source}`] : []),
+        error?.diagnostic
             ? formatDiagnostic(error.diagnostic)
-            : String(error?.message ?? error)
-        ).replaceAll("\n", "\n       ")}`,
+            : String(error?.message ?? error),
+        ...formatErrorCodes(source ? error.cause : error),
+    ].join("\n");
+
+    console.error(
+        `❌ Failed to execute command:\n       ${details.replaceAll("\n", "\n       ")}`,
     );
+}
+
+function formatErrorCodes(error) {
+    const lines = [];
+    const seen = new Set();
+    let indentation = 0;
+    for (
+        let current = error;
+        current && !seen.has(current);
+        current = current.cause
+    ) {
+        seen.add(current);
+        if (
+            typeof current.code !== "string" ||
+            !/^[A-Z][A-Z0-9_]*$/.test(current.code)
+        ) {
+            continue;
+        }
+        if (current === error) {
+            lines.push(`Code: ${current.code}`);
+        } else {
+            indentation += 4;
+            lines.push(`${" ".repeat(indentation)}Cause: ${current.code}`);
+        }
+    }
+    return lines;
 }
 
 function validateOptions({ command, rpcUrl }) {
@@ -66,3 +100,9 @@ function validateOptions({ command, rpcUrl }) {
 }
 
 const COMMANDS = { generate, inspect, verify };
+
+const ERROR_SOURCES = {
+    sheetChainDetails: "Safeharbor Sheet chain metadata",
+    sheetState: "Safeharbor Sheet contracts",
+    agreementOnChainState: "Agreement state",
+};

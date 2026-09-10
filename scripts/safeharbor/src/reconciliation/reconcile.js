@@ -7,10 +7,15 @@ export async function reconcile({
     getSheetState,
     getSheetChainDetails,
 }) {
-    const sheetChainDetailsResult = await getSheetChainDetails();
+    const sheetChainDetailsResult = await loadSource(
+        "sheetChainDetails",
+        getSheetChainDetails,
+    );
     const [sheetResult, agreementOnChainResult] = await Promise.all([
-        getSheetState(sheetChainDetailsResult.value),
-        getAgreementState(),
+        loadSource("sheetState", () =>
+            getSheetState(sheetChainDetailsResult.value),
+        ),
+        loadSource("agreementOnChainState", getAgreementState),
     ]);
     const validationWarnings = [
         ...sheetChainDetailsResult.warnings,
@@ -36,6 +41,20 @@ export async function reconcile({
                 : planUpdates(agreementOnChainResult.value, sheetResult.value),
         validationWarnings,
     };
+}
+
+async function loadSource(source, load) {
+    try {
+        return await load();
+    } catch (error) {
+        throw Object.assign(
+            new Error(String(error?.message ?? error), { cause: error }),
+            {
+                source,
+                diagnostic: error?.diagnostic,
+            },
+        );
+    }
 }
 
 function validateKnownOnChainIds(agreementOnChainState, sheetChainDetails) {

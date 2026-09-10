@@ -72,7 +72,76 @@ test("does not read either state when chain metadata fails", async () => {
             getSheetState,
             getSheetChainDetails: vi.fn().mockRejectedValue(failure),
         }),
-    ).rejects.toBe(failure);
+    ).rejects.toMatchObject({
+        message: "Metadata unavailable",
+        source: "sheetChainDetails",
+        cause: failure,
+    });
     expect(getSheetState).not.toHaveBeenCalled();
     expect(getAgreementState).not.toHaveBeenCalled();
+});
+
+test.each([
+    ["getSheetChainDetails", "sheetChainDetails", "throw"],
+    ["getSheetChainDetails", "sheetChainDetails", "reject"],
+    ["getSheetState", "sheetState", "throw"],
+    ["getSheetState", "sheetState", "reject"],
+    ["getAgreementState", "agreementOnChainState", "throw"],
+    ["getAgreementState", "agreementOnChainState", "reject"],
+])(
+    "attributes %s failures (%s, %s) without changing the original error",
+    async (loader, source, mode) => {
+        const diagnostic = {
+            code: "MISSING_SHEET_HEADERS",
+            context: { missingHeaders: ["Status"] },
+        };
+        const failure = Object.freeze(
+            Object.assign(new Error("Source unavailable"), { diagnostic }),
+        );
+        const loaders = {
+            getSheetChainDetails: vi.fn().mockResolvedValue({
+                value: { caip2ChainId: {}, assetRecoveryAddress: {}, name: {} },
+                warnings: [],
+            }),
+            getSheetState: vi
+                .fn()
+                .mockResolvedValue({ value: {}, warnings: [] }),
+            getAgreementState: vi
+                .fn()
+                .mockResolvedValue({ value: {}, warnings: [] }),
+        };
+        loaders[loader].mockImplementation(() => {
+            if (mode === "throw") {
+                throw failure;
+            }
+            return Promise.reject(failure);
+        });
+
+        const error = await reconcile(loaders).catch((error) => error);
+
+        expect(error).toBeInstanceOf(Error);
+        expect(error).not.toBe(failure);
+        expect(error.message).toBe("Source unavailable");
+        expect(error.source).toBe(source);
+        expect(error.cause).toBe(failure);
+        expect(error.diagnostic).toBe(diagnostic);
+        expect(failure).not.toHaveProperty("source");
+        expect(failure).not.toHaveProperty("cause");
+    },
+);
+
+test("preserves a non-Error rejection as the source error's cause", async () => {
+    await expect(
+        reconcile({
+            getSheetChainDetails: vi
+                .fn()
+                .mockRejectedValue("Metadata unavailable"),
+            getSheetState: vi.fn(),
+            getAgreementState: vi.fn(),
+        }),
+    ).rejects.toMatchObject({
+        message: "Metadata unavailable",
+        source: "sheetChainDetails",
+        cause: "Metadata unavailable",
+    });
 });
