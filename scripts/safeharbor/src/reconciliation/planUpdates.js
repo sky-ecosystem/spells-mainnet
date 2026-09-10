@@ -1,19 +1,11 @@
 import { DIAGNOSTIC_CODES as $ } from "../diagnostic/index.js";
 
 // The caller must validate state before planning updates.
-export function planUpdates(
-    agreementOnChainState,
-    sheetState,
-    sheetChainDetails,
-) {
+export function planUpdates(agreementOnChainState, sheetState) {
     assertUpdateInputs(agreementOnChainState, sheetState);
 
     return [
-        ...generateChainUpdates(
-            agreementOnChainState,
-            sheetState,
-            sheetChainDetails,
-        ),
+        ...generateChainUpdates(agreementOnChainState, sheetState),
         ...generateAccountUpdates(agreementOnChainState, sheetState),
     ];
 }
@@ -44,7 +36,7 @@ function generateAccountUpdates(agreementOnChainState, sheetState) {
             generateChainAccountUpdates(
                 chainId,
                 agreementOnChainState[chainId].accounts,
-                sheetState[chainId],
+                sheetState[chainId].accounts,
             ),
         );
 }
@@ -85,11 +77,7 @@ function generateChainAccountUpdates(
     return updates;
 }
 
-function generateChainUpdates(
-    agreementOnChainState,
-    sheetState,
-    sheetChainDetails,
-) {
+function generateChainUpdates(agreementOnChainState, sheetState) {
     const updates = [];
     const { chainsToRemove, chainsToAdd } = calculateChainDifferences(
         agreementOnChainState,
@@ -111,10 +99,8 @@ function generateChainUpdates(
             args: [
                 chainsToAdd.map((chainId) => ({
                     assetRecoveryAddress:
-                        sheetChainDetails.assetRecoveryAddress[
-                            sheetChainDetails.name[chainId]
-                        ],
-                    accounts: sheetState[chainId],
+                        sheetState[chainId].assetRecoveryAddress,
+                    accounts: sheetState[chainId].accounts,
                     caip2ChainId: chainId,
                 })),
             ],
@@ -149,10 +135,10 @@ function assertUpdateInputs(agreementOnChainState, sheetState) {
 }
 
 function validateUpdateInputs(agreementOnChainState, sheetState) {
-    return Object.entries(sheetState).flatMap(([chainId, desiredAccounts]) => {
+    return Object.entries(sheetState).flatMap(([chainId, { accounts }]) => {
         const isNewChain = !Object.hasOwn(agreementOnChainState, chainId);
 
-        return validateChainUpdate(desiredAccounts ?? [], isNewChain, chainId);
+        return validateChainUpdate(accounts ?? [], isNewChain, chainId);
     });
 }
 

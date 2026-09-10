@@ -23,7 +23,6 @@ export async function reconcile({
         ...checkStateConsistency(
             agreementOnChainResult.value,
             sheetResult.value,
-            sheetChainDetailsResult.value,
         ),
     ];
 
@@ -34,11 +33,7 @@ export async function reconcile({
         changes:
             validationWarnings.length > 0
                 ? []
-                : planUpdates(
-                      agreementOnChainResult.value,
-                      sheetResult.value,
-                      sheetChainDetailsResult.value,
-                  ),
+                : planUpdates(agreementOnChainResult.value, sheetResult.value),
         validationWarnings,
     };
 }

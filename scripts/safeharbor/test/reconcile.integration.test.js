@@ -140,13 +140,17 @@ test.each([
                 },
             },
             sheetState: {
-                "eip155:1": [
-                    {
-                        accountAddress:
-                            "0x2000000000000000000000000000000000000001",
-                        childContractScope: 0,
-                    },
-                ],
+                "eip155:1": {
+                    accounts: [
+                        {
+                            accountAddress:
+                                "0x2000000000000000000000000000000000000001",
+                            childContractScope: 0,
+                        },
+                    ],
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                },
             },
             changes: [],
             validationWarnings: [],

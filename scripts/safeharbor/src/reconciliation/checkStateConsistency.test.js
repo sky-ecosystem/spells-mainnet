@@ -1,27 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { checkStateConsistency } from "./checkStateConsistency.js";
 
-test.each(["__proto__", "constructor", "toString"])(
-    "does not read inherited recovery metadata for %s",
-    (chainName) => {
-        expect(
-            checkStateConsistency(
-                {},
-                {
-                    "eip155:1": [
-                        { accountAddress: "A", childContractScope: 0 },
-                    ],
-                },
-                {
-                    caip2ChainId: { [chainName]: "eip155:1" },
-                    assetRecoveryAddress: {},
-                    name: { "eip155:1": chainName },
-                },
-            ),
-        ).toEqual([]);
-    },
-);
-
 describe("recovery address comparison", () => {
     test("reports a missing on-chain recovery address even when the Sheet address is absent", () => {
         expect(
@@ -32,11 +11,11 @@ describe("recovery address comparison", () => {
                         assetRecoveryAddress: undefined,
                     },
                 },
-                { "eip155:1": [] },
                 {
-                    caip2ChainId: { ETHEREUM: "eip155:1" },
-                    assetRecoveryAddress: {},
-                    name: { "eip155:1": "ETHEREUM" },
+                    "eip155:1": {
+                        accounts: [],
+                        assetRecoveryAddress: undefined,
+                    },
                 },
             ),
         ).toEqual([
@@ -55,21 +34,14 @@ describe("recovery address comparison", () => {
                     "0x1000000000000000000000000000000000000001",
             },
         };
-        const sheetChainDetails = {
-            caip2ChainId: { ETHEREUM: "eip155:1", BASE: "eip155:8453" },
-            assetRecoveryAddress: {
-                ETHEREUM: "0x1000000000000000000000000000000000000001",
-                BASE: "0x1000000000000000000000000000000000000003",
-            },
-            name: { "eip155:1": "ETHEREUM", "eip155:8453": "BASE" },
-        };
-
         expect(
-            checkStateConsistency(
-                matchingState,
-                { "eip155:1": [] },
-                sheetChainDetails,
-            ),
+            checkStateConsistency(matchingState, {
+                "eip155:1": {
+                    accounts: [],
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                },
+            }),
         ).toEqual([]);
         expect(
             checkStateConsistency(
@@ -80,8 +52,13 @@ describe("recovery address comparison", () => {
                             "0x1000000000000000000000000000000000000002",
                     },
                 },
-                { "eip155:8453": [] },
-                sheetChainDetails,
+                {
+                    "eip155:8453": {
+                        accounts: [],
+                        assetRecoveryAddress:
+                            "0x1000000000000000000000000000000000000003",
+                    },
+                },
             ),
         ).toEqual([
             {
@@ -96,11 +73,13 @@ describe("recovery address comparison", () => {
             },
         ]);
         expect(
-            checkStateConsistency(
-                matchingState,
-                { "eip155:1": [] },
-                sheetChainDetails,
-            ),
+            checkStateConsistency(matchingState, {
+                "eip155:1": {
+                    accounts: [],
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                },
+            }),
         ).toEqual([]);
     });
 
@@ -365,15 +344,12 @@ describe("recovery address comparison", () => {
         "$scenario",
         ({ chainId, agreementOnChainState, sheetAddress, warning }) => {
             expect(
-                checkStateConsistency(
-                    agreementOnChainState,
-                    { [chainId]: [] },
-                    {
-                        caip2ChainId: { CHAIN: chainId },
-                        assetRecoveryAddress: { CHAIN: sheetAddress },
-                        name: { [chainId]: "CHAIN" },
+                checkStateConsistency(agreementOnChainState, {
+                    [chainId]: {
+                        accounts: [],
+                        assetRecoveryAddress: sheetAddress,
                     },
-                ),
+                }),
             ).toEqual(warning ? [warning] : []);
         },
     );

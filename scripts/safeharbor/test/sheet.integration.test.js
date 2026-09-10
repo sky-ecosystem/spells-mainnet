@@ -219,18 +219,22 @@ describe("contracts CSV headers", () => {
             }),
         ).resolves.toEqual({
             value: {
-                "eip155:1": [
-                    {
-                        accountAddress:
-                            "0x2000000000000000000000000000000000000001",
-                        childContractScope: 2,
-                    },
-                    {
-                        accountAddress:
-                            "0x2000000000000000000000000000000000000002",
-                        childContractScope: 0,
-                    },
-                ],
+                "eip155:1": {
+                    accounts: [
+                        {
+                            accountAddress:
+                                "0x2000000000000000000000000000000000000001",
+                            childContractScope: 2,
+                        },
+                        {
+                            accountAddress:
+                                "0x2000000000000000000000000000000000000002",
+                            childContractScope: 0,
+                        },
+                    ],
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                },
             },
             warnings: [],
         });

@@ -1,55 +1,23 @@
 import { getAddress } from "ethers";
 import { DIAGNOSTIC_CODES as $ } from "../diagnostic/index.js";
 
-export function checkStateConsistency(
-    agreementOnChainState,
-    sheetState,
-    sheetChainDetails,
-) {
+export function checkStateConsistency(agreementOnChainState, sheetState) {
     return Object.keys(sheetState).flatMap((chainId) =>
-        checkChainRecoveryAddress(
-            chainId,
-            agreementOnChainState,
-            sheetChainDetails,
-        ),
+        checkChainRecoveryAddress(chainId, agreementOnChainState, sheetState),
     );
 }
 
-function checkChainRecoveryAddress(
-    chainId,
-    agreementOnChainState,
-    sheetChainDetails,
-) {
-    const recoveryDetails = getRecoveryAddressDetails(
-        chainId,
-        agreementOnChainState,
-        sheetChainDetails,
-    );
-    return validateRecoveryAddress(recoveryDetails).map((diagnostic) =>
-        addRecoveryAddressContext(diagnostic, recoveryDetails),
-    );
-}
-
-function getRecoveryAddressDetails(
-    chainId,
-    agreementOnChainState,
-    sheetChainDetails,
-) {
-    const chainName = Object.hasOwn(sheetChainDetails.name, chainId)
-        ? sheetChainDetails.name[chainId]
-        : chainId;
-    return {
+function checkChainRecoveryAddress(chainId, agreementOnChainState, sheetState) {
+    const recoveryDetails = {
         chainId,
         isNewChain: !Object.hasOwn(agreementOnChainState, chainId),
         onChainRecoveryAddress:
             agreementOnChainState[chainId]?.assetRecoveryAddress,
-        sheetRecoveryAddress: Object.hasOwn(
-            sheetChainDetails.assetRecoveryAddress,
-            chainName,
-        )
-            ? sheetChainDetails.assetRecoveryAddress[chainName]
-            : undefined,
+        sheetRecoveryAddress: sheetState[chainId].assetRecoveryAddress,
     };
+    return validateRecoveryAddress(recoveryDetails).map((diagnostic) =>
+        addRecoveryAddressContext(diagnostic, recoveryDetails),
+    );
 }
 
 function validateRecoveryAddress({

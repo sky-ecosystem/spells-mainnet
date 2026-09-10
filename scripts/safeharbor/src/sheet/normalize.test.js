@@ -43,14 +43,24 @@ test("diagnoses empty active addresses without dropping records or trimming quot
                     },
                 ],
             },
-            { caip2ChainId: { ETHEREUM: "eip155:1" } },
+            {
+                caip2ChainId: { ETHEREUM: "eip155:1" },
+                assetRecoveryAddress: {
+                    ETHEREUM: "0x1000000000000000000000000000000000000001",
+                },
+                name: { "eip155:1": "ETHEREUM" },
+            },
         ),
     ).toEqual({
         value: {
-            "eip155:1": [
-                { accountAddress: "", childContractScope: 0 },
-                { accountAddress: " ", childContractScope: 0 },
-            ],
+            "eip155:1": {
+                accounts: [
+                    { accountAddress: "", childContractScope: 0 },
+                    { accountAddress: " ", childContractScope: 0 },
+                ],
+                assetRecoveryAddress:
+                    "0x1000000000000000000000000000000000000001",
+            },
         },
         warnings: [
             {
@@ -103,15 +113,25 @@ test("checks both factory aliases while accepting blanks and ignoring inactive r
                     },
                 ],
             },
-            { caip2ChainId: { ETHEREUM: "eip155:1" } },
+            {
+                caip2ChainId: { ETHEREUM: "eip155:1" },
+                assetRecoveryAddress: {
+                    ETHEREUM: "0x1000000000000000000000000000000000000001",
+                },
+                name: { "eip155:1": "ETHEREUM" },
+            },
         ),
     ).toEqual({
         value: {
-            "eip155:1": [
-                { accountAddress: "A", childContractScope: 2 },
-                { accountAddress: "B", childContractScope: 2 },
-                { accountAddress: "C", childContractScope: 0 },
-            ],
+            "eip155:1": {
+                accounts: [
+                    { accountAddress: "A", childContractScope: 2 },
+                    { accountAddress: "B", childContractScope: 2 },
+                    { accountAddress: "C", childContractScope: 0 },
+                ],
+                assetRecoveryAddress:
+                    "0x1000000000000000000000000000000000000001",
+            },
         },
         warnings: [
             {
@@ -169,21 +189,103 @@ test.each(["__proto__", "constructor", "toString"])(
                     },
                 ],
             },
-            { caip2ChainId: { [chainName]: "eip155:1" } },
+            {
+                caip2ChainId: { [chainName]: "eip155:1" },
+                assetRecoveryAddress: {
+                    [chainName]: "0x1000000000000000000000000000000000000001",
+                },
+                name: { "eip155:1": chainName },
+            },
         );
         expect(Object.keys(result.value)).toEqual(["eip155:1"]);
         expect(Object.getPrototypeOf(result.value)).toBe(Object.prototype);
         expect(result).toEqual({
             value: {
-                "eip155:1": [
-                    { accountAddress: "A", childContractScope: 0 },
-                    { accountAddress: "B", childContractScope: 2 },
-                ],
+                "eip155:1": {
+                    accounts: [
+                        { accountAddress: "A", childContractScope: 0 },
+                        { accountAddress: "B", childContractScope: 2 },
+                    ],
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                },
             },
             warnings: [],
         });
     },
 );
+
+test.each(["__proto__", "constructor", "toString"])(
+    "does not read inherited recovery metadata for %s",
+    (chainName) => {
+        expect(
+            normalizeContractsInScope(
+                {
+                    headers: ["Status", "Chain", "Address", "isFactory"],
+                    records: [
+                        {
+                            Status: "ACTIVE",
+                            Chain: chainName,
+                            Address: "A",
+                            isFactory: "FALSE",
+                        },
+                    ],
+                },
+                {
+                    caip2ChainId: { [chainName]: "eip155:1" },
+                    assetRecoveryAddress: {},
+                    name: { "eip155:1": chainName },
+                },
+            ),
+        ).toEqual({
+            value: {
+                "eip155:1": {
+                    accounts: [{ accountAddress: "A", childContractScope: 0 }],
+                    assetRecoveryAddress: undefined,
+                },
+            },
+            warnings: [],
+        });
+    },
+);
+
+test("joins raw recovery addresses without mutating either source", () => {
+    const sheet = {
+        headers: ["Status", "Chain", "Address", "isFactory"],
+        records: [
+            {
+                Status: "ACTIVE",
+                Chain: "ETHEREUM",
+                Address: " Account ",
+                isFactory: "TRUE",
+            },
+        ],
+    };
+    const metadata = {
+        caip2ChainId: { ETHEREUM: "eip155:1", BASE: "eip155:8453" },
+        assetRecoveryAddress: {
+            ETHEREUM: " InvalidChecksumAndSpaces ",
+            BASE: "OtherRecovery",
+        },
+        name: { "eip155:1": "ETHEREUM", "eip155:8453": "BASE" },
+    };
+    const originalSheet = structuredClone(sheet);
+    const originalMetadata = structuredClone(metadata);
+
+    expect(normalizeContractsInScope(sheet, metadata)).toEqual({
+        value: {
+            "eip155:1": {
+                accounts: [
+                    { accountAddress: " Account ", childContractScope: 2 },
+                ],
+                assetRecoveryAddress: " InvalidChecksumAndSpaces ",
+            },
+        },
+        warnings: [],
+    });
+    expect(sheet).toEqual(originalSheet);
+    expect(metadata).toEqual(originalMetadata);
+});
 
 describe("normalizeChainDetails", () => {
     test.each([
@@ -664,21 +766,30 @@ test("groups active contracts in order with exact addresses and both factory ali
         "eip155:1",
     ]);
     expect(result.value).toEqual({
-        "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp": [
-            { accountAddress: "AccountUpperCase", childContractScope: 2 },
-            { accountAddress: "accountUpperCase", childContractScope: 0 },
-            { accountAddress: "AccountUpperCase", childContractScope: 0 },
-        ],
-        "eip155:1": [
-            {
-                accountAddress: "0xA000000000000000000000000000000000000001",
-                childContractScope: 2,
-            },
-            {
-                accountAddress: "0xa000000000000000000000000000000000000001",
-                childContractScope: 0,
-            },
-        ],
+        "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp": {
+            accounts: [
+                { accountAddress: "AccountUpperCase", childContractScope: 2 },
+                { accountAddress: "accountUpperCase", childContractScope: 0 },
+                { accountAddress: "AccountUpperCase", childContractScope: 0 },
+            ],
+            assetRecoveryAddress:
+                "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+        },
+        "eip155:1": {
+            accounts: [
+                {
+                    accountAddress:
+                        "0xA000000000000000000000000000000000000001",
+                    childContractScope: 2,
+                },
+                {
+                    accountAddress:
+                        "0xa000000000000000000000000000000000000001",
+                    childContractScope: 0,
+                },
+            ],
+            assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+        },
     });
     expect(result.warnings).toEqual([
         {
