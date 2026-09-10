@@ -8,9 +8,8 @@ export function createAgreementReader(provider) {
     const getChainlogAddress = createChainlogReader(provider);
 
     return async function getAgreementState(chainDetails) {
-        const address = await getChainlogAddress(AGREEMENT_CHAINLOG_KEY);
         const agreementInstance = new Contract(
-            address,
+            await getChainlogAddress(AGREEMENT_CHAINLOG_KEY),
             AGREEMENT_V3_ABI,
             provider,
         );

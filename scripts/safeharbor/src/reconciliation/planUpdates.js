@@ -92,10 +92,14 @@ function generateChainUpdates(onChainState, sheetState, chainDetails) {
 
     // Remove chains that are no longer in the Safeharbor Sheet - batch them together
     if (chainsToRemove.length > 0) {
-        const chainIdsToRemove = chainsToRemove.map(
-            (chainName) => chainDetails.caip2ChainId[chainName],
-        );
-        updates.push({ fn: "removeChains", args: [chainIdsToRemove] });
+        updates.push({
+            fn: "removeChains",
+            args: [
+                chainsToRemove.map(
+                    (chainName) => chainDetails.caip2ChainId[chainName],
+                ),
+            ],
+        });
     }
 
     // Add new chains from the Safeharbor Sheet - batch them together
