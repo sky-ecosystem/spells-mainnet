@@ -7,7 +7,7 @@ export function generateSolidity(updates) {
         `bytes[] memory calldatas = new bytes[](${updates.length});`,
         ...updates.map(
             (update, index) =>
-                `// ${getDescription(update)}\ncalldatas[${index}] = hex'${update.calldata.replace(/^0x/, "")}';`,
+                `// ${escapeCommentLineTerminators(getDescription(update))}\ncalldatas[${index}] = hex'${update.calldata.replace(/^0x/, "")}';`,
         ),
         "_updateSafeHarbor(calldatas);",
     ]
@@ -15,6 +15,15 @@ export function generateSolidity(updates) {
         .split("\n")
         .map((line) => line.trim())
         .join("\n");
+}
+
+function escapeCommentLineTerminators(description) {
+    // Solidity ends // comments at any of these seven Unicode line terminators.
+    return description.replace(
+        /[\n\v\f\r\u0085\u2028\u2029]/g,
+        (character) =>
+            `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`,
+    );
 }
 
 function getDescription(update) {
