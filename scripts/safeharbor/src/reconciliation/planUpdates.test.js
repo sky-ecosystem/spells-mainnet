@@ -1,6 +1,106 @@
 import { expect, test } from "vitest";
 import { planUpdates } from "./planUpdates.js";
 
+test.each([
+    "",
+    " ",
+    "0x",
+    "0x4",
+    "-1",
+    "4",
+    "1.0",
+    "1e0",
+    "1.0000000000000001",
+    false,
+    true,
+    null,
+    undefined,
+    -1,
+    4,
+    -1n,
+    4n,
+    0.5,
+    NaN,
+    Infinity,
+])("rejects an invalid new-chain scope %s", (childContractScope) => {
+    expect(() =>
+        planUpdates(
+            {},
+            { "eip155:10": [{ accountAddress: "A", childContractScope }] },
+            {
+                caip2ChainId: { OPTIMISM: "eip155:10" },
+                assetRecoveryAddress: {
+                    OPTIMISM: "0x1000000000000000000000000000000000000004",
+                },
+                name: { "eip155:10": "OPTIMISM" },
+            },
+        ),
+    ).toThrowError(
+        expect.objectContaining({
+            diagnostic: {
+                code: "INVALID_NEW_CHAIN_ACCOUNTS",
+                context: {
+                    chainName: "OPTIMISM",
+                    accounts: [{ accountAddress: "A", childContractScope }],
+                },
+            },
+        }),
+    );
+});
+
+test.each([
+    0,
+    1,
+    2,
+    3,
+    0n,
+    1n,
+    2n,
+    3n,
+    "0",
+    "1",
+    "2",
+    "3",
+    "0x0",
+    "0x1",
+    "0x2",
+    "0x3",
+    "0X03",
+])(
+    "preserves supported new-chain scope %s and its type",
+    (childContractScope) => {
+        expect(
+            planUpdates(
+                {},
+                { "eip155:10": [{ accountAddress: "A", childContractScope }] },
+                {
+                    caip2ChainId: { OPTIMISM: "eip155:10" },
+                    assetRecoveryAddress: {
+                        OPTIMISM: "0x1000000000000000000000000000000000000004",
+                    },
+                    name: { "eip155:10": "OPTIMISM" },
+                },
+            ),
+        ).toEqual([
+            {
+                fn: "addChains",
+                args: [
+                    [
+                        {
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000004",
+                            accounts: [
+                                { accountAddress: "A", childContractScope },
+                            ],
+                            caip2ChainId: "eip155:10",
+                        },
+                    ],
+                ],
+            },
+        ]);
+    },
+);
+
 // CSV normalization cannot produce a named chain with an empty account array.
 // Exercise these defensive checks directly at the diff boundary.
 test.each([

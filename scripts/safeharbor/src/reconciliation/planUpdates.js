@@ -190,8 +190,7 @@ function validateChainUpdate(accounts, isNewChain, chainName) {
     const invalidAccounts = accounts.filter(
         (account) =>
             !account.accountAddress ||
-            account.childContractScope === undefined ||
-            account.childContractScope === null,
+            !isValidChildContractScope(account.childContractScope),
     );
     if (invalidAccounts.length === 0) {
         return [];
@@ -202,4 +201,21 @@ function validateChainUpdate(accounts, isNewChain, chainName) {
             context: { chainName, accounts: invalidAccounts },
         },
     ];
+}
+
+function isValidChildContractScope(scope) {
+    if (
+        !["number", "bigint", "string"].includes(typeof scope) ||
+        (typeof scope === "string" && scope.trim().length === 0)
+    ) {
+        return false;
+    }
+    // ChildContractScope: None = 0, ExistingOnly = 1, All = 2, FutureOnly = 3.
+    // Source: https://github.com/security-alliance/safe-harbor/blob/0b0abb8b627eff87e2f7b52bf8ec484cd6ce0e32/registry-contracts/src/types/AgreementTypes.sol
+    // Parse integer strings exactly, including hex, as required by ABI encoding.
+    try {
+        return [0n, 1n, 2n, 3n].includes(BigInt(scope));
+    } catch {
+        return false;
+    }
 }
