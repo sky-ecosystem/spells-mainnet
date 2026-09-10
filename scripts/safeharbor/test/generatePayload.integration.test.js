@@ -79,6 +79,27 @@ async function generateFrom({ chainCSV, contractCSV, details }) {
     };
     expect(getDetails).toHaveBeenCalledExactlyOnceWith();
     payloadSnapshot(result.updates);
+    if (result.updates.length === 0) {
+        expect(result.solidityCode).toBe("");
+    } else {
+        // Check calldata placement and order across integration scenarios.
+        // Full-output unit tests cover generated comments and formatting.
+        expect(
+            result.solidityCode
+                .split("\n")
+                .filter(
+                    (line) =>
+                        line.trim().length > 0 && !line.trim().startsWith("//"),
+                ),
+        ).toEqual([
+            `bytes[] memory calldatas = new bytes[](${result.updates.length});`,
+            ...result.updates.map(
+                (update, index) =>
+                    `calldatas[${index}] = hex'${update.calldata.slice(2)}';`,
+            ),
+            "_updateSafeHarbor(calldatas);",
+        ]);
+    }
     return result;
 }
 
@@ -1344,13 +1365,6 @@ test.each([
 
         expect(result.validationWarnings).toEqual([]);
         expect(result.updates).toEqual(expectedUpdates);
-        if (expectedUpdates.length === 0) {
-            expect(result.solidityCode).toBe("");
-        } else {
-            for (const update of result.updates) {
-                expect(result.solidityCode).toContain(update.calldata.slice(2));
-            }
-        }
     },
 );
 
@@ -2235,6 +2249,7 @@ test.each([
     {
         scenario:
             "mixes a scope replacement with new and removed accounts: [A:0,B:0] -> [B:2,C:0]",
+        snapshot: true,
         chainCSV:
             "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
         contractCSV:
@@ -2524,6 +2539,7 @@ test.each([
     {
         scenario:
             "treats Solana account case changes as exact string replacements",
+        snapshot: true,
         chainCSV:
             "Name,Chain Id,Asset Recovery Address\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
         contractCSV:
@@ -2564,20 +2580,19 @@ test.each([
             },
         ],
     },
-])("$scenario", async ({ chainCSV, contractCSV, details, expectedUpdates }) => {
-    const result = await generateFrom({ chainCSV, contractCSV, details });
-    expect(result.validationWarnings).toEqual([]);
-    expect(result.updates.map(({ fn, args }) => ({ fn, args }))).toEqual(
-        expectedUpdates,
-    );
-    if (expectedUpdates.length === 0) {
-        expect(result.solidityCode).toBe("");
-    } else {
-        for (const update of result.updates) {
-            expect(result.solidityCode).toContain(update.calldata.slice(2));
+])(
+    "$scenario",
+    async ({ chainCSV, contractCSV, details, expectedUpdates, snapshot }) => {
+        const result = await generateFrom({ chainCSV, contractCSV, details });
+        expect(result.validationWarnings).toEqual([]);
+        expect(result.updates.map(({ fn, args }) => ({ fn, args }))).toEqual(
+            expectedUpdates,
+        );
+        if (snapshot) {
+            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
         }
-    }
-});
+    },
+);
 
 const agreementInterface = new Interface(AGREEMENT_V3_ABI);
 
