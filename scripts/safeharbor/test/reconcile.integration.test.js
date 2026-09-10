@@ -77,15 +77,15 @@ test.each([
             ],
         },
         expected: {
-            chainDetails: {
+            sheetChainDetails: {
                 caip2ChainId: { ["__proto__"]: "eip155:1" },
                 assetRecoveryAddress: {
                     ["__proto__"]: "0x1000000000000000000000000000000000000001",
                 },
                 name: { "eip155:1": "__proto__" },
             },
-            onChainState: {
-                ["__proto__"]: {
+            agreementOnChainState: {
+                "eip155:1": {
                     accounts: [{ accountAddress: "A", childContractScope: 0n }],
                     assetRecoveryAddress:
                         "0x1000000000000000000000000000000000000001",
@@ -119,15 +119,15 @@ test.each([
             ],
         },
         expected: {
-            chainDetails: {
+            sheetChainDetails: {
                 caip2ChainId: { ETHEREUM: "eip155:1" },
                 assetRecoveryAddress: {
                     ETHEREUM: "0x1000000000000000000000000000000000000001",
                 },
                 name: { "eip155:1": "ETHEREUM" },
             },
-            onChainState: {
-                ETHEREUM: {
+            agreementOnChainState: {
+                "eip155:1": {
                     accounts: [
                         {
                             accountAddress:
@@ -140,7 +140,7 @@ test.each([
                 },
             },
             sheetState: {
-                ETHEREUM: [
+                "eip155:1": [
                     {
                         accountAddress:
                             "0x2000000000000000000000000000000000000001",
@@ -161,21 +161,13 @@ test.each([
         `,
         details: { chains: [] },
         expected: {
-            chainDetails: {
+            sheetChainDetails: {
                 caip2ChainId: {},
                 assetRecoveryAddress: {},
                 name: {},
             },
-            onChainState: {},
-            sheetState: {
-                BASE: [
-                    {
-                        accountAddress:
-                            "0x3000000000000000000000000000000000000001",
-                        childContractScope: 0,
-                    },
-                ],
-            },
+            agreementOnChainState: {},
+            sheetState: {},
             changes: [],
             validationWarnings: [
                 { code: "UNKNOWN_SHEET_CHAIN", context: { chainName: "BASE" } },
@@ -188,6 +180,126 @@ test.each([
         expect(await reconcileFrom({ chainCSV, contractCSV, details })).toEqual(
             expected,
         );
+    },
+);
+
+test.each([
+    {
+        scenario: "a renamed Sheet label preserves the same chain identity",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            RENAMED,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,RENAMED,0x2000000000000000000000000000000000000001,FALSE
+        `,
+        expectedChanges: [],
+        expectedWarnings: [],
+    },
+    {
+        scenario: "a reused Sheet label with another ID replaces the chain",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:8453,0x1000000000000000000000000000000000000001
+            OLD,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+        `,
+        expectedChanges: [
+            { fn: "removeChains", args: [["eip155:1"]] },
+            {
+                fn: "addChains",
+                args: [
+                    [
+                        {
+                            caip2ChainId: "eip155:8453",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000001",
+                            accounts: [
+                                {
+                                    accountAddress:
+                                        "0x2000000000000000000000000000000000000001",
+                                    childContractScope: 0,
+                                },
+                            ],
+                        },
+                    ],
+                ],
+            },
+        ],
+        expectedWarnings: [],
+    },
+    {
+        scenario: "a reused label cannot hide an old ID missing from metadata",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:8453,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+        `,
+        expectedChanges: [],
+        expectedWarnings: [
+            {
+                code: "UNKNOWN_ONCHAIN_CHAIN",
+                context: { chainId: "eip155:1" },
+            },
+        ],
+    },
+])(
+    "$scenario",
+    async ({ chainCSV, contractCSV, expectedChanges, expectedWarnings }) => {
+        const result = await reconcileFrom({
+            chainCSV,
+            contractCSV,
+            details: {
+                chains: [
+                    {
+                        caip2ChainId: "eip155:1",
+                        assetRecoveryAddress:
+                            "0x1000000000000000000000000000000000000001",
+                        accounts: [
+                            ["0x2000000000000000000000000000000000000001", 0n],
+                        ],
+                    },
+                ],
+            },
+        });
+        expect(result.changes).toEqual(expectedChanges);
+        expect(result.validationWarnings).toEqual(expectedWarnings);
+    },
+);
+
+test.each(["__proto__", "constructor", "toString"])(
+    "does not treat inherited metadata property %s as a known on-chain ID",
+    async (chainId) => {
+        const result = await reconcileFrom({
+            chainCSV: "Name,Chain Id,Asset Recovery Address\n",
+            contractCSV: "Status,Chain,Address,isFactory\n",
+            details: {
+                chains: [
+                    {
+                        caip2ChainId: chainId,
+                        assetRecoveryAddress: "recovery",
+                        accounts: [["A", 0n]],
+                    },
+                ],
+            },
+        });
+        expect(result.agreementOnChainState).toEqual({
+            [chainId]: {
+                assetRecoveryAddress: "recovery",
+                accounts: [{ accountAddress: "A", childContractScope: 0n }],
+            },
+        });
+        expect(result.changes).toEqual([]);
+        expect(result.validationWarnings).toEqual([
+            { code: "UNKNOWN_ONCHAIN_CHAIN", context: { chainId } },
+        ]);
     },
 );
 
@@ -524,7 +636,7 @@ describe("validation warnings", () => {
     });
 
     describe("Validation warning aggregation", () => {
-        test("should block chain planning on on-chain normalization warnings", async () => {
+        test("retains unknown on-chain state while blocking planning", async () => {
             const unknownChainWarning = {
                 code: "UNKNOWN_ONCHAIN_CHAIN",
                 context: { chainId: "eip155:137" },
@@ -562,6 +674,19 @@ describe("validation warnings", () => {
 
             expect(result.changes).toEqual([]);
             expect(result.validationWarnings).toEqual([unknownChainWarning]);
+            expect(result.agreementOnChainState).toEqual({
+                "eip155:137": {
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                    accounts: [
+                        {
+                            accountAddress:
+                                "0x6000000000000000000000000000000000000001",
+                            childContractScope: 0n,
+                        },
+                    ],
+                },
+            });
         });
 
         test("should collect warnings from every stage before planning updates", async () => {
@@ -605,6 +730,10 @@ describe("validation warnings", () => {
                                     "0x2000000000000000000000000000000000000001",
                                     0n,
                                 ],
+                                [
+                                    "0x2000000000000000000000000000000000000001",
+                                    2n,
+                                ],
                             ],
                         },
                         {
@@ -626,6 +755,15 @@ describe("validation warnings", () => {
             expect(result.validationWarnings).toEqual([
                 duplicateWarning,
                 unknownChainWarning,
+                {
+                    code: "DUPLICATE_ONCHAIN_ACCOUNT",
+                    context: {
+                        chainId: "eip155:1",
+                        address: "0x2000000000000000000000000000000000000001",
+                        firstScope: 0n,
+                        duplicateScope: 2n,
+                    },
+                },
                 {
                     code: "UNKNOWN_SHEET_CHAIN",
                     context: { chainName: "UNKNOWN" },
@@ -1175,7 +1313,7 @@ test.each([
             {
                 code: "DUPLICATE_ONCHAIN_ACCOUNT",
                 context: {
-                    chainName: "ETHEREUM",
+                    chainId: "eip155:1",
                     address: "0x2000000000000000000000000000000000000001",
                     firstScope: 0n,
                     duplicateScope: 0n,
@@ -1210,7 +1348,7 @@ test.each([
             {
                 code: "DUPLICATE_ONCHAIN_ACCOUNT",
                 context: {
-                    chainName: "ETHEREUM",
+                    chainId: "eip155:1",
                     address: "0x2000000000000000000000000000000000000001",
                     firstScope: 0n,
                     duplicateScope: 2n,
@@ -1242,7 +1380,7 @@ test.each([
             {
                 code: "DUPLICATE_ONCHAIN_ACCOUNT",
                 context: {
-                    chainName: "ETHEREUM",
+                    chainId: "eip155:1",
                     address: "0x2000000000000000000000000000000000000001",
                     firstScope: 0n,
                     duplicateScope: 0n,
@@ -1278,7 +1416,7 @@ test.each([
             {
                 code: "DUPLICATE_ONCHAIN_ACCOUNT",
                 context: {
-                    chainName: "ETHEREUM",
+                    chainId: "eip155:1",
                     address: "0x2000000000000000000000000000000000000002",
                     firstScope: 0n,
                     duplicateScope: 2n,

@@ -18,8 +18,8 @@ test.each([
     {
         scenario: "clean state",
         report: {
-            chainDetails: {},
-            onChainState: {},
+            sheetChainDetails: {},
+            agreementOnChainState: {},
             sheetState: {},
             changes: [],
             validationWarnings: [],
@@ -31,8 +31,8 @@ test.each([
     {
         scenario: "pending changes",
         report: {
-            chainDetails: {},
-            onChainState: {},
+            sheetChainDetails: {},
+            agreementOnChainState: {},
             sheetState: {},
             changes: [{ fn: "removeChains", args: [["eip155:8453"]] }],
             validationWarnings: [],
@@ -44,8 +44,8 @@ test.each([
     {
         scenario: "blocked planning",
         report: {
-            chainDetails: {},
-            onChainState: {},
+            sheetChainDetails: {},
+            agreementOnChainState: {},
             sheetState: {},
             changes: [],
             validationWarnings: [

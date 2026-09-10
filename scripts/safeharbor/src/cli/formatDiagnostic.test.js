@@ -82,14 +82,14 @@ test.each([
         diagnostic: {
             code: "DUPLICATE_ONCHAIN_ACCOUNT",
             context: {
-                chainName: "SOLANA",
+                chainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
                 address: "AccountCaseSensitive",
                 firstScope: 0n,
                 duplicateScope: 2n,
             },
         },
         message:
-            "Duplicate account address in on-chain state for chain 'SOLANA': AccountCaseSensitive; first scope=0, duplicate scope=2",
+            "Duplicate account address in on-chain state for chain 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp': AccountCaseSensitive; first scope=0, duplicate scope=2",
     },
     {
         diagnostic: {

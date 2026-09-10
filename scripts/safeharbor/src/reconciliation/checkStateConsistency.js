@@ -1,63 +1,101 @@
 import { getAddress } from "ethers";
 import { DIAGNOSTIC_CODES as $ } from "../diagnosticCodes.js";
 
-export function checkStateConsistency(onChainState, sheetState, chainDetails) {
-    const validateRecoveryAddress = (chainName) => {
-        const isNewChain = !Object.hasOwn(onChainState, chainName);
-        const onChainRecoveryAddress =
-            onChainState[chainName]?.assetRecoveryAddress;
-        const sheetRecoveryAddress = Object.hasOwn(
-            chainDetails.assetRecoveryAddress,
+export function checkStateConsistency(
+    agreementOnChainState,
+    sheetState,
+    sheetChainDetails,
+) {
+    return Object.keys(sheetState).flatMap((chainId) =>
+        checkChainRecoveryAddress(
+            chainId,
+            agreementOnChainState,
+            sheetChainDetails,
+        ),
+    );
+}
+
+function checkChainRecoveryAddress(
+    chainId,
+    agreementOnChainState,
+    sheetChainDetails,
+) {
+    const recoveryDetails = getRecoveryAddressDetails(
+        chainId,
+        agreementOnChainState,
+        sheetChainDetails,
+    );
+    return validateRecoveryAddress(recoveryDetails).map((diagnostic) =>
+        addRecoveryAddressContext(diagnostic, recoveryDetails),
+    );
+}
+
+function getRecoveryAddressDetails(
+    chainId,
+    agreementOnChainState,
+    sheetChainDetails,
+) {
+    const chainName = Object.hasOwn(sheetChainDetails.name, chainId)
+        ? sheetChainDetails.name[chainId]
+        : chainId;
+    return {
+        chainId,
+        chainName,
+        isNewChain: !Object.hasOwn(agreementOnChainState, chainId),
+        onChainRecoveryAddress:
+            agreementOnChainState[chainId]?.assetRecoveryAddress,
+        sheetRecoveryAddress: Object.hasOwn(
+            sheetChainDetails.assetRecoveryAddress,
             chainName,
         )
-            ? chainDetails.assetRecoveryAddress[chainName]
-            : undefined;
-        const missingOnChainRecoveryAddress =
-            !isNewChain && !onChainRecoveryAddress;
+            ? sheetChainDetails.assetRecoveryAddress[chainName]
+            : undefined,
+    };
+}
 
-        if (!sheetRecoveryAddress && !missingOnChainRecoveryAddress) {
-            return [];
-        }
+function validateRecoveryAddress({
+    chainId,
+    isNewChain,
+    onChainRecoveryAddress,
+    sheetRecoveryAddress,
+}) {
+    const missingOnChainRecoveryAddress =
+        !isNewChain && !onChainRecoveryAddress;
+    if (!sheetRecoveryAddress && !missingOnChainRecoveryAddress) {
+        return [];
+    }
+    if (missingOnChainRecoveryAddress) {
+        return [{ code: $.MISSING_ONCHAIN_RECOVERY_ADDRESS }];
+    }
+    if (isNewChain) {
+        return checkNewRecoveryAddress(chainId, sheetRecoveryAddress);
+    }
+    return getRecoveryAddressComparator(chainId)(
+        onChainRecoveryAddress,
+        sheetRecoveryAddress,
+    );
+}
 
-        if (missingOnChainRecoveryAddress) {
-            return [
-                {
-                    code: $.MISSING_ONCHAIN_RECOVERY_ADDRESS,
-                    context: { chainName },
-                },
-            ];
-        }
-
-        const chainId = chainDetails.caip2ChainId[chainName];
-        const addContext = ({ code }) => ({
-            code,
-            context: {
-                chainName,
-                ...(code === $.INVALID_EVM_RECOVERY_ADDRESS
-                    ? { isNewChain }
-                    : {}),
-                onChainRecoveryAddress,
-                sheetRecoveryAddress,
-            },
-        });
-
-        if (isNewChain) {
-            return checkNewRecoveryAddress(chainId, sheetRecoveryAddress).map(
-                addContext,
-            );
-        }
-
-        return getRecoveryAddressComparator(chainId)(
+function addRecoveryAddressContext(
+    { code },
+    { chainName, isNewChain, onChainRecoveryAddress, sheetRecoveryAddress },
+) {
+    if (code === $.MISSING_ONCHAIN_RECOVERY_ADDRESS) {
+        return { code, context: { chainName } };
+    }
+    return {
+        code,
+        context: {
+            chainName,
+            ...(code === $.INVALID_EVM_RECOVERY_ADDRESS ? { isNewChain } : {}),
             onChainRecoveryAddress,
             sheetRecoveryAddress,
-        ).map(addContext);
+        },
     };
-
-    return Object.keys(sheetState).flatMap(validateRecoveryAddress);
 }
 
 function checkNewRecoveryAddress(chainId, address) {
-    if (chainId?.startsWith("eip155:")) {
+    if (chainId.startsWith("eip155:")) {
         return checkEvmRecoveryAddress(address);
     }
 
@@ -65,7 +103,7 @@ function checkNewRecoveryAddress(chainId, address) {
 }
 
 function getRecoveryAddressComparator(chainId) {
-    if (chainId?.startsWith("eip155:")) {
+    if (chainId.startsWith("eip155:")) {
         return compareEvmRecoveryAddresses;
     }
 

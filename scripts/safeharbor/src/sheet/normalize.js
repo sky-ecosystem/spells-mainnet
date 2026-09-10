@@ -10,7 +10,7 @@ export function normalizeContractsInScope(
     const accountsByChainName = groupAccountsByChain(activeRecords);
 
     return {
-        value: accountsByChainName,
+        value: indexAccountsByChainId(accountsByChainName, sheetChainDetails),
         warnings: [
             ...validateKnownChains(accountsByChainName, sheetChainDetails),
             ...validateFactoryFlags(activeRecords, headers),
@@ -40,6 +40,19 @@ function getActiveContracts(records) {
 
 function groupAccountsByChain(records) {
     return Object.fromEntries(records.reduce(addAccountToChain, new Map()));
+}
+
+function indexAccountsByChainId(accountsByChainName, sheetChainDetails) {
+    return Object.fromEntries(
+        Object.entries(accountsByChainName)
+            .filter(([chainName]) =>
+                Object.hasOwn(sheetChainDetails.caip2ChainId, chainName),
+            )
+            .map(([chainName, accounts]) => [
+                sheetChainDetails.caip2ChainId[chainName],
+                accounts,
+            ]),
+    );
 }
 
 function addAccountToChain(chains, record) {

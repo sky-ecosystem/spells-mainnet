@@ -47,7 +47,7 @@ test("diagnoses empty active addresses without dropping records or trimming quot
         ),
     ).toEqual({
         value: {
-            ETHEREUM: [
+            "eip155:1": [
                 { accountAddress: "", childContractScope: 0 },
                 { accountAddress: " ", childContractScope: 0 },
             ],
@@ -107,7 +107,7 @@ test("checks both factory aliases while accepting blanks and ignoring inactive r
         ),
     ).toEqual({
         value: {
-            ETHEREUM: [
+            "eip155:1": [
                 { accountAddress: "A", childContractScope: 2 },
                 { accountAddress: "B", childContractScope: 2 },
                 { accountAddress: "C", childContractScope: 0 },
@@ -149,7 +149,7 @@ test("accepts required headers with extra columns", () => {
 });
 
 test.each(["__proto__", "constructor", "toString"])(
-    "groups accounts under the own chain property %s",
+    "resolves the own chain-name property %s to its CAIP-2 ID",
     (chainName) => {
         const result = normalizeContractsInScope(
             {
@@ -171,11 +171,11 @@ test.each(["__proto__", "constructor", "toString"])(
             },
             { caip2ChainId: { [chainName]: "eip155:1" } },
         );
-        expect(Object.keys(result.value)).toEqual([chainName]);
+        expect(Object.keys(result.value)).toEqual(["eip155:1"]);
         expect(Object.getPrototypeOf(result.value)).toBe(Object.prototype);
         expect(result).toEqual({
             value: {
-                [chainName]: [
+                "eip155:1": [
                     { accountAddress: "A", childContractScope: 0 },
                     { accountAddress: "B", childContractScope: 2 },
                 ],
@@ -659,14 +659,17 @@ test("groups active contracts in order with exact addresses and both factory ali
         },
     );
 
-    expect(Object.keys(result.value)).toEqual(["SOLANA", "ETHEREUM"]);
+    expect(Object.keys(result.value)).toEqual([
+        "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+        "eip155:1",
+    ]);
     expect(result.value).toEqual({
-        SOLANA: [
+        "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp": [
             { accountAddress: "AccountUpperCase", childContractScope: 2 },
             { accountAddress: "accountUpperCase", childContractScope: 0 },
             { accountAddress: "AccountUpperCase", childContractScope: 0 },
         ],
-        ETHEREUM: [
+        "eip155:1": [
             {
                 accountAddress: "0xA000000000000000000000000000000000000001",
                 childContractScope: 2,
@@ -699,7 +702,7 @@ test("groups active contracts in order with exact addresses and both factory ali
     ]);
 });
 
-test("reports unknown chains and duplicate accounts without dropping records", () => {
+test("omits unresolved chains while preserving their account diagnostics", () => {
     expect(
         normalizeContractsInScope(
             {
@@ -742,6 +745,12 @@ test("reports unknown chains and duplicate accounts without dropping records", (
                         isFactory: "TRUE",
                     },
                     {
+                        Status: "ACTIVE",
+                        Chain: "BASE",
+                        Address: "",
+                        isFactory: "invalid",
+                    },
+                    {
                         Status: "INACTIVE",
                         Chain: "IGNORED",
                         Address: "0x2000000000000000000000000000000000000001",
@@ -752,45 +761,23 @@ test("reports unknown chains and duplicate accounts without dropping records", (
             { caip2ChainId: {}, assetRecoveryAddress: {}, name: {} },
         ),
     ).toEqual({
-        value: {
-            ETHEREUM: [
-                {
-                    accountAddress:
-                        "0x2000000000000000000000000000000000000001",
-                    childContractScope: 0,
-                },
-                {
-                    accountAddress:
-                        "0x2000000000000000000000000000000000000002",
-                    childContractScope: 0,
-                },
-                {
-                    accountAddress:
-                        "0x2000000000000000000000000000000000000002",
-                    childContractScope: 0,
-                },
-                {
-                    accountAddress:
-                        "0x2000000000000000000000000000000000000001",
-                    childContractScope: 2,
-                },
-                {
-                    accountAddress:
-                        "0x2000000000000000000000000000000000000002",
-                    childContractScope: 2,
-                },
-            ],
-            BASE: [
-                {
-                    accountAddress:
-                        "0x2000000000000000000000000000000000000001",
-                    childContractScope: 2,
-                },
-            ],
-        },
+        value: {},
         warnings: [
             { code: "UNKNOWN_SHEET_CHAIN", context: { chainName: "ETHEREUM" } },
             { code: "UNKNOWN_SHEET_CHAIN", context: { chainName: "BASE" } },
+            {
+                code: "INVALID_SHEET_FACTORY_FLAG",
+                context: {
+                    chainName: "BASE",
+                    address: "",
+                    column: "isFactory",
+                    value: "invalid",
+                },
+            },
+            {
+                code: "MISSING_SHEET_ACCOUNT_ADDRESS",
+                context: { chainName: "BASE" },
+            },
             {
                 code: "DUPLICATE_SHEET_ACCOUNT",
                 context: {

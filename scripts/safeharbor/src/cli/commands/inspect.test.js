@@ -17,8 +17,8 @@ afterEach(() => vi.restoreAllMocks());
 
 test("prints an empty changes array for clean state", () => {
     const report = {
-        chainDetails: {},
-        onChainState: {},
+        sheetChainDetails: {},
+        agreementOnChainState: {},
         sheetState: {},
         changes: [],
         validationWarnings: [],
@@ -29,8 +29,8 @@ test("prints an empty changes array for clean state", () => {
         [
             dedent`
                 {
-                  "chainDetails": {},
-                  "onChainState": {},
+                  "sheetChainDetails": {},
+                  "agreementOnChainState": {},
                   "sheetState": {},
                   "changes": [],
                   "validationWarnings": []
@@ -44,15 +44,15 @@ test("prints an empty changes array for clean state", () => {
 
 test("prints raw state and changes with bigint values as decimal strings without mutation", () => {
     const report = {
-        chainDetails: {
+        sheetChainDetails: {
             caip2ChainId: { Ethereum: "eip155:1" },
             name: { "eip155:1": "Ethereum" },
             assetRecoveryAddress: {
                 Ethereum: "0x1000000000000000000000000000000000000001",
             },
         },
-        onChainState: {
-            Ethereum: {
+        agreementOnChainState: {
+            "eip155:1": {
                 accounts: [
                     {
                         accountAddress:
@@ -74,7 +74,7 @@ test("prints raw state and changes with bigint values as decimal strings without
         [
             dedent`
                 {
-                  "chainDetails": {
+                  "sheetChainDetails": {
                     "caip2ChainId": {
                       "Ethereum": "eip155:1"
                     },
@@ -85,8 +85,8 @@ test("prints raw state and changes with bigint values as decimal strings without
                       "Ethereum": "0x1000000000000000000000000000000000000001"
                     }
                   },
-                  "onChainState": {
-                    "Ethereum": {
+                  "agreementOnChainState": {
+                    "eip155:1": {
                       "accounts": [
                         {
                           "accountAddress": "0x2000000000000000000000000000000000000001",
@@ -112,9 +112,9 @@ test("prints raw state and changes with bigint values as decimal strings without
             `,
         ],
     ]);
-    expect(report.onChainState.Ethereum.accounts[0].childContractScope).toBe(
-        2n,
-    );
+    expect(
+        report.agreementOnChainState["eip155:1"].accounts[0].childContractScope,
+    ).toBe(2n);
     expect(report.changes).toEqual([
         { fn: "removeChains", args: [["eip155:1"]] },
     ]);
@@ -124,8 +124,13 @@ test("prints raw state and changes with bigint values as decimal strings without
 
 test("prints no changes with diagnostics when planning is blocked", () => {
     const report = {
-        chainDetails: {},
-        onChainState: {},
+        sheetChainDetails: {},
+        agreementOnChainState: {
+            "eip155:8453": {
+                accounts: [{ accountAddress: "A", childContractScope: 2n }],
+                assetRecoveryAddress: "recovery",
+            },
+        },
         sheetState: {},
         changes: [],
         validationWarnings: [
@@ -141,8 +146,18 @@ test("prints no changes with diagnostics when planning is blocked", () => {
         [
             dedent`
                 {
-                  "chainDetails": {},
-                  "onChainState": {},
+                  "sheetChainDetails": {},
+                  "agreementOnChainState": {
+                    "eip155:8453": {
+                      "accounts": [
+                        {
+                          "accountAddress": "A",
+                          "childContractScope": "2"
+                        }
+                      ],
+                      "assetRecoveryAddress": "recovery"
+                    }
+                  },
                   "sheetState": {},
                   "changes": [],
                   "validationWarnings": [

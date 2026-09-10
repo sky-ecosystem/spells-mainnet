@@ -7,16 +7,13 @@ import { normalizeOnChainState } from "./normalize.js";
 export function createAgreementReader(provider) {
     const getChainlogAddress = createChainlogReader(provider);
 
-    return async function getAgreementState(chainDetails) {
+    return async function getAgreementState() {
         const agreementInstance = new Contract(
             await getChainlogAddress(AGREEMENT_CHAINLOG_KEY),
             AGREEMENT_V3_ABI,
             provider,
         );
-        return normalizeOnChainState(
-            await agreementInstance.getDetails(),
-            chainDetails,
-        );
+        return normalizeOnChainState(await agreementInstance.getDetails());
     };
 }
 

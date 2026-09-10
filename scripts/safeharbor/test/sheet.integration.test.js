@@ -219,7 +219,7 @@ describe("contracts CSV headers", () => {
             }),
         ).resolves.toEqual({
             value: {
-                ETHEREUM: [
+                "eip155:1": [
                     {
                         accountAddress:
                             "0x2000000000000000000000000000000000000001",

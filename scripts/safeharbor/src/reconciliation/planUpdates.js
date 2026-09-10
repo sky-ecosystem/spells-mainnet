@@ -1,15 +1,20 @@
 import { DIAGNOSTIC_CODES as $ } from "../diagnosticCodes.js";
 
 // The caller must validate state before planning updates.
-export function planUpdates(onChainState, sheetState, chainDetails) {
-    const [diagnostic] = validateUpdateInputs(onChainState, sheetState);
-    if (diagnostic) {
-        throw Object.assign(new Error(diagnostic.code), { diagnostic });
-    }
+export function planUpdates(
+    agreementOnChainState,
+    sheetState,
+    sheetChainDetails,
+) {
+    assertUpdateInputs(agreementOnChainState, sheetState, sheetChainDetails);
 
     return [
-        ...generateChainUpdates(onChainState, sheetState, chainDetails),
-        ...generateAccountUpdates(onChainState, sheetState, chainDetails),
+        ...generateChainUpdates(
+            agreementOnChainState,
+            sheetState,
+            sheetChainDetails,
+        ),
+        ...generateAccountUpdates(agreementOnChainState, sheetState),
     ];
 }
 
@@ -31,74 +36,71 @@ function getAccountKey(account) {
     return `${account.accountAddress}-${account.childContractScope}`;
 }
 
-function generateAccountUpdates(onChainState, sheetState, chainDetails) {
-    const updates = [];
-
-    // New chains are handled by generateChainUpdates
-    for (const chainName of Object.keys(onChainState)) {
-        if (!Object.hasOwn(sheetState, chainName)) {
-            continue;
-        }
-
-        const chainId = chainDetails.caip2ChainId[chainName];
-        const currentAccounts = onChainState[chainName].accounts;
-
-        const { toAdd, toRemove } = calculateAccountDifferences(
-            currentAccounts,
-            sheetState[chainName],
+function generateAccountUpdates(agreementOnChainState, sheetState) {
+    // New chains are handled by generateChainUpdates.
+    return Object.keys(agreementOnChainState)
+        .filter((chainId) => Object.hasOwn(sheetState, chainId))
+        .flatMap((chainId) =>
+            generateChainAccountUpdates(
+                chainId,
+                agreementOnChainState[chainId].accounts,
+                sheetState[chainId],
+            ),
         );
+}
 
-        const removesAllCurrentAccounts =
-            toRemove.length === currentAccounts.length;
+function generateChainAccountUpdates(
+    chainId,
+    currentAccounts,
+    desiredAccounts,
+) {
+    const updates = [];
+    const { toAdd, toRemove } = calculateAccountDifferences(
+        currentAccounts,
+        desiredAccounts,
+    );
+    const removesAllCurrentAccounts =
+        toRemove.length === currentAccounts.length;
 
-        // Add replacements first if removing first would leave the chain empty.
-        if (removesAllCurrentAccounts && toAdd.length > 0) {
-            updates.push({ fn: "addAccounts", args: [chainId, toAdd] });
-        }
+    // Add replacements first if removing first would leave the chain empty.
+    if (removesAllCurrentAccounts && toAdd.length > 0) {
+        updates.push({ fn: "addAccounts", args: [chainId, toAdd] });
+    }
 
-        if (toRemove.length > 0) {
-            // Reverse full replacements so swap-and-pop cannot remove a new scope.
-            updates.push({
-                fn: "removeAccounts",
-                args: [
-                    chainId,
-                    removesAllCurrentAccounts
-                        ? [...toRemove].reverse()
-                        : toRemove,
-                ],
-            });
-        }
+    if (toRemove.length > 0) {
+        // Reverse full replacements so swap-and-pop cannot remove a new scope.
+        updates.push({
+            fn: "removeAccounts",
+            args: [
+                chainId,
+                removesAllCurrentAccounts ? [...toRemove].reverse() : toRemove,
+            ],
+        });
+    }
 
-        if (!removesAllCurrentAccounts && toAdd.length > 0) {
-            updates.push({ fn: "addAccounts", args: [chainId, toAdd] });
-        }
+    if (!removesAllCurrentAccounts && toAdd.length > 0) {
+        updates.push({ fn: "addAccounts", args: [chainId, toAdd] });
     }
 
     return updates;
 }
 
-function generateChainUpdates(onChainState, sheetState, chainDetails) {
+function generateChainUpdates(
+    agreementOnChainState,
+    sheetState,
+    sheetChainDetails,
+) {
     const updates = [];
-
-    const currentChainNames = Object.keys(onChainState);
-    const desiredChainNames = Object.keys(sheetState);
-
-    const chainsToRemove = currentChainNames.filter(
-        (chain) => !desiredChainNames.includes(chain),
-    );
-    const chainsToAdd = desiredChainNames.filter(
-        (chain) => !currentChainNames.includes(chain),
+    const { chainsToRemove, chainsToAdd } = calculateChainDifferences(
+        agreementOnChainState,
+        sheetState,
     );
 
     // Remove chains that are no longer in the Safeharbor Sheet - batch them together
     if (chainsToRemove.length > 0) {
         updates.push({
             fn: "removeChains",
-            args: [
-                chainsToRemove.map(
-                    (chainName) => chainDetails.caip2ChainId[chainName],
-                ),
-            ],
+            args: [chainsToRemove],
         });
     }
 
@@ -107,11 +109,13 @@ function generateChainUpdates(onChainState, sheetState, chainDetails) {
         updates.push({
             fn: "addChains",
             args: [
-                chainsToAdd.map((chainName) => ({
+                chainsToAdd.map((chainId) => ({
                     assetRecoveryAddress:
-                        chainDetails.assetRecoveryAddress[chainName],
-                    accounts: sheetState[chainName],
-                    caip2ChainId: chainDetails.caip2ChainId[chainName],
+                        sheetChainDetails.assetRecoveryAddress[
+                            sheetChainDetails.name[chainId]
+                        ],
+                    accounts: sheetState[chainId],
+                    caip2ChainId: chainId,
                 })),
             ],
         });
@@ -120,39 +124,82 @@ function generateChainUpdates(onChainState, sheetState, chainDetails) {
     return updates;
 }
 
-function validateUpdateInputs(onChainState, sheetState) {
-    return Object.entries(sheetState).flatMap(
-        ([chainName, desiredAccounts]) => {
-            const isNewChain = !Object.hasOwn(onChainState, chainName);
-            const accounts = desiredAccounts || [];
-            if (accounts.length === 0) {
-                return [
-                    {
-                        code: isNewChain
-                            ? $.ADDED_CHAIN_WITHOUT_ACCOUNTS
-                            : $.EXISTING_CHAIN_WITHOUT_ACCOUNTS,
-                        context: { chainName },
-                    },
-                ];
-            }
-            if (!isNewChain) {
-                return [];
-            }
+function calculateChainDifferences(agreementOnChainState, sheetState) {
+    const currentChainIds = Object.keys(agreementOnChainState);
+    const desiredChainIds = Object.keys(sheetState);
+    return {
+        chainsToRemove: currentChainIds.filter(
+            (chainId) => !desiredChainIds.includes(chainId),
+        ),
+        chainsToAdd: desiredChainIds.filter(
+            (chainId) => !currentChainIds.includes(chainId),
+        ),
+    };
+}
 
-            const invalidAccounts = accounts.filter(
-                (account) =>
-                    !account.accountAddress ||
-                    account.childContractScope === undefined ||
-                    account.childContractScope === null,
-            );
-            return invalidAccounts.length > 0
-                ? [
-                      {
-                          code: $.INVALID_NEW_CHAIN_ACCOUNTS,
-                          context: { chainName, accounts: invalidAccounts },
-                      },
-                  ]
-                : [];
-        },
+function assertUpdateInputs(
+    agreementOnChainState,
+    sheetState,
+    sheetChainDetails,
+) {
+    const [diagnostic] = validateUpdateInputs(
+        agreementOnChainState,
+        sheetState,
+        sheetChainDetails,
     );
+    if (!diagnostic) {
+        return;
+    }
+    throw Object.assign(new Error(diagnostic.code), { diagnostic });
+}
+
+function validateUpdateInputs(
+    agreementOnChainState,
+    sheetState,
+    sheetChainDetails,
+) {
+    return Object.entries(sheetState).flatMap(([chainId, desiredAccounts]) => {
+        const isNewChain = !Object.hasOwn(agreementOnChainState, chainId);
+        const chainName = Object.hasOwn(sheetChainDetails.name, chainId)
+            ? sheetChainDetails.name[chainId]
+            : chainId;
+
+        return validateChainUpdate(
+            desiredAccounts ?? [],
+            isNewChain,
+            chainName,
+        );
+    });
+}
+
+function validateChainUpdate(accounts, isNewChain, chainName) {
+    if (accounts.length === 0) {
+        return [
+            {
+                code: isNewChain
+                    ? $.ADDED_CHAIN_WITHOUT_ACCOUNTS
+                    : $.EXISTING_CHAIN_WITHOUT_ACCOUNTS,
+                context: { chainName },
+            },
+        ];
+    }
+    if (!isNewChain) {
+        return [];
+    }
+
+    const invalidAccounts = accounts.filter(
+        (account) =>
+            !account.accountAddress ||
+            account.childContractScope === undefined ||
+            account.childContractScope === null,
+    );
+    if (invalidAccounts.length === 0) {
+        return [];
+    }
+    return [
+        {
+            code: $.INVALID_NEW_CHAIN_ACCOUNTS,
+            context: { chainName, accounts: invalidAccounts },
+        },
+    ];
 }

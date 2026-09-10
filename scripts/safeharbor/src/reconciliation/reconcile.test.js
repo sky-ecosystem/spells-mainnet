@@ -51,11 +51,7 @@ test("waits for metadata before reading the Sheet state and Agreement concurrent
         assetRecoveryAddress: {},
         name: {},
     });
-    expect(getAgreementState).toHaveBeenCalledExactlyOnceWith({
-        caip2ChainId: {},
-        assetRecoveryAddress: {},
-        name: {},
-    });
+    expect(getAgreementState).toHaveBeenCalledExactlyOnceWith();
     expect(settled).not.toHaveBeenCalled();
 
     resolveSheetState({ value: {}, warnings: [] });

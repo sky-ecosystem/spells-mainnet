@@ -8,7 +8,7 @@ export const diagnosticTemplates = {
     [$.DUPLICATE_SHEET_ACCOUNT]:
         "Duplicate account address in Safeharbor Sheet for chain '{chainName}': {address}; first scope={firstScope}, duplicate scope={duplicateScope}",
     [$.DUPLICATE_ONCHAIN_ACCOUNT]:
-        "Duplicate account address in on-chain state for chain '{chainName}': {address}; first scope={firstScope}, duplicate scope={duplicateScope}",
+        "Duplicate account address in on-chain state for chain '{chainId}': {address}; first scope={firstScope}, duplicate scope={duplicateScope}",
     [$.UNKNOWN_SHEET_CHAIN]:
         "Unknown chain details in Safeharbor Sheet: name='{chainName}'\nInclude chain details to the chain details tab in the Safeharbor Sheet to add coverage to it.",
     [$.UNKNOWN_ONCHAIN_CHAIN]:

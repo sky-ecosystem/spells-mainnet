@@ -100,11 +100,13 @@ npm run generate
 
 If any validation warning is reported, `generate` exits with code `2` and prints neither Solidity nor a success message.
 
-On successful inspection, `inspect` outputs JSON containing `chainDetails`, `onChainState`, `sheetState`, `changes`, and `validationWarnings`, and exits with code `0` even when warnings are present. Changes are an array of unencoded `{ fn, args }` operations. An empty array means either no updates are needed or warnings blocked planning; check `validationWarnings` to distinguish them. Bigint values are serialized as decimal strings only in the JSON output. Inspection includes neither calldata nor Solidity. Parsing, network, RPC, configuration, and command errors instead exit with code `1` without a JSON result:
+On successful inspection, `inspect` outputs JSON containing `sheetChainDetails`, `agreementOnChainState`, `sheetState`, `changes`, and `validationWarnings`, and exits with code `0` even when warnings are present. Changes are an array of unencoded `{ fn, args }` operations. An empty array means either no updates are needed or warnings blocked planning; check `validationWarnings` to distinguish them. Bigint values are serialized as decimal strings only in the JSON output. Inspection includes neither calldata nor Solidity. Parsing, network, RPC, configuration, and command errors instead exit with code `1` without a JSON result:
 
 ```bash
 npm run inspect
 ```
+
+Both states are keyed by CAIP-2 chain ID. On-chain IDs missing from Sheet metadata remain visible and block planning; unresolved Sheet names are reported as warnings and omitted from `sheetState`.
 
 Verify that the sheet and the on-chain agreement match:
 

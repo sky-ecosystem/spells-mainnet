@@ -1,39 +1,53 @@
 import { checkStateConsistency } from "./checkStateConsistency.js";
 import { planUpdates } from "./planUpdates.js";
+import { DIAGNOSTIC_CODES as $ } from "../diagnosticCodes.js";
 
 export async function reconcile({
     getAgreementState,
     getSheetState,
     getSheetChainDetails,
 }) {
-    const chainDetailsResult = await getSheetChainDetails();
-    const [sheetResult, onChainResult] = await Promise.all([
-        getSheetState(chainDetailsResult.value),
-        getAgreementState(chainDetailsResult.value),
+    const sheetChainDetailsResult = await getSheetChainDetails();
+    const [sheetResult, agreementOnChainResult] = await Promise.all([
+        getSheetState(sheetChainDetailsResult.value),
+        getAgreementState(),
     ]);
     const validationWarnings = [
-        ...chainDetailsResult.warnings,
-        ...onChainResult.warnings,
+        ...sheetChainDetailsResult.warnings,
+        ...validateKnownOnChainIds(
+            agreementOnChainResult.value,
+            sheetChainDetailsResult.value,
+        ),
+        ...agreementOnChainResult.warnings,
         ...sheetResult.warnings,
         ...checkStateConsistency(
-            onChainResult.value,
+            agreementOnChainResult.value,
             sheetResult.value,
-            chainDetailsResult.value,
+            sheetChainDetailsResult.value,
         ),
     ];
 
     return {
-        chainDetails: chainDetailsResult.value,
-        onChainState: onChainResult.value,
+        sheetChainDetails: sheetChainDetailsResult.value,
+        agreementOnChainState: agreementOnChainResult.value,
         sheetState: sheetResult.value,
         changes:
             validationWarnings.length > 0
                 ? []
                 : planUpdates(
-                      onChainResult.value,
+                      agreementOnChainResult.value,
                       sheetResult.value,
-                      chainDetailsResult.value,
+                      sheetChainDetailsResult.value,
                   ),
         validationWarnings,
     };
+}
+
+function validateKnownOnChainIds(agreementOnChainState, sheetChainDetails) {
+    return Object.keys(agreementOnChainState)
+        .filter((chainId) => !Object.hasOwn(sheetChainDetails.name, chainId))
+        .map((chainId) => ({
+            code: $.UNKNOWN_ONCHAIN_CHAIN,
+            context: { chainId },
+        }));
 }

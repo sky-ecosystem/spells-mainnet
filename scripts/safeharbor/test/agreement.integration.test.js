@@ -42,7 +42,10 @@ test("resolves the Agreement and returns normalized state with diagnostics", asy
                 caip2ChainId: "eip155:999999",
                 assetRecoveryAddress:
                     "0x1000000000000000000000000000000000000002",
-                accounts: [["0x3000000000000000000000000000000000000001", 0n]],
+                accounts: [
+                    ["0x3000000000000000000000000000000000000001", 0n],
+                    ["0x3000000000000000000000000000000000000001", 2n],
+                ],
             },
         ],
     };
@@ -52,11 +55,9 @@ test("resolves the Agreement and returns normalized state with diagnostics", asy
     );
     Contract.mockReturnValue({ getDetails });
 
-    expect(
-        await getAgreementState({ name: { "eip155:1": "ETHEREUM" } }),
-    ).toEqual({
+    expect(await getAgreementState()).toEqual({
         value: {
-            ETHEREUM: {
+            "eip155:1": {
                 accounts: [
                     {
                         accountAddress:
@@ -67,11 +68,32 @@ test("resolves the Agreement and returns normalized state with diagnostics", asy
                 assetRecoveryAddress:
                     "0x1000000000000000000000000000000000000001",
             },
+            "eip155:999999": {
+                accounts: [
+                    {
+                        accountAddress:
+                            "0x3000000000000000000000000000000000000001",
+                        childContractScope: 0n,
+                    },
+                    {
+                        accountAddress:
+                            "0x3000000000000000000000000000000000000001",
+                        childContractScope: 2n,
+                    },
+                ],
+                assetRecoveryAddress:
+                    "0x1000000000000000000000000000000000000002",
+            },
         },
         warnings: [
             {
-                code: "UNKNOWN_ONCHAIN_CHAIN",
-                context: { chainId: "eip155:999999" },
+                code: "DUPLICATE_ONCHAIN_ACCOUNT",
+                context: {
+                    chainId: "eip155:999999",
+                    address: "0x3000000000000000000000000000000000000001",
+                    firstScope: 0n,
+                    duplicateScope: 2n,
+                },
             },
         ],
     });
@@ -95,11 +117,11 @@ test("reuses the Chainlog reader without caching the resolved Agreement address"
         getDetails: vi.fn().mockResolvedValue({ chains: [] }),
     });
 
-    await expect(getAgreementState({ name: {} })).resolves.toEqual({
+    await expect(getAgreementState()).resolves.toEqual({
         value: {},
         warnings: [],
     });
-    await expect(getAgreementState({ name: {} })).resolves.toEqual({
+    await expect(getAgreementState()).resolves.toEqual({
         value: {},
         warnings: [],
     });
@@ -127,7 +149,7 @@ test("propagates Chainlog lookup failures", async () => {
     const failure = new Error("Chainlog unavailable");
     getChainlogAddress.mockRejectedValue(failure);
 
-    await expect(getAgreementState({ name: {} })).rejects.toBe(failure);
+    await expect(getAgreementState()).rejects.toBe(failure);
     expect(Contract).not.toHaveBeenCalled();
 });
 
@@ -140,7 +162,7 @@ test("propagates Agreement construction failures", async () => {
         throw failure;
     });
 
-    await expect(getAgreementState({ name: {} })).rejects.toBe(failure);
+    await expect(getAgreementState()).rejects.toBe(failure);
 });
 
 test("propagates Agreement state-read failures", async () => {
@@ -152,5 +174,5 @@ test("propagates Agreement state-read failures", async () => {
         getDetails: vi.fn().mockRejectedValue(failure),
     });
 
-    await expect(getAgreementState({ name: {} })).rejects.toBe(failure);
+    await expect(getAgreementState()).rejects.toBe(failure);
 });

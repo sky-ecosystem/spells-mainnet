@@ -16,8 +16,8 @@ afterEach(() => vi.restoreAllMocks());
 
 test("prints generated Solidity and the success summary for pending changes", () => {
     const report = {
-        chainDetails: {},
-        onChainState: {},
+        sheetChainDetails: {},
+        agreementOnChainState: {},
         sheetState: {},
         changes: [{ fn: "removeChains", args: [["eip155:8453"]] }],
         validationWarnings: [],
@@ -48,8 +48,8 @@ test("prints generated Solidity and the success summary for pending changes", ()
 
 test("prints only the no-updates summary for clean state", () => {
     const report = {
-        chainDetails: {},
-        onChainState: {},
+        sheetChainDetails: {},
+        agreementOnChainState: {},
         sheetState: {},
         changes: [],
         validationWarnings: [],
@@ -66,8 +66,8 @@ test("prints only the no-updates summary for clean state", () => {
 
 test("blocks generation on validation warnings without printing individual diagnostics", () => {
     const report = {
-        chainDetails: {},
-        onChainState: {},
+        sheetChainDetails: {},
+        agreementOnChainState: {},
         sheetState: {},
         changes: [],
         validationWarnings: [
@@ -88,8 +88,8 @@ test("blocks generation on validation warnings without printing individual diagn
 
 test("propagates generation errors to the CLI", () => {
     const report = {
-        chainDetails: {},
-        onChainState: {},
+        sheetChainDetails: {},
+        agreementOnChainState: {},
         sheetState: {},
         changes: [{ fn: "removeChains", args: [["eip155:8453"]] }],
         validationWarnings: [],

@@ -7,8 +7,8 @@ test.each([
     {
         scenario: "adding a new chain without accounts",
         current: {},
-        desired: { OPTIMISM: [] },
-        chainDetails: {
+        desired: { "eip155:10": [] },
+        sheetChainDetails: {
             caip2ChainId: { OPTIMISM: "eip155:10" },
             assetRecoveryAddress: {
                 OPTIMISM: "0x1000000000000000000000000000000000000004",
@@ -23,7 +23,7 @@ test.each([
     {
         scenario: "an existing chain without desired accounts",
         current: {
-            BASE: {
+            "eip155:8453": {
                 accounts: [
                     {
                         accountAddress:
@@ -35,8 +35,8 @@ test.each([
                     "0x1000000000000000000000000000000000000002",
             },
         },
-        desired: { BASE: [] },
-        chainDetails: {
+        desired: { "eip155:8453": [] },
+        sheetChainDetails: {
             caip2ChainId: { BASE: "eip155:8453" },
             assetRecoveryAddress: {
                 BASE: "0x1000000000000000000000000000000000000002",
@@ -51,7 +51,7 @@ test.each([
     {
         scenario: "invalid accounts in a later new chain",
         current: {
-            ETHEREUM: {
+            "eip155:1": {
                 accounts: [
                     {
                         accountAddress:
@@ -64,16 +64,16 @@ test.each([
             },
         },
         desired: {
-            BASE: [
+            "eip155:8453": [
                 {
                     accountAddress:
                         "0x3000000000000000000000000000000000000001",
                     childContractScope: 0,
                 },
             ],
-            OPTIMISM: [{ accountAddress: "", childContractScope: 0 }],
+            "eip155:10": [{ accountAddress: "", childContractScope: 0 }],
         },
-        chainDetails: {
+        sheetChainDetails: {
             caip2ChainId: {
                 ETHEREUM: "eip155:1",
                 BASE: "eip155:8453",
@@ -98,13 +98,16 @@ test.each([
             },
         },
     },
-])("rejects $scenario", ({ current, desired, chainDetails, diagnostic }) => {
-    let failure;
-    try {
-        planUpdates(current, desired, chainDetails);
-    } catch (error) {
-        failure = error;
-    }
-    expect(failure).toBeInstanceOf(Error);
-    expect(failure.diagnostic).toEqual(diagnostic);
-});
+])(
+    "rejects $scenario",
+    ({ current, desired, sheetChainDetails, diagnostic }) => {
+        let failure;
+        try {
+            planUpdates(current, desired, sheetChainDetails);
+        } catch (error) {
+            failure = error;
+        }
+        expect(failure).toBeInstanceOf(Error);
+        expect(failure.diagnostic).toEqual(diagnostic);
+    },
+);

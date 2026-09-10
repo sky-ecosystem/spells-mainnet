@@ -171,7 +171,7 @@ describe.each([
         },
         solidityCode: "",
         report: {
-            chainDetails: {
+            sheetChainDetails: {
                 caip2ChainId: {
                     ETHEREUM: "eip155:1",
                 },
@@ -182,8 +182,8 @@ describe.each([
                     "eip155:1": "ETHEREUM",
                 },
             },
-            onChainState: {
-                ETHEREUM: {
+            agreementOnChainState: {
+                "eip155:1": {
                     accounts: [
                         {
                             accountAddress:
@@ -196,7 +196,7 @@ describe.each([
                 },
             },
             sheetState: {
-                ETHEREUM: [
+                "eip155:1": [
                     {
                         accountAddress:
                             "0x2000000000000000000000000000000000000001",
@@ -241,7 +241,7 @@ describe.each([
             _updateSafeHarbor(calldatas);
         `,
         report: {
-            chainDetails: {
+            sheetChainDetails: {
                 caip2ChainId: {
                     ETHEREUM: "eip155:1",
                 },
@@ -252,8 +252,8 @@ describe.each([
                     "eip155:1": "ETHEREUM",
                 },
             },
-            onChainState: {
-                ETHEREUM: {
+            agreementOnChainState: {
+                "eip155:1": {
                     accounts: [
                         {
                             accountAddress:
@@ -304,7 +304,7 @@ describe.each([
         },
         solidityCode: "",
         report: {
-            chainDetails: {
+            sheetChainDetails: {
                 caip2ChainId: {
                     ETHEREUM: "eip155:1",
                 },
@@ -315,8 +315,8 @@ describe.each([
                     "eip155:1": "ETHEREUM",
                 },
             },
-            onChainState: {
-                ETHEREUM: {
+            agreementOnChainState: {
+                "eip155:1": {
                     accounts: [
                         {
                             accountAddress:
@@ -329,7 +329,7 @@ describe.each([
                 },
             },
             sheetState: {
-                ETHEREUM: [
+                "eip155:1": [
                     {
                         accountAddress:
                             "0x2000000000000000000000000000000000000001",
@@ -388,7 +388,7 @@ describe.each([
         },
         solidityCode: "",
         report: {
-            chainDetails: {
+            sheetChainDetails: {
                 caip2ChainId: {
                     ETHEREUM: "eip155:1",
                 },
@@ -399,8 +399,8 @@ describe.each([
                     "eip155:1": "ETHEREUM",
                 },
             },
-            onChainState: {
-                ETHEREUM: {
+            agreementOnChainState: {
+                "eip155:1": {
                     accounts: [
                         {
                             accountAddress:
@@ -413,7 +413,7 @@ describe.each([
                 },
             },
             sheetState: {
-                ETHEREUM: [
+                "eip155:1": [
                     {
                         accountAddress:
                             "0x2000000000000000000000000000000000000002",
@@ -456,6 +456,68 @@ describe.each([
                 On-chain: 0x1000000000000000000000000000000000000002
                 Safeharbor Sheet: 0x1000000000000000000000000000000000000001
             `,
+        ],
+        exitCodes: { generate: 2, inspect: 0, verify: 2 },
+        generateMessage: "Payload generation blocked: 2 validation warning(s).",
+        verifyMessage:
+            "SafeHarbor verification failed: 0 update(s), 2 validation warning(s).",
+    },
+    {
+        scenario:
+            "unknown on-chain IDs and their duplicate accounts remain inspectable",
+        chainCSV: "Name,Chain Id,Asset Recovery Address\n",
+        contractCSV: "Status,Chain,Address,isFactory\n",
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:8453",
+                    assetRecoveryAddress: "recovery",
+                    accounts: [
+                        ["A", 0n],
+                        ["A", 2n],
+                    ],
+                },
+            ],
+        },
+        report: {
+            sheetChainDetails: {
+                caip2ChainId: {},
+                assetRecoveryAddress: {},
+                name: {},
+            },
+            agreementOnChainState: {
+                "eip155:8453": {
+                    accounts: [
+                        { accountAddress: "A", childContractScope: "0" },
+                        { accountAddress: "A", childContractScope: "2" },
+                    ],
+                    assetRecoveryAddress: "recovery",
+                },
+            },
+            sheetState: {},
+            changes: [],
+            validationWarnings: [
+                {
+                    code: "UNKNOWN_ONCHAIN_CHAIN",
+                    context: { chainId: "eip155:8453" },
+                },
+                {
+                    code: "DUPLICATE_ONCHAIN_ACCOUNT",
+                    context: {
+                        chainId: "eip155:8453",
+                        address: "A",
+                        firstScope: "0",
+                        duplicateScope: "2",
+                    },
+                },
+            ],
+        },
+        warningMessages: [
+            dedent`
+                Unknown chain details in on-chain state: caip2ChainId='eip155:8453'.
+                To either remove or keep this chain, please add the chain details to the chain details tab in the Safeharbor Sheet.
+            `,
+            "Duplicate account address in on-chain state for chain 'eip155:8453': A; first scope=0, duplicate scope=2",
         ],
         exitCodes: { generate: 2, inspect: 0, verify: 2 },
         generateMessage: "Payload generation blocked: 2 validation warning(s).",
