@@ -1,25 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { Contract, Interface, JsonRpcProvider } from "ethers";
 import { dedent } from "./helpers/dedent.js";
 import { getSheetChainDetails, getSheetState } from "../src/sheet/index.js";
-import { reconcile } from "../src/reconciliation/index.js";
-import { createAgreementReader } from "../src/agreement/index.js";
-
-vi.mock("ethers", async (importOriginal) => ({
-    ...(await importOriginal()),
-    Contract: vi.fn(),
-}));
-
-const getDetails = vi.fn();
-let provider;
 
 beforeEach(() => {
-    provider = new JsonRpcProvider("https://rpc.example");
-    Contract.mockReturnValueOnce({
-        "getAddress(bytes32)": vi
-            .fn()
-            .mockResolvedValue("0x7000000000000000000000000000000000000001"),
-    }).mockReturnValueOnce({ getDetails });
     vi.stubGlobal("fetch", vi.fn());
     vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
@@ -32,7 +15,6 @@ afterEach(() => {
         expect(console.error).not.toHaveBeenCalled();
         expect(console.log).not.toHaveBeenCalled();
     } finally {
-        provider.destroy();
         vi.unstubAllGlobals();
         vi.restoreAllMocks();
         vi.resetAllMocks();
@@ -399,19 +381,28 @@ describe("malformed CSV", () => {
         [
             "contracts with an unterminated quote",
             getSheetState,
-            'Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,"0x2000000000000000000000000000000000000001,FALSE\n',
+            dedent`
+                Status,Chain,Address,isFactory
+                ACTIVE,ETHEREUM,"0x2000000000000000000000000000000000000001,FALSE
+            `,
             "CSV_QUOTE_NOT_CLOSED",
         ],
         [
             "contracts with too few fields",
             getSheetState,
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001\n",
+            dedent`
+                Status,Chain,Address,isFactory
+                ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001
+            `,
             "CSV_RECORD_INCONSISTENT_COLUMNS",
         ],
         [
             "contracts with too many fields",
             getSheetState,
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE,EXTRA\n",
+            dedent`
+                Status,Chain,Address,isFactory
+                ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE,EXTRA
+            `,
             "CSV_RECORD_INCONSISTENT_COLUMNS",
         ],
         [
@@ -423,19 +414,28 @@ describe("malformed CSV", () => {
         [
             "chain metadata with an unterminated quote",
             getSheetChainDetails,
-            'Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,"0x1000000000000000000000000000000000000001\n',
+            dedent`
+                Name,Chain Id,Asset Recovery Address
+                ETHEREUM,eip155:1,"0x1000000000000000000000000000000000000001
+            `,
             "CSV_QUOTE_NOT_CLOSED",
         ],
         [
             "chain metadata with too few fields",
             getSheetChainDetails,
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1\n",
+            dedent`
+                Name,Chain Id,Asset Recovery Address
+                ETHEREUM,eip155:1
+            `,
             "CSV_RECORD_INCONSISTENT_COLUMNS",
         ],
         [
             "chain metadata with too many fields",
             getSheetChainDetails,
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001,EXTRA\n",
+            dedent`
+                Name,Chain Id,Asset Recovery Address
+                ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001,EXTRA
+            `,
             "CSV_RECORD_INCONSISTENT_COLUMNS",
         ],
     ])("rejects %s", async (_scenario, readCSV, csv, code) => {
@@ -443,150 +443,4 @@ describe("malformed CSV", () => {
 
         await expect(readCSV()).rejects.toMatchObject({ code });
     });
-});
-
-describe("CSV validation before reconciliation", () => {
-    test.each([
-        {
-            scenario: "a repeated Status header hiding an active account",
-            chainCSV: dedent`
-                Name,Chain Id,Asset Recovery Address
-                ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
-            `,
-            contractCSV: dedent`
-                Status,Chain,Address,isFactory,Status
-                ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE,INACTIVE
-            `,
-            error: {
-                diagnostic: {
-                    code: "DUPLICATE_SHEET_HEADERS",
-                    context: { duplicateHeaders: ["Status"] },
-                },
-            },
-        },
-        {
-            scenario: "missing contract headers",
-            chainCSV: dedent`
-                Name,Chain Id,Asset Recovery Address
-                ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
-            `,
-            contractCSV: "Chain,Address,isFactory\n",
-            error: {
-                diagnostic: {
-                    code: "MISSING_SHEET_HEADERS",
-                    context: { missingHeaders: ["Status"] },
-                },
-            },
-        },
-        {
-            scenario: "missing chain metadata headers",
-            chainCSV: "Name,Chain Id\n",
-            contractCSV: "Status,Chain,Address,isFactory\n",
-            error: {
-                diagnostic: {
-                    code: "MISSING_SHEET_HEADERS",
-                    context: { missingHeaders: ["Asset Recovery Address"] },
-                },
-            },
-        },
-        {
-            scenario: "malformed contracts CSV",
-            chainCSV: dedent`
-                Name,Chain Id,Asset Recovery Address
-                ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
-            `,
-            contractCSV:
-                'Status,Chain,Address,isFactory\n"INACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n',
-            error: { code: "CSV_QUOTE_NOT_CLOSED" },
-        },
-        {
-            scenario: "malformed chain metadata CSV",
-            chainCSV:
-                'Name,Chain Id,Asset Recovery Address\n"ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n',
-            contractCSV: "Status,Chain,Address,isFactory\n",
-            error: { code: "CSV_QUOTE_NOT_CLOSED" },
-        },
-    ])(
-        "rejects $scenario without encoding removals",
-        async ({ chainCSV, contractCSV, error }) => {
-            fetch
-                .mockResolvedValueOnce(csvResponse(chainCSV))
-                .mockResolvedValueOnce(csvResponse(contractCSV));
-            getDetails.mockResolvedValue({
-                chains: [
-                    {
-                        caip2ChainId: "eip155:1",
-                        assetRecoveryAddress:
-                            "0x1000000000000000000000000000000000000001",
-                        accounts: [
-                            ["0x2000000000000000000000000000000000000001", 0n],
-                        ],
-                    },
-                ],
-            });
-            const encode = vi.spyOn(Interface.prototype, "encodeFunctionData");
-
-            await expect(
-                reconcile({
-                    getAgreementState: createAgreementReader(provider),
-                    getSheetState,
-                    getSheetChainDetails,
-                }),
-            ).rejects.toMatchObject(error);
-            expect(encode).not.toHaveBeenCalled();
-        },
-    );
-
-    test.each([
-        ["isFactory headers only", "Status,Chain,Address,isFactory\n"],
-        ["IsFactory headers only", "Status,Chain,Address,IsFactory\n"],
-        [
-            "no active records",
-            dedent`
-                Status,Chain,Address,isFactory
-                INACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
-            `,
-        ],
-    ])(
-        "preserves intentional chain removal for %s",
-        async (_scenario, contractCSV) => {
-            fetch
-                .mockResolvedValueOnce(
-                    csvResponse(
-                        dedent`
-                            Name,Chain Id,Asset Recovery Address
-                            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
-                        `,
-                    ),
-                )
-                .mockResolvedValueOnce(csvResponse(contractCSV));
-            getDetails.mockResolvedValue({
-                chains: [
-                    {
-                        caip2ChainId: "eip155:1",
-                        assetRecoveryAddress:
-                            "0x1000000000000000000000000000000000000001",
-                        accounts: [
-                            ["0x2000000000000000000000000000000000000001", 0n],
-                        ],
-                    },
-                ],
-            });
-
-            const result = await reconcile({
-                getAgreementState: createAgreementReader(provider),
-                getSheetState,
-                getSheetChainDetails,
-            });
-
-            expect(result.validationWarnings).toEqual([]);
-            expect(result.changes).toEqual([
-                {
-                    fn: "removeChains",
-                    args: [["eip155:1"]],
-                },
-            ]);
-            expect(result).not.toHaveProperty("solidityCode");
-        },
-    );
 });

@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { Interface } from "ethers";
 import { generatePayload } from "../../generation/index.js";
 import { verify } from "./verify.js";
 
@@ -11,7 +10,6 @@ beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(console, "warn").mockImplementation(() => {});
-    vi.spyOn(Interface.prototype, "encodeFunctionData");
 });
 
 afterEach(() => vi.restoreAllMocks());
@@ -67,7 +65,6 @@ test.each([
         expect(verify(report)).toBe(exitCode);
         expect(console.log.mock.calls).toEqual([[message]]);
         expect(console.warn).not.toHaveBeenCalled();
-        expect(Interface.prototype.encodeFunctionData).not.toHaveBeenCalled();
         expect(generatePayload).not.toHaveBeenCalled();
     },
 );

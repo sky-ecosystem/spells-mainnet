@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { Interface } from "ethers";
 import { dedent } from "../../../test/helpers/dedent.js";
 import { generatePayload } from "../../generation/index.js";
 import { inspect } from "./inspect.js";
@@ -12,7 +11,6 @@ beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(console, "warn").mockImplementation(() => {});
-    vi.spyOn(Interface.prototype, "encodeFunctionData");
 });
 
 afterEach(() => vi.restoreAllMocks());
@@ -41,7 +39,6 @@ test("prints an empty changes array for clean state", () => {
         ],
     ]);
     expect(console.warn).not.toHaveBeenCalled();
-    expect(Interface.prototype.encodeFunctionData).not.toHaveBeenCalled();
     expect(generatePayload).not.toHaveBeenCalled();
 });
 
@@ -122,7 +119,6 @@ test("prints raw state and changes with bigint values as decimal strings without
         { fn: "removeChains", args: [["eip155:1"]] },
     ]);
     expect(console.warn).not.toHaveBeenCalled();
-    expect(Interface.prototype.encodeFunctionData).not.toHaveBeenCalled();
     expect(generatePayload).not.toHaveBeenCalled();
 });
 
@@ -163,6 +159,5 @@ test("prints no changes with diagnostics when planning is blocked", () => {
     ]);
     expect(report.changes).toEqual([]);
     expect(console.warn).not.toHaveBeenCalled();
-    expect(Interface.prototype.encodeFunctionData).not.toHaveBeenCalled();
     expect(generatePayload).not.toHaveBeenCalled();
 });

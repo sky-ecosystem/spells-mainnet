@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { Contract, JsonRpcProvider } from "ethers";
+import { Contract, Interface, JsonRpcProvider } from "ethers";
 import { dedent } from "./helpers/dedent.js";
 import { main } from "../src/cli/index.js";
 
@@ -15,6 +15,7 @@ let provider;
 let stdout;
 let stderr;
 let warnings;
+let encodeSpy;
 
 beforeEach(() => {
     getDetails = vi.fn();
@@ -31,6 +32,7 @@ beforeEach(() => {
     stdout = vi.spyOn(console, "log").mockImplementation(() => {});
     stderr = vi.spyOn(console, "error").mockImplementation(() => {});
     warnings = vi.spyOn(console, "warn").mockImplementation(() => {});
+    encodeSpy = vi.spyOn(Interface.prototype, "encodeFunctionData");
 });
 
 afterEach(() => {
@@ -467,6 +469,9 @@ describe.each([
             mockSources(fixture);
 
             expect(await runCli(command)).toBe(fixture.exitCodes[command]);
+            if (command !== "generate") {
+                expect(encodeSpy).not.toHaveBeenCalled();
+            }
             expect(fetch).toHaveBeenCalledTimes(2);
             expect(getDetails).toHaveBeenCalledExactlyOnceWith();
             expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
@@ -535,8 +540,10 @@ describe.each([
             Name,Chain Id,Asset Recovery Address
             ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
         `,
-        contractCSV:
-            'Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,"unterminated,FALSE\n',
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,"unterminated,FALSE
+        `,
         details: {
             chains: [
                 {
