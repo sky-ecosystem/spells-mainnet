@@ -50,7 +50,7 @@ async function generateFrom(fixture) {
     const report = await reconcileFrom(fixture);
     expect(report.validationWarnings).toEqual([]);
     const result = generatePayload(report.changes);
-    payloadSnapshot(result);
+    assertPayloadEncoding(result.updates);
     return result;
 }
 
@@ -2025,26 +2025,32 @@ function normalizeDecodedValue(value, param) {
     return value;
 }
 
+function decodeUpdate(update, index) {
+    const decoded = agreementInterface.parseTransaction({
+        data: update.calldata,
+    });
+    assert.ok(decoded, `Unable to decode payload update ${index}`);
+
+    return {
+        calldata: update.calldata,
+        decodedName: decoded.name,
+        decodedArgs: decoded.fragment.inputs.map((input, inputIndex) =>
+            normalizeDecodedValue(decoded.args[inputIndex], input),
+        ),
+    };
+}
+
+function assertPayloadEncoding(updates) {
+    updates.forEach((update, index) => {
+        const { decodedName, decodedArgs } = decodeUpdate(update, index);
+        assert.strictEqual(decodedName, update.fn);
+        assert.deepStrictEqual(decodedArgs, update.args);
+    });
+}
+
 function payloadSnapshot({ updates, solidityCode }) {
     return {
         solidityCode,
-        updates: updates.map((update, index) => {
-            const decoded = agreementInterface.parseTransaction({
-                data: update.calldata,
-            });
-            assert.ok(decoded, `Unable to decode payload update ${index}`);
-            assert.strictEqual(decoded.name, update.fn);
-            const decodedArgs = decoded.fragment.inputs.map(
-                (input, inputIndex) =>
-                    normalizeDecodedValue(decoded.args[inputIndex], input),
-            );
-            assert.deepStrictEqual(decodedArgs, update.args);
-
-            return {
-                calldata: update.calldata,
-                decodedName: decoded.name,
-                decodedArgs,
-            };
-        }),
+        updates: updates.map(decodeUpdate),
     };
 }
