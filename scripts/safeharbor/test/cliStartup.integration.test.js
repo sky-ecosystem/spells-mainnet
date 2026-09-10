@@ -234,11 +234,7 @@ test.each(["encoding", "reporting"])(
                         assetRecoveryAddress:
                             "0x1000000000000000000000000000000000000001",
                         accounts: [
-                            {
-                                accountAddress:
-                                    "0x2000000000000000000000000000000000000001",
-                                childContractScope: 0n,
-                            },
+                            ["0x2000000000000000000000000000000000000001", 0n],
                         ],
                     },
                 ],
