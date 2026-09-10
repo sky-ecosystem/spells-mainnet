@@ -64,8 +64,39 @@ test("prints raw state and changes with bigint values as decimal strings without
                     "0x1000000000000000000000000000000000000001",
             },
         },
-        sheetState: {},
-        changes: [{ fn: "removeChains", args: [["eip155:1"]] }],
+        sheetState: {
+            "eip155:1": {
+                accounts: [
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000001",
+                        childContractScope: 2,
+                    },
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000002",
+                        childContractScope: 0,
+                    },
+                ],
+                assetRecoveryAddress:
+                    "0x1000000000000000000000000000000000000001",
+            },
+        },
+        changes: [
+            {
+                fn: "addAccounts",
+                args: [
+                    "eip155:1",
+                    [
+                        {
+                            accountAddress:
+                                "0x2000000000000000000000000000000000000002",
+                            childContractScope: 0,
+                        },
+                    ],
+                ],
+            },
+        ],
         validationWarnings: [],
     };
 
@@ -96,13 +127,31 @@ test("prints raw state and changes with bigint values as decimal strings without
                       "assetRecoveryAddress": "0x1000000000000000000000000000000000000001"
                     }
                   },
-                  "sheetState": {},
+                  "sheetState": {
+                    "eip155:1": {
+                      "accounts": [
+                        {
+                          "accountAddress": "0x2000000000000000000000000000000000000001",
+                          "childContractScope": 2
+                        },
+                        {
+                          "accountAddress": "0x2000000000000000000000000000000000000002",
+                          "childContractScope": 0
+                        }
+                      ],
+                      "assetRecoveryAddress": "0x1000000000000000000000000000000000000001"
+                    }
+                  },
                   "changes": [
                     {
-                      "fn": "removeChains",
+                      "fn": "addAccounts",
                       "args": [
+                        "eip155:1",
                         [
-                          "eip155:1"
+                          {
+                            "accountAddress": "0x2000000000000000000000000000000000000002",
+                            "childContractScope": 0
+                          }
                         ]
                       ]
                     }
@@ -115,8 +164,23 @@ test("prints raw state and changes with bigint values as decimal strings without
     expect(
         report.agreementOnChainState["eip155:1"].accounts[0].childContractScope,
     ).toBe(2n);
+    expect(report.sheetState["eip155:1"].accounts[0].childContractScope).toBe(
+        2,
+    );
     expect(report.changes).toEqual([
-        { fn: "removeChains", args: [["eip155:1"]] },
+        {
+            fn: "addAccounts",
+            args: [
+                "eip155:1",
+                [
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000002",
+                        childContractScope: 0,
+                    },
+                ],
+            ],
+        },
     ]);
     expect(console.warn).not.toHaveBeenCalled();
     expect(generatePayload).not.toHaveBeenCalled();

@@ -68,7 +68,7 @@ Validation returns plain diagnostics with a stable `code` from the frozen `DIAGN
 
 Diagnostics contain no human-readable messages. `diagnostic/format.js` owns their wording; the CLI prints each diagnostic to stderr once. `generate` and `verify` also print their command summaries; `inspect` prints JSON instead. The generator, CSV adapter, validators, and diff logic do not print progress or errors. Fatal application checks propagate native `Error` objects carrying a `diagnostic`; parser, fetch, and RPC exceptions propagate unchanged and are reported once at the CLI boundary. Command and header checks still exit `1`, while reconciliation warnings retain their command-specific exit behavior.
 
-The `validationWarnings` field is retained, but its entries are now diagnostic objects rather than strings. This also changes the `inspect` JSON contract: consumers should use `code` and `context`, not parse warning text. Successful `inspect` runs print human-readable diagnostics to stderr and JSON to stdout. Only consume stdout after checking the exit code: ethers may print RPC startup diagnostics there on failed runs.
+The `validationWarnings` field contains diagnostic objects with `code` and `context`; consumers should not parse warning text. Recovery-address and update-planning diagnostics identify chains through `context.chainId` rather than `context.chainName`. Sheet-input diagnostics retain names where appropriate. Successful `inspect` runs print human-readable diagnostics to stderr and JSON to stdout. Only consume stdout after checking the exit code: ethers may print RPC startup diagnostics there on failed runs.
 
 The contracts tab in the Safeharbor Sheet is exported as CSV and requires `Status`, `Chain`, `Address`, and either `isFactory` or `IsFactory`. Chain metadata requires `Name`, `Chain Id`, and `Asset Recovery Address`. Missing or duplicate headers, including in header-only files, and malformed CSV cause an error before normalization or update generation; CLI commands exit with code `1`. The distinct factory aliases may coexist. Completely empty files are invalid because they have no headers. An `ACTIVE` row with an empty account address produces a warning. A contracts CSV with valid headers and no `ACTIVE` records is a legitimate empty desired state and may generate chain removals when the corresponding chain metadata is available.
 
@@ -106,7 +106,7 @@ On successful inspection, `inspect` outputs JSON containing `sheetChainDetails`,
 npm run inspect
 ```
 
-Both states are keyed by CAIP-2 chain ID. On-chain IDs missing from Sheet metadata remain visible and block planning; unresolved Sheet names are reported as warnings and omitted from `sheetState`.
+Both states are keyed by CAIP-2 chain ID, with each chain represented as `{ accounts, assetRecoveryAddress }`. Read Sheet accounts from `sheetState[chainId].accounts`, not directly from `sheetState[chainId]`. Sheet normalization combines the existing contracts and chain-metadata tabs; the Sheet's columns and row format are unchanged. `sheetChainDetails` retains metadata-only chains, which are absent from `sheetState`. On-chain IDs missing from Sheet metadata remain visible and block planning; unresolved Sheet names are reported as warnings and omitted from `sheetState`.
 
 Verify that the sheet and the on-chain agreement match:
 
