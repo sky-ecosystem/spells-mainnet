@@ -1,6 +1,7 @@
 import { Contract, Interface, JsonRpcProvider } from "ethers";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { setImmediate } from "node:timers/promises";
+import { dedent } from "./helpers/dedent.js";
 import { main } from "../src/cli/index.js";
 
 vi.mock("ethers", async (importOriginal) => ({
@@ -37,29 +38,41 @@ test.each([
         scenario: "missing command before missing RPC configuration",
         argv: ["node", "index.js"],
         rpcUrl: "",
-        message:
-            "Error: Command is required\nAvailable commands: generate, inspect, verify\nUsage: npm run <command>",
+        message: dedent`
+            Error: Command is required
+            Available commands: generate, inspect, verify
+            Usage: npm run <command>
+        `,
     },
     {
         scenario: "unknown command before missing RPC configuration",
         argv: ["node", "index.js", "unknown"],
         rpcUrl: "",
-        message:
-            "Error: Unknown command 'unknown'\nAvailable commands: generate, inspect, verify\nUsage: npm run <command>",
+        message: dedent`
+            Error: Unknown command 'unknown'
+            Available commands: generate, inspect, verify
+            Usage: npm run <command>
+        `,
     },
     {
         scenario: "inherited object property as command",
         argv: ["node", "index.js", "toString"],
         rpcUrl: "https://rpc.example",
-        message:
-            "Error: Unknown command 'toString'\nAvailable commands: generate, inspect, verify\nUsage: npm run <command>",
+        message: dedent`
+            Error: Unknown command 'toString'
+            Available commands: generate, inspect, verify
+            Usage: npm run <command>
+        `,
     },
     {
         scenario: "missing RPC configuration",
         argv: ["node", "index.js", "verify"],
         rpcUrl: "",
-        message:
-            "Error: ETH_RPC_URL environment variable is not set.\nPlease set your Ethereum RPC URL in a .env file or as an environment variable.\nExample: ETH_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR_API_KEY",
+        message: dedent`
+            Error: ETH_RPC_URL environment variable is not set.
+            Please set your Ethereum RPC URL in a .env file or as an environment variable.
+            Example: ETH_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR_API_KEY
+        `,
     },
 ])("rejects $scenario before constructing dependencies", async (fixture) => {
     process.argv = fixture.argv;
@@ -195,7 +208,10 @@ test.each(["encoding", "reporting"])(
         fetch
             .mockResolvedValueOnce(
                 new Response(
-                    "Name,Chain Id,Asset Recovery Address\nETH,eip155:1,0x1000000000000000000000000000000000000001\n",
+                    dedent`
+                        Name,Chain Id,Asset Recovery Address
+                        ETH,eip155:1,0x1000000000000000000000000000000000000001
+                    `,
                     { headers: { "content-type": "text/csv" } },
                 ),
             )

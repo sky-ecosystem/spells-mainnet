@@ -1,6 +1,7 @@
 import { test, expect, describe, vi, beforeEach, afterEach } from "vitest";
 import assert from "node:assert";
 import { Contract, Interface, JsonRpcProvider } from "ethers";
+import { dedent } from "./helpers/dedent.js";
 import { generatePayload } from "../src/generation/index.js";
 import { reconcile } from "../src/reconciliation/index.js";
 import { createAgreementReader } from "../src/agreement/index.js";
@@ -128,10 +129,22 @@ describe("generatePayload", () => {
     describe("No changes scenario", () => {
         test("should generate no updates when onChain and CSV data match", async () => {
             const result = await generateFrom({
-                chainCSV:
-                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
-                contractCSV:
-                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE\nACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE\n",
+                chainCSV: dedent`
+                    Name,Chain Id,Asset Recovery Address
+                    ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+                    BASE,eip155:8453,0x1000000000000000000000000000000000000002
+                    ARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003
+                    OPTIMISM,eip155:10,0x1000000000000000000000000000000000000004
+                    SOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2
+                `,
+                contractCSV: dedent`
+                    Status,Chain,Address,isFactory
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE
+                    ACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE
+                    ACTIVE,ARBITRUM,0x4000000000000000000000000000000000000001,FALSE
+                    ACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE
+                `,
                 details: {
                     chains: [
                         {
@@ -189,10 +202,24 @@ describe("generatePayload", () => {
     describe("Account addition scenarios", () => {
         test("should generate addAccounts updates when new accounts are added to existing chains", async () => {
             const result = await generateFrom({
-                chainCSV:
-                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
-                contractCSV:
-                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE\nACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE\nACTIVE,BASE,0x3000000000000000000000000000000000000002,TRUE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE\n",
+                chainCSV: dedent`
+                    Name,Chain Id,Asset Recovery Address
+                    ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+                    BASE,eip155:8453,0x1000000000000000000000000000000000000002
+                    ARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003
+                    OPTIMISM,eip155:10,0x1000000000000000000000000000000000000004
+                    SOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2
+                `,
+                contractCSV: dedent`
+                    Status,Chain,Address,isFactory
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE
+                    ACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE
+                    ACTIVE,BASE,0x3000000000000000000000000000000000000002,TRUE
+                    ACTIVE,ARBITRUM,0x4000000000000000000000000000000000000001,FALSE
+                    ACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE
+                `,
                 details: {
                     chains: [
                         {
@@ -264,10 +291,20 @@ describe("generatePayload", () => {
     describe("Account removal scenarios", () => {
         test("should generate removeAccounts updates when accounts are removed", async () => {
             const result = await generateFrom({
-                chainCSV:
-                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
-                contractCSV:
-                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE\n",
+                chainCSV: dedent`
+                    Name,Chain Id,Asset Recovery Address
+                    ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+                    BASE,eip155:8453,0x1000000000000000000000000000000000000002
+                    ARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003
+                    OPTIMISM,eip155:10,0x1000000000000000000000000000000000000004
+                    SOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2
+                `,
+                contractCSV: dedent`
+                    Status,Chain,Address,isFactory
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+                    ACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE
+                    ACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE
+                `,
                 details: {
                     chains: [
                         {
@@ -335,10 +372,25 @@ describe("generatePayload", () => {
     describe("Chain addition scenarios", () => {
         test("should generate addChains updates when new chains are introduced", async () => {
             const result = await generateFrom({
-                chainCSV:
-                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
-                contractCSV:
-                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE\nACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE\nACTIVE,OPTIMISM,0x5000000000000000000000000000000000000001,FALSE\nACTIVE,OPTIMISM,0x5000000000000000000000000000000000000002,TRUE\nACTIVE,SOLANA,3EKkiwNLWqoUbzFkPrmKbtUB4EweE6f4STzevYUmezeL,FALSE\n",
+                chainCSV: dedent`
+                    Name,Chain Id,Asset Recovery Address
+                    ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+                    BASE,eip155:8453,0x1000000000000000000000000000000000000002
+                    ARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003
+                    OPTIMISM,eip155:10,0x1000000000000000000000000000000000000004
+                    SOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2
+                `,
+                contractCSV: dedent`
+                    Status,Chain,Address,isFactory
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE
+                    ACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE
+                    ACTIVE,ARBITRUM,0x4000000000000000000000000000000000000001,FALSE
+                    ACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE
+                    ACTIVE,OPTIMISM,0x5000000000000000000000000000000000000001,FALSE
+                    ACTIVE,OPTIMISM,0x5000000000000000000000000000000000000002,TRUE
+                    ACTIVE,SOLANA,3EKkiwNLWqoUbzFkPrmKbtUB4EweE6f4STzevYUmezeL,FALSE
+                `,
                 details: {
                     chains: [
                         {
@@ -419,10 +471,19 @@ describe("generatePayload", () => {
     describe("Chain removal scenarios", () => {
         test("should generate removeChains updates when chains are removed", async () => {
             const result = await generateFrom({
-                chainCSV:
-                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
-                contractCSV:
-                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE\n",
+                chainCSV: dedent`
+                    Name,Chain Id,Asset Recovery Address
+                    ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+                    BASE,eip155:8453,0x1000000000000000000000000000000000000002
+                    ARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003
+                    OPTIMISM,eip155:10,0x1000000000000000000000000000000000000004
+                    SOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2
+                `,
+                contractCSV: dedent`
+                    Status,Chain,Address,isFactory
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE
+                `,
                 details: {
                     chains: [
                         {
@@ -484,10 +545,23 @@ describe("generatePayload", () => {
     describe("Complex mixed scenarios", () => {
         test("should handle simultaneous chain additions, removals, and account changes", async () => {
             const result = await generateFrom({
-                chainCSV:
-                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
-                contractCSV:
-                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000003,TRUE\nACTIVE,OPTIMISM,0x5000000000000000000000000000000000000001,FALSE\n",
+                chainCSV: dedent`
+                    Name,Chain Id,Asset Recovery Address
+                    ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+                    BASE,eip155:8453,0x1000000000000000000000000000000000000002
+                    ARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003
+                    OPTIMISM,eip155:10,0x1000000000000000000000000000000000000004
+                    SOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2
+                `,
+                contractCSV: dedent`
+                    Status,Chain,Address,isFactory
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE
+                    ACTIVE,ARBITRUM,0x4000000000000000000000000000000000000001,FALSE
+                    ACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE
+                    ACTIVE,ARBITRUM,0x4000000000000000000000000000000000000003,TRUE
+                    ACTIVE,OPTIMISM,0x5000000000000000000000000000000000000001,FALSE
+                `,
                 details: {
                     chains: [
                         {
@@ -597,10 +671,22 @@ describe("generatePayload", () => {
         });
         test("should preserve childContractScope values correctly in complex scenarios", async () => {
             const result = await generateFrom({
-                chainCSV:
-                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
-                contractCSV:
-                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000004,TRUE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000005,FALSE\nACTIVE,OPTIMISM,0x5000000000000000000000000000000000000003,TRUE\nACTIVE,OPTIMISM,0x5000000000000000000000000000000000000004,FALSE\nACTIVE,OPTIMISM,0x5000000000000000000000000000000000000005,FALSE\n",
+                chainCSV: dedent`
+                    Name,Chain Id,Asset Recovery Address
+                    ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+                    BASE,eip155:8453,0x1000000000000000000000000000000000000002
+                    ARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003
+                    OPTIMISM,eip155:10,0x1000000000000000000000000000000000000004
+                    SOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2
+                `,
+                contractCSV: dedent`
+                    Status,Chain,Address,isFactory
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000004,TRUE
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000005,FALSE
+                    ACTIVE,OPTIMISM,0x5000000000000000000000000000000000000003,TRUE
+                    ACTIVE,OPTIMISM,0x5000000000000000000000000000000000000004,FALSE
+                    ACTIVE,OPTIMISM,0x5000000000000000000000000000000000000005,FALSE
+                `,
                 details: {
                     chains: [
                         {
@@ -681,10 +767,22 @@ describe("generatePayload", () => {
     describe("Edge cases", () => {
         test("should add before removing for a full account replacement", async () => {
             const result = await generateFrom({
-                chainCSV:
-                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
-                contractCSV:
-                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000004,TRUE\nACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE\n",
+                chainCSV: dedent`
+                    Name,Chain Id,Asset Recovery Address
+                    ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+                    BASE,eip155:8453,0x1000000000000000000000000000000000000002
+                    ARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003
+                    OPTIMISM,eip155:10,0x1000000000000000000000000000000000000004
+                    SOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2
+                `,
+                contractCSV: dedent`
+                    Status,Chain,Address,isFactory
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000004,TRUE
+                    ACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE
+                    ACTIVE,ARBITRUM,0x4000000000000000000000000000000000000001,FALSE
+                    ACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE
+                `,
                 details: {
                     chains: [
                         {
@@ -743,10 +841,18 @@ describe("generatePayload", () => {
 
         test("should handle completely empty onChain state", async () => {
             const result = await generateFrom({
-                chainCSV:
-                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
-                contractCSV:
-                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+                chainCSV: dedent`
+                    Name,Chain Id,Asset Recovery Address
+                    ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+                    BASE,eip155:8453,0x1000000000000000000000000000000000000002
+                    ARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003
+                    OPTIMISM,eip155:10,0x1000000000000000000000000000000000000004
+                    SOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2
+                `,
+                contractCSV: dedent`
+                    Status,Chain,Address,isFactory
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+                `,
                 details: {
                     chains: [],
                 },
@@ -764,8 +870,14 @@ describe("generatePayload", () => {
         });
         test("should handle completely empty CSV state", async () => {
             const result = await generateFrom({
-                chainCSV:
-                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
+                chainCSV: dedent`
+                    Name,Chain Id,Asset Recovery Address
+                    ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+                    BASE,eip155:8453,0x1000000000000000000000000000000000000002
+                    ARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003
+                    OPTIMISM,eip155:10,0x1000000000000000000000000000000000000004
+                    SOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2
+                `,
                 contractCSV: "Status,Chain,Address,isFactory\n",
                 details: {
                     chains: [
@@ -827,10 +939,22 @@ describe("generatePayload", () => {
         });
         test("shoud handle account scope changes", async () => {
             const result = await generateFrom({
-                chainCSV:
-                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
-                contractCSV:
-                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE\nACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE\n",
+                chainCSV: dedent`
+                    Name,Chain Id,Asset Recovery Address
+                    ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+                    BASE,eip155:8453,0x1000000000000000000000000000000000000002
+                    ARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003
+                    OPTIMISM,eip155:10,0x1000000000000000000000000000000000000004
+                    SOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2
+                `,
+                contractCSV: dedent`
+                    Status,Chain,Address,isFactory
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE
+                    ACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE
+                    ACTIVE,ARBITRUM,0x4000000000000000000000000000000000000001,FALSE
+                    ACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE
+                `,
                 details: {
                     chains: [
                         {
@@ -884,10 +1008,19 @@ describe("generatePayload", () => {
     describe("Chain Property Validation", () => {
         test("should block account updates before encoding on a recovery mismatch", async () => {
             const result = await generateFrom({
-                chainCSV:
-                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
-                contractCSV:
-                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE\n",
+                chainCSV: dedent`
+                    Name,Chain Id,Asset Recovery Address
+                    ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+                    BASE,eip155:8453,0x1000000000000000000000000000000000000002
+                    ARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003
+                    OPTIMISM,eip155:10,0x1000000000000000000000000000000000000004
+                    SOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2
+                `,
+                contractCSV: dedent`
+                    Status,Chain,Address,isFactory
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE
+                `,
                 details: {
                     chains: [
                         {
@@ -924,10 +1057,19 @@ describe("generatePayload", () => {
 
         test("should return a diagnostic only for the mismatched recovery address", async () => {
             const result = await generateFrom({
-                chainCSV:
-                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
-                contractCSV:
-                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE\n",
+                chainCSV: dedent`
+                    Name,Chain Id,Asset Recovery Address
+                    ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+                    BASE,eip155:8453,0x1000000000000000000000000000000000000002
+                    ARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003
+                    OPTIMISM,eip155:10,0x1000000000000000000000000000000000000004
+                    SOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2
+                `,
+                contractCSV: dedent`
+                    Status,Chain,Address,isFactory
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+                    ACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE
+                `,
                 details: {
                     chains: [
                         {
@@ -976,10 +1118,24 @@ describe("generatePayload", () => {
 
         test("should collect unknown Safeharbor Sheet chains as validation warnings", async () => {
             const result = await generateFrom({
-                chainCSV:
-                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
-                contractCSV:
-                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE\nACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE\nACTIVE,UNKNOWN,0x6000000000000000000000000000000000000001,FALSE\n",
+                chainCSV: dedent`
+                    Name,Chain Id,Asset Recovery Address
+                    ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+                    BASE,eip155:8453,0x1000000000000000000000000000000000000002
+                    ARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003
+                    OPTIMISM,eip155:10,0x1000000000000000000000000000000000000004
+                    SOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2
+                `,
+                contractCSV: dedent`
+                    Status,Chain,Address,isFactory
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE
+                    ACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE
+                    ACTIVE,ARBITRUM,0x4000000000000000000000000000000000000001,FALSE
+                    ACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE
+                    ACTIVE,UNKNOWN,0x6000000000000000000000000000000000000001,FALSE
+                `,
                 details: {
                     chains: [
                         {
@@ -1051,10 +1207,24 @@ describe("generatePayload", () => {
             };
 
             const result = await generateFrom({
-                chainCSV:
-                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\nETHEREUM,eip155:2,0x1000000000000000000000000000000000000001\n",
-                contractCSV:
-                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE\nACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000001,FALSE\nACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE\n",
+                chainCSV: dedent`
+                    Name,Chain Id,Asset Recovery Address
+                    ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+                    BASE,eip155:8453,0x1000000000000000000000000000000000000002
+                    ARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003
+                    OPTIMISM,eip155:10,0x1000000000000000000000000000000000000004
+                    SOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2
+                    ETHEREUM,eip155:2,0x1000000000000000000000000000000000000001
+                `,
+                contractCSV: dedent`
+                    Status,Chain,Address,isFactory
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE
+                    ACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE
+                    ACTIVE,ARBITRUM,0x4000000000000000000000000000000000000001,FALSE
+                    ACTIVE,ARBITRUM,0x4000000000000000000000000000000000000002,FALSE
+                `,
                 details: {
                     chains: [
                         {
@@ -1117,10 +1287,18 @@ describe("generatePayload", () => {
             };
 
             const result = await generateFrom({
-                chainCSV:
-                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
-                contractCSV:
-                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+                chainCSV: dedent`
+                    Name,Chain Id,Asset Recovery Address
+                    ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+                    BASE,eip155:8453,0x1000000000000000000000000000000000000002
+                    ARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003
+                    OPTIMISM,eip155:10,0x1000000000000000000000000000000000000004
+                    SOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2
+                `,
+                contractCSV: dedent`
+                    Status,Chain,Address,isFactory
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+                `,
                 details: {
                     chains: [
                         {
@@ -1161,10 +1339,21 @@ describe("generatePayload", () => {
             };
 
             const result = await generateFrom({
-                chainCSV:
-                    "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\nARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003\nOPTIMISM,eip155:10,0x1000000000000000000000000000000000000004\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\nETHEREUM,eip155:2,0x1000000000000000000000000000000000000001\n",
-                contractCSV:
-                    "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE\nACTIVE,UNKNOWN,0x6000000000000000000000000000000000000001,FALSE\n",
+                chainCSV: dedent`
+                    Name,Chain Id,Asset Recovery Address
+                    ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+                    BASE,eip155:8453,0x1000000000000000000000000000000000000002
+                    ARBITRUM,eip155:42161,0x1000000000000000000000000000000000000003
+                    OPTIMISM,eip155:10,0x1000000000000000000000000000000000000004
+                    SOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2
+                    ETHEREUM,eip155:2,0x1000000000000000000000000000000000000001
+                `,
+                contractCSV: dedent`
+                    Status,Chain,Address,isFactory
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+                    ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE
+                    ACTIVE,UNKNOWN,0x6000000000000000000000000000000000000001,FALSE
+                `,
                 details: {
                     chains: [
                         {
@@ -1226,8 +1415,10 @@ test.each([
             "a new EVM chain with a lowercase recovery address and blank metadata rows",
         chainCSV:
             "Name,Chain Id,Asset Recovery Address\n,,\nETHEREUM,eip155:1,0x8ba1f109551bd432803012645ac136ddd64dba72\n,,\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+        `,
         details: { chains: [] },
         expectedUpdates: [
             {
@@ -1254,10 +1445,14 @@ test.each([
     },
     {
         scenario: "a new EVM chain with a checksummed recovery address",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x8ba1f109551bD432803012645Ac136ddd64DBA72\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x8ba1f109551bD432803012645Ac136ddd64DBA72
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+        `,
         details: { chains: [] },
         expectedUpdates: [
             {
@@ -1284,10 +1479,14 @@ test.each([
     },
     {
         scenario: "a new Solana chain preserving its exact recovery identifier",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,SOLANA,So11111111111111111111111111111111111111112,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            SOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,SOLANA,So11111111111111111111111111111111111111112,FALSE
+        `,
         details: { chains: [] },
         expectedUpdates: [
             {
@@ -1315,10 +1514,14 @@ test.each([
     },
     {
         scenario: "an EVM recovery-address case difference on a retained chain",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x8ba1f109551bd432803012645ac136ddd64dba72\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x8ba1f109551bd432803012645ac136ddd64dba72
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+        `,
         details: {
             chains: [
                 {
@@ -1372,10 +1575,14 @@ test.each([
     {
         scenario:
             "an existing ETHEREUM chain with an undefined recovery address",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+        `,
         details: {
             chains: [
                 {
@@ -1396,10 +1603,14 @@ test.each([
     },
     {
         scenario: "an existing ETHEREUM chain with an null recovery address",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+        `,
         details: {
             chains: [
                 {
@@ -1420,10 +1631,14 @@ test.each([
     },
     {
         scenario: "an existing ETHEREUM chain with an empty recovery address",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+        `,
         details: {
             chains: [
                 {
@@ -1444,10 +1659,14 @@ test.each([
     },
     {
         scenario: "an existing SOLANA chain with an undefined recovery address",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,SOLANA,So11111111111111111111111111111111111111112,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            SOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,SOLANA,So11111111111111111111111111111111111111112,FALSE
+        `,
         details: {
             chains: [
                 {
@@ -1468,10 +1687,14 @@ test.each([
     },
     {
         scenario: "an existing SOLANA chain with an null recovery address",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,SOLANA,So11111111111111111111111111111111111111112,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            SOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,SOLANA,So11111111111111111111111111111111111111112,FALSE
+        `,
         details: {
             chains: [
                 {
@@ -1492,10 +1715,14 @@ test.each([
     },
     {
         scenario: "an existing SOLANA chain with an empty recovery address",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,SOLANA,So11111111111111111111111111111111111111112,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            SOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,SOLANA,So11111111111111111111111111111111111111112,FALSE
+        `,
         details: {
             chains: [
                 {
@@ -1516,9 +1743,15 @@ test.each([
     },
     {
         scenario: "validation warnings before diffing an invalid new account",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nETHEREUM,eip155:2,0x1000000000000000000000000000000000000002\n",
-        contractCSV: "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+            ETHEREUM,eip155:2,0x1000000000000000000000000000000000000002
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,,FALSE
+        `,
         details: { chains: [] },
         expectedWarnings: [
             {
@@ -1533,10 +1766,14 @@ test.each([
     },
     {
         scenario: "a malformed recovery address on a new EVM chain",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,not-an-address\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,not-an-address
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+        `,
         details: { chains: [] },
         expectedWarnings: [
             {
@@ -1552,10 +1789,14 @@ test.each([
     },
     {
         scenario: "an invalid recovery checksum on a new EVM chain",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x8Ba1f109551bD432803012645Ac136ddd64DBA72\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x8Ba1f109551bD432803012645Ac136ddd64DBA72
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+        `,
         details: { chains: [] },
         expectedWarnings: [
             {
@@ -1572,10 +1813,14 @@ test.each([
     },
     {
         scenario: "a Solana recovery-address case mismatch",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2s7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,SOLANA,So11111111111111111111111111111111111111112,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            SOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2s7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,SOLANA,So11111111111111111111111111111111111111112,FALSE
+        `,
         details: {
             chains: [
                 {
@@ -1604,8 +1849,11 @@ test.each([
     {
         scenario:
             "incomplete unused metadata with an otherwise valid chain removal",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+            BASE,eip155:8453,
+        `,
         contractCSV: "Status,Chain,Address,isFactory\n",
         details: {
             chains: [
@@ -1632,8 +1880,11 @@ test.each([
     },
     {
         scenario: "multiple incomplete rows without otherwise required updates",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nBASE,eip155:8453,\n,eip155:1,0x1000000000000000000000000000000000000001\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            BASE,eip155:8453,
+            ,eip155:1,0x1000000000000000000000000000000000000001
+        `,
         contractCSV: "Status,Chain,Address,isFactory\n",
         details: { chains: [] },
         expectedWarnings: [
@@ -1657,10 +1908,15 @@ test.each([
     },
     {
         scenario: "duplicate chain names",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nETHEREUM,eip155:2,0x1000000000000000000000000000000000000002\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+            ETHEREUM,eip155:2,0x1000000000000000000000000000000000000002
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE
+        `,
         details: {
             chains: [
                 {
@@ -1686,10 +1942,15 @@ test.each([
     },
     {
         scenario: "duplicate chain IDs",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nOTHER,eip155:1,0x1000000000000000000000000000000000000002\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+            OTHER,eip155:1,0x1000000000000000000000000000000000000002
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE
+        `,
         details: {
             chains: [
                 {
@@ -1715,10 +1976,16 @@ test.each([
     },
     {
         scenario: "duplicate additions to an existing chain",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE
+        `,
         details: {
             chains: [
                 {
@@ -1745,10 +2012,15 @@ test.each([
     },
     {
         scenario: "duplicate accounts in a new chain",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+        `,
         details: { chains: [] },
         expectedWarnings: [
             {
@@ -1764,10 +2036,15 @@ test.each([
     },
     {
         scenario: "conflicting desired scopes",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE
+        `,
         details: {
             chains: [
                 {
@@ -1794,10 +2071,14 @@ test.each([
     },
     {
         scenario: "duplicate current accounts with no other differences",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+        `,
         details: {
             chains: [
                 {
@@ -1825,10 +2106,14 @@ test.each([
     },
     {
         scenario: "conflicting current scopes",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+        `,
         details: {
             chains: [
                 {
@@ -1856,8 +2141,10 @@ test.each([
     },
     {
         scenario: "duplicate current accounts on a removed chain",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
         contractCSV: "Status,Chain,Address,isFactory\n",
         details: {
             chains: [
@@ -1886,10 +2173,15 @@ test.each([
     },
     {
         scenario: "duplicate accounts in both sources",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE
+        `,
         details: {
             chains: [
                 {
@@ -1941,10 +2233,15 @@ test.each([
 test.each([
     {
         scenario: "replaces one account with two: [A] -> [B,C]",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,TRUE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,TRUE
+        `,
         details: {
             chains: [
                 {
@@ -1987,10 +2284,14 @@ test.each([
     },
     {
         scenario: "replaces three accounts with one: [A,B,C] -> [D]",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000004,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000004,FALSE
+        `,
         details: {
             chains: [
                 {
@@ -2034,10 +2335,16 @@ test.each([
     },
     {
         scenario: "removes before adding for a partial replacement",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000004,TRUE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000004,TRUE
+        `,
         details: {
             chains: [
                 {
@@ -2077,10 +2384,16 @@ test.each([
     },
     {
         scenario: "ignores reordered equivalent accounts",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE
+        `,
         details: {
             chains: [
                 {
@@ -2099,10 +2412,14 @@ test.each([
     },
     {
         scenario: "replaces the scope of the sole account",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE
+        `,
         details: {
             chains: [
                 {
@@ -2141,10 +2458,15 @@ test.each([
     {
         scenario:
             "replaces every account scope without removing the new scopes",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE
+        `,
         details: {
             chains: [
                 {
@@ -2191,10 +2513,16 @@ test.each([
     },
     {
         scenario: "replaces and reorders all three account scopes",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,TRUE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,TRUE
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE
+        `,
         details: {
             chains: [
                 {
@@ -2250,10 +2578,15 @@ test.each([
         scenario:
             "mixes a scope replacement with new and removed accounts: [A:0,B:0] -> [B:2,C:0]",
         snapshot: true,
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE
+        `,
         details: {
             chains: [
                 {
@@ -2301,10 +2634,17 @@ test.each([
     {
         scenario:
             "isolates full and partial replacements across chains sharing an account address",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,BASE,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,BASE,0x2000000000000000000000000000000000000003,TRUE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+            BASE,eip155:8453,0x1000000000000000000000000000000000000002
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,BASE,0x2000000000000000000000000000000000000001,FALSE
+            ACTIVE,BASE,0x2000000000000000000000000000000000000003,TRUE
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE
+        `,
         details: {
             chains: [
                 {
@@ -2371,10 +2711,15 @@ test.each([
     },
     {
         scenario: "reduces a retained account scope from 2 to 0",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE
+        `,
         details: {
             chains: [
                 {
@@ -2413,10 +2758,14 @@ test.each([
     },
     {
         scenario: "replaces a sole account scope from 1 to 0",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+        `,
         details: {
             chains: [
                 {
@@ -2454,10 +2803,14 @@ test.each([
     },
     {
         scenario: "replaces a sole account scope from 1 to 2",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE
+        `,
         details: {
             chains: [
                 {
@@ -2496,10 +2849,15 @@ test.each([
     {
         scenario:
             "treats EVM account case changes as exact string replacements",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0xa000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0xa000000000000000000000000000000000000001,FALSE
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE
+        `,
         details: {
             chains: [
                 {
@@ -2540,10 +2898,15 @@ test.each([
         scenario:
             "treats Solana account case changes as exact string replacements",
         snapshot: true,
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,SOLANA,so11111111111111111111111111111111111111112,FALSE\nACTIVE,SOLANA,3EKkiwNLWqoUbzFkPrmKbtUB4EweE6f4STzevYUmezeL,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            SOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,SOLANA,so11111111111111111111111111111111111111112,FALSE
+            ACTIVE,SOLANA,3EKkiwNLWqoUbzFkPrmKbtUB4EweE6f4STzevYUmezeL,FALSE
+        `,
         details: {
             chains: [
                 {

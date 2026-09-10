@@ -1,4 +1,5 @@
 import { expect, test } from "vitest";
+import { dedent } from "../../test/helpers/dedent.js";
 import { formatDiagnostic } from "./formatDiagnostic.js";
 
 test("rejects missing template values", () => {
@@ -67,16 +68,20 @@ test.each([
             code: "UNKNOWN_SHEET_CHAIN",
             context: { chainName: "BASE" },
         },
-        message:
-            "Unknown chain details in Safeharbor Sheet: name='BASE'\nInclude chain details to the chain details tab in the Safeharbor Sheet to add coverage to it.",
+        message: dedent`
+            Unknown chain details in Safeharbor Sheet: name='BASE'
+            Include chain details to the chain details tab in the Safeharbor Sheet to add coverage to it.
+        `,
     },
     {
         diagnostic: {
             code: "UNKNOWN_ONCHAIN_CHAIN",
             context: { chainId: "eip155:8453" },
         },
-        message:
-            "Unknown chain details in on-chain state: caip2ChainId='eip155:8453'.\nTo either remove or keep this chain, please add the chain details to the chain details tab in the Safeharbor Sheet.",
+        message: dedent`
+            Unknown chain details in on-chain state: caip2ChainId='eip155:8453'.
+            To either remove or keep this chain, please add the chain details to the chain details tab in the Safeharbor Sheet.
+        `,
     },
     {
         diagnostic: {
@@ -95,8 +100,11 @@ test.each([
                 sheetRecoveryAddress: "recoveryUpperCase",
             },
         },
-        message:
-            "Asset Recovery Address mismatch for chain 'SOLANA'.\nOn-chain: RecoveryUpperCase\nSafeharbor Sheet: recoveryUpperCase",
+        message: dedent`
+            Asset Recovery Address mismatch for chain 'SOLANA'.
+            On-chain: RecoveryUpperCase
+            Safeharbor Sheet: recoveryUpperCase
+        `,
     },
     {
         diagnostic: {
@@ -170,21 +178,30 @@ test.each([
     },
     {
         diagnostic: { code: "COMMAND_REQUIRED" },
-        message:
-            "Error: Command is required\nAvailable commands: generate, inspect, verify\nUsage: npm run <command>",
+        message: dedent`
+            Error: Command is required
+            Available commands: generate, inspect, verify
+            Usage: npm run <command>
+        `,
     },
     {
         diagnostic: {
             code: "UNKNOWN_COMMAND",
             context: { command: "unknown" },
         },
-        message:
-            "Error: Unknown command 'unknown'\nAvailable commands: generate, inspect, verify\nUsage: npm run <command>",
+        message: dedent`
+            Error: Unknown command 'unknown'
+            Available commands: generate, inspect, verify
+            Usage: npm run <command>
+        `,
     },
     {
         diagnostic: { code: "RPC_URL_REQUIRED" },
-        message:
-            "Error: ETH_RPC_URL environment variable is not set.\nPlease set your Ethereum RPC URL in a .env file or as an environment variable.\nExample: ETH_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR_API_KEY",
+        message: dedent`
+            Error: ETH_RPC_URL environment variable is not set.
+            Please set your Ethereum RPC URL in a .env file or as an environment variable.
+            Example: ETH_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR_API_KEY
+        `,
     },
     {
         diagnostic: { code: "HTTP_ERROR", context: { status: 503 } },

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { Contract, Interface, JsonRpcProvider } from "ethers";
+import { dedent } from "./helpers/dedent.js";
 import { getSheetChainDetails, getSheetState } from "../src/sheet/index.js";
 import { reconcile } from "../src/reconciliation/index.js";
 import { createAgreementReader } from "../src/agreement/index.js";
@@ -81,13 +82,19 @@ describe("contracts CSV headers", () => {
         ["Status in a header-only file", "Chain,Address,isFactory\n", "Status"],
         [
             "Status with records",
-            "Chain,Address,isFactory\nETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+            dedent`
+                Chain,Address,isFactory
+                ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+            `,
             "Status",
         ],
         ["Chain in a header-only file", "Status,Address,isFactory\n", "Chain"],
         [
             "Chain with records",
-            "Status,Address,isFactory\nACTIVE,0x2000000000000000000000000000000000000001,FALSE\n",
+            dedent`
+                Status,Address,isFactory
+                ACTIVE,0x2000000000000000000000000000000000000001,FALSE
+            `,
             "Chain",
         ],
         [
@@ -97,7 +104,10 @@ describe("contracts CSV headers", () => {
         ],
         [
             "Address with records",
-            "Status,Chain,isFactory\nACTIVE,ETHEREUM,FALSE\n",
+            dedent`
+                Status,Chain,isFactory
+                ACTIVE,ETHEREUM,FALSE
+            `,
             "Address",
         ],
         [
@@ -107,7 +117,10 @@ describe("contracts CSV headers", () => {
         ],
         [
             "factory flag with records",
-            "Status,Chain,Address\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001\n",
+            dedent`
+                Status,Chain,Address
+                ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001
+            `,
             "isFactory",
         ],
         ["all headers in an empty file", "", "Status"],
@@ -128,19 +141,39 @@ describe("contracts CSV headers", () => {
     test.each([
         [
             "isFactory",
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE\nINACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,TRUE\n",
+            dedent`
+                Status,Chain,Address,isFactory
+                ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE
+                ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE
+                INACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,TRUE
+            `,
         ],
         [
             "IsFactory",
-            "Status,Chain,Address,IsFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE\nINACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,TRUE\n",
+            dedent`
+                Status,Chain,Address,IsFactory
+                ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE
+                ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE
+                INACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,TRUE
+            `,
         ],
         [
             "reordered, quoted headers and an extra column",
-            'Notes,"Address",IsFactory,Chain,Status\n"reviewed, factory",0x2000000000000000000000000000000000000001,TRUE,ETHEREUM,ACTIVE\nreviewed,0x2000000000000000000000000000000000000002,FALSE,ETHEREUM,ACTIVE\nold,0x2000000000000000000000000000000000000003,TRUE,ETHEREUM,INACTIVE\n',
+            dedent`
+                Notes,"Address",IsFactory,Chain,Status
+                "reviewed, factory",0x2000000000000000000000000000000000000001,TRUE,ETHEREUM,ACTIVE
+                reviewed,0x2000000000000000000000000000000000000002,FALSE,ETHEREUM,ACTIVE
+                old,0x2000000000000000000000000000000000000003,TRUE,ETHEREUM,INACTIVE
+            `,
         ],
         [
             "both factory aliases without changing flag semantics",
-            "Status,Chain,Address,isFactory,IsFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE,FALSE\nINACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE,TRUE\n",
+            dedent`
+                Status,Chain,Address,isFactory,IsFactory
+                ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE,FALSE
+                ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE,FALSE
+                INACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE,TRUE
+            `,
         ],
     ])("accepts %s", async (_scenario, csv) => {
         fetch.mockResolvedValue(csvResponse(csv));
@@ -185,7 +218,10 @@ describe("chain metadata CSV headers", () => {
         ],
         [
             "Name with records",
-            "Chain Id,Asset Recovery Address\neip155:1,0x1000000000000000000000000000000000000001\n",
+            dedent`
+                Chain Id,Asset Recovery Address
+                eip155:1,0x1000000000000000000000000000000000000001
+            `,
             "Name",
         ],
         [
@@ -195,7 +231,10 @@ describe("chain metadata CSV headers", () => {
         ],
         [
             "Chain Id with records",
-            "Name,Asset Recovery Address\nETHEREUM,0x1000000000000000000000000000000000000001\n",
+            dedent`
+                Name,Asset Recovery Address
+                ETHEREUM,0x1000000000000000000000000000000000000001
+            `,
             "Chain Id",
         ],
         [
@@ -205,7 +244,10 @@ describe("chain metadata CSV headers", () => {
         ],
         [
             "Asset Recovery Address with records",
-            "Name,Chain Id\nETHEREUM,eip155:1\n",
+            dedent`
+                Name,Chain Id
+                ETHEREUM,eip155:1
+            `,
             "Asset Recovery Address",
         ],
         ["all headers in an empty file", "", "Name"],
@@ -241,7 +283,10 @@ describe("chain metadata CSV headers", () => {
     test("accepts reordered, quoted headers and an extra column", async () => {
         fetch.mockResolvedValue(
             csvResponse(
-                'Notes,"Asset Recovery Address",Name,Chain Id\n"reviewed, mainnet",0x1000000000000000000000000000000000000001,ETHEREUM,eip155:1\n',
+                dedent`
+                    Notes,"Asset Recovery Address",Name,Chain Id
+                    "reviewed, mainnet",0x1000000000000000000000000000000000000001,ETHEREUM,eip155:1
+                `,
             ),
         );
 
@@ -341,8 +386,10 @@ describe("CSV validation before reconciliation", () => {
     test.each([
         {
             scenario: "missing contract headers",
-            chainCSV:
-                "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
+            chainCSV: dedent`
+                Name,Chain Id,Asset Recovery Address
+                ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+            `,
             contractCSV: "Chain,Address,isFactory\n",
             error: {
                 diagnostic: {
@@ -364,8 +411,10 @@ describe("CSV validation before reconciliation", () => {
         },
         {
             scenario: "malformed contracts CSV",
-            chainCSV:
-                "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
+            chainCSV: dedent`
+                Name,Chain Id,Asset Recovery Address
+                ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+            `,
             contractCSV:
                 'Status,Chain,Address,isFactory\n"INACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n',
             error: { code: "CSV_QUOTE_NOT_CLOSED" },
@@ -402,7 +451,10 @@ describe("CSV validation before reconciliation", () => {
         ["IsFactory headers only", "Status,Chain,Address,IsFactory\n"],
         [
             "no active records",
-            "Status,Chain,Address,isFactory\nINACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+            dedent`
+                Status,Chain,Address,isFactory
+                INACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+            `,
         ],
     ])(
         "preserves intentional chain removal for %s",
@@ -410,7 +462,10 @@ describe("CSV validation before reconciliation", () => {
             fetch
                 .mockResolvedValueOnce(
                     csvResponse(
-                        "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
+                        dedent`
+                            Name,Chain Id,Asset Recovery Address
+                            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+                        `,
                     ),
                 )
                 .mockResolvedValueOnce(csvResponse(contractCSV));

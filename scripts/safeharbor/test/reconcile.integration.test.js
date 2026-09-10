@@ -1,5 +1,6 @@
 import { Contract, Interface, JsonRpcProvider } from "ethers";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { dedent } from "./helpers/dedent.js";
 import { reconcile } from "../src/reconciliation/index.js";
 import { createAgreementReader } from "../src/agreement/index.js";
 import { getSheetChainDetails, getSheetState } from "../src/sheet/index.js";
@@ -25,10 +26,14 @@ afterEach(() => {
 test.each([
     {
         scenario: "clean reconciliation with raw bigint scopes",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+        `,
         details: {
             chains: [
                 {
@@ -78,8 +83,10 @@ test.each([
     {
         scenario: "blocked planning with normalized source data",
         chainCSV: "Name,Chain Id,Asset Recovery Address\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE\n",
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,BASE,0x3000000000000000000000000000000000000001,FALSE
+        `,
         details: { chains: [] },
         expected: {
             chainDetails: {

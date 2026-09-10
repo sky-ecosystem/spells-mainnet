@@ -62,10 +62,14 @@ function mockSources({ chainCSV, contractCSV, details }) {
 describe.each([
     {
         scenario: "clean reconciliation",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+        `,
         details: {
             chains: [
                 {
@@ -124,8 +128,10 @@ describe.each([
     },
     {
         scenario: "valid chain removal",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
         contractCSV: "Status,Chain,Address,isFactory\n",
         details: {
             chains: [
@@ -189,10 +195,14 @@ describe.each([
     },
     {
         scenario: "a warning without account differences",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+        `,
         details: {
             chains: [
                 {
@@ -255,7 +265,11 @@ describe.each([
             ],
         },
         warningMessages: [
-            "Asset Recovery Address mismatch for chain 'ETHEREUM'.\nOn-chain: 0x1000000000000000000000000000000000000002\nSafeharbor Sheet: 0x1000000000000000000000000000000000000001",
+            dedent`
+                Asset Recovery Address mismatch for chain 'ETHEREUM'.
+                On-chain: 0x1000000000000000000000000000000000000002
+                Safeharbor Sheet: 0x1000000000000000000000000000000000000001
+            `,
         ],
         exitCodes: { generate: 2, inspect: 0, verify: 2 },
         generateMessage: "Payload generation blocked: 1 validation warning(s).",
@@ -264,10 +278,15 @@ describe.each([
     },
     {
         scenario: "multiple warnings blocking account changes",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
-        contractCSV:
-            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE
+        `,
         details: {
             chains: [
                 {
@@ -345,7 +364,11 @@ describe.each([
         },
         warningMessages: [
             "Duplicate account address in Safeharbor Sheet for chain 'ETHEREUM': 0x2000000000000000000000000000000000000002; first scope=0, duplicate scope=2",
-            "Asset Recovery Address mismatch for chain 'ETHEREUM'.\nOn-chain: 0x1000000000000000000000000000000000000002\nSafeharbor Sheet: 0x1000000000000000000000000000000000000001",
+            dedent`
+                Asset Recovery Address mismatch for chain 'ETHEREUM'.
+                On-chain: 0x1000000000000000000000000000000000000002
+                Safeharbor Sheet: 0x1000000000000000000000000000000000000001
+            `,
         ],
         exitCodes: { generate: 2, inspect: 0, verify: 2 },
         generateMessage: "Payload generation blocked: 2 validation warning(s).",
@@ -401,8 +424,10 @@ describe.each([
 describe.each([
     {
         scenario: "missing contracts headers",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
         contractCSV: "State,Network,Contract,Factory\n",
         details: {
             chains: [
@@ -421,8 +446,10 @@ describe.each([
     },
     {
         scenario: "malformed contracts CSV",
-        chainCSV:
-            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
         contractCSV:
             'Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,"unterminated,FALSE\n',
         details: {
