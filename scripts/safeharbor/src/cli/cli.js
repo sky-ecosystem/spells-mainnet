@@ -16,9 +16,7 @@ export async function main() {
     const diagnostics = validateOptions({ command, rpcUrl });
     if (diagnostics.length > 0) {
         diagnostics.forEach((diagnostic) =>
-            console.error(
-                `❌ ${formatDiagnostic(diagnostic).replaceAll("\n", "\n       ")}`,
-            ),
+            console.error(formatCliMessage("❌", formatDiagnostic(diagnostic))),
         );
         return 1;
     }
@@ -33,7 +31,7 @@ export async function main() {
             });
             result.validationWarnings.forEach((diagnostic) =>
                 console.warn(
-                    `⚠️ ${formatDiagnostic(diagnostic).replaceAll("\n", "\n       ")}`,
+                    formatCliMessage("⚠️", formatDiagnostic(diagnostic)),
                 ),
             );
             return COMMANDS[command](result);
@@ -41,26 +39,27 @@ export async function main() {
             provider.destroy();
         }
     } catch (error) {
-        reportError(error);
+        console.error(formatCliMessage("❌", formatOperationalError(error)));
         return 1;
     }
 }
 
-function reportError(error) {
+function formatCliMessage(icon, message) {
+    return `${icon} ${message.replaceAll("\n", "\n       ")}`;
+}
+
+function formatOperationalError(error) {
     const source = Object.hasOwn(ERROR_SOURCES, error?.source)
         ? ERROR_SOURCES[error.source]
         : undefined;
-    const details = [
+    return [
+        "Failed to execute command:",
         ...(source ? [`Source: ${source}`] : []),
         error?.diagnostic
             ? formatDiagnostic(error.diagnostic)
             : String(error?.message ?? error),
         ...formatErrorCodes(source ? error.cause : error),
     ].join("\n");
-
-    console.error(
-        `❌ Failed to execute command:\n       ${details.replaceAll("\n", "\n       ")}`,
-    );
 }
 
 function formatErrorCodes(error) {
