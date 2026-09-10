@@ -222,6 +222,7 @@ contract DssSpellAction is DssAction {
         // Atlas: https://sky-atlas.io/#ea73f176-0b94-4e93-b1ee-ca498ac5a6c6
         // Poll: https://snapshot.org/#/s:sparkfi.eth/proposal/0xce102fe51d0f9dffa64c47df88974e52899ce5347375854adfe3547225489421
         // Poll: https://snapshot.org/#/s:sparkfi.eth/proposal/0x95329a02677772384f4d2bad196de1f2b0fe6b83a06ab61fe634fb07643dcb86
+        // Poll: https://snapshot.org/#/s:sparkfi.eth/proposal/0xcf6b2556093cca153cba5c986da1c43265d0267ae6fa501c20b6f2862a138927
 
         // Whitelist Spark spell with address 0x7602cc457786c06778258A0b004f2D66c54386fC and codehash 0xb3b1f22f29ef3d269404004599f13b840e45ec98909ac3de529e27c155bed088 in SPARK_STARGUARD, direct execution: No
         StarGuardLike(SPARK_STARGUARD).plot(SPARK_SPELL, SPARK_SPELL_HASH);
