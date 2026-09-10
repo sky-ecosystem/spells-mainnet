@@ -407,7 +407,7 @@ describe("validation warnings", () => {
                 {
                     code: "RECOVERY_ADDRESS_MISMATCH",
                     context: {
-                        chainName: "ETHEREUM",
+                        chainId: "eip155:1",
                         onChainRecoveryAddress:
                             "0x10000000000000000000000000000000000000ff",
                         sheetRecoveryAddress:
@@ -466,7 +466,7 @@ describe("validation warnings", () => {
                 {
                     code: "RECOVERY_ADDRESS_MISMATCH",
                     context: {
-                        chainName: "ETHEREUM",
+                        chainId: "eip155:1",
                         onChainRecoveryAddress:
                             "0x10000000000000000000000000000000000000ff",
                         sheetRecoveryAddress:
@@ -771,7 +771,7 @@ describe("validation warnings", () => {
                 {
                     code: "RECOVERY_ADDRESS_MISMATCH",
                     context: {
-                        chainName: "ETHEREUM",
+                        chainId: "eip155:1",
                         onChainRecoveryAddress:
                             "0x10000000000000000000000000000000000000ff",
                         sheetRecoveryAddress:
@@ -809,7 +809,7 @@ test.each([
         expectedWarnings: [
             {
                 code: "MISSING_ONCHAIN_RECOVERY_ADDRESS",
-                context: { chainName: "ETHEREUM" },
+                context: { chainId: "eip155:1" },
             },
         ],
     },
@@ -837,7 +837,7 @@ test.each([
         expectedWarnings: [
             {
                 code: "MISSING_ONCHAIN_RECOVERY_ADDRESS",
-                context: { chainName: "ETHEREUM" },
+                context: { chainId: "eip155:1" },
             },
         ],
     },
@@ -865,7 +865,7 @@ test.each([
         expectedWarnings: [
             {
                 code: "MISSING_ONCHAIN_RECOVERY_ADDRESS",
-                context: { chainName: "ETHEREUM" },
+                context: { chainId: "eip155:1" },
             },
         ],
     },
@@ -893,7 +893,9 @@ test.each([
         expectedWarnings: [
             {
                 code: "MISSING_ONCHAIN_RECOVERY_ADDRESS",
-                context: { chainName: "SOLANA" },
+                context: {
+                    chainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+                },
             },
         ],
     },
@@ -921,7 +923,9 @@ test.each([
         expectedWarnings: [
             {
                 code: "MISSING_ONCHAIN_RECOVERY_ADDRESS",
-                context: { chainName: "SOLANA" },
+                context: {
+                    chainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+                },
             },
         ],
     },
@@ -949,7 +953,9 @@ test.each([
         expectedWarnings: [
             {
                 code: "MISSING_ONCHAIN_RECOVERY_ADDRESS",
-                context: { chainName: "SOLANA" },
+                context: {
+                    chainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+                },
             },
         ],
     },
@@ -996,7 +1002,7 @@ test.each([
             {
                 code: "INVALID_EVM_RECOVERY_ADDRESS",
                 context: {
-                    chainName: "ETHEREUM",
+                    chainId: "eip155:1",
                     isNewChain: true,
                     onChainRecoveryAddress: undefined,
                     sheetRecoveryAddress: "not-an-address",
@@ -1019,7 +1025,7 @@ test.each([
             {
                 code: "INVALID_EVM_RECOVERY_ADDRESS",
                 context: {
-                    chainName: "ETHEREUM",
+                    chainId: "eip155:1",
                     isNewChain: true,
                     onChainRecoveryAddress: undefined,
                     sheetRecoveryAddress:
@@ -1054,7 +1060,7 @@ test.each([
             {
                 code: "RECOVERY_ADDRESS_MISMATCH",
                 context: {
-                    chainName: "SOLANA",
+                    chainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
                     onChainRecoveryAddress:
                         "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
                     sheetRecoveryAddress:

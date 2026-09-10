@@ -19,14 +19,14 @@ export const diagnosticTemplates = {
         To either remove or keep this chain, please add the chain details to the chain details tab in the Safeharbor Sheet.
     `,
     [$.MISSING_ONCHAIN_RECOVERY_ADDRESS]:
-        "Missing on-chain Asset Recovery Address for existing chain '{chainName}'",
+        "Missing on-chain Asset Recovery Address for existing chain '{chainId}'",
     [$.RECOVERY_ADDRESS_MISMATCH]: dedent`
-        Asset Recovery Address mismatch for chain '{chainName}'.
+        Asset Recovery Address mismatch for chain '{chainId}'.
         On-chain: {onChainRecoveryAddress}
         Safeharbor Sheet: {sheetRecoveryAddress}
     `,
     [$.INVALID_EVM_RECOVERY_ADDRESS]:
-        "Invalid EVM Asset Recovery Address for chain '{chainName}'. On-chain: {onChainRecoveryAddress}; Safeharbor Sheet: {sheetRecoveryAddress}",
+        "Invalid EVM Asset Recovery Address for chain '{chainId}'. On-chain: {onChainRecoveryAddress}; Safeharbor Sheet: {sheetRecoveryAddress}",
     [$.INCOMPLETE_CHAIN_METADATA]:
         "Incomplete chain details in Safeharbor Sheet: name='{chainName}', chainId='{chainId}'; missing {missingFields}",
     [$.DUPLICATE_CHAIN_NAME]:
@@ -54,9 +54,9 @@ export const diagnosticTemplates = {
     [$.INVALID_CSV_CONTENT_TYPE]:
         "Invalid content type. Expected CSV data. Please check the URL format.",
     [$.ADDED_CHAIN_WITHOUT_ACCOUNTS]:
-        "Cannot add chain '{chainName}' without accounts",
+        "Cannot add chain '{chainId}' without accounts",
     [$.EXISTING_CHAIN_WITHOUT_ACCOUNTS]:
-        "Chain '{chainName}' must be removed instead of configured without accounts",
+        "Chain '{chainId}' must be removed instead of configured without accounts",
     [$.INVALID_NEW_CHAIN_ACCOUNTS]:
-        "Problematic accounts found in chain {chainName}: {accounts}",
+        "Problematic accounts found in chain {chainId}: {accounts}",
 };

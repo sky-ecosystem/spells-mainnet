@@ -42,7 +42,7 @@ describe("recovery address comparison", () => {
         ).toEqual([
             {
                 code: "MISSING_ONCHAIN_RECOVERY_ADDRESS",
-                context: { chainName: "ETHEREUM" },
+                context: { chainId: "eip155:1" },
             },
         ]);
     });
@@ -87,7 +87,7 @@ describe("recovery address comparison", () => {
             {
                 code: "RECOVERY_ADDRESS_MISMATCH",
                 context: {
-                    chainName: "BASE",
+                    chainId: "eip155:8453",
                     onChainRecoveryAddress:
                         "0x1000000000000000000000000000000000000002",
                     sheetRecoveryAddress:
@@ -127,7 +127,7 @@ describe("recovery address comparison", () => {
             warning: {
                 code: "INVALID_EVM_RECOVERY_ADDRESS",
                 context: {
-                    chainName: "CHAIN",
+                    chainId: "eip155:1",
                     isNewChain: true,
                     onChainRecoveryAddress: undefined,
                     sheetRecoveryAddress:
@@ -143,7 +143,7 @@ describe("recovery address comparison", () => {
             warning: {
                 code: "INVALID_EVM_RECOVERY_ADDRESS",
                 context: {
-                    chainName: "CHAIN",
+                    chainId: "eip155:1",
                     isNewChain: true,
                     onChainRecoveryAddress: undefined,
                     sheetRecoveryAddress: "not-an-address",
@@ -198,7 +198,7 @@ describe("recovery address comparison", () => {
             warning: {
                 code: "RECOVERY_ADDRESS_MISMATCH",
                 context: {
-                    chainName: "CHAIN",
+                    chainId: "eip155:1",
                     onChainRecoveryAddress:
                         "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
                     sheetRecoveryAddress:
@@ -221,7 +221,7 @@ describe("recovery address comparison", () => {
             warning: {
                 code: "INVALID_EVM_RECOVERY_ADDRESS",
                 context: {
-                    chainName: "CHAIN",
+                    chainId: "eip155:1",
                     isNewChain: false,
                     onChainRecoveryAddress:
                         "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
@@ -244,7 +244,7 @@ describe("recovery address comparison", () => {
             warning: {
                 code: "INVALID_EVM_RECOVERY_ADDRESS",
                 context: {
-                    chainName: "CHAIN",
+                    chainId: "eip155:1",
                     isNewChain: false,
                     onChainRecoveryAddress:
                         "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
@@ -267,7 +267,7 @@ describe("recovery address comparison", () => {
             warning: {
                 code: "INVALID_EVM_RECOVERY_ADDRESS",
                 context: {
-                    chainName: "CHAIN",
+                    chainId: "eip155:1",
                     isNewChain: false,
                     onChainRecoveryAddress:
                         "0x1000000000000000000000000000000000000001",
@@ -288,7 +288,7 @@ describe("recovery address comparison", () => {
             warning: {
                 code: "INVALID_EVM_RECOVERY_ADDRESS",
                 context: {
-                    chainName: "CHAIN",
+                    chainId: "eip155:1",
                     isNewChain: false,
                     onChainRecoveryAddress: "not-an-address",
                     sheetRecoveryAddress: "not-an-address",
@@ -322,7 +322,7 @@ describe("recovery address comparison", () => {
             warning: {
                 code: "RECOVERY_ADDRESS_MISMATCH",
                 context: {
-                    chainName: "CHAIN",
+                    chainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
                     onChainRecoveryAddress:
                         "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
                     sheetRecoveryAddress:
@@ -355,7 +355,7 @@ describe("recovery address comparison", () => {
             warning: {
                 code: "RECOVERY_ADDRESS_MISMATCH",
                 context: {
-                    chainName: "CHAIN",
+                    chainId: "cosmos:cosmoshub-4",
                     onChainRecoveryAddress: "Recovery-identifier",
                     sheetRecoveryAddress: "recovery-identifier",
                 },

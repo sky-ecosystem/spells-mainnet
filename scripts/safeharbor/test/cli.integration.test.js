@@ -342,7 +342,7 @@ describe.each([
                 {
                     code: "RECOVERY_ADDRESS_MISMATCH",
                     context: {
-                        chainName: "ETHEREUM",
+                        chainId: "eip155:1",
                         onChainRecoveryAddress:
                             "0x1000000000000000000000000000000000000002",
                         sheetRecoveryAddress:
@@ -353,7 +353,7 @@ describe.each([
         },
         warningMessages: [
             dedent`
-                Asset Recovery Address mismatch for chain 'ETHEREUM'.
+                Asset Recovery Address mismatch for chain 'eip155:1'.
                 On-chain: 0x1000000000000000000000000000000000000002
                 Safeharbor Sheet: 0x1000000000000000000000000000000000000001
             `,
@@ -440,7 +440,7 @@ describe.each([
                 {
                     code: "RECOVERY_ADDRESS_MISMATCH",
                     context: {
-                        chainName: "ETHEREUM",
+                        chainId: "eip155:1",
                         onChainRecoveryAddress:
                             "0x1000000000000000000000000000000000000002",
                         sheetRecoveryAddress:
@@ -452,7 +452,7 @@ describe.each([
         warningMessages: [
             "Duplicate account address in Safeharbor Sheet for chain 'ETHEREUM': 0x2000000000000000000000000000000000000002; first scope=0, duplicate scope=2",
             dedent`
-                Asset Recovery Address mismatch for chain 'ETHEREUM'.
+                Asset Recovery Address mismatch for chain 'eip155:1'.
                 On-chain: 0x1000000000000000000000000000000000000002
                 Safeharbor Sheet: 0x1000000000000000000000000000000000000001
             `,

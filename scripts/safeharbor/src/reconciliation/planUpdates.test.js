@@ -40,7 +40,7 @@ test.each([
             diagnostic: {
                 code: "INVALID_NEW_CHAIN_ACCOUNTS",
                 context: {
-                    chainName: "OPTIMISM",
+                    chainId: "eip155:10",
                     accounts: [{ accountAddress: "A", childContractScope }],
                 },
             },
@@ -117,7 +117,7 @@ test.each([
         },
         diagnostic: {
             code: "ADDED_CHAIN_WITHOUT_ACCOUNTS",
-            context: { chainName: "OPTIMISM" },
+            context: { chainId: "eip155:10" },
         },
     },
     {
@@ -145,7 +145,7 @@ test.each([
         },
         diagnostic: {
             code: "EXISTING_CHAIN_WITHOUT_ACCOUNTS",
-            context: { chainName: "BASE" },
+            context: { chainId: "eip155:8453" },
         },
     },
     {
@@ -193,7 +193,7 @@ test.each([
         diagnostic: {
             code: "INVALID_NEW_CHAIN_ACCOUNTS",
             context: {
-                chainName: "OPTIMISM",
+                chainId: "eip155:10",
                 accounts: [{ accountAddress: "", childContractScope: 0 }],
             },
         },

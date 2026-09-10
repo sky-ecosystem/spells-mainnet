@@ -114,22 +114,22 @@ test.each([
     {
         diagnostic: {
             code: "MISSING_ONCHAIN_RECOVERY_ADDRESS",
-            context: { chainName: "SOLANA" },
+            context: { chainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp" },
         },
         message:
-            "Missing on-chain Asset Recovery Address for existing chain 'SOLANA'",
+            "Missing on-chain Asset Recovery Address for existing chain 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp'",
     },
     {
         diagnostic: {
             code: "RECOVERY_ADDRESS_MISMATCH",
             context: {
-                chainName: "SOLANA",
+                chainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
                 onChainRecoveryAddress: "RecoveryUpperCase",
                 sheetRecoveryAddress: "recoveryUpperCase",
             },
         },
         message: dedent`
-            Asset Recovery Address mismatch for chain 'SOLANA'.
+            Asset Recovery Address mismatch for chain 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp'.
             On-chain: RecoveryUpperCase
             Safeharbor Sheet: recoveryUpperCase
         `,
@@ -138,20 +138,20 @@ test.each([
         diagnostic: {
             code: "INVALID_EVM_RECOVERY_ADDRESS",
             context: {
-                chainName: "BASE",
+                chainId: "eip155:8453",
                 isNewChain: true,
                 onChainRecoveryAddress: undefined,
                 sheetRecoveryAddress: "invalid",
             },
         },
         message:
-            "Invalid EVM Asset Recovery Address for chain 'BASE'. On-chain: not registered; Safeharbor Sheet: invalid",
+            "Invalid EVM Asset Recovery Address for chain 'eip155:8453'. On-chain: not registered; Safeharbor Sheet: invalid",
     },
     {
         diagnostic: {
             code: "INVALID_EVM_RECOVERY_ADDRESS",
             context: {
-                chainName: "BASE",
+                chainId: "eip155:8453",
                 isNewChain: false,
                 onChainRecoveryAddress: "invalid",
                 sheetRecoveryAddress:
@@ -159,7 +159,7 @@ test.each([
             },
         },
         message:
-            "Invalid EVM Asset Recovery Address for chain 'BASE'. On-chain: invalid; Safeharbor Sheet: 0x1000000000000000000000000000000000000001",
+            "Invalid EVM Asset Recovery Address for chain 'eip155:8453'. On-chain: invalid; Safeharbor Sheet: 0x1000000000000000000000000000000000000001",
     },
     {
         diagnostic: {
@@ -243,28 +243,28 @@ test.each([
     {
         diagnostic: {
             code: "ADDED_CHAIN_WITHOUT_ACCOUNTS",
-            context: { chainName: "BASE" },
+            context: { chainId: "eip155:8453" },
         },
-        message: "Cannot add chain 'BASE' without accounts",
+        message: "Cannot add chain 'eip155:8453' without accounts",
     },
     {
         diagnostic: {
             code: "EXISTING_CHAIN_WITHOUT_ACCOUNTS",
-            context: { chainName: "BASE" },
+            context: { chainId: "eip155:8453" },
         },
         message:
-            "Chain 'BASE' must be removed instead of configured without accounts",
+            "Chain 'eip155:8453' must be removed instead of configured without accounts",
     },
     {
         diagnostic: {
             code: "INVALID_NEW_CHAIN_ACCOUNTS",
             context: {
-                chainName: "BASE",
+                chainId: "eip155:8453",
                 accounts: [{ accountAddress: "", childContractScope: 0 }],
             },
         },
         message:
-            'Problematic accounts found in chain BASE: [{"accountAddress":"","childContractScope":0}]',
+            'Problematic accounts found in chain eip155:8453: [{"accountAddress":"","childContractScope":0}]',
     },
 ])("formats $diagnostic.code", ({ diagnostic, message }) => {
     expect(formatDiagnostic(diagnostic)).toBe(message);
@@ -274,18 +274,18 @@ test("renders bigint scopes without changing raw diagnostic context", () => {
     const diagnostic = {
         code: "INVALID_NEW_CHAIN_ACCOUNTS",
         context: {
-            chainName: "BASE",
+            chainId: "eip155:8453",
             accounts: [{ accountAddress: "", childContractScope: 0n }],
         },
     };
 
     expect(formatDiagnostic(diagnostic)).toBe(
-        'Problematic accounts found in chain BASE: [{"accountAddress":"","childContractScope":"0"}]',
+        'Problematic accounts found in chain eip155:8453: [{"accountAddress":"","childContractScope":"0"}]',
     );
     expect(diagnostic).toEqual({
         code: "INVALID_NEW_CHAIN_ACCOUNTS",
         context: {
-            chainName: "BASE",
+            chainId: "eip155:8453",
             accounts: [{ accountAddress: "", childContractScope: 0n }],
         },
     });

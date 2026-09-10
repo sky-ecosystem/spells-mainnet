@@ -40,7 +40,6 @@ function getRecoveryAddressDetails(
         : chainId;
     return {
         chainId,
-        chainName,
         isNewChain: !Object.hasOwn(agreementOnChainState, chainId),
         onChainRecoveryAddress:
             agreementOnChainState[chainId]?.assetRecoveryAddress,
@@ -78,15 +77,15 @@ function validateRecoveryAddress({
 
 function addRecoveryAddressContext(
     { code },
-    { chainName, isNewChain, onChainRecoveryAddress, sheetRecoveryAddress },
+    { chainId, isNewChain, onChainRecoveryAddress, sheetRecoveryAddress },
 ) {
     if (code === $.MISSING_ONCHAIN_RECOVERY_ADDRESS) {
-        return { code, context: { chainName } };
+        return { code, context: { chainId } };
     }
     return {
         code,
         context: {
-            chainName,
+            chainId,
             ...(code === $.INVALID_EVM_RECOVERY_ADDRESS ? { isNewChain } : {}),
             onChainRecoveryAddress,
             sheetRecoveryAddress,

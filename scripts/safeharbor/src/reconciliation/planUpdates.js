@@ -6,7 +6,7 @@ export function planUpdates(
     sheetState,
     sheetChainDetails,
 ) {
-    assertUpdateInputs(agreementOnChainState, sheetState, sheetChainDetails);
+    assertUpdateInputs(agreementOnChainState, sheetState);
 
     return [
         ...generateChainUpdates(
@@ -137,15 +137,10 @@ function calculateChainDifferences(agreementOnChainState, sheetState) {
     };
 }
 
-function assertUpdateInputs(
-    agreementOnChainState,
-    sheetState,
-    sheetChainDetails,
-) {
+function assertUpdateInputs(agreementOnChainState, sheetState) {
     const [diagnostic] = validateUpdateInputs(
         agreementOnChainState,
         sheetState,
-        sheetChainDetails,
     );
     if (!diagnostic) {
         return;
@@ -153,33 +148,22 @@ function assertUpdateInputs(
     throw Object.assign(new Error(diagnostic.code), { diagnostic });
 }
 
-function validateUpdateInputs(
-    agreementOnChainState,
-    sheetState,
-    sheetChainDetails,
-) {
+function validateUpdateInputs(agreementOnChainState, sheetState) {
     return Object.entries(sheetState).flatMap(([chainId, desiredAccounts]) => {
         const isNewChain = !Object.hasOwn(agreementOnChainState, chainId);
-        const chainName = Object.hasOwn(sheetChainDetails.name, chainId)
-            ? sheetChainDetails.name[chainId]
-            : chainId;
 
-        return validateChainUpdate(
-            desiredAccounts ?? [],
-            isNewChain,
-            chainName,
-        );
+        return validateChainUpdate(desiredAccounts ?? [], isNewChain, chainId);
     });
 }
 
-function validateChainUpdate(accounts, isNewChain, chainName) {
+function validateChainUpdate(accounts, isNewChain, chainId) {
     if (accounts.length === 0) {
         return [
             {
                 code: isNewChain
                     ? $.ADDED_CHAIN_WITHOUT_ACCOUNTS
                     : $.EXISTING_CHAIN_WITHOUT_ACCOUNTS,
-                context: { chainName },
+                context: { chainId },
             },
         ];
     }
@@ -198,7 +182,7 @@ function validateChainUpdate(accounts, isNewChain, chainName) {
     return [
         {
             code: $.INVALID_NEW_CHAIN_ACCOUNTS,
-            context: { chainName, accounts: invalidAccounts },
+            context: { chainId, accounts: invalidAccounts },
         },
     ];
 }
