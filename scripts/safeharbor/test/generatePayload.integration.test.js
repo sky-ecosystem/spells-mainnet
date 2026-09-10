@@ -95,7 +95,6 @@ const ACCOUNT = {
     ETH3: "0x2000000000000000000000000000000000000003",
     BASE2: "0x3000000000000000000000000000000000000002",
     ARB1: "0x4000000000000000000000000000000000000001",
-    ARB3: "0x4000000000000000000000000000000000000003",
     OP1: "0x5000000000000000000000000000000000000001",
     OP2: "0x5000000000000000000000000000000000000002",
     OPF: "0x5000000000000000000000000000000000000003",
@@ -515,57 +514,62 @@ describe("generatePayload", () => {
                 },
             });
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
-            assert.strictEqual(result.updates.length, 5);
-            const chainUpdates = result.updates.filter(
-                (u) => u.fn === "removeChains" || u.fn === "addChains",
-            );
-            const accountUpdates = result.updates.filter(
-                (u) => u.fn === "removeAccounts" || u.fn === "addAccounts",
-            );
-            assert.ok(chainUpdates.length > 0, "Should have chain updates");
-            assert.ok(accountUpdates.length > 0, "Should have account updates");
-            const removeChainUpdate = result.updates.find(
-                (u) => u.fn === "removeChains",
-            );
-            assert.strictEqual(removeChainUpdate.args[0].length, 1);
-            assert.ok(removeChainUpdate.args[0].includes("eip155:8453"));
-            const addChainUpdate = result.updates.find(
-                (u) => u.fn === "addChains",
-            );
-            assert.ok(addChainUpdate.args[0].length, 2);
-            const newChain = addChainUpdate.args[0].find(
-                (c) => c.caip2ChainId === "eip155:10",
-            );
-            assert.ok(newChain);
-            // Assert that removeAccounts for eip155:1 appears before addAccounts for eip155:1
-            const removeAccountIndex = result.updates.findIndex(
-                (u) => u.fn === "removeAccounts" && u.args[0] === "eip155:1",
-            );
-            const addAccountIndex = result.updates.findIndex(
-                (u) => u.fn === "addAccounts" && u.args[0] === "eip155:1",
-            );
-            assert.ok(
-                removeAccountIndex > -1 && addAccountIndex > -1,
-                "Both removeAccounts and addAccounts updates for eip155:1 should exist",
-            );
-            assert.ok(
-                removeAccountIndex < addAccountIndex,
-                "removeAccounts for eip155:1 should appear before addAccounts for eip155:1",
-            );
-            const removeAccountUpdate = result.updates[removeAccountIndex];
-            assert.ok(removeAccountUpdate.args[1].length, 1);
-            assert.ok(removeAccountUpdate.args[1].includes(ACCOUNT.ETH2));
-            const addAccountUpdate = result.updates[addAccountIndex];
-            assert.ok(addAccountUpdate.args[1].length, 1);
-            assert.deepStrictEqual(addAccountUpdate.args[1], [
-                { accountAddress: ACCOUNT.ETH3, childContractScope: 0 },
-            ]);
-            const addAccountUpdate2 = result.updates.find(
-                (u) => u.fn === "addAccounts" && u.args[0] === "eip155:42161",
-            );
-            assert.ok(addAccountUpdate2.args[1].length, 1);
-            assert.deepStrictEqual(addAccountUpdate2.args[1], [
-                { accountAddress: ACCOUNT.ARB3, childContractScope: 2 },
+            expect(
+                result.updates.map(({ fn, args }) => ({ fn, args })),
+            ).toEqual([
+                { fn: "removeChains", args: [["eip155:8453"]] },
+                {
+                    fn: "addChains",
+                    args: [
+                        [
+                            {
+                                caip2ChainId: "eip155:10",
+                                assetRecoveryAddress:
+                                    "0x1000000000000000000000000000000000000004",
+                                accounts: [
+                                    {
+                                        accountAddress:
+                                            "0x5000000000000000000000000000000000000001",
+                                        childContractScope: 0,
+                                    },
+                                ],
+                            },
+                        ],
+                    ],
+                },
+                {
+                    fn: "removeAccounts",
+                    args: [
+                        "eip155:1",
+                        ["0x2000000000000000000000000000000000000002"],
+                    ],
+                },
+                {
+                    fn: "addAccounts",
+                    args: [
+                        "eip155:1",
+                        [
+                            {
+                                accountAddress:
+                                    "0x2000000000000000000000000000000000000003",
+                                childContractScope: 0,
+                            },
+                        ],
+                    ],
+                },
+                {
+                    fn: "addAccounts",
+                    args: [
+                        "eip155:42161",
+                        [
+                            {
+                                accountAddress:
+                                    "0x4000000000000000000000000000000000000003",
+                                childContractScope: 2,
+                            },
+                        ],
+                    ],
+                },
             ]);
 
             expect(result.validationWarnings).toEqual([]);
@@ -2223,6 +2227,338 @@ test.each([
                         "0x2000000000000000000000000000000000000003",
                         "0x2000000000000000000000000000000000000002",
                         "0x2000000000000000000000000000000000000001",
+                    ],
+                ],
+            },
+        ],
+    },
+    {
+        scenario:
+            "mixes a scope replacement with new and removed accounts: [A:0,B:0] -> [B:2,C:0]",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE\n",
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                    accounts: [
+                        ["0x2000000000000000000000000000000000000001", 0n],
+                        ["0x2000000000000000000000000000000000000002", 0n],
+                    ],
+                },
+            ],
+        },
+        expectedUpdates: [
+            {
+                fn: "addAccounts",
+                args: [
+                    "eip155:1",
+                    [
+                        {
+                            accountAddress:
+                                "0x2000000000000000000000000000000000000002",
+                            childContractScope: 2,
+                        },
+                        {
+                            accountAddress:
+                                "0x2000000000000000000000000000000000000003",
+                            childContractScope: 0,
+                        },
+                    ],
+                ],
+            },
+            {
+                fn: "removeAccounts",
+                args: [
+                    "eip155:1",
+                    [
+                        "0x2000000000000000000000000000000000000002",
+                        "0x2000000000000000000000000000000000000001",
+                    ],
+                ],
+            },
+        ],
+    },
+    {
+        scenario:
+            "isolates full and partial replacements across chains sharing an account address",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\nBASE,eip155:8453,0x1000000000000000000000000000000000000002\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,BASE,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,BASE,0x2000000000000000000000000000000000000003,TRUE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE\n",
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                    accounts: [
+                        ["0x2000000000000000000000000000000000000001", 0n],
+                    ],
+                },
+                {
+                    caip2ChainId: "eip155:8453",
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000002",
+                    accounts: [
+                        ["0x2000000000000000000000000000000000000001", 0n],
+                        ["0x2000000000000000000000000000000000000002", 0n],
+                    ],
+                },
+            ],
+        },
+        expectedUpdates: [
+            {
+                fn: "addAccounts",
+                args: [
+                    "eip155:1",
+                    [
+                        {
+                            accountAddress:
+                                "0x2000000000000000000000000000000000000001",
+                            childContractScope: 2,
+                        },
+                    ],
+                ],
+            },
+            {
+                fn: "removeAccounts",
+                args: [
+                    "eip155:1",
+                    ["0x2000000000000000000000000000000000000001"],
+                ],
+            },
+            {
+                fn: "removeAccounts",
+                args: [
+                    "eip155:8453",
+                    ["0x2000000000000000000000000000000000000002"],
+                ],
+            },
+            {
+                fn: "addAccounts",
+                args: [
+                    "eip155:8453",
+                    [
+                        {
+                            accountAddress:
+                                "0x2000000000000000000000000000000000000003",
+                            childContractScope: 2,
+                        },
+                    ],
+                ],
+            },
+        ],
+    },
+    {
+        scenario: "reduces a retained account scope from 2 to 0",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE\n",
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                    accounts: [
+                        ["0x2000000000000000000000000000000000000001", 2n],
+                        ["0x2000000000000000000000000000000000000002", 0n],
+                    ],
+                },
+            ],
+        },
+        expectedUpdates: [
+            {
+                fn: "removeAccounts",
+                args: [
+                    "eip155:1",
+                    ["0x2000000000000000000000000000000000000001"],
+                ],
+            },
+            {
+                fn: "addAccounts",
+                args: [
+                    "eip155:1",
+                    [
+                        {
+                            accountAddress:
+                                "0x2000000000000000000000000000000000000001",
+                            childContractScope: 0,
+                        },
+                    ],
+                ],
+            },
+        ],
+    },
+    {
+        scenario: "replaces a sole account scope from 1 to 0",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE\n",
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                    accounts: [
+                        ["0x2000000000000000000000000000000000000001", 1n],
+                    ],
+                },
+            ],
+        },
+        expectedUpdates: [
+            {
+                fn: "addAccounts",
+                args: [
+                    "eip155:1",
+                    [
+                        {
+                            accountAddress:
+                                "0x2000000000000000000000000000000000000001",
+                            childContractScope: 0,
+                        },
+                    ],
+                ],
+            },
+            {
+                fn: "removeAccounts",
+                args: [
+                    "eip155:1",
+                    ["0x2000000000000000000000000000000000000001"],
+                ],
+            },
+        ],
+    },
+    {
+        scenario: "replaces a sole account scope from 1 to 2",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE\n",
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                    accounts: [
+                        ["0x2000000000000000000000000000000000000001", 1n],
+                    ],
+                },
+            ],
+        },
+        expectedUpdates: [
+            {
+                fn: "addAccounts",
+                args: [
+                    "eip155:1",
+                    [
+                        {
+                            accountAddress:
+                                "0x2000000000000000000000000000000000000001",
+                            childContractScope: 2,
+                        },
+                    ],
+                ],
+            },
+            {
+                fn: "removeAccounts",
+                args: [
+                    "eip155:1",
+                    ["0x2000000000000000000000000000000000000001"],
+                ],
+            },
+        ],
+    },
+    {
+        scenario:
+            "treats EVM account case changes as exact string replacements",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nETHEREUM,eip155:1,0x1000000000000000000000000000000000000001\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,ETHEREUM,0xa000000000000000000000000000000000000001,FALSE\nACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE\n",
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                    accounts: [
+                        ["0xA000000000000000000000000000000000000001", 0n],
+                        ["0x2000000000000000000000000000000000000002", 0n],
+                    ],
+                },
+            ],
+        },
+        expectedUpdates: [
+            {
+                fn: "removeAccounts",
+                args: [
+                    "eip155:1",
+                    ["0xA000000000000000000000000000000000000001"],
+                ],
+            },
+            {
+                fn: "addAccounts",
+                args: [
+                    "eip155:1",
+                    [
+                        {
+                            accountAddress:
+                                "0xa000000000000000000000000000000000000001",
+                            childContractScope: 0,
+                        },
+                    ],
+                ],
+            },
+        ],
+    },
+    {
+        scenario:
+            "treats Solana account case changes as exact string replacements",
+        chainCSV:
+            "Name,Chain Id,Asset Recovery Address\nSOLANA,solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp,29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2\n",
+        contractCSV:
+            "Status,Chain,Address,isFactory\nACTIVE,SOLANA,so11111111111111111111111111111111111111112,FALSE\nACTIVE,SOLANA,3EKkiwNLWqoUbzFkPrmKbtUB4EweE6f4STzevYUmezeL,FALSE\n",
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+                    assetRecoveryAddress:
+                        "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+                    accounts: [
+                        ["So11111111111111111111111111111111111111112", 0n],
+                        ["3EKkiwNLWqoUbzFkPrmKbtUB4EweE6f4STzevYUmezeL", 0n],
+                    ],
+                },
+            ],
+        },
+        expectedUpdates: [
+            {
+                fn: "removeAccounts",
+                args: [
+                    "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+                    ["So11111111111111111111111111111111111111112"],
+                ],
+            },
+            {
+                fn: "addAccounts",
+                args: [
+                    "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+                    [
+                        {
+                            accountAddress:
+                                "so11111111111111111111111111111111111111112",
+                            childContractScope: 0,
+                        },
                     ],
                 ],
             },
