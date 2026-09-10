@@ -3224,7 +3224,7 @@ contract DssSpellTestBase is Config, DssTest {
         } else {
             // TODO: Restore 16 days to 20 days after the 2026-09-10 Spell; This value was only temporarily reduced
             //       as the PauseProxy SKY balance does not fully cover the 20-day buffer at the time of crafting the spell. In a
-            //       normal market with constant buybacks, the vesting stream would be covered those but this test intentionally
+            //       normal market with constant buybacks, the vesting stream would be covered by those but this test intentionally
             //       only checks the case with no buybacks. The change to the test was confirmed with Governance and BA Labs.
             // Note: SKY streams will operate out of buybacks, check that balance is sufficient for short term (16 days)
             vm.warp(block.timestamp + 16 days);
