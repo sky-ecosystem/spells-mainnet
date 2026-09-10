@@ -2853,6 +2853,44 @@ test.each([
         ],
     },
     {
+        scenario: "replaces FutureOnly scopes with both Sheet scope values",
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,A,FALSE
+            ACTIVE,ETHEREUM,B,TRUE
+        `,
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                    accounts: [
+                        ["A", 3n],
+                        ["B", 3n],
+                    ],
+                },
+            ],
+        },
+        expectedUpdates: [
+            {
+                fn: "addAccounts",
+                args: [
+                    "eip155:1",
+                    [
+                        { accountAddress: "A", childContractScope: 0 },
+                        { accountAddress: "B", childContractScope: 2 },
+                    ],
+                ],
+            },
+            { fn: "removeAccounts", args: ["eip155:1", ["B", "A"]] },
+        ],
+    },
+    {
         scenario: "replaces a sole account scope from 1 to 0",
         chainCSV: dedent`
             Name,Chain Id,Asset Recovery Address

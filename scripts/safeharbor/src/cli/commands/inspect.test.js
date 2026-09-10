@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { Interface } from "ethers";
+import { dedent } from "../../../test/helpers/dedent.js";
 import { generatePayload } from "../../generation/index.js";
 import { inspect } from "./inspect.js";
 
@@ -28,13 +29,15 @@ test("prints an empty changes array for clean state", () => {
     expect(inspect(report)).toBe(0);
     expect(console.log.mock.calls).toEqual([
         [
-            `{
-  "chainDetails": {},
-  "onChainState": {},
-  "sheetState": {},
-  "changes": [],
-  "validationWarnings": []
-}`,
+            dedent`
+                {
+                  "chainDetails": {},
+                  "onChainState": {},
+                  "sheetState": {},
+                  "changes": [],
+                  "validationWarnings": []
+                }
+            `,
         ],
     ]);
     expect(console.warn).not.toHaveBeenCalled();
@@ -72,42 +75,44 @@ test("prints raw state and changes with bigint values as decimal strings without
     expect(inspect(report)).toBe(0);
     expect(console.log.mock.calls).toEqual([
         [
-            `{
-  "chainDetails": {
-    "caip2ChainId": {
-      "Ethereum": "eip155:1"
-    },
-    "name": {
-      "eip155:1": "Ethereum"
-    },
-    "assetRecoveryAddress": {
-      "Ethereum": "0x1000000000000000000000000000000000000001"
-    }
-  },
-  "onChainState": {
-    "Ethereum": {
-      "accounts": [
-        {
-          "accountAddress": "0x2000000000000000000000000000000000000001",
-          "childContractScope": "2"
-        }
-      ],
-      "assetRecoveryAddress": "0x1000000000000000000000000000000000000001"
-    }
-  },
-  "sheetState": {},
-  "changes": [
-    {
-      "fn": "removeChains",
-      "args": [
-        [
-          "eip155:1"
-        ]
-      ]
-    }
-  ],
-  "validationWarnings": []
-}`,
+            dedent`
+                {
+                  "chainDetails": {
+                    "caip2ChainId": {
+                      "Ethereum": "eip155:1"
+                    },
+                    "name": {
+                      "eip155:1": "Ethereum"
+                    },
+                    "assetRecoveryAddress": {
+                      "Ethereum": "0x1000000000000000000000000000000000000001"
+                    }
+                  },
+                  "onChainState": {
+                    "Ethereum": {
+                      "accounts": [
+                        {
+                          "accountAddress": "0x2000000000000000000000000000000000000001",
+                          "childContractScope": "2"
+                        }
+                      ],
+                      "assetRecoveryAddress": "0x1000000000000000000000000000000000000001"
+                    }
+                  },
+                  "sheetState": {},
+                  "changes": [
+                    {
+                      "fn": "removeChains",
+                      "args": [
+                        [
+                          "eip155:1"
+                        ]
+                      ]
+                    }
+                  ],
+                  "validationWarnings": []
+                }
+            `,
         ],
     ]);
     expect(report.onChainState.Ethereum.accounts[0].childContractScope).toBe(
@@ -138,20 +143,22 @@ test("prints no changes with diagnostics when planning is blocked", () => {
     expect(inspect(report)).toBe(0);
     expect(console.log.mock.calls).toEqual([
         [
-            `{
-  "chainDetails": {},
-  "onChainState": {},
-  "sheetState": {},
-  "changes": [],
-  "validationWarnings": [
-    {
-      "code": "UNKNOWN_ONCHAIN_CHAIN",
-      "context": {
-        "chainId": "eip155:8453"
-      }
-    }
-  ]
-}`,
+            dedent`
+                {
+                  "chainDetails": {},
+                  "onChainState": {},
+                  "sheetState": {},
+                  "changes": [],
+                  "validationWarnings": [
+                    {
+                      "code": "UNKNOWN_ONCHAIN_CHAIN",
+                      "context": {
+                        "chainId": "eip155:8453"
+                      }
+                    }
+                  ]
+                }
+            `,
         ],
     ]);
     expect(report.changes).toEqual([]);
