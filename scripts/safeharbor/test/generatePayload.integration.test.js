@@ -1050,7 +1050,7 @@ describe("generatePayload", () => {
                 },
             ]);
         });
-        test("shoud handle account scope changes", async () => {
+        test("should handle account scope changes", async () => {
             const result = await generateFrom({
                 chainCSV: dedent`
                     Name,Chain Id,Asset Recovery Address

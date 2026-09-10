@@ -32,9 +32,9 @@ Before adoption, a single-time deploy and configuration needs to happen so Sky p
 
 There are a few steps to independently validate that a given agreement can be adopted by Sky protocol.
 
-1. It has to be deployed via a transaction to known public factory.
+1. It has to be deployed via a transaction to a known public factory.
 2. The owner of the agreement has to be PauseProxy.
-3. Agreement details (protocol name, agreement URI, contact details and bounty terms) has to match what's described in the Atlas.
+3. Agreement details (protocol name, agreement URI, contact details and bounty terms) have to match what's described in the Atlas.
 4. `npm run verify`, from `scripts/safeharbor`, has to exit with code `0`.
 
 If all of these steps are done, the agreement can be adopted by Sky protocol.
