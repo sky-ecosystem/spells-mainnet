@@ -1,5 +1,5 @@
-import { DIAGNOSTIC_CODES as $ } from "../diagnosticCodes.js";
-import { findDuplicateIndexes } from "../findDuplicateIndexes.js";
+import { DIAGNOSTIC_CODES as $ } from "../diagnostic/index.js";
+import { findDuplicateIndexes } from "../utils/findDuplicateIndexes.js";
 
 export function normalizeOnChainState(agreementDetails) {
     const value = normalizeChains(agreementDetails.chains);

@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
-import { dedent } from "../../test/helpers/dedent.js";
-import { formatDiagnostic } from "./formatDiagnostic.js";
+import { dedent } from "../utils/dedent.js";
+import { formatDiagnostic } from "./format.js";
 
 test("rejects missing template values", () => {
     expect(() =>

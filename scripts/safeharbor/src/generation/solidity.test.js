@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { dedent } from "../../test/helpers/dedent.js";
+import { dedent } from "../utils/dedent.js";
 import { generateSolidity } from "./solidity.js";
 
 test("returns an empty snippet when there are no updates", () => {

@@ -1,5 +1,5 @@
 import { getAddress } from "ethers";
-import { DIAGNOSTIC_CODES as $ } from "../diagnosticCodes.js";
+import { DIAGNOSTIC_CODES as $ } from "../diagnostic/index.js";
 
 export function checkStateConsistency(
     agreementOnChainState,

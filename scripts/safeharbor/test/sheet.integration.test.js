@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { dedent } from "./helpers/dedent.js";
+import { dedent } from "../src/utils/dedent.js";
 import { getSheetChainDetails, getSheetState } from "../src/sheet/index.js";
 
 beforeEach(() => {

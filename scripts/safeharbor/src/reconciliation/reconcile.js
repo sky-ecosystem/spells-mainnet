@@ -1,6 +1,6 @@
 import { checkStateConsistency } from "./checkStateConsistency.js";
 import { planUpdates } from "./planUpdates.js";
-import { DIAGNOSTIC_CODES as $ } from "../diagnosticCodes.js";
+import { DIAGNOSTIC_CODES as $ } from "../diagnostic/index.js";
 
 export async function reconcile({
     getAgreementState,

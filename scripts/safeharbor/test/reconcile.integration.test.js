@@ -1,6 +1,6 @@
 import { Contract, Interface } from "ethers";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { dedent } from "./helpers/dedent.js";
+import { dedent } from "../src/utils/dedent.js";
 import { reconcile } from "../src/reconciliation/index.js";
 import { createAgreementReader } from "../src/agreement/index.js";
 import { getSheetChainDetails, getSheetState } from "../src/sheet/index.js";

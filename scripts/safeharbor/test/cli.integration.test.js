@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { Contract, Interface, JsonRpcProvider } from "ethers";
-import { dedent } from "./helpers/dedent.js";
+import { dedent } from "../src/utils/dedent.js";
 import { main } from "../src/cli/index.js";
 
 vi.mock("ethers", async (importOriginal) => ({

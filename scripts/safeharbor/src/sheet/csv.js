@@ -1,6 +1,6 @@
 import { parse } from "csv-parse/sync";
-import { DIAGNOSTIC_CODES as $ } from "../diagnosticCodes.js";
-import { findDuplicateIndexes } from "../findDuplicateIndexes.js";
+import { DIAGNOSTIC_CODES as $ } from "../diagnostic/index.js";
+import { findDuplicateIndexes } from "../utils/findDuplicateIndexes.js";
 
 export async function downloadAndParse(url) {
     const response = await fetch(url);

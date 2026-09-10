@@ -1,8 +1,10 @@
 import { JsonRpcProvider } from "ethers";
-import { DIAGNOSTIC_CODES as $ } from "../diagnosticCodes.js";
+import {
+    DIAGNOSTIC_CODES as $,
+    formatDiagnostic,
+} from "../diagnostic/index.js";
 import { createAgreementReader } from "../agreement/index.js";
 import { getSheetChainDetails, getSheetState } from "../sheet/index.js";
-import { formatDiagnostic } from "./formatDiagnostic.js";
 import { reconcile } from "../reconciliation/index.js";
 import { generate } from "./commands/generate.js";
 import { inspect } from "./commands/inspect.js";

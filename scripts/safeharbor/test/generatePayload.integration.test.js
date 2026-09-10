@@ -1,7 +1,7 @@
 import { test, expect, describe, vi, beforeEach, afterEach } from "vitest";
 import assert from "node:assert";
 import { Contract, Interface } from "ethers";
-import { dedent } from "./helpers/dedent.js";
+import { dedent } from "../src/utils/dedent.js";
 import { generatePayload } from "../src/generation/index.js";
 import { reconcile } from "../src/reconciliation/index.js";
 import { createAgreementReader } from "../src/agreement/index.js";

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { dedent } from "../../../test/helpers/dedent.js";
+import { dedent } from "../../utils/dedent.js";
 import { generatePayload } from "../../generation/index.js";
 import { inspect } from "./inspect.js";
 

@@ -57,7 +57,7 @@ The script follows these steps:
 
 7. Dispatches the reconciliation result to the selected command. Only `generate` encodes the changes and renders Solidity; `inspect` prints the report, while `verify` checks whether reconciliation is clean.
 
-Validation returns plain diagnostics with a stable `code` from the frozen `DIAGNOSTIC_CODES` object exported by `diagnosticCodes.js`, and optional `context` containing raw facts. For example:
+Validation returns plain diagnostics with a stable `code` from the frozen `DIAGNOSTIC_CODES` object exported by `diagnostic/codes.js`, and optional `context` containing raw facts. For example:
 
 ```json
 {
@@ -66,7 +66,7 @@ Validation returns plain diagnostics with a stable `code` from the frozen `DIAGN
 }
 ```
 
-Diagnostics contain no human-readable messages. `cli/formatDiagnostic.js` owns their wording; the CLI prints each diagnostic to stderr once. `generate` and `verify` also print their command summaries; `inspect` prints JSON instead. The generator, CSV adapter, validators, and diff logic do not print progress or errors. Fatal application checks propagate native `Error` objects carrying a `diagnostic`; parser, fetch, and RPC exceptions propagate unchanged and are reported once at the CLI boundary. Command and header checks still exit `1`, while reconciliation warnings retain their command-specific exit behavior.
+Diagnostics contain no human-readable messages. `diagnostic/format.js` owns their wording; the CLI prints each diagnostic to stderr once. `generate` and `verify` also print their command summaries; `inspect` prints JSON instead. The generator, CSV adapter, validators, and diff logic do not print progress or errors. Fatal application checks propagate native `Error` objects carrying a `diagnostic`; parser, fetch, and RPC exceptions propagate unchanged and are reported once at the CLI boundary. Command and header checks still exit `1`, while reconciliation warnings retain their command-specific exit behavior.
 
 The `validationWarnings` field is retained, but its entries are now diagnostic objects rather than strings. This also changes the `inspect` JSON contract: consumers should use `code` and `context`, not parse warning text. Successful `inspect` runs print human-readable diagnostics to stderr and JSON to stdout. Only consume stdout after checking the exit code: ethers may print RPC startup diagnostics there on failed runs.
 
