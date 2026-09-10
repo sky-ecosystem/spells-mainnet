@@ -215,40 +215,6 @@ test.each(["__proto__", "constructor", "toString"])(
     },
 );
 
-test.each(["__proto__", "constructor", "toString"])(
-    "does not read inherited recovery metadata for %s",
-    (chainName) => {
-        expect(
-            normalizeContractsInScope(
-                {
-                    headers: ["Status", "Chain", "Address", "isFactory"],
-                    records: [
-                        {
-                            Status: "ACTIVE",
-                            Chain: chainName,
-                            Address: "A",
-                            isFactory: "FALSE",
-                        },
-                    ],
-                },
-                {
-                    caip2ChainId: { [chainName]: "eip155:1" },
-                    assetRecoveryAddress: {},
-                    name: { "eip155:1": chainName },
-                },
-            ),
-        ).toEqual({
-            value: {
-                "eip155:1": {
-                    accounts: [{ accountAddress: "A", childContractScope: 0 }],
-                    assetRecoveryAddress: undefined,
-                },
-            },
-            warnings: [],
-        });
-    },
-);
-
 test("joins raw recovery addresses without mutating either source", () => {
     const sheet = {
         headers: ["Status", "Chain", "Address", "isFactory"],

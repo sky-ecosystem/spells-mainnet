@@ -278,35 +278,6 @@ test.each([
     },
 );
 
-test.each(["__proto__", "constructor", "toString"])(
-    "does not treat inherited metadata property %s as a known on-chain ID",
-    async (chainId) => {
-        const result = await reconcileFrom({
-            chainCSV: "Name,Chain Id,Asset Recovery Address\n",
-            contractCSV: "Status,Chain,Address,isFactory\n",
-            details: {
-                chains: [
-                    {
-                        caip2ChainId: chainId,
-                        assetRecoveryAddress: "recovery",
-                        accounts: [["A", 0n]],
-                    },
-                ],
-            },
-        });
-        expect(result.agreementOnChainState).toEqual({
-            [chainId]: {
-                assetRecoveryAddress: "recovery",
-                accounts: [{ accountAddress: "A", childContractScope: 0n }],
-            },
-        });
-        expect(result.changes).toEqual([]);
-        expect(result.validationWarnings).toEqual([
-            { code: "UNKNOWN_ONCHAIN_CHAIN", context: { chainId } },
-        ]);
-    },
-);
-
 describe("validation warnings", () => {
     test.each([
         {

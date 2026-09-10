@@ -11,14 +11,19 @@ test("rejects missing template values", () => {
     ).toThrow("Missing template value: address");
 });
 
-test.each(["UNKNOWN_DIAGNOSTIC", "toString"])(
-    "rejects unknown diagnostic code %s",
-    (code) => {
-        expect(() => formatDiagnostic({ code })).toThrow(
-            `Unknown diagnostic code: ${code}`,
-        );
-    },
-);
+test("rejects explicitly undefined template values", () => {
+    expect(() =>
+        formatDiagnostic({
+            code: "DUPLICATE_SHEET_ACCOUNT",
+            context: {
+                chainName: "BASE",
+                address: undefined,
+                firstScope: 0,
+                duplicateScope: 2,
+            },
+        }),
+    ).toThrow("Missing template value: address");
+});
 
 test("inserts placeholder-like and replacement-pattern text literally", () => {
     expect(

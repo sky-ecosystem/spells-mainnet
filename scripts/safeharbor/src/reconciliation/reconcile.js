@@ -59,7 +59,7 @@ async function loadSource(source, load) {
 
 function validateKnownOnChainIds(agreementOnChainState, sheetChainDetails) {
     return Object.keys(agreementOnChainState)
-        .filter((chainId) => !Object.hasOwn(sheetChainDetails.name, chainId))
+        .filter((chainId) => !sheetChainDetails.name[chainId])
         .map((chainId) => ({
             code: $.UNKNOWN_ONCHAIN_CHAIN,
             context: { chainId },

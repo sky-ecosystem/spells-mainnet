@@ -2,9 +2,6 @@ import { DIAGNOSTIC_CODES as $ } from "./codes.js";
 import { diagnosticTemplates } from "./templates.js";
 
 export function formatDiagnostic({ code, context = {} }) {
-    if (!Object.hasOwn(diagnosticTemplates, code)) {
-        throw new Error(`Unknown diagnostic code: ${code}`);
-    }
     return renderTemplate(diagnosticTemplates[code], {
         ...context,
         ...formatContext[code]?.(context),
@@ -35,7 +32,7 @@ const formatContext = {
 
 function renderTemplate(template, values) {
     return template.replace(/\{(\w+)\}/g, (_, key) => {
-        if (!Object.hasOwn(values, key)) {
+        if (values[key] === undefined) {
             throw new Error(`Missing template value: ${key}`);
         }
         return String(values[key]);

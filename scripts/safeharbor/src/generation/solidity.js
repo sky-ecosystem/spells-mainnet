@@ -7,7 +7,7 @@ export function generateSolidity(updates) {
         `bytes[] memory calldatas = new bytes[](${updates.length});`,
         ...updates.map(
             (update, index) =>
-                `// ${escapeCommentLineTerminators(getDescription(update))}\ncalldatas[${index}] = hex'${update.calldata.replace(/^0x/, "")}';`,
+                `// ${escapeCommentLineTerminators(getDescription(update))}\ncalldatas[${index}] = hex'${update.calldata.slice(2)}';`,
         ),
         "_updateSafeHarbor(calldatas);",
     ]
@@ -33,12 +33,10 @@ function getDescription(update) {
         }
         case "addChains": {
             return update.args[0]
-                .map((chainInfo) => {
-                    if (chainInfo.accounts.length === 0) {
-                        return `Add new ${chainInfo.caip2ChainId} with recovery address ${chainInfo.assetRecoveryAddress} and no accounts`;
-                    }
-                    return `Add new ${chainInfo.caip2ChainId} with recovery address ${chainInfo.assetRecoveryAddress} and accounts: ${listAccountAddresses(chainInfo.accounts)}`;
-                })
+                .map(
+                    (chainInfo) =>
+                        `Add new ${chainInfo.caip2ChainId} with recovery address ${chainInfo.assetRecoveryAddress} and accounts: ${listAccountAddresses(chainInfo.accounts)}`,
+                )
                 .join("; ");
         }
         case "removeAccounts": {

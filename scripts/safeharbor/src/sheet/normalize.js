@@ -45,19 +45,13 @@ function groupAccountsByChain(records) {
 function buildChainStates(accountsByChainName, sheetChainDetails) {
     return Object.fromEntries(
         Object.entries(accountsByChainName)
-            .filter(([chainName]) =>
-                Object.hasOwn(sheetChainDetails.caip2ChainId, chainName),
-            )
+            .filter(([chainName]) => sheetChainDetails.caip2ChainId[chainName])
             .map(([chainName, accounts]) => [
                 sheetChainDetails.caip2ChainId[chainName],
                 {
                     accounts,
-                    assetRecoveryAddress: Object.hasOwn(
-                        sheetChainDetails.assetRecoveryAddress,
-                        chainName,
-                    )
-                        ? sheetChainDetails.assetRecoveryAddress[chainName]
-                        : undefined,
+                    assetRecoveryAddress:
+                        sheetChainDetails.assetRecoveryAddress[chainName],
                 },
             ]),
     );
@@ -219,7 +213,7 @@ function validateKnownChains(sheetState, sheetChainDetails) {
 }
 
 function validateKnownChain(chainName, sheetChainDetails) {
-    if (Object.hasOwn(sheetChainDetails.caip2ChainId, chainName)) {
+    if (sheetChainDetails.caip2ChainId[chainName]) {
         return [];
     }
     return [

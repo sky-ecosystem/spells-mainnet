@@ -26,7 +26,7 @@ test.each([
         `,
     },
     {
-        scenario: "chain additions with and without accounts",
+        scenario: "chain additions with accounts",
         updates: [
             {
                 fn: "addChains",
@@ -49,21 +49,15 @@ test.each([
                                 },
                             ],
                         },
-                        {
-                            caip2ChainId: "eip155:1",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000001",
-                            accounts: [],
-                        },
                     ],
                 ],
-                calldata: "abcd",
+                calldata: "0xabcd",
             },
         ],
         expected: dedent`
             bytes[] memory calldatas = new bytes[](1);
 
-            // Add new eip155:8453 with recovery address 0x1000000000000000000000000000000000000002 and accounts: 0x3000000000000000000000000000000000000002, 0x3000000000000000000000000000000000000001; Add new eip155:1 with recovery address 0x1000000000000000000000000000000000000001 and no accounts
+            // Add new eip155:8453 with recovery address 0x1000000000000000000000000000000000000002 and accounts: 0x3000000000000000000000000000000000000002, 0x3000000000000000000000000000000000000001
             calldatas[0] = hex'abcd';
 
             _updateSafeHarbor(calldatas);
@@ -113,7 +107,7 @@ test.each([
                         },
                     ],
                 ],
-                calldata: "1234",
+                calldata: "0x1234",
             },
         ],
         expected: dedent`

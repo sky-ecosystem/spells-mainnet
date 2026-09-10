@@ -10,7 +10,7 @@ export function checkStateConsistency(agreementOnChainState, sheetState) {
 function checkChainRecoveryAddress(chainId, agreementOnChainState, sheetState) {
     const recoveryDetails = {
         chainId,
-        isNewChain: !Object.hasOwn(agreementOnChainState, chainId),
+        isNewChain: !agreementOnChainState[chainId],
         onChainRecoveryAddress:
             agreementOnChainState[chainId]?.assetRecoveryAddress,
         sheetRecoveryAddress: sheetState[chainId].assetRecoveryAddress,

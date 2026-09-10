@@ -31,7 +31,7 @@ function getAccountKey(account) {
 function generateAccountUpdates(agreementOnChainState, sheetState) {
     // New chains are handled by generateChainUpdates.
     return Object.keys(agreementOnChainState)
-        .filter((chainId) => Object.hasOwn(sheetState, chainId))
+        .filter((chainId) => sheetState[chainId])
         .flatMap((chainId) =>
             generateChainAccountUpdates(
                 chainId,
@@ -136,7 +136,7 @@ function assertUpdateInputs(agreementOnChainState, sheetState) {
 
 function validateUpdateInputs(agreementOnChainState, sheetState) {
     return Object.entries(sheetState).flatMap(([chainId, { accounts }]) => {
-        const isNewChain = !Object.hasOwn(agreementOnChainState, chainId);
+        const isNewChain = !agreementOnChainState[chainId];
 
         return validateChainUpdate(accounts ?? [], isNewChain, chainId);
     });
