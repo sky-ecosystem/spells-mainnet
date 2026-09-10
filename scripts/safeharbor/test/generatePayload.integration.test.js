@@ -48,7 +48,15 @@ afterEach(() => {
     }
 });
 
-async function generateFrom({ chainCSV, contractCSV, details }) {
+async function generateFrom(fixture) {
+    const report = await reconcileFrom(fixture);
+    expect(report.validationWarnings).toEqual([]);
+    const result = generatePayload(report.changes);
+    payloadSnapshot(result.updates);
+    return result;
+}
+
+async function reconcileFrom({ chainCSV, contractCSV, details }) {
     fetch
         .mockResolvedValueOnce(
             new Response(chainCSV, { headers: { "content-type": "text/csv" } }),
@@ -65,65 +73,9 @@ async function generateFrom({ chainCSV, contractCSV, details }) {
         getSheetChainDetails,
     });
     expect(encodeSpy).not.toHaveBeenCalled();
-    if (report.validationWarnings.length > 0) {
-        expect(report.changes).toEqual([]);
-    } else {
-        expect(report.changes).toBeInstanceOf(Array);
-    }
-    const payload =
-        report.validationWarnings.length > 0
-            ? { updates: [], solidityCode: "" }
-            : generatePayload(report.changes);
-    const result = {
-        ...payload,
-        validationWarnings: report.validationWarnings,
-    };
     expect(getDetails).toHaveBeenCalledExactlyOnceWith();
-    payloadSnapshot(result.updates);
-    if (result.updates.length === 0) {
-        expect(result.solidityCode).toBe("");
-    } else {
-        // Check calldata placement and order across integration scenarios.
-        // Full-output unit tests cover generated comments and formatting.
-        expect(
-            result.solidityCode
-                .split("\n")
-                .filter(
-                    (line) =>
-                        line.trim().length > 0 && !line.trim().startsWith("//"),
-                ),
-        ).toEqual([
-            `bytes[] memory calldatas = new bytes[](${result.updates.length});`,
-            ...result.updates.map(
-                (update, index) =>
-                    `calldatas[${index}] = hex'${update.calldata.slice(2)}';`,
-            ),
-            "_updateSafeHarbor(calldatas);",
-        ]);
-    }
-    return result;
+    return report;
 }
-
-// Static synthetic fixtures shaped like production EVM and Solana identifiers.
-const RECOVERY = {
-    ETH: "0x1000000000000000000000000000000000000001",
-    OP: "0x1000000000000000000000000000000000000004",
-    SOL: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
-    MISMATCH: "0x10000000000000000000000000000000000000ff",
-};
-
-const ACCOUNT = {
-    ETH2: "0x2000000000000000000000000000000000000002",
-    ETH3: "0x2000000000000000000000000000000000000003",
-    BASE2: "0x3000000000000000000000000000000000000002",
-    ARB1: "0x4000000000000000000000000000000000000001",
-    OP1: "0x5000000000000000000000000000000000000001",
-    OP2: "0x5000000000000000000000000000000000000002",
-    OPF: "0x5000000000000000000000000000000000000003",
-    OPR1: "0x5000000000000000000000000000000000000004",
-    OPR2: "0x5000000000000000000000000000000000000005",
-    SOL1: "3EKkiwNLWqoUbzFkPrmKbtUB4EweE6f4STzevYUmezeL",
-};
 
 describe("generatePayload", () => {
     describe("No changes scenario", () => {
@@ -195,7 +147,6 @@ describe("generatePayload", () => {
             // Assert - should have empty result since no changes needed
             assert.strictEqual(result.updates.length, 0);
             assert.strictEqual(result.solidityCode, "");
-            assert.deepStrictEqual(result.validationWarnings, []);
         });
     });
 
@@ -267,24 +218,35 @@ describe("generatePayload", () => {
                 },
             });
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
-            assert.strictEqual(result.updates.length, 2);
-            const addAccountsUpdates = result.updates.filter(
-                (u) => u.fn === "addAccounts",
-            );
-            assert.strictEqual(addAccountsUpdates.length, 2);
-            const ethereumUpdate = addAccountsUpdates.find(
-                (u) => u.args[0] === "eip155:1",
-            );
-            assert.ok(ethereumUpdate);
-            assert.deepStrictEqual(ethereumUpdate.args[1], [
-                { accountAddress: ACCOUNT.ETH3, childContractScope: 0 },
-            ]);
-            const baseUpdate = addAccountsUpdates.find(
-                (u) => u.args[0] === "eip155:8453",
-            );
-            assert.ok(baseUpdate);
-            assert.deepStrictEqual(baseUpdate.args[1], [
-                { accountAddress: ACCOUNT.BASE2, childContractScope: 2 },
+            expect(
+                result.updates.map(({ fn, args }) => ({ fn, args })),
+            ).toEqual([
+                {
+                    fn: "addAccounts",
+                    args: [
+                        "eip155:1",
+                        [
+                            {
+                                accountAddress:
+                                    "0x2000000000000000000000000000000000000003",
+                                childContractScope: 0,
+                            },
+                        ],
+                    ],
+                },
+                {
+                    fn: "addAccounts",
+                    args: [
+                        "eip155:8453",
+                        [
+                            {
+                                accountAddress:
+                                    "0x3000000000000000000000000000000000000002",
+                                childContractScope: 2,
+                            },
+                        ],
+                    ],
+                },
             ]);
         });
     });
@@ -352,21 +314,24 @@ describe("generatePayload", () => {
                 },
             });
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
-            assert.strictEqual(result.updates.length, 2);
-            const removeAccountsUpdates = result.updates.filter(
-                (u) => u.fn === "removeAccounts",
-            );
-            assert.strictEqual(removeAccountsUpdates.length, 2);
-            const ethereumUpdate = removeAccountsUpdates.find(
-                (u) => u.args[0] === "eip155:1",
-            );
-            assert.ok(ethereumUpdate);
-            assert.deepStrictEqual(ethereumUpdate.args[1], [ACCOUNT.ETH2]);
-            const arbitrumUpdate = removeAccountsUpdates.find(
-                (u) => u.args[0] === "eip155:42161",
-            );
-            assert.ok(arbitrumUpdate);
-            assert.deepStrictEqual(arbitrumUpdate.args[1], [ACCOUNT.ARB1]);
+            expect(
+                result.updates.map(({ fn, args }) => ({ fn, args })),
+            ).toEqual([
+                {
+                    fn: "removeAccounts",
+                    args: [
+                        "eip155:1",
+                        ["0x2000000000000000000000000000000000000002"],
+                    ],
+                },
+                {
+                    fn: "removeAccounts",
+                    args: [
+                        "eip155:42161",
+                        ["0x4000000000000000000000000000000000000001"],
+                    ],
+                },
+            ]);
         });
     });
     describe("Chain addition scenarios", () => {
@@ -438,33 +403,46 @@ describe("generatePayload", () => {
                 },
             });
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
-            assert.strictEqual(result.updates.length, 1);
-            const addChainsUpdates = result.updates.filter(
-                (u) => u.fn === "addChains",
-            );
-            assert.strictEqual(addChainsUpdates.length, 1);
-            const newChains = addChainsUpdates[0].args[0];
-            assert.strictEqual(newChains.length, 2);
-            const optimismChain = newChains.find(
-                (c) => c.caip2ChainId === "eip155:10",
-            );
-            assert.ok(optimismChain);
-            assert.strictEqual(optimismChain.assetRecoveryAddress, RECOVERY.OP);
-            assert.strictEqual(optimismChain.accounts.length, 2);
-            assert.deepStrictEqual(optimismChain.accounts, [
-                { accountAddress: ACCOUNT.OP1, childContractScope: 0 },
-                { accountAddress: ACCOUNT.OP2, childContractScope: 2 },
-            ]);
-            const solanaChain = newChains.find(
-                (c) =>
-                    c.caip2ChainId ===
-                    "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
-            );
-            assert.ok(solanaChain);
-            assert.strictEqual(solanaChain.assetRecoveryAddress, RECOVERY.SOL);
-            assert.strictEqual(solanaChain.accounts.length, 1);
-            assert.deepStrictEqual(solanaChain.accounts, [
-                { accountAddress: ACCOUNT.SOL1, childContractScope: 0 },
+            expect(
+                result.updates.map(({ fn, args }) => ({ fn, args })),
+            ).toEqual([
+                {
+                    fn: "addChains",
+                    args: [
+                        [
+                            {
+                                caip2ChainId: "eip155:10",
+                                assetRecoveryAddress:
+                                    "0x1000000000000000000000000000000000000004",
+                                accounts: [
+                                    {
+                                        accountAddress:
+                                            "0x5000000000000000000000000000000000000001",
+                                        childContractScope: 0,
+                                    },
+                                    {
+                                        accountAddress:
+                                            "0x5000000000000000000000000000000000000002",
+                                        childContractScope: 2,
+                                    },
+                                ],
+                            },
+                            {
+                                caip2ChainId:
+                                    "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+                                assetRecoveryAddress:
+                                    "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+                                accounts: [
+                                    {
+                                        accountAddress:
+                                            "3EKkiwNLWqoUbzFkPrmKbtUB4EweE6f4STzevYUmezeL",
+                                        childContractScope: 0,
+                                    },
+                                ],
+                            },
+                        ],
+                    ],
+                },
             ]);
         });
     });
@@ -531,15 +509,14 @@ describe("generatePayload", () => {
                 },
             });
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
-            assert.strictEqual(result.updates.length, 1);
-            const removeChainsUpdates = result.updates.filter(
-                (u) => u.fn === "removeChains",
-            );
-            assert.strictEqual(removeChainsUpdates.length, 1);
-            const chainIdsToRemove = removeChainsUpdates[0].args[0];
-            assert.strictEqual(chainIdsToRemove.length, 2);
-            assert.ok(chainIdsToRemove.includes("eip155:8453"));
-            assert.ok(chainIdsToRemove.includes("eip155:42161"));
+            expect(
+                result.updates.map(({ fn, args }) => ({ fn, args })),
+            ).toEqual([
+                {
+                    fn: "removeChains",
+                    args: [["eip155:8453", "eip155:42161"]],
+                },
+            ]);
         });
     });
     describe("Complex mixed scenarios", () => {
@@ -666,8 +643,6 @@ describe("generatePayload", () => {
                     ],
                 },
             ]);
-
-            expect(result.validationWarnings).toEqual([]);
         });
         test("should preserve childContractScope values correctly in complex scenarios", async () => {
             const result = await generateFrom({
@@ -734,34 +709,71 @@ describe("generatePayload", () => {
                 },
             });
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
-            assert.strictEqual(result.updates.length, 4);
-            const addChainUpdate = result.updates.find(
-                (u) => u.fn === "addChains",
-            );
-            assert.ok(addChainUpdate);
-            const optimismChain = addChainUpdate.args[0].find(
-                (c) => c.caip2ChainId === "eip155:10",
-            );
-            assert.ok(optimismChain);
-            const factoryAccount = optimismChain.accounts.find(
-                (a) => a.accountAddress === ACCOUNT.OPF,
-            );
-            const normalAccounts = optimismChain.accounts.filter((a) =>
-                [ACCOUNT.OPR1, ACCOUNT.OPR2].includes(a.accountAddress),
-            );
-            assert.strictEqual(factoryAccount.childContractScope, 2);
-            assert.strictEqual(normalAccounts.length, 2);
-            assert.ok(normalAccounts.every((a) => a.childContractScope === 0));
-
-            const removeAccountFromEthereumUpdate = result.updates.find(
-                (u) => u.fn === "removeAccounts" && u.args[0] === "eip155:1",
-            );
-            assert.ok(removeAccountFromEthereumUpdate);
-
-            const addAccountToEthereumUpdate = result.updates.find(
-                (u) => u.fn === "addAccounts" && u.args[0] === "eip155:1",
-            );
-            assert.ok(addAccountToEthereumUpdate);
+            expect(
+                result.updates.map(({ fn, args }) => ({ fn, args })),
+            ).toEqual([
+                {
+                    fn: "removeChains",
+                    args: [["eip155:8453", "eip155:42161"]],
+                },
+                {
+                    fn: "addChains",
+                    args: [
+                        [
+                            {
+                                caip2ChainId: "eip155:10",
+                                assetRecoveryAddress:
+                                    "0x1000000000000000000000000000000000000004",
+                                accounts: [
+                                    {
+                                        accountAddress:
+                                            "0x5000000000000000000000000000000000000003",
+                                        childContractScope: 2,
+                                    },
+                                    {
+                                        accountAddress:
+                                            "0x5000000000000000000000000000000000000004",
+                                        childContractScope: 0,
+                                    },
+                                    {
+                                        accountAddress:
+                                            "0x5000000000000000000000000000000000000005",
+                                        childContractScope: 0,
+                                    },
+                                ],
+                            },
+                        ],
+                    ],
+                },
+                {
+                    fn: "addAccounts",
+                    args: [
+                        "eip155:1",
+                        [
+                            {
+                                accountAddress:
+                                    "0x2000000000000000000000000000000000000004",
+                                childContractScope: 2,
+                            },
+                            {
+                                accountAddress:
+                                    "0x2000000000000000000000000000000000000005",
+                                childContractScope: 0,
+                            },
+                        ],
+                    ],
+                },
+                {
+                    fn: "removeAccounts",
+                    args: [
+                        "eip155:1",
+                        [
+                            "0x2000000000000000000000000000000000000002",
+                            "0x2000000000000000000000000000000000000001",
+                        ],
+                    ],
+                },
+            ]);
         });
     });
     describe("Edge cases", () => {
@@ -829,13 +841,37 @@ describe("generatePayload", () => {
                     ],
                 },
             });
-            const ethereumUpdates = result.updates.filter(
-                (update) => update.args[0] === "eip155:1",
-            );
-
-            expect(ethereumUpdates.map((update) => update.fn)).toEqual([
-                "addAccounts",
-                "removeAccounts",
+            expect(
+                result.updates.map(({ fn, args }) => ({ fn, args })),
+            ).toEqual([
+                {
+                    fn: "addAccounts",
+                    args: [
+                        "eip155:1",
+                        [
+                            {
+                                accountAddress:
+                                    "0x2000000000000000000000000000000000000003",
+                                childContractScope: 0,
+                            },
+                            {
+                                accountAddress:
+                                    "0x2000000000000000000000000000000000000004",
+                                childContractScope: 2,
+                            },
+                        ],
+                    ],
+                },
+                {
+                    fn: "removeAccounts",
+                    args: [
+                        "eip155:1",
+                        [
+                            "0x2000000000000000000000000000000000000002",
+                            "0x2000000000000000000000000000000000000001",
+                        ],
+                    ],
+                },
             ]);
         });
 
@@ -858,15 +894,29 @@ describe("generatePayload", () => {
                 },
             });
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
-            assert.strictEqual(result.updates.length, 1);
-            const addChainsUpdates = result.updates.filter(
-                (u) => u.fn === "addChains",
-            );
-            assert.strictEqual(addChainsUpdates.length, 1);
-            const removeUpdates = result.updates.filter((u) =>
-                u.fn.includes("remove"),
-            );
-            assert.strictEqual(removeUpdates.length, 0);
+            expect(
+                result.updates.map(({ fn, args }) => ({ fn, args })),
+            ).toEqual([
+                {
+                    fn: "addChains",
+                    args: [
+                        [
+                            {
+                                caip2ChainId: "eip155:1",
+                                assetRecoveryAddress:
+                                    "0x1000000000000000000000000000000000000001",
+                                accounts: [
+                                    {
+                                        accountAddress:
+                                            "0x2000000000000000000000000000000000000001",
+                                        childContractScope: 0,
+                                    },
+                                ],
+                            },
+                        ],
+                    ],
+                },
+            ]);
         });
         test("should handle completely empty CSV state", async () => {
             const result = await generateFrom({
@@ -926,16 +976,14 @@ describe("generatePayload", () => {
                 },
             });
             expect(payloadSnapshot(result.updates)).toMatchSnapshot();
-            assert.strictEqual(result.updates.length, 1);
-            const removeChainsUpdates = result.updates.filter(
-                (u) => u.fn === "removeChains",
-            );
-            assert.strictEqual(removeChainsUpdates.length, 1);
-            const chainIdsToRemove = removeChainsUpdates[0].args[0];
-            assert.strictEqual(chainIdsToRemove.length, 3);
-            assert.ok(chainIdsToRemove.includes("eip155:1"));
-            assert.ok(chainIdsToRemove.includes("eip155:8453"));
-            assert.ok(chainIdsToRemove.includes("eip155:42161"));
+            expect(
+                result.updates.map(({ fn, args }) => ({ fn, args })),
+            ).toEqual([
+                {
+                    fn: "removeChains",
+                    args: [["eip155:1", "eip155:8453", "eip155:42161"]],
+                },
+            ]);
         });
         test("shoud handle account scope changes", async () => {
             const result = await generateFrom({
@@ -1006,8 +1054,8 @@ describe("generatePayload", () => {
     });
 
     describe("Chain Property Validation", () => {
-        test("should block account updates before encoding on a recovery mismatch", async () => {
-            const result = await generateFrom({
+        test("should block account planning on a recovery mismatch", async () => {
+            const result = await reconcileFrom({
                 chainCSV: dedent`
                     Name,Chain Id,Asset Recovery Address
                     ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
@@ -1038,8 +1086,7 @@ describe("generatePayload", () => {
                 },
             });
 
-            expect(result.updates).toEqual([]);
-            expect(result.solidityCode).toBe("");
+            expect(result.changes).toEqual([]);
             expect(result.validationWarnings).toEqual([
                 {
                     code: "RECOVERY_ADDRESS_MISMATCH",
@@ -1052,11 +1099,10 @@ describe("generatePayload", () => {
                     },
                 },
             ]);
-            expect(encodeSpy).not.toHaveBeenCalled();
         });
 
         test("should return a diagnostic only for the mismatched recovery address", async () => {
-            const result = await generateFrom({
+            const result = await reconcileFrom({
                 chainCSV: dedent`
                     Name,Chain Id,Asset Recovery Address
                     ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
@@ -1098,9 +1144,7 @@ describe("generatePayload", () => {
                 },
             });
 
-            expect(result.updates).toEqual([]);
-            expect(result.solidityCode).toBe("");
-            expect(encodeSpy).not.toHaveBeenCalled();
+            expect(result.changes).toEqual([]);
 
             expect(result.validationWarnings).toEqual([
                 {
@@ -1117,7 +1161,7 @@ describe("generatePayload", () => {
         });
 
         test("should collect unknown Safeharbor Sheet chains as validation warnings", async () => {
-            const result = await generateFrom({
+            const result = await reconcileFrom({
                 chainCSV: dedent`
                     Name,Chain Id,Asset Recovery Address
                     ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
@@ -1189,14 +1233,12 @@ describe("generatePayload", () => {
                     context: { chainName: "UNKNOWN" },
                 },
             ]);
-            expect(result.updates).toEqual([]);
-            expect(result.solidityCode).toBe("");
-            expect(encodeSpy).not.toHaveBeenCalled();
+            expect(result.changes).toEqual([]);
         });
     });
 
     describe("Chain Details Duplicate Validation", () => {
-        test("should collect chain metadata warnings in the payload result", async () => {
+        test("should collect chain metadata warnings in the reconciliation result", async () => {
             const duplicateWarning = {
                 code: "DUPLICATE_CHAIN_NAME",
                 context: {
@@ -1206,7 +1248,7 @@ describe("generatePayload", () => {
                 },
             };
 
-            const result = await generateFrom({
+            const result = await reconcileFrom({
                 chainCSV: dedent`
                     Name,Chain Id,Asset Recovery Address
                     ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
@@ -1273,20 +1315,18 @@ describe("generatePayload", () => {
             });
 
             expect(result.validationWarnings).toEqual([duplicateWarning]);
-            expect(result.updates).toEqual([]);
-            expect(result.solidityCode).toBe("");
-            expect(encodeSpy).not.toHaveBeenCalled();
+            expect(result.changes).toEqual([]);
         });
     });
 
     describe("Validation warning aggregation", () => {
-        test("should block chain updates on on-chain normalization warnings", async () => {
+        test("should block chain planning on on-chain normalization warnings", async () => {
             const unknownChainWarning = {
                 code: "UNKNOWN_ONCHAIN_CHAIN",
                 context: { chainId: "eip155:137" },
             };
 
-            const result = await generateFrom({
+            const result = await reconcileFrom({
                 chainCSV: dedent`
                     Name,Chain Id,Asset Recovery Address
                     ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
@@ -1316,15 +1356,11 @@ describe("generatePayload", () => {
                 },
             });
 
-            expect(result).toEqual({
-                updates: [],
-                solidityCode: "",
-                validationWarnings: [unknownChainWarning],
-            });
-            expect(encodeSpy).not.toHaveBeenCalled();
+            expect(result.changes).toEqual([]);
+            expect(result.validationWarnings).toEqual([unknownChainWarning]);
         });
 
-        test("should collect warnings from every stage before encoding updates", async () => {
+        test("should collect warnings from every stage before planning updates", async () => {
             const duplicateWarning = {
                 code: "DUPLICATE_CHAIN_NAME",
                 context: {
@@ -1338,7 +1374,7 @@ describe("generatePayload", () => {
                 context: { chainId: "eip155:137" },
             };
 
-            const result = await generateFrom({
+            const result = await reconcileFrom({
                 chainCSV: dedent`
                     Name,Chain Id,Asset Recovery Address
                     ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
@@ -1382,29 +1418,25 @@ describe("generatePayload", () => {
                 },
             });
 
-            expect(result).toEqual({
-                updates: [],
-                solidityCode: "",
-                validationWarnings: [
-                    duplicateWarning,
-                    unknownChainWarning,
-                    {
-                        code: "UNKNOWN_SHEET_CHAIN",
-                        context: { chainName: "UNKNOWN" },
+            expect(result.changes).toEqual([]);
+            expect(result.validationWarnings).toEqual([
+                duplicateWarning,
+                unknownChainWarning,
+                {
+                    code: "UNKNOWN_SHEET_CHAIN",
+                    context: { chainName: "UNKNOWN" },
+                },
+                {
+                    code: "RECOVERY_ADDRESS_MISMATCH",
+                    context: {
+                        chainName: "ETHEREUM",
+                        onChainRecoveryAddress:
+                            "0x10000000000000000000000000000000000000ff",
+                        sheetRecoveryAddress:
+                            "0x1000000000000000000000000000000000000001",
                     },
-                    {
-                        code: "RECOVERY_ADDRESS_MISMATCH",
-                        context: {
-                            chainName: "ETHEREUM",
-                            onChainRecoveryAddress:
-                                "0x10000000000000000000000000000000000000ff",
-                            sheetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000001",
-                        },
-                    },
-                ],
-            });
-            expect(encodeSpy).not.toHaveBeenCalled();
+                },
+            ]);
         });
     });
 });
@@ -1566,7 +1598,6 @@ test.each([
     async ({ chainCSV, contractCSV, details, expectedUpdates }) => {
         const result = await generateFrom({ chainCSV, contractCSV, details });
 
-        expect(result.validationWarnings).toEqual([]);
         expect(result.updates).toEqual(expectedUpdates);
     },
 );
@@ -2219,14 +2250,9 @@ test.each([
 ])(
     "returns diagnostics only for $scenario",
     async ({ chainCSV, contractCSV, details, expectedWarnings }) => {
-        await expect(
-            generateFrom({ chainCSV, contractCSV, details }),
-        ).resolves.toEqual({
-            updates: [],
-            solidityCode: "",
-            validationWarnings: expectedWarnings,
-        });
-        expect(encodeSpy).not.toHaveBeenCalled();
+        const result = await reconcileFrom({ chainCSV, contractCSV, details });
+        expect(result.changes).toEqual([]);
+        expect(result.validationWarnings).toEqual(expectedWarnings);
     },
 );
 
@@ -2947,7 +2973,6 @@ test.each([
     "$scenario",
     async ({ chainCSV, contractCSV, details, expectedUpdates, snapshot }) => {
         const result = await generateFrom({ chainCSV, contractCSV, details });
-        expect(result.validationWarnings).toEqual([]);
         expect(result.updates.map(({ fn, args }) => ({ fn, args }))).toEqual(
             expectedUpdates,
         );
