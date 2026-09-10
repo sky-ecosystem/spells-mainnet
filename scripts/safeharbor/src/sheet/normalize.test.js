@@ -17,6 +17,50 @@ test("rejects missing headers in required order", () => {
     );
 });
 
+test("diagnoses empty active addresses without dropping records or trimming quoted values", () => {
+    expect(
+        normalizeContractsInScope(
+            {
+                headers: ["Status", "Chain", "Address", "isFactory"],
+                records: [
+                    {
+                        Status: "ACTIVE",
+                        Chain: "ETHEREUM",
+                        Address: "",
+                        isFactory: "FALSE",
+                    },
+                    {
+                        Status: "INACTIVE",
+                        Chain: "ETHEREUM",
+                        Address: "",
+                        isFactory: "FALSE",
+                    },
+                    {
+                        Status: "ACTIVE",
+                        Chain: "ETHEREUM",
+                        Address: " ",
+                        isFactory: "FALSE",
+                    },
+                ],
+            },
+            { caip2ChainId: { ETHEREUM: "eip155:1" } },
+        ),
+    ).toEqual({
+        value: {
+            ETHEREUM: [
+                { accountAddress: "", childContractScope: 0 },
+                { accountAddress: " ", childContractScope: 0 },
+            ],
+        },
+        warnings: [
+            {
+                code: "MISSING_SHEET_ACCOUNT_ADDRESS",
+                context: { chainName: "ETHEREUM" },
+            },
+        ],
+    });
+});
+
 test("accepts required headers with extra columns", () => {
     expect(
         normalizeContractsInScope(
@@ -28,6 +72,43 @@ test("accepts required headers with extra columns", () => {
         ),
     ).toEqual({ value: {}, warnings: [] });
 });
+
+test.each(["__proto__", "constructor", "toString"])(
+    "groups accounts under the own chain property %s",
+    (chainName) => {
+        const result = normalizeContractsInScope(
+            {
+                headers: ["Status", "Chain", "Address", "isFactory"],
+                records: [
+                    {
+                        Status: "ACTIVE",
+                        Chain: chainName,
+                        Address: "A",
+                        isFactory: "FALSE",
+                    },
+                    {
+                        Status: "ACTIVE",
+                        Chain: chainName,
+                        Address: "B",
+                        isFactory: "TRUE",
+                    },
+                ],
+            },
+            { caip2ChainId: { [chainName]: "eip155:1" } },
+        );
+        expect(Object.keys(result.value)).toEqual([chainName]);
+        expect(Object.getPrototypeOf(result.value)).toBe(Object.prototype);
+        expect(result).toEqual({
+            value: {
+                [chainName]: [
+                    { accountAddress: "A", childContractScope: 0 },
+                    { accountAddress: "B", childContractScope: 2 },
+                ],
+            },
+            warnings: [],
+        });
+    },
+);
 
 describe("normalizeChainDetails", () => {
     test.each([

@@ -59,6 +59,16 @@ test.each([
         headers: {},
         diagnostic: { code: "INVALID_CSV_CONTENT_TYPE" },
     },
+    {
+        status: 200,
+        headers: { "content-type": "application/text/csv" },
+        diagnostic: { code: "INVALID_CSV_CONTENT_TYPE" },
+    },
+    {
+        status: 200,
+        headers: { "content-type": "text/csv-extended" },
+        diagnostic: { code: "INVALID_CSV_CONTENT_TYPE" },
+    },
 ])(
     "rejects invalid CSV response $diagnostic.code without reporting",
     async ({ status, headers, diagnostic }) => {
@@ -77,7 +87,46 @@ test("propagates fetch failures unchanged without reporting", async () => {
     await expect(getSheetChainDetails()).rejects.toBe(failure);
 });
 
+test.each(["TEXT/CSV; charset=utf-8", "text/csv ; charset=UTF-8"])(
+    "accepts CSV media type casing and parameters: %s",
+    async (contentType) => {
+        fetch.mockResolvedValue(
+            new Response("Name,Chain Id,Asset Recovery Address\n", {
+                headers: { "content-type": contentType },
+            }),
+        );
+        await expect(getSheetChainDetails()).resolves.toEqual({
+            value: { caip2ChainId: {}, assetRecoveryAddress: {}, name: {} },
+            warnings: [],
+        });
+    },
+);
+
 describe("contracts CSV headers", () => {
+    test.each([
+        ["Status,Chain,Address,isFactory,Status\n", "Status"],
+        ["Status,Chain,Address,Address,isFactory\n", "Address"],
+        ["Status,Chain,Address,isFactory,isFactory\n", "isFactory"],
+        ["Status,Chain,Address,isFactory,IsFactory,IsFactory\n", "IsFactory"],
+    ])(
+        "rejects repeated headers before reading any records: %s",
+        async (csv, header) => {
+            fetch.mockResolvedValue(csvResponse(csv));
+            await expect(
+                getSheetState({
+                    caip2ChainId: {},
+                    assetRecoveryAddress: {},
+                    name: {},
+                }),
+            ).rejects.toMatchObject({
+                diagnostic: {
+                    code: "DUPLICATE_SHEET_HEADERS",
+                    context: { duplicateHeaders: [header] },
+                },
+            });
+        },
+    );
+
     test.each([
         ["Status in a header-only file", "Chain,Address,isFactory\n", "Status"],
         [
@@ -210,6 +259,20 @@ describe("contracts CSV headers", () => {
 });
 
 describe("chain metadata CSV headers", () => {
+    test("rejects repeated metadata headers", async () => {
+        fetch.mockResolvedValue(
+            csvResponse(dedent`
+            Name,Name,Chain Id,Asset Recovery Address
+            ETHEREUM,BASE,eip155:1,0x1000000000000000000000000000000000000001
+        `),
+        );
+        await expect(getSheetChainDetails()).rejects.toMatchObject({
+            diagnostic: {
+                code: "DUPLICATE_SHEET_HEADERS",
+                context: { duplicateHeaders: ["Name"] },
+            },
+        });
+    });
     test.each([
         [
             "Name in a header-only file",
@@ -385,6 +448,23 @@ describe("malformed CSV", () => {
 describe("CSV validation before reconciliation", () => {
     test.each([
         {
+            scenario: "a repeated Status header hiding an active account",
+            chainCSV: dedent`
+                Name,Chain Id,Asset Recovery Address
+                ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+            `,
+            contractCSV: dedent`
+                Status,Chain,Address,isFactory,Status
+                ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE,INACTIVE
+            `,
+            error: {
+                diagnostic: {
+                    code: "DUPLICATE_SHEET_HEADERS",
+                    context: { duplicateHeaders: ["Status"] },
+                },
+            },
+        },
+        {
             scenario: "missing contract headers",
             chainCSV: dedent`
                 Name,Chain Id,Asset Recovery Address
@@ -432,7 +512,18 @@ describe("CSV validation before reconciliation", () => {
             fetch
                 .mockResolvedValueOnce(csvResponse(chainCSV))
                 .mockResolvedValueOnce(csvResponse(contractCSV));
-            getDetails.mockResolvedValue({ chains: [] });
+            getDetails.mockResolvedValue({
+                chains: [
+                    {
+                        caip2ChainId: "eip155:1",
+                        assetRecoveryAddress:
+                            "0x1000000000000000000000000000000000000001",
+                        accounts: [
+                            ["0x2000000000000000000000000000000000000001", 0n],
+                        ],
+                    },
+                ],
+            });
             const encode = vi.spyOn(Interface.prototype, "encodeFunctionData");
 
             await expect(

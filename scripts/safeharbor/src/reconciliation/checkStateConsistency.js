@@ -1,38 +1,17 @@
-import { DIAGNOSTIC_CODES as $ } from "../diagnosticCodes.js";
 import { getAddress } from "ethers";
-import { findDuplicateIndexes } from "../findDuplicateIndexes.js";
+import { DIAGNOSTIC_CODES as $ } from "../diagnosticCodes.js";
 
 export function checkStateConsistency(onChainState, sheetState, chainDetails) {
-    return [
-        ...validateRecoveryAddresses(onChainState, sheetState, chainDetails),
-        ...validateUniqueAccounts(onChainState),
-    ];
-}
-
-function validateUniqueAccounts(onChainState) {
-    return Object.entries(onChainState).flatMap(([chainName, { accounts }]) => {
-        const addresses = accounts.map(({ accountAddress }) => accountAddress);
-        return [...findDuplicateIndexes(addresses)].map((index) => ({
-            code: $.DUPLICATE_ONCHAIN_ACCOUNT,
-            context: {
-                chainName,
-                address: addresses[index],
-                firstScope:
-                    accounts[addresses.indexOf(addresses[index])]
-                        .childContractScope,
-                duplicateScope: accounts[index].childContractScope,
-            },
-        }));
-    });
-}
-
-function validateRecoveryAddresses(onChainState, sheetState, chainDetails) {
     const validateRecoveryAddress = (chainName) => {
         const isNewChain = !Object.hasOwn(onChainState, chainName);
         const onChainRecoveryAddress =
             onChainState[chainName]?.assetRecoveryAddress;
-        const sheetRecoveryAddress =
-            chainDetails.assetRecoveryAddress[chainName];
+        const sheetRecoveryAddress = Object.hasOwn(
+            chainDetails.assetRecoveryAddress,
+            chainName,
+        )
+            ? chainDetails.assetRecoveryAddress[chainName]
+            : undefined;
         const missingOnChainRecoveryAddress =
             !isNewChain && !onChainRecoveryAddress;
 

@@ -8,29 +8,30 @@ export function normalizeContractsInScope({ headers, records }, chainDetails) {
         "Address",
         headers.includes("IsFactory") ? "IsFactory" : "isFactory",
     ]);
-    const value = records
-        .filter((record) => record.Status === "ACTIVE")
-        .reduce((chains, record) => {
-            const chain = record.Chain;
-            if (!chains[chain]) {
-                chains[chain] = [];
-            }
+    const value = Object.fromEntries(
+        records
+            .filter((record) => record.Status === "ACTIVE")
+            .reduce((chains, record) => {
+                const accounts = chains.get(record.Chain) ?? [];
 
-            // Handle both possible column names for factory flag
-            const isFactory =
-                record.isFactory === "TRUE" || record.IsFactory === "TRUE";
-
-            chains[chain].push({
-                accountAddress: record.Address,
-                childContractScope: isFactory ? 2 : 0,
-            });
-            return chains;
-        }, {});
+                accounts.push({
+                    accountAddress: record.Address,
+                    // Handle both possible column names for the factory flag.
+                    childContractScope:
+                        record.isFactory === "TRUE" ||
+                        record.IsFactory === "TRUE"
+                            ? 2
+                            : 0,
+                });
+                return chains.set(record.Chain, accounts);
+            }, new Map()),
+    );
 
     return {
         value,
         warnings: [
             ...validateKnownChains(value, chainDetails),
+            ...validateAccountAddresses(value),
             ...validateUniqueAccounts(value),
         ],
     };
@@ -136,6 +137,17 @@ function validateUniqueAccounts(sheetState) {
             },
         }));
     });
+}
+
+function validateAccountAddresses(sheetState) {
+    return Object.entries(sheetState).flatMap(([chainName, accounts]) =>
+        accounts
+            .filter(({ accountAddress }) => !accountAddress)
+            .map(() => ({
+                code: $.MISSING_SHEET_ACCOUNT_ADDRESS,
+                context: { chainName },
+            })),
+    );
 }
 
 function assertHeaders(headers, requiredHeaders) {

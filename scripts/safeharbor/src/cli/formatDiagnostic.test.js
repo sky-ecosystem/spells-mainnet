@@ -39,6 +39,21 @@ test("inserts placeholder-like and replacement-pattern text literally", () => {
 test.each([
     {
         diagnostic: {
+            code: "MISSING_SHEET_ACCOUNT_ADDRESS",
+            context: { chainName: "ETHEREUM" },
+        },
+        message:
+            "Missing active account address in Safeharbor Sheet for chain 'ETHEREUM'",
+    },
+    {
+        diagnostic: {
+            code: "DUPLICATE_SHEET_HEADERS",
+            context: { duplicateHeaders: ["Status", "Address"] },
+        },
+        message: "Duplicate CSV headers: Status, Address",
+    },
+    {
+        diagnostic: {
             code: "DUPLICATE_SHEET_ACCOUNT",
             context: {
                 chainName: "SOLANA",

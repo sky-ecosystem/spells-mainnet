@@ -2,6 +2,228 @@ import { describe, expect, test } from "vitest";
 import { normalizeOnChainState } from "./normalize.js";
 
 describe("normalizeOnChainState", () => {
+    test.each([
+        {
+            scenario: "repeated accounts with identical and conflicting scopes",
+            details: {
+                chains: [
+                    {
+                        caip2ChainId: "eip155:1",
+                        assetRecoveryAddress:
+                            "0x1000000000000000000000000000000000000001",
+                        accounts: [
+                            ["0x2000000000000000000000000000000000000001", 0n],
+                            ["0x2000000000000000000000000000000000000001", 0n],
+                            ["0x2000000000000000000000000000000000000001", 2n],
+                        ],
+                    },
+                ],
+            },
+            warnings: [
+                {
+                    code: "DUPLICATE_ONCHAIN_ACCOUNT",
+                    context: {
+                        chainName: "ETHEREUM",
+                        address: "0x2000000000000000000000000000000000000001",
+                        firstScope: 0n,
+                        duplicateScope: 0n,
+                    },
+                },
+                {
+                    code: "DUPLICATE_ONCHAIN_ACCOUNT",
+                    context: {
+                        chainName: "ETHEREUM",
+                        address: "0x2000000000000000000000000000000000000001",
+                        firstScope: 0n,
+                        duplicateScope: 2n,
+                    },
+                },
+            ],
+        },
+        {
+            scenario: "the same account on different chains",
+            details: {
+                chains: [
+                    {
+                        caip2ChainId: "eip155:1",
+                        assetRecoveryAddress:
+                            "0x1000000000000000000000000000000000000001",
+                        accounts: [
+                            ["0x2000000000000000000000000000000000000001", 0n],
+                        ],
+                    },
+                    {
+                        caip2ChainId: "eip155:8453",
+                        assetRecoveryAddress:
+                            "0x1000000000000000000000000000000000000002",
+                        accounts: [
+                            ["0x2000000000000000000000000000000000000001", 2n],
+                        ],
+                    },
+                ],
+            },
+            warnings: [],
+        },
+        {
+            scenario: "distinct case-sensitive EVM account strings",
+            details: {
+                chains: [
+                    {
+                        caip2ChainId: "eip155:1",
+                        assetRecoveryAddress:
+                            "0x1000000000000000000000000000000000000001",
+                        accounts: [
+                            ["0x8ba1f109551bd432803012645ac136ddd64dba72", 0n],
+                            ["0x8ba1f109551bD432803012645Ac136ddd64DBA72", 2n],
+                        ],
+                    },
+                ],
+            },
+            warnings: [],
+        },
+        {
+            scenario: "distinct case-sensitive Solana account strings",
+            details: {
+                chains: [
+                    {
+                        caip2ChainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+                        assetRecoveryAddress:
+                            "3EKkiwNLWqoUbzFkPrmKbtUB4EweE6f4STzevYUmezeL",
+                        accounts: [
+                            [
+                                "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+                                0n,
+                            ],
+                            [
+                                "29d2s7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+                                2n,
+                            ],
+                        ],
+                    },
+                ],
+            },
+            warnings: [],
+        },
+    ])("validates $scenario", ({ details, warnings }) => {
+        expect(
+            normalizeOnChainState(details, {
+                name: {
+                    "eip155:1": "ETHEREUM",
+                    "eip155:8453": "BASE",
+                    "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp": "SOLANA",
+                },
+            }).warnings,
+        ).toEqual(warnings);
+    });
+
+    test("reports unknown chains before duplicate accounts in known chains", () => {
+        expect(
+            normalizeOnChainState(
+                {
+                    chains: [
+                        {
+                            caip2ChainId: "eip155:1",
+                            assetRecoveryAddress:
+                                "0x1000000000000000000000000000000000000001",
+                            accounts: [
+                                ["A", 0n],
+                                ["A", 2n],
+                            ],
+                        },
+                        {
+                            caip2ChainId: "unknown:chain",
+                            assetRecoveryAddress: "unknown-recovery",
+                            accounts: [["B", 0n]],
+                        },
+                    ],
+                },
+                { name: { "eip155:1": "ETHEREUM" } },
+            ),
+        ).toEqual({
+            value: {
+                ETHEREUM: {
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                    accounts: [
+                        { accountAddress: "A", childContractScope: 0n },
+                        { accountAddress: "A", childContractScope: 2n },
+                    ],
+                },
+            },
+            warnings: [
+                {
+                    code: "UNKNOWN_ONCHAIN_CHAIN",
+                    context: { chainId: "unknown:chain" },
+                },
+                {
+                    code: "DUPLICATE_ONCHAIN_ACCOUNT",
+                    context: {
+                        chainName: "ETHEREUM",
+                        address: "A",
+                        firstScope: 0n,
+                        duplicateScope: 2n,
+                    },
+                },
+            ],
+        });
+    });
+
+    test.each(["__proto__", "constructor", "toString"])(
+        "preserves the chain named %s as an own property",
+        (chainName) => {
+            const result = normalizeOnChainState(
+                {
+                    chains: [
+                        {
+                            caip2ChainId: "eip155:1",
+                            assetRecoveryAddress: "recovery",
+                            accounts: [["A", 0n]],
+                        },
+                    ],
+                },
+                { name: { "eip155:1": chainName } },
+            );
+            expect(Object.keys(result.value)).toEqual([chainName]);
+            expect(Object.getPrototypeOf(result.value)).toBe(Object.prototype);
+            expect(result).toEqual({
+                value: {
+                    [chainName]: {
+                        assetRecoveryAddress: "recovery",
+                        accounts: [
+                            { accountAddress: "A", childContractScope: 0n },
+                        ],
+                    },
+                },
+                warnings: [],
+            });
+        },
+    );
+
+    test.each(["__proto__", "constructor", "toString"])(
+        "does not treat an inherited %s property as known chain metadata",
+        (chainId) => {
+            expect(
+                normalizeOnChainState(
+                    {
+                        chains: [
+                            {
+                                caip2ChainId: chainId,
+                                assetRecoveryAddress: "recovery",
+                                accounts: [["A", 0n]],
+                            },
+                        ],
+                    },
+                    { name: {} },
+                ),
+            ).toEqual({
+                value: {},
+                warnings: [
+                    { code: "UNKNOWN_ONCHAIN_CHAIN", context: { chainId } },
+                ],
+            });
+        },
+    );
+
     test("returns an empty state without warnings", () => {
         expect(normalizeOnChainState({ chains: [] }, { name: {} })).toEqual({
             value: {},

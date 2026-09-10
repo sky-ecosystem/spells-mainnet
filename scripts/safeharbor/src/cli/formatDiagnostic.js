@@ -1,6 +1,8 @@
 import { DIAGNOSTIC_CODES as $ } from "../diagnosticCodes.js";
 
 export const diagnosticTemplates = {
+    [$.MISSING_SHEET_ACCOUNT_ADDRESS]:
+        "Missing active account address in Safeharbor Sheet for chain '{chainName}'",
     [$.DUPLICATE_SHEET_ACCOUNT]:
         "Duplicate account address in Safeharbor Sheet for chain '{chainName}': {address}; first scope={firstScope}, duplicate scope={duplicateScope}",
     [$.DUPLICATE_ONCHAIN_ACCOUNT]:
@@ -22,6 +24,7 @@ export const diagnosticTemplates = {
     [$.DUPLICATE_CHAIN_ID]:
         "Duplicate chain ID found in Safeharbor Sheet: chainId='{chainId}', first='{firstChainName}', duplicate='{duplicateChainName}'",
     [$.MISSING_SHEET_HEADERS]: "Missing required CSV headers: {missingHeaders}",
+    [$.DUPLICATE_SHEET_HEADERS]: "Duplicate CSV headers: {duplicateHeaders}",
     [$.COMMAND_REQUIRED]:
         "Error: Command is required\nAvailable commands: generate, inspect, verify\nUsage: npm run <command>",
     [$.UNKNOWN_COMMAND]:
@@ -50,6 +53,9 @@ export function formatDiagnostic({ code, context = {} }) {
 }
 
 const formatContext = {
+    [$.DUPLICATE_SHEET_HEADERS]: (context) => ({
+        duplicateHeaders: context.duplicateHeaders.join(", "),
+    }),
     [$.INVALID_EVM_RECOVERY_ADDRESS]: (context) => ({
         onChainRecoveryAddress: context.isNewChain
             ? "not registered"

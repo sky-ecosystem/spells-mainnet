@@ -1,5 +1,6 @@
-import { DIAGNOSTIC_CODES as $ } from "../diagnosticCodes.js";
 import { parse } from "csv-parse/sync";
+import { DIAGNOSTIC_CODES as $ } from "../diagnosticCodes.js";
+import { findDuplicateIndexes } from "../findDuplicateIndexes.js";
 
 export async function downloadAndParse(url) {
     const response = await fetch(url);
@@ -10,13 +11,20 @@ export async function downloadAndParse(url) {
         };
         throw Object.assign(new Error(diagnostic.code), { diagnostic });
     }
-    if (!response.headers.get("content-type")?.includes("text/csv")) {
+    if (
+        response.headers
+            .get("content-type")
+            ?.split(";")[0]
+            .trim()
+            .toLowerCase() !== "text/csv"
+    ) {
         const diagnostic = { code: $.INVALID_CSV_CONTENT_TYPE };
         throw Object.assign(new Error(diagnostic.code), { diagnostic });
     }
     let headers = [];
     const records = parse(await response.text(), {
         columns: (columns) => {
+            assertUniqueHeaders(columns);
             headers = columns;
             return columns;
         },
@@ -24,4 +32,18 @@ export async function downloadAndParse(url) {
         trim: true,
     });
     return { headers, records };
+}
+
+function assertUniqueHeaders(headers) {
+    const duplicateHeaders = [...findDuplicateIndexes(headers)].map(
+        (index) => headers[index],
+    );
+    if (duplicateHeaders.length === 0) {
+        return;
+    }
+    const diagnostic = {
+        code: $.DUPLICATE_SHEET_HEADERS,
+        context: { duplicateHeaders },
+    };
+    throw Object.assign(new Error(diagnostic.code), { diagnostic });
 }

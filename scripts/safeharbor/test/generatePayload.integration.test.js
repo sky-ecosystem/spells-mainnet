@@ -78,6 +78,71 @@ async function reconcileFrom({ chainCSV, contractCSV, details }) {
 }
 
 describe("generatePayload", () => {
+    test.each([
+        {
+            scenario: "an addition on an existing chain",
+            contractCSV: dedent`
+                Status,Chain,Address,isFactory
+                ACTIVE,ETHEREUM,A,FALSE
+                ACTIVE,ETHEREUM,,FALSE
+            `,
+            details: {
+                chains: [
+                    {
+                        caip2ChainId: "eip155:1",
+                        assetRecoveryAddress:
+                            "0x1000000000000000000000000000000000000001",
+                        accounts: [["A", 0n]],
+                    },
+                ],
+            },
+        },
+        {
+            scenario: "a full replacement on an existing chain",
+            contractCSV: dedent`
+                Status,Chain,Address,isFactory
+                ACTIVE,ETHEREUM,,TRUE
+            `,
+            details: {
+                chains: [
+                    {
+                        caip2ChainId: "eip155:1",
+                        assetRecoveryAddress:
+                            "0x1000000000000000000000000000000000000001",
+                        accounts: [["A", 0n]],
+                    },
+                ],
+            },
+        },
+        {
+            scenario: "a new chain",
+            contractCSV: dedent`
+                Status,Chain,Address,isFactory
+                ACTIVE,ETHEREUM,,FALSE
+            `,
+            details: { chains: [] },
+        },
+    ])(
+        "blocks an empty address for $scenario before encoding",
+        async ({ contractCSV, details }) => {
+            const result = await reconcileFrom({
+                chainCSV: dedent`
+                    Name,Chain Id,Asset Recovery Address
+                    ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+                `,
+                contractCSV,
+                details,
+            });
+            expect(result.changes).toEqual([]);
+            expect(result.validationWarnings).toEqual([
+                {
+                    code: "MISSING_SHEET_ACCOUNT_ADDRESS",
+                    context: { chainName: "ETHEREUM" },
+                },
+            ]);
+        },
+    );
+
     describe("No changes scenario", () => {
         test("should generate no updates when onChain and CSV data match", async () => {
             const result = await generateFrom({
@@ -1773,7 +1838,8 @@ test.each([
         ],
     },
     {
-        scenario: "validation warnings before diffing an invalid new account",
+        scenario:
+            "independent metadata and empty-account warnings before diffing",
         chainCSV: dedent`
             Name,Chain Id,Asset Recovery Address
             ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
@@ -1792,6 +1858,10 @@ test.each([
                     firstChainId: "eip155:1",
                     duplicateChainId: "eip155:2",
                 },
+            },
+            {
+                code: "MISSING_SHEET_ACCOUNT_ADDRESS",
+                context: { chainName: "ETHEREUM" },
             },
         ],
     },
@@ -2228,21 +2298,21 @@ test.each([
         },
         expectedWarnings: [
             {
-                code: "DUPLICATE_SHEET_ACCOUNT",
-                context: {
-                    chainName: "ETHEREUM",
-                    address: "0x2000000000000000000000000000000000000001",
-                    firstScope: 0,
-                    duplicateScope: 2,
-                },
-            },
-            {
                 code: "DUPLICATE_ONCHAIN_ACCOUNT",
                 context: {
                     chainName: "ETHEREUM",
                     address: "0x2000000000000000000000000000000000000002",
                     firstScope: 0n,
                     duplicateScope: 2n,
+                },
+            },
+            {
+                code: "DUPLICATE_SHEET_ACCOUNT",
+                context: {
+                    chainName: "ETHEREUM",
+                    address: "0x2000000000000000000000000000000000000001",
+                    firstScope: 0,
+                    duplicateScope: 2,
                 },
             },
         ],
