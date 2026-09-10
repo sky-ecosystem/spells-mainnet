@@ -50,7 +50,7 @@ async function generateFrom(fixture) {
     const report = await reconcileFrom(fixture);
     expect(report.validationWarnings).toEqual([]);
     const result = generatePayload(report.changes);
-    payloadSnapshot(result.updates);
+    payloadSnapshot(result);
     return result;
 }
 
@@ -215,7 +215,7 @@ describe("generatePayload", () => {
                     ],
                 },
             });
-            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
+            expect(payloadSnapshot(result)).toMatchSnapshot();
             expect(
                 result.updates.map(({ fn, args }) => ({ fn, args })),
             ).toEqual([
@@ -311,7 +311,7 @@ describe("generatePayload", () => {
                     ],
                 },
             });
-            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
+            expect(payloadSnapshot(result)).toMatchSnapshot();
             expect(
                 result.updates.map(({ fn, args }) => ({ fn, args })),
             ).toEqual([
@@ -400,7 +400,7 @@ describe("generatePayload", () => {
                     ],
                 },
             });
-            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
+            expect(payloadSnapshot(result)).toMatchSnapshot();
             expect(
                 result.updates.map(({ fn, args }) => ({ fn, args })),
             ).toEqual([
@@ -506,7 +506,7 @@ describe("generatePayload", () => {
                     ],
                 },
             });
-            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
+            expect(payloadSnapshot(result)).toMatchSnapshot();
             expect(
                 result.updates.map(({ fn, args }) => ({ fn, args })),
             ).toEqual([
@@ -583,7 +583,7 @@ describe("generatePayload", () => {
                     ],
                 },
             });
-            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
+            expect(payloadSnapshot(result)).toMatchSnapshot();
             expect(
                 result.updates.map(({ fn, args }) => ({ fn, args })),
             ).toEqual([
@@ -706,7 +706,7 @@ describe("generatePayload", () => {
                     ],
                 },
             });
-            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
+            expect(payloadSnapshot(result)).toMatchSnapshot();
             expect(
                 result.updates.map(({ fn, args }) => ({ fn, args })),
             ).toEqual([
@@ -891,7 +891,7 @@ describe("generatePayload", () => {
                     chains: [],
                 },
             });
-            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
+            expect(payloadSnapshot(result)).toMatchSnapshot();
             expect(
                 result.updates.map(({ fn, args }) => ({ fn, args })),
             ).toEqual([
@@ -973,7 +973,7 @@ describe("generatePayload", () => {
                     ],
                 },
             });
-            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
+            expect(payloadSnapshot(result)).toMatchSnapshot();
             expect(
                 result.updates.map(({ fn, args }) => ({ fn, args })),
             ).toEqual([
@@ -1047,7 +1047,7 @@ describe("generatePayload", () => {
                     ],
                 },
             });
-            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
+            expect(payloadSnapshot(result)).toMatchSnapshot();
         });
     });
 });
@@ -1979,7 +1979,7 @@ test.each([
             expectedUpdates,
         );
         if (snapshot) {
-            expect(payloadSnapshot(result.updates)).toMatchSnapshot();
+            expect(payloadSnapshot(result)).toMatchSnapshot();
         }
     },
 );
@@ -2025,33 +2025,26 @@ function normalizeDecodedValue(value, param) {
     return value;
 }
 
-/**
- * Builds the stable payload snapshot for generated Safe Harbor updates.
- *
- * The raw calldata is preserved so the snapshot pins the exact executable
- * bytes. The same calldata is decoded through the Agreement ABI to check the
- * function name and every normalized argument against the update, without EVM
- * execution. The named arguments remain in the snapshot for review.
- *
- * @param {Array<{fn: string, args: Array<*>, calldata: string}>} updates Generated payload updates.
- * @returns {Array<{calldata: string, decodedName: string, decodedArgs: Array<*>}>}
- */
-function payloadSnapshot(updates) {
-    return updates.map((update, index) => {
-        const decoded = agreementInterface.parseTransaction({
-            data: update.calldata,
-        });
-        assert.ok(decoded, `Unable to decode payload update ${index}`);
-        assert.strictEqual(decoded.name, update.fn);
-        const decodedArgs = decoded.fragment.inputs.map((input, inputIndex) =>
-            normalizeDecodedValue(decoded.args[inputIndex], input),
-        );
-        assert.deepStrictEqual(decodedArgs, update.args);
+function payloadSnapshot({ updates, solidityCode }) {
+    return {
+        solidityCode,
+        updates: updates.map((update, index) => {
+            const decoded = agreementInterface.parseTransaction({
+                data: update.calldata,
+            });
+            assert.ok(decoded, `Unable to decode payload update ${index}`);
+            assert.strictEqual(decoded.name, update.fn);
+            const decodedArgs = decoded.fragment.inputs.map(
+                (input, inputIndex) =>
+                    normalizeDecodedValue(decoded.args[inputIndex], input),
+            );
+            assert.deepStrictEqual(decodedArgs, update.args);
 
-        return {
-            calldata: update.calldata,
-            decodedName: decoded.name,
-            decodedArgs,
-        };
-    });
+            return {
+                calldata: update.calldata,
+                decodedName: decoded.name,
+                decodedArgs,
+            };
+        }),
+    };
 }
