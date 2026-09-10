@@ -1,14 +1,11 @@
 import { JsonRpcProvider } from "ethers";
-import {
-    DIAGNOSTIC_CODES as $,
-    formatDiagnostic,
-} from "../diagnostic/index.js";
+import { formatDiagnostic } from "../diagnostic/index.js";
 import { createAgreementReader } from "../agreement/index.js";
 import { getSheetChainDetails, getSheetState } from "../sheet/index.js";
 import { reconcile } from "../reconciliation/index.js";
-import { generate } from "./commands/generate.js";
-import { inspect } from "./commands/inspect.js";
-import { verify } from "./commands/verify.js";
+import { COMMANDS } from "./commands/index.js";
+import { formatCliMessage, formatOperationalError } from "./format.js";
+import { validateOptions } from "./validate.js";
 
 export async function main() {
     const command = process.argv[2];
@@ -43,65 +40,3 @@ export async function main() {
         return 1;
     }
 }
-
-function formatCliMessage(icon, message) {
-    return `${icon} ${message.replaceAll("\n", "\n       ")}`;
-}
-
-function formatOperationalError(error) {
-    const source = Object.hasOwn(ERROR_SOURCES, error?.source)
-        ? ERROR_SOURCES[error.source]
-        : undefined;
-    return [
-        "Failed to execute command:",
-        ...(source ? [`Source: ${source}`] : []),
-        error?.diagnostic
-            ? formatDiagnostic(error.diagnostic)
-            : String(error?.message ?? error),
-        ...formatErrorCodes(source ? error.cause : error),
-    ].join("\n");
-}
-
-function formatErrorCodes(error) {
-    const lines = [];
-    const seen = new Set();
-    let indentation = 0;
-    for (
-        let current = error;
-        current && !seen.has(current);
-        current = current.cause
-    ) {
-        seen.add(current);
-        if (
-            typeof current.code !== "string" ||
-            !/^[A-Z][A-Z0-9_]*$/.test(current.code)
-        ) {
-            continue;
-        }
-        if (current === error) {
-            lines.push(`Code: ${current.code}`);
-        } else {
-            indentation += 4;
-            lines.push(`${" ".repeat(indentation)}Cause: ${current.code}`);
-        }
-    }
-    return lines;
-}
-
-function validateOptions({ command, rpcUrl }) {
-    if (!command) {
-        return [{ code: $.COMMAND_REQUIRED }];
-    }
-    if (!Object.hasOwn(COMMANDS, command)) {
-        return [{ code: $.UNKNOWN_COMMAND, context: { command } }];
-    }
-    return rpcUrl ? [] : [{ code: $.RPC_URL_REQUIRED }];
-}
-
-const COMMANDS = { generate, inspect, verify };
-
-const ERROR_SOURCES = {
-    sheetChainDetails: "Safeharbor Sheet chain metadata",
-    sheetState: "Safeharbor Sheet contracts",
-    agreementOnChainState: "Agreement state",
-};
