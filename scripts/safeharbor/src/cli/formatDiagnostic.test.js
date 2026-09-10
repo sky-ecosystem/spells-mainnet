@@ -39,6 +39,19 @@ test("inserts placeholder-like and replacement-pattern text literally", () => {
 test.each([
     {
         diagnostic: {
+            code: "INVALID_SHEET_FACTORY_FLAG",
+            context: {
+                chainName: "ETHEREUM",
+                address: "A",
+                column: "isFactory",
+                value: "TRU",
+            },
+        },
+        message:
+            "Invalid factory flag in Safeharbor Sheet for chain 'ETHEREUM', account 'A': isFactory='TRU'; expected TRUE, FALSE, or blank",
+    },
+    {
+        diagnostic: {
             code: "MISSING_SHEET_ACCOUNT_ADDRESS",
             context: { chainName: "ETHEREUM" },
         },

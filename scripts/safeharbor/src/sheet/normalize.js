@@ -8,29 +8,30 @@ export function normalizeContractsInScope({ headers, records }, chainDetails) {
         "Address",
         headers.includes("IsFactory") ? "IsFactory" : "isFactory",
     ]);
+    const activeRecords = records.filter(
+        (record) => record.Status === "ACTIVE",
+    );
     const value = Object.fromEntries(
-        records
-            .filter((record) => record.Status === "ACTIVE")
-            .reduce((chains, record) => {
-                const accounts = chains.get(record.Chain) ?? [];
+        activeRecords.reduce((chains, record) => {
+            const accounts = chains.get(record.Chain) ?? [];
 
-                accounts.push({
-                    accountAddress: record.Address,
-                    // Handle both possible column names for the factory flag.
-                    childContractScope:
-                        record.isFactory === "TRUE" ||
-                        record.IsFactory === "TRUE"
-                            ? 2
-                            : 0,
-                });
-                return chains.set(record.Chain, accounts);
-            }, new Map()),
+            accounts.push({
+                accountAddress: record.Address,
+                // Handle both possible column names for the factory flag.
+                childContractScope:
+                    record.isFactory === "TRUE" || record.IsFactory === "TRUE"
+                        ? 2
+                        : 0,
+            });
+            return chains.set(record.Chain, accounts);
+        }, new Map()),
     );
 
     return {
         value,
         warnings: [
             ...validateKnownChains(value, chainDetails),
+            ...validateFactoryFlags(activeRecords, headers),
             ...validateAccountAddresses(value),
             ...validateUniqueAccounts(value),
         ],
@@ -109,6 +110,25 @@ export function normalizeChainDetails({ headers, records }) {
             ]),
         ],
     };
+}
+
+function validateFactoryFlags(records, headers) {
+    const columns = headers.filter(
+        (header) => header === "isFactory" || header === "IsFactory",
+    );
+    return records.flatMap((record) =>
+        columns
+            .filter((column) => !["", "TRUE", "FALSE"].includes(record[column]))
+            .map((column) => ({
+                code: $.INVALID_SHEET_FACTORY_FLAG,
+                context: {
+                    chainName: record.Chain,
+                    address: record.Address,
+                    column,
+                    value: record[column],
+                },
+            })),
+    );
 }
 
 function validateKnownChains(sheetState, chainDetails) {

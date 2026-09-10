@@ -61,6 +61,81 @@ test("diagnoses empty active addresses without dropping records or trimming quot
     });
 });
 
+test("checks both factory aliases while accepting blanks and ignoring inactive rows", () => {
+    expect(
+        normalizeContractsInScope(
+            {
+                headers: [
+                    "Status",
+                    "Chain",
+                    "Address",
+                    "isFactory",
+                    "IsFactory",
+                ],
+                records: [
+                    {
+                        Status: "ACTIVE",
+                        Chain: "ETHEREUM",
+                        Address: "A",
+                        isFactory: "TRU",
+                        IsFactory: "TRUE",
+                    },
+                    {
+                        Status: "ACTIVE",
+                        Chain: "ETHEREUM",
+                        Address: "B",
+                        isFactory: "TRUE",
+                        IsFactory: "false",
+                    },
+                    {
+                        Status: "ACTIVE",
+                        Chain: "ETHEREUM",
+                        Address: "C",
+                        isFactory: "",
+                        IsFactory: "",
+                    },
+                    {
+                        Status: "INACTIVE",
+                        Chain: "ETHEREUM",
+                        Address: "D",
+                        isFactory: "TRU",
+                        IsFactory: "false",
+                    },
+                ],
+            },
+            { caip2ChainId: { ETHEREUM: "eip155:1" } },
+        ),
+    ).toEqual({
+        value: {
+            ETHEREUM: [
+                { accountAddress: "A", childContractScope: 2 },
+                { accountAddress: "B", childContractScope: 2 },
+                { accountAddress: "C", childContractScope: 0 },
+            ],
+        },
+        warnings: [
+            {
+                code: "INVALID_SHEET_FACTORY_FLAG",
+                context: {
+                    chainName: "ETHEREUM",
+                    address: "A",
+                    column: "isFactory",
+                    value: "TRU",
+                },
+            },
+            {
+                code: "INVALID_SHEET_FACTORY_FLAG",
+                context: {
+                    chainName: "ETHEREUM",
+                    address: "B",
+                    column: "IsFactory",
+                    value: "false",
+                },
+            },
+        ],
+    });
+});
+
 test("accepts required headers with extra columns", () => {
     expect(
         normalizeContractsInScope(
@@ -603,6 +678,15 @@ test("groups active contracts in order with exact addresses and both factory ali
         ],
     });
     expect(result.warnings).toEqual([
+        {
+            code: "INVALID_SHEET_FACTORY_FLAG",
+            context: {
+                chainName: "ETHEREUM",
+                address: "0xa000000000000000000000000000000000000001",
+                column: "isFactory",
+                value: "true",
+            },
+        },
         {
             code: "DUPLICATE_SHEET_ACCOUNT",
             context: {

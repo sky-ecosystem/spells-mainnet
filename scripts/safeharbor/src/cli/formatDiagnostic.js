@@ -1,6 +1,8 @@
 import { DIAGNOSTIC_CODES as $ } from "../diagnosticCodes.js";
 
 export const diagnosticTemplates = {
+    [$.INVALID_SHEET_FACTORY_FLAG]:
+        "Invalid factory flag in Safeharbor Sheet for chain '{chainName}', account '{address}': {column}='{value}'; expected TRUE, FALSE, or blank",
     [$.MISSING_SHEET_ACCOUNT_ADDRESS]:
         "Missing active account address in Safeharbor Sheet for chain '{chainName}'",
     [$.DUPLICATE_SHEET_ACCOUNT]:

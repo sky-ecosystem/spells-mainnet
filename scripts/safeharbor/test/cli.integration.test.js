@@ -59,6 +59,91 @@ function mockSources({ chainCSV, contractCSV, details }) {
     getDetails.mockResolvedValue(details);
 }
 
+test.each(["generate", "inspect", "verify"])(
+    "%s blocks invalid factory flags on existing and new chains",
+    async (command) => {
+        mockSources({
+            chainCSV: dedent`
+                Name,Chain Id,Asset Recovery Address
+                ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+                BASE,eip155:8453,0x1000000000000000000000000000000000000002
+            `,
+            contractCSV: dedent`
+                Status,Chain,Address,isFactory
+                ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,
+                ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRU
+                ACTIVE,BASE,0x3000000000000000000000000000000000000001,true
+            `,
+            details: {
+                chains: [
+                    {
+                        caip2ChainId: "eip155:1",
+                        assetRecoveryAddress:
+                            "0x1000000000000000000000000000000000000001",
+                        accounts: [
+                            ["0x2000000000000000000000000000000000000001", 0n],
+                        ],
+                    },
+                ],
+            },
+        });
+
+        expect(await runCli(command)).toBe(command === "inspect" ? 0 : 2);
+        expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
+        expect(stderr).not.toHaveBeenCalled();
+        expect(warnings.mock.calls.slice(0, 2)).toEqual([
+            [
+                "Invalid factory flag in Safeharbor Sheet for chain 'ETHEREUM', account '0x2000000000000000000000000000000000000002': isFactory='TRU'; expected TRUE, FALSE, or blank",
+            ],
+            [
+                "Invalid factory flag in Safeharbor Sheet for chain 'BASE', account '0x3000000000000000000000000000000000000001': isFactory='true'; expected TRUE, FALSE, or blank",
+            ],
+        ]);
+
+        if (command === "inspect") {
+            expect(JSON.parse(stdout.mock.calls[0][0])).toMatchObject({
+                changes: [],
+                validationWarnings: [
+                    {
+                        code: "INVALID_SHEET_FACTORY_FLAG",
+                        context: {
+                            chainName: "ETHEREUM",
+                            address:
+                                "0x2000000000000000000000000000000000000002",
+                            column: "isFactory",
+                            value: "TRU",
+                        },
+                    },
+                    {
+                        code: "INVALID_SHEET_FACTORY_FLAG",
+                        context: {
+                            chainName: "BASE",
+                            address:
+                                "0x3000000000000000000000000000000000000001",
+                            column: "isFactory",
+                            value: "true",
+                        },
+                    },
+                ],
+            });
+            expect(warnings).toHaveBeenCalledTimes(2);
+        } else if (command === "verify") {
+            expect(stdout.mock.calls).toEqual([
+                [
+                    "SafeHarbor verification failed: 0 update(s), 2 validation warning(s).",
+                ],
+            ]);
+            expect(warnings).toHaveBeenCalledTimes(2);
+        } else {
+            expect(stdout).not.toHaveBeenCalled();
+            expect(warnings).toHaveBeenCalledTimes(3);
+            expect(warnings).toHaveBeenLastCalledWith(
+                "Payload generation blocked: 2 validation warning(s).",
+            );
+        }
+    },
+);
+
 describe.each([
     {
         scenario: "clean reconciliation",
