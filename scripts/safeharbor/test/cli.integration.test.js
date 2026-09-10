@@ -95,10 +95,10 @@ test.each(["generate", "inspect", "verify"])(
         expect(stderr).not.toHaveBeenCalled();
         expect(warnings.mock.calls.slice(0, 2)).toEqual([
             [
-                "Invalid factory flag in Safeharbor Sheet for chain 'ETHEREUM', account '0x2000000000000000000000000000000000000002': isFactory='TRU'; expected TRUE, FALSE, or blank",
+                "⚠️ Invalid factory flag in Safeharbor Sheet for chain 'ETHEREUM', account '0x2000000000000000000000000000000000000002': isFactory='TRU'; expected TRUE, FALSE, or blank",
             ],
             [
-                "Invalid factory flag in Safeharbor Sheet for chain 'BASE', account '0x3000000000000000000000000000000000000001': isFactory='true'; expected TRUE, FALSE, or blank",
+                "⚠️ Invalid factory flag in Safeharbor Sheet for chain 'BASE', account '0x3000000000000000000000000000000000000001': isFactory='true'; expected TRUE, FALSE, or blank",
             ],
         ]);
 
@@ -132,7 +132,7 @@ test.each(["generate", "inspect", "verify"])(
         } else if (command === "verify") {
             expect(stdout.mock.calls).toEqual([
                 [
-                    "SafeHarbor verification failed: 0 update(s), 2 validation warning(s).",
+                    "❌ SafeHarbor verification failed: 0 update(s), 2 validation warning(s).",
                 ],
             ]);
             expect(warnings).toHaveBeenCalledTimes(2);
@@ -140,7 +140,7 @@ test.each(["generate", "inspect", "verify"])(
             expect(stdout).not.toHaveBeenCalled();
             expect(warnings).toHaveBeenCalledTimes(3);
             expect(warnings).toHaveBeenLastCalledWith(
-                "Payload generation blocked: 2 validation warning(s).",
+                "❌ Payload generation blocked: 2 validation warning(s).",
             );
         }
     },
@@ -213,9 +213,9 @@ describe.each([
         },
         warningMessages: [],
         exitCodes: { generate: 0, inspect: 0, verify: 0 },
-        generateMessage: "No updates to generate",
+        generateMessage: "✅ No updates to generate",
         verifyMessage:
-            "SafeHarbor verification passed: no updates or validation warnings.",
+            "✅ SafeHarbor verification passed: no updates or validation warnings.",
     },
     {
         scenario: "valid chain removal",
@@ -280,9 +280,9 @@ describe.each([
         },
         warningMessages: [],
         exitCodes: { generate: 0, inspect: 0, verify: 2 },
-        generateMessage: "Payload generation completed successfully.",
+        generateMessage: "✅ Payload generation completed successfully.",
         verifyMessage:
-            "SafeHarbor verification failed: 1 update(s), 0 validation warning(s).",
+            "❌ SafeHarbor verification failed: 1 update(s), 0 validation warning(s).",
     },
     {
         scenario: "a warning without account differences",
@@ -361,15 +361,16 @@ describe.each([
         },
         warningMessages: [
             dedent`
-                Asset Recovery Address mismatch for chain 'eip155:1'.
-                On-chain: 0x1000000000000000000000000000000000000002
-                Safeharbor Sheet: 0x1000000000000000000000000000000000000001
+                ⚠️ Asset Recovery Address mismatch for chain 'eip155:1'.
+                       On-chain: 0x1000000000000000000000000000000000000002
+                       Safeharbor Sheet: 0x1000000000000000000000000000000000000001
             `,
         ],
         exitCodes: { generate: 2, inspect: 0, verify: 2 },
-        generateMessage: "Payload generation blocked: 1 validation warning(s).",
+        generateMessage:
+            "❌ Payload generation blocked: 1 validation warning(s).",
         verifyMessage:
-            "SafeHarbor verification failed: 0 update(s), 1 validation warning(s).",
+            "❌ SafeHarbor verification failed: 0 update(s), 1 validation warning(s).",
     },
     {
         scenario: "multiple warnings blocking account changes",
@@ -462,17 +463,18 @@ describe.each([
             ],
         },
         warningMessages: [
-            "Duplicate account address in Safeharbor Sheet for chain 'ETHEREUM': 0x2000000000000000000000000000000000000002; first scope=0, duplicate scope=2",
+            "⚠️ Duplicate account address in Safeharbor Sheet for chain 'ETHEREUM': 0x2000000000000000000000000000000000000002; first scope=0, duplicate scope=2",
             dedent`
-                Asset Recovery Address mismatch for chain 'eip155:1'.
-                On-chain: 0x1000000000000000000000000000000000000002
-                Safeharbor Sheet: 0x1000000000000000000000000000000000000001
+                ⚠️ Asset Recovery Address mismatch for chain 'eip155:1'.
+                       On-chain: 0x1000000000000000000000000000000000000002
+                       Safeharbor Sheet: 0x1000000000000000000000000000000000000001
             `,
         ],
         exitCodes: { generate: 2, inspect: 0, verify: 2 },
-        generateMessage: "Payload generation blocked: 2 validation warning(s).",
+        generateMessage:
+            "❌ Payload generation blocked: 2 validation warning(s).",
         verifyMessage:
-            "SafeHarbor verification failed: 0 update(s), 2 validation warning(s).",
+            "❌ SafeHarbor verification failed: 0 update(s), 2 validation warning(s).",
     },
     {
         scenario:
@@ -526,15 +528,16 @@ describe.each([
         },
         warningMessages: [
             dedent`
-                Unknown chain details in on-chain state: caip2ChainId='eip155:8453'.
-                To either remove or keep this chain, please add the chain details to the chain details tab in the Safeharbor Sheet.
+                ⚠️ Unknown chain details in on-chain state: caip2ChainId='eip155:8453'.
+                       To either remove or keep this chain, please add the chain details to the chain details tab in the Safeharbor Sheet.
             `,
-            "Duplicate account address in on-chain state for chain 'eip155:8453': A; first scope=0, duplicate scope=2",
+            "⚠️ Duplicate account address in on-chain state for chain 'eip155:8453': A; first scope=0, duplicate scope=2",
         ],
         exitCodes: { generate: 2, inspect: 0, verify: 2 },
-        generateMessage: "Payload generation blocked: 2 validation warning(s).",
+        generateMessage:
+            "❌ Payload generation blocked: 2 validation warning(s).",
         verifyMessage:
-            "SafeHarbor verification failed: 0 update(s), 2 validation warning(s).",
+            "❌ SafeHarbor verification failed: 0 update(s), 2 validation warning(s).",
     },
 ])("$scenario", (fixture) => {
     test.each(["generate", "inspect", "verify"])(
@@ -575,10 +578,10 @@ describe.each([
             expect(warnings.mock.calls).toEqual(expectedWarnings);
             if (fixture.report.validationWarnings.length > 0) {
                 expect(warnings).not.toHaveBeenCalledWith(
-                    "Payload generation completed successfully.",
+                    "✅ Payload generation completed successfully.",
                 );
                 expect(warnings).not.toHaveBeenCalledWith(
-                    "No updates to generate",
+                    "✅ No updates to generate",
                 );
             }
         },
@@ -642,14 +645,18 @@ describe.each([
             expect(await runCli(command)).toBe(1);
             expect(stdout).not.toHaveBeenCalled();
             expect(stderr).toHaveBeenCalledExactlyOnceWith(
-                "Failed to execute command:",
-                fixture.errorMessage,
+                dedent`
+                    ❌ Failed to execute command:
+                           ${fixture.errorMessage}
+                `,
             );
             expect(warnings).not.toHaveBeenCalledWith("Generating updates...");
             expect(warnings).not.toHaveBeenCalledWith(
-                "Payload generation completed successfully.",
+                "✅ Payload generation completed successfully.",
             );
-            expect(warnings).not.toHaveBeenCalledWith("No updates to generate");
+            expect(warnings).not.toHaveBeenCalledWith(
+                "✅ No updates to generate",
+            );
         },
     );
 });
@@ -663,8 +670,10 @@ describe.each(["generate", "inspect", "verify"])(
 
             expect(await runCli(command)).toBe(1);
             expect(stderr).toHaveBeenCalledExactlyOnceWith(
-                "Failed to execute command:",
-                "CSV unavailable",
+                dedent`
+                    ❌ Failed to execute command:
+                           CSV unavailable
+                `,
             );
             expect(stdout).not.toHaveBeenCalled();
             expect(getDetails).not.toHaveBeenCalled();
@@ -687,8 +696,10 @@ describe.each(["generate", "inspect", "verify"])(
 
             expect(await runCli(command)).toBe(1);
             expect(stderr).toHaveBeenCalledExactlyOnceWith(
-                "Failed to execute command:",
-                "Agreement state unavailable",
+                dedent`
+                    ❌ Failed to execute command:
+                           Agreement state unavailable
+                `,
             );
             expect(stdout).not.toHaveBeenCalled();
         });

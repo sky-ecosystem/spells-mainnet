@@ -39,7 +39,7 @@ test("prints generated Solidity and the success summary for pending changes", ()
     ]);
     expect(console.log).toHaveBeenCalledExactlyOnceWith("generated Solidity");
     expect(console.warn).toHaveBeenCalledExactlyOnceWith(
-        "Payload generation completed successfully.",
+        "✅ Payload generation completed successfully.",
     );
     expect(report.changes).toEqual([
         { fn: "removeChains", args: [["eip155:8453"]] },
@@ -60,7 +60,7 @@ test("prints only the no-updates summary for clean state", () => {
     expect(generatePayload).toHaveBeenCalledExactlyOnceWith([]);
     expect(console.log).not.toHaveBeenCalled();
     expect(console.warn).toHaveBeenCalledExactlyOnceWith(
-        "No updates to generate",
+        "✅ No updates to generate",
     );
 });
 
@@ -82,7 +82,7 @@ test("blocks generation on validation warnings without printing individual diagn
     expect(generatePayload).not.toHaveBeenCalled();
     expect(console.log).not.toHaveBeenCalled();
     expect(console.warn).toHaveBeenCalledExactlyOnceWith(
-        "Payload generation blocked: 1 validation warning(s).",
+        "❌ Payload generation blocked: 1 validation warning(s).",
     );
 });
 

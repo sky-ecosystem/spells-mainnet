@@ -16,7 +16,9 @@ export async function main() {
     const diagnostics = validateOptions({ command, rpcUrl });
     if (diagnostics.length > 0) {
         diagnostics.forEach((diagnostic) =>
-            console.error(formatDiagnostic(diagnostic)),
+            console.error(
+                `❌ ${formatDiagnostic(diagnostic).replaceAll("\n", "\n       ")}`,
+            ),
         );
         return 1;
     }
@@ -30,7 +32,9 @@ export async function main() {
                 getSheetChainDetails,
             });
             result.validationWarnings.forEach((diagnostic) =>
-                console.warn(formatDiagnostic(diagnostic)),
+                console.warn(
+                    `⚠️ ${formatDiagnostic(diagnostic).replaceAll("\n", "\n       ")}`,
+                ),
             );
             return COMMANDS[command](result);
         } finally {
@@ -44,10 +48,10 @@ export async function main() {
 
 function reportError(error) {
     console.error(
-        "Failed to execute command:",
-        error?.diagnostic
+        `❌ Failed to execute command:\n       ${(error?.diagnostic
             ? formatDiagnostic(error.diagnostic)
-            : (error?.message ?? String(error)),
+            : String(error?.message ?? error)
+        ).replaceAll("\n", "\n       ")}`,
     );
 }
 

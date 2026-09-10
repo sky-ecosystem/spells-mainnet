@@ -39,9 +39,9 @@ test.each([
         argv: ["node", "index.js"],
         rpcUrl: "",
         message: dedent`
-            Error: Command is required
-            Available commands: generate, inspect, verify
-            Usage: npm run <command>
+            ❌ Error: Command is required
+                   Available commands: generate, inspect, verify
+                   Usage: npm run <command>
         `,
     },
     {
@@ -49,9 +49,9 @@ test.each([
         argv: ["node", "index.js", "unknown"],
         rpcUrl: "",
         message: dedent`
-            Error: Unknown command 'unknown'
-            Available commands: generate, inspect, verify
-            Usage: npm run <command>
+            ❌ Error: Unknown command 'unknown'
+                   Available commands: generate, inspect, verify
+                   Usage: npm run <command>
         `,
     },
     {
@@ -59,9 +59,9 @@ test.each([
         argv: ["node", "index.js", "toString"],
         rpcUrl: "https://rpc.example",
         message: dedent`
-            Error: Unknown command 'toString'
-            Available commands: generate, inspect, verify
-            Usage: npm run <command>
+            ❌ Error: Unknown command 'toString'
+                   Available commands: generate, inspect, verify
+                   Usage: npm run <command>
         `,
     },
     {
@@ -69,9 +69,9 @@ test.each([
         argv: ["node", "index.js", "verify"],
         rpcUrl: "",
         message: dedent`
-            Error: ETH_RPC_URL environment variable is not set.
-            Please set your Ethereum RPC URL in a .env file or as an environment variable.
-            Example: ETH_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR_API_KEY
+            ❌ Error: ETH_RPC_URL environment variable is not set.
+                   Please set your Ethereum RPC URL in a .env file or as an environment variable.
+                   Example: ETH_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR_API_KEY
         `,
     },
 ])("rejects $scenario before constructing dependencies", async (fixture) => {
@@ -111,20 +111,26 @@ test("wires the provider through the real pipeline and destroys it after success
     );
     expect(getDetails).toHaveBeenCalledExactlyOnceWith();
     expect(console.log).toHaveBeenCalledExactlyOnceWith(
-        "SafeHarbor verification passed: no updates or validation warnings.",
+        "✅ SafeHarbor verification passed: no updates or validation warnings.",
     );
     expect(console.error).not.toHaveBeenCalled();
     expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
 });
 
-test("destroys the provider after a pipeline failure", async () => {
-    const failure = new Error("CSV unavailable");
+test("indents multiline pipeline errors and destroys the provider", async () => {
+    const failure = new Error(dedent`
+        CSV unavailable
+        Connection closed
+    `);
     fetch.mockRejectedValue(failure);
 
     expect(await main()).toBe(1);
     expect(console.error).toHaveBeenCalledExactlyOnceWith(
-        "Failed to execute command:",
-        "CSV unavailable",
+        dedent`
+            ❌ Failed to execute command:
+                   CSV unavailable
+                   Connection closed
+        `,
     );
     expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
 });
@@ -167,8 +173,10 @@ test("reports a Sheet failure and destroys the provider without waiting for an i
 
     expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
     expect(console.error).toHaveBeenCalledExactlyOnceWith(
-        "Failed to execute command:",
-        "Contracts unavailable",
+        dedent`
+            ❌ Failed to execute command:
+                   Contracts unavailable
+        `,
     );
     expect(console.log).not.toHaveBeenCalled();
 });
@@ -181,8 +189,10 @@ test("reports provider construction failures as command errors", async () => {
 
     expect(await main()).toBe(1);
     expect(console.error).toHaveBeenCalledExactlyOnceWith(
-        "Failed to execute command:",
-        "Invalid RPC configuration",
+        dedent`
+            ❌ Failed to execute command:
+                   Invalid RPC configuration
+        `,
     );
     expect(fetch).not.toHaveBeenCalled();
 });
@@ -194,8 +204,10 @@ test("reports Chainlog construction failures and destroys the provider", async (
 
     expect(await main()).toBe(1);
     expect(console.error).toHaveBeenCalledExactlyOnceWith(
-        "Failed to execute command:",
-        "Chainlog construction failed",
+        dedent`
+            ❌ Failed to execute command:
+                   Chainlog construction failed
+        `,
     );
     expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
     expect(fetch).not.toHaveBeenCalled();
@@ -256,8 +268,10 @@ test.each(["encoding", "reporting"])(
 
         expect(await main()).toBe(1);
         expect(console.error).toHaveBeenCalledExactlyOnceWith(
-            "Failed to execute command:",
-            `${stage} failed`,
+            dedent`
+                ❌ Failed to execute command:
+                       ${stage} failed
+            `,
         );
         expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
     },

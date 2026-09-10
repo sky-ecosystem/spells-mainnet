@@ -4,7 +4,7 @@ export function generate(report) {
     const warningCount = report.validationWarnings.length;
     if (warningCount > 0) {
         console.warn(
-            `Payload generation blocked: ${warningCount} validation warning(s).`,
+            `❌ Payload generation blocked: ${warningCount} validation warning(s).`,
         );
         return 2;
     }
@@ -15,8 +15,8 @@ export function generate(report) {
     }
     console.warn(
         updates.length > 0
-            ? "Payload generation completed successfully."
-            : "No updates to generate",
+            ? "✅ Payload generation completed successfully."
+            : "✅ No updates to generate",
     );
     return 0;
 }
