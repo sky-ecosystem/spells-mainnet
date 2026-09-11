@@ -1,152 +1,75 @@
-# Overview
+# SafeHarbor
 
-Safeharbor registry is a contract that allows protocols to identify addresses that are entitled to have funds recovered by a white hat during an attack.
+This script compares the approved Safeharbor Sheet with Sky's on-chain Agreement and generates the Solidity snippet needed to update its scope. It reads on-chain data but does not send transactions.
 
-- Read more about the SafeHarbor [here](https://github.com/security-alliance/safe-harbor)
-- The full contracts for the registry can be found [here](https://github.com/security-alliance/safe-harbor/tree/0b0abb8b627eff87e2f7b52bf8ec484cd6ce0e32/registry-contracts/src)
+See the [SafeHarbor project](https://github.com/security-alliance/safe-harbor) and [registry contracts](https://github.com/security-alliance/safe-harbor/tree/0b0abb8b627eff87e2f7b52bf8ec484cd6ce0e32/registry-contracts/src) for background.
 
-# Initial Deployment
+## Usage
 
-Before adoption, a single-time deploy and configuration needs to happen so Sky protocol can safely include changes to the scope within spells. The deployment will happen with the following steps:
-
-1. **EOA Agreement deployment**
-
-   - Anyone can deploy an instance of the `Agreement` contract through its factory
-   - Since the initial configuration is too big to safely fit within a spell execution, the first step will be done through an EOA
-
-2. **Initial chain configuration**
-
-   - The EOA will use the reference sheet to create the initial state of the scope
-   - This includes adding all necessary chains and contracts, as well as the asset recovery addresses
-
-3. **Ownership transfer to DSPause**
-
-   - After the initial setup is done, the EOA will fully transfer the ownership of the `Agreement` contract to the PauseProxy
-   - This enables the PauseProxy to modify the scope in the future
-
-4. **Adoption**
-   - In a future spell, the pause proxy will call `safeharborRegistry.adoptSafeHarbor(agreementAddress)`
-   - This officially accepts the terms and initiates the validity of SafeHarbor integration
-
-## Validating the Agreement
-
-There are a few steps to independently validate that a given agreement can be adopted by Sky protocol.
-
-1. It has to be deployed via a transaction to a known public factory.
-2. The owner of the agreement has to be PauseProxy.
-3. Agreement details (protocol name, agreement URI, contact details and bounty terms) have to match what's described in the Atlas.
-4. `npm run verify`, from `scripts/safeharbor`, has to exit with code `0`.
-
-If all of these steps are done, the agreement can be adopted by Sky protocol.
-
-# Reconciliation and commands
-
-The script follows these steps:
-
-1. Downloads the chain metadata tab of the Safeharbor Sheet as CSV and parses it locally
-
-2. Validates its CSV headers before building the chain metadata
-
-3. Reads the contracts tab and current on-chain state from the SafeHarbor Agreement concurrently
-
-4. Validates contracts CSV headers and builds comparable internal representations of both states
-
-5. Collects warnings from Safeharbor Sheet and on-chain normalization, then checks the comparable states for consistency. Any warning stops planning before diffing or encoding, returning `changes: []` and the collected `validationWarnings` alongside both normalized states and chain metadata.
-
-6. If there are no warnings, compares Safeharbor Sheet and on-chain state and plans ordered `{ fn, args }` changes (if any).
-
-7. Dispatches the reconciliation result to the selected command. Only `generate` encodes the changes and renders Solidity; `inspect` prints the report, while `verify` checks whether reconciliation is clean.
-
-Validation returns plain diagnostics with a stable `code` from the frozen `DIAGNOSTIC_CODES` object exported by `diagnostic/codes.js`, and optional `context` containing raw facts. For example:
-
-```json
-{
-  "code": "UNKNOWN_SHEET_CHAIN",
-  "context": { "chainName": "BASE" }
-}
-```
-
-Diagnostics contain no human-readable messages. `diagnostic/format.js` owns their wording; the CLI prints each diagnostic to stderr once. `generate` and `verify` also print their command summaries; `inspect` prints JSON instead. The generator, CSV adapter, validators, and diff logic do not print progress or errors. Fatal application checks propagate native `Error` objects carrying a `diagnostic`. Reconciliation wraps loader failures with their source, preserving the original exception as `cause` and forwarding its diagnostic. The CLI reports the source and primary message or diagnostic once, followed by available identifier-style error codes; nested cause codes are indented without printing their messages or stacks. Command and header checks still exit `1`, while reconciliation warnings retain their command-specific exit behavior.
-
-The `validationWarnings` field contains diagnostic objects with `code` and `context`; consumers should not parse warning text. Recovery-address and update-planning diagnostics identify chains through `context.chainId` rather than `context.chainName`. Sheet-input diagnostics retain names where appropriate. Successful `inspect` runs print human-readable diagnostics to stderr and JSON to stdout. Only consume stdout after checking the exit code: ethers may print RPC startup diagnostics there on failed runs.
-
-The contracts tab in the Safeharbor Sheet is exported as CSV and requires `Status`, `Chain`, `Address`, and either `isFactory` or `IsFactory`. Chain metadata requires `Name`, `Chain Id`, and `Asset Recovery Address`. Missing or duplicate headers, including in header-only files, and malformed CSV cause an error before normalization or update generation; CLI commands exit with code `1`. The distinct factory aliases may coexist. Completely empty files are invalid because they have no headers. An `ACTIVE` row with an empty account address produces a warning. A contracts CSV with valid headers and no `ACTIVE` records is a legitimate empty desired state and may generate chain removals when the corresponding chain metadata is available.
-
-Active rows accept `TRUE`, `FALSE`, or blank in each present factory column; other values produce warnings. Blank means `FALSE`. When both aliases are present, either valid `TRUE` value selects factory scope.
-
-Nonblank chain metadata rows must contain all three required fields; incomplete rows produce warnings listing the missing fields, even if those chains are not in the desired state. Completely blank rows are ignored. A row with only an extra column populated is incomplete, not blank.
-
-EVM recovery addresses for desired chains, including newly added chains, are validated with ethers `getAddress`; malformed addresses and invalid mixed-case checksums produce warnings, while valid lowercase addresses are accepted. For chains present in both states, missing on-chain recovery addresses produce warnings, and EVM recovery addresses are compared in canonical checksummed form. Only chains absent from the on-chain state skip comparison. Solana and other non-EVM recovery identifiers are compared exactly, including case; no chain-specific syntax validation is performed for them. Recovery mismatches produce warnings, not recovery-address updates. A clean reconciliation requires `changes: []` and no `validationWarnings`; warnings mean planning was blocked, even though `changes` is empty.
-
-Duplicate chain names or IDs in complete metadata rows produce warnings without overwriting earlier mappings. Repeated account addresses within a chain in either desired or current state also produce warnings, including when their scopes differ. These checks run before diffing and block all executable output. Account addresses retain the Agreement's exact, case-sensitive string semantics; the same address may legitimately appear on different chains. Canonical EVM comparison applies only to recovery addresses, not account identifiers.
-
-Full account replacements add before removing because the Agreement rejects removing every account from a chain. Old accounts are then removed in reverse current-state order: the Agreement removes the first matching address and uses swap-and-pop, so forward removal can accidentally delete a newly added scope replacement. Partial replacements continue to remove before adding. Reordering equivalent accounts alone produces no updates.
-
-# Running the script
-
-Required env variables:
-
-```
-- ETH_RPC_URL: An endpoint to a node that has the registry and the agreement deployed.
-```
-
-A command is required: `generate`, `inspect`, or `verify`. There is no default command.
-
-Generate a Solidity snippet containing the encoded calls needed to update the agreement. Identifier line terminators are escaped in comments without changing the strings encoded in calldata:
-
-```bash
-npm run generate
-```
-
-If any validation warning is reported, `generate` exits with code `2` and prints neither Solidity nor a success message.
-
-On successful inspection, `inspect` outputs JSON containing `sheetChainDetails`, `agreementOnChainState`, `sheetState`, `changes`, and `validationWarnings`, and exits with code `0` even when warnings are present. Changes are an array of unencoded `{ fn, args }` operations. An empty array means either no updates are needed or warnings blocked planning; check `validationWarnings` to distinguish them. Bigint values are serialized as decimal strings only in the JSON output. Inspection includes neither calldata nor Solidity. Parsing, network, RPC, configuration, and command errors instead exit with code `1` without a JSON result:
-
-```bash
-npm run inspect
-```
-
-Both states are keyed by CAIP-2 chain ID, with each chain represented as `{ accounts, assetRecoveryAddress }`. Read Sheet accounts from `sheetState[chainId].accounts`, not directly from `sheetState[chainId]`. Sheet normalization combines the existing contracts and chain-metadata tabs; the Sheet's columns and row format are unchanged. `sheetChainDetails` retains metadata-only chains, which are absent from `sheetState`. On-chain IDs missing from Sheet metadata remain visible and block planning; unresolved Sheet names are reported as warnings and omitted from `sheetState`.
-
-Verify that the sheet and the on-chain agreement match:
-
-```bash
-npm run verify
-```
-
-`verify` succeeds only when there are no changes and no validation warnings. It never encodes calldata or renders Solidity.
-
-From the repository root, `make safeharbor-verify` provides the same verification as a convenience command. Use `npm run verify` directly when the distinct non-zero exit codes are required.
-
-All commands use the following exit codes:
-
-| Exit code | Meaning                                                                                                                                           |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `0`       | `generate` completed without warnings; `inspect` completed, including diagnostic results with warnings; or `verify` found no updates or warnings. |
-| `1`       | The command could not run because of invalid input, missing configuration, or another operational error.                                          |
-| `2`       | `generate` was blocked by validation warnings, or `verify` found updates or validation warnings.                                                  |
-
-In order to obtain machine-readable JSON output of the script, use the following command:
-
-```bash
-npm run --silent inspect > inspect.json
-```
-
-Generate the Solidity snippet directly for review and use in the spell; generation performs its own reconciliation and blocks output on warnings:
-
-```bash
-npm run --silent generate
-```
-
-# Testing and review
-
-Using Node.js 24 (the CI version), from `scripts/safeharbor`, install dependencies, then run the offline suite and checks:
+Use Node.js 24. From `scripts/safeharbor`, install dependencies:
 
 ```bash
 npm ci
+```
+
+Set `ETH_RPC_URL` to Ethereum mainnet or a compatible fork containing the mainnet Chainlog and its registered Agreement. The script uses the `SAFE_HARBOR_AGREEMENT` Chainlog entry; it does not accept an arbitrary Agreement address.
+
+Choose an explicit command:
+
+```bash
+npm run --silent generate  # Generate the Solidity snippet for a spell
+npm run --silent inspect   # Inspect source data, proposed changes, and warnings as JSON
+npm run --silent verify    # Check that the Agreement matches the Sheet
+```
+
+From the repository root, `make safeharbor-generate`, `make safeharbor-inspect`, and `make safeharbor-verify` install dependencies and run the corresponding command.
+
+### Results and exit codes
+
+Resolve all warnings before using generated output. An empty changes list alone does not mean the Agreement matches: warnings can prevent changes from being calculated.
+
+| Code | Meaning                                                                                                                              |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `0`  | Command completed. For `verify`, the Agreement matches with no warnings. For `inspect`, warnings may still be present in the report. |
+| `1`  | Invalid input, configuration, network, or RPC error.                                                                                 |
+| `2`  | `generate` is blocked by warnings, or `verify` found changes or warnings.                                                            |
+
+Warnings go to stderr. `generate` prints Solidity only when changes are needed and there are no warnings. `inspect` prints JSON, not calldata or Solidity.
+
+For scripting, use npm directly to preserve these exit codes; Make does not preserve distinct failure codes. Consume inspection output only after a successful command:
+
+```bash
+npm run --silent inspect > inspect.json && jq . inspect.json
+```
+
+## Design decisions
+
+- **The approved Sheet is the desired state.** Review its contents as source data; matching the Sheet does not establish that its accounts belong in Sky's scope.
+- **Warnings block generation.** Problems require review instead of producing a partial payload.
+- **Account identifiers retain their exact spelling.** SafeHarbor supports non-EVM accounts, so account strings are case-sensitive. EVM recovery addresses are compared canonically; non-EVM recovery identifiers are compared exactly.
+- **Recovery-address mismatches require a separate decision.** The script reports them rather than generating recovery-address changes.
+- **An empty approved scope is valid.** A correctly formed Sheet with no active accounts can request chain removals.
+- **Generator checks and execution checks serve different purposes.** The offline tests check script output; each spell still requires simulated execution and post-state verification.
+
+## Reviewing a spell
+
+1. Review and approve the Safeharbor Sheet change.
+2. Run `generate` and confirm the calldata inserted in the spell matches its output.
+3. Simulate the exact spell against the Agreement.
+4. Point `ETH_RPC_URL` at the simulated post-state and run `verify`. Require exit `0`: no changes and no warnings.
+
+## Initial Agreement setup
+
+Initial setup is separate from the script. Deploy the Agreement through its public factory, configure its scope from the approved Sheet, transfer ownership to the PauseProxy, and adopt it through the registry in a governance spell.
+
+Before adoption, independently verify factory provenance, PauseProxy ownership, and that the protocol name, agreement URI, contact details, and bounty terms match the Atlas. For the Agreement registered in Chainlog, also require clean `verify` output. The script does not check provenance, ownership, or adoption terms.
+
+## Development checks
+
+From `scripts/safeharbor`:
+
+```bash
 npm test -- --run
 npm run lint
 npm run format:check
 ```
-
-Pure unit tests are colocated with their source modules as `*.test.js`. Integration tests remain in `test/` as `*.integration.test.js`; future end-to-end tests belong there as `*.e2e.test.js`.
