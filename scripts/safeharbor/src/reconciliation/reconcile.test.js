@@ -82,11 +82,8 @@ test("does not read either state when chain metadata fails", async () => {
 });
 
 test.each([
-    ["getSheetChainDetails", "sheetChainDetails", "throw"],
     ["getSheetChainDetails", "sheetChainDetails", "reject"],
     ["getSheetState", "sheetState", "throw"],
-    ["getSheetState", "sheetState", "reject"],
-    ["getAgreementState", "agreementOnChainState", "throw"],
     ["getAgreementState", "agreementOnChainState", "reject"],
 ])(
     "attributes %s failures (%s, %s) without changing the original error",

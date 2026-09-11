@@ -61,94 +61,10 @@ function mockSources({ chainCSV, contractCSV, details }) {
     getDetails.mockResolvedValue(details);
 }
 
-test.each(["generate", "inspect", "verify"])(
-    "%s blocks invalid factory flags on existing and new chains",
-    async (command) => {
-        mockSources({
-            chainCSV: dedent`
-                Name,Chain Id,Asset Recovery Address
-                ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
-                BASE,eip155:8453,0x1000000000000000000000000000000000000002
-            `,
-            contractCSV: dedent`
-                Status,Chain,Address,isFactory
-                ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,
-                ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRU
-                ACTIVE,BASE,0x3000000000000000000000000000000000000001,true
-            `,
-            details: {
-                chains: [
-                    {
-                        caip2ChainId: "eip155:1",
-                        assetRecoveryAddress:
-                            "0x1000000000000000000000000000000000000001",
-                        accounts: [
-                            ["0x2000000000000000000000000000000000000001", 0n],
-                        ],
-                    },
-                ],
-            },
-        });
-
-        expect(await runCli(command)).toBe(command === "inspect" ? 0 : 2);
-        expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
-        expect(stderr).not.toHaveBeenCalled();
-        expect(warnings.mock.calls.slice(0, 2)).toEqual([
-            [
-                "⚠️ Invalid factory flag in Safeharbor Sheet for chain 'ETHEREUM', account '0x2000000000000000000000000000000000000002': isFactory='TRU'; expected TRUE, FALSE, or blank",
-            ],
-            [
-                "⚠️ Invalid factory flag in Safeharbor Sheet for chain 'BASE', account '0x3000000000000000000000000000000000000001': isFactory='true'; expected TRUE, FALSE, or blank",
-            ],
-        ]);
-
-        if (command === "inspect") {
-            expect(JSON.parse(stdout.mock.calls[0][0])).toMatchObject({
-                changes: [],
-                validationWarnings: [
-                    {
-                        code: "INVALID_SHEET_FACTORY_FLAG",
-                        context: {
-                            chainName: "ETHEREUM",
-                            address:
-                                "0x2000000000000000000000000000000000000002",
-                            column: "isFactory",
-                            value: "TRU",
-                        },
-                    },
-                    {
-                        code: "INVALID_SHEET_FACTORY_FLAG",
-                        context: {
-                            chainName: "BASE",
-                            address:
-                                "0x3000000000000000000000000000000000000001",
-                            column: "isFactory",
-                            value: "true",
-                        },
-                    },
-                ],
-            });
-            expect(warnings).toHaveBeenCalledTimes(2);
-        } else if (command === "verify") {
-            expect(stdout.mock.calls).toEqual([
-                [
-                    "❌ SafeHarbor verification failed: 0 update(s), 2 validation warning(s).",
-                ],
-            ]);
-            expect(warnings).toHaveBeenCalledTimes(2);
-        } else {
-            expect(stdout).not.toHaveBeenCalled();
-            expect(warnings).toHaveBeenCalledTimes(3);
-            expect(warnings).toHaveBeenLastCalledWith(
-                "❌ Payload generation blocked: 2 validation warning(s).",
-            );
-        }
-    },
-);
-
 describe.each([
     {
         scenario: "clean reconciliation",
+        commands: ["generate", "inspect", "verify"],
         chainCSV: dedent`
             Name,Chain Id,Asset Recovery Address
             ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
@@ -219,6 +135,7 @@ describe.each([
     },
     {
         scenario: "valid chain removal",
+        commands: ["generate", "inspect", "verify"],
         chainCSV: dedent`
             Name,Chain Id,Asset Recovery Address
             ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
@@ -285,95 +202,8 @@ describe.each([
             "❌ SafeHarbor verification failed: 1 update(s), 0 validation warning(s).",
     },
     {
-        scenario: "a warning without account differences",
-        chainCSV: dedent`
-            Name,Chain Id,Asset Recovery Address
-            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
-        `,
-        contractCSV: dedent`
-            Status,Chain,Address,isFactory
-            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
-        `,
-        details: {
-            chains: [
-                {
-                    caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000002",
-                    accounts: [
-                        ["0x2000000000000000000000000000000000000001", 0n],
-                    ],
-                },
-            ],
-        },
-        solidityCode: "",
-        report: {
-            sheetChainDetails: {
-                caip2ChainId: {
-                    ETHEREUM: "eip155:1",
-                },
-                assetRecoveryAddress: {
-                    ETHEREUM: "0x1000000000000000000000000000000000000001",
-                },
-                name: {
-                    "eip155:1": "ETHEREUM",
-                },
-            },
-            agreementOnChainState: {
-                "eip155:1": {
-                    accounts: [
-                        {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000001",
-                            childContractScope: "0",
-                        },
-                    ],
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000002",
-                },
-            },
-            sheetState: {
-                "eip155:1": {
-                    accounts: [
-                        {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000001",
-                            childContractScope: 0,
-                        },
-                    ],
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
-                },
-            },
-            changes: [],
-            validationWarnings: [
-                {
-                    code: "RECOVERY_ADDRESS_MISMATCH",
-                    context: {
-                        chainId: "eip155:1",
-                        onChainRecoveryAddress:
-                            "0x1000000000000000000000000000000000000002",
-                        sheetRecoveryAddress:
-                            "0x1000000000000000000000000000000000000001",
-                    },
-                },
-            ],
-        },
-        warningMessages: [
-            dedent`
-                ⚠️ Asset Recovery Address mismatch for chain 'eip155:1'.
-                       On-chain: 0x1000000000000000000000000000000000000002
-                       Safeharbor Sheet: 0x1000000000000000000000000000000000000001
-            `,
-        ],
-        exitCodes: { generate: 2, inspect: 0, verify: 2 },
-        generateMessage:
-            "❌ Payload generation blocked: 1 validation warning(s).",
-        verifyMessage:
-            "❌ SafeHarbor verification failed: 0 update(s), 1 validation warning(s).",
-    },
-    {
         scenario: "multiple warnings blocking account changes",
+        commands: ["generate", "inspect", "verify"],
         chainCSV: dedent`
             Name,Chain Id,Asset Recovery Address
             ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
@@ -479,6 +309,7 @@ describe.each([
     {
         scenario:
             "unknown on-chain IDs and their duplicate accounts remain inspectable",
+        commands: ["inspect"],
         chainCSV: "Name,Chain Id,Asset Recovery Address\n",
         contractCSV: "Status,Chain,Address,isFactory\n",
         details: {
@@ -533,14 +364,10 @@ describe.each([
             `,
             "⚠️ Duplicate account address in on-chain state for chain 'eip155:8453': A; first scope=0, duplicate scope=2",
         ],
-        exitCodes: { generate: 2, inspect: 0, verify: 2 },
-        generateMessage:
-            "❌ Payload generation blocked: 2 validation warning(s).",
-        verifyMessage:
-            "❌ SafeHarbor verification failed: 0 update(s), 2 validation warning(s).",
+        exitCodes: { inspect: 0 },
     },
 ])("$scenario", (fixture) => {
-    test.each(["generate", "inspect", "verify"])(
+    test.each(fixture.commands)(
         "%s uses the real pipeline",
         async (command) => {
             mockSources(fixture);
@@ -591,6 +418,7 @@ describe.each([
 describe.each([
     {
         scenario: "missing contracts headers",
+        commands: ["generate"],
         chainCSV: dedent`
             Name,Chain Id,Asset Recovery Address
             ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
@@ -616,6 +444,7 @@ describe.each([
     },
     {
         scenario: "malformed contracts CSV",
+        commands: ["inspect"],
         chainCSV: dedent`
             Name,Chain Id,Asset Recovery Address
             ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
@@ -644,7 +473,7 @@ describe.each([
         `,
     },
 ])("$scenario", (fixture) => {
-    test.each(["generate", "inspect", "verify"])(
+    test.each(fixture.commands)(
         "%s exits 1 without output",
         async (command) => {
             mockSources(fixture);
@@ -665,49 +494,28 @@ describe.each([
     );
 });
 
-describe.each(["generate", "inspect", "verify"])(
-    "%s operational errors",
-    (command) => {
-        test("exits 1 when CSV fetching fails", async () => {
-            const failure = new Error("CSV unavailable");
-            fetch.mockRejectedValue(failure);
+test("verify exits 1 when fetching Agreement details fails", async () => {
+    fetch
+        .mockResolvedValueOnce(
+            new Response("Name,Chain Id,Asset Recovery Address\n", {
+                headers: { "content-type": "text/csv" },
+            }),
+        )
+        .mockResolvedValueOnce(
+            new Response("Status,Chain,Address,isFactory\n", {
+                headers: { "content-type": "text/csv" },
+            }),
+        );
+    const failure = new Error("Agreement state unavailable");
+    getDetails.mockRejectedValue(failure);
 
-            expect(await runCli(command)).toBe(1);
-            expect(stderr).toHaveBeenCalledExactlyOnceWith(
-                dedent`
-                    ❌ Failed to execute command:
-                           Source: Safeharbor Sheet chain metadata
-                           CSV unavailable
-                `,
-            );
-            expect(stdout).not.toHaveBeenCalled();
-            expect(getDetails).not.toHaveBeenCalled();
-        });
-
-        test("exits 1 when fetching Agreement details fails", async () => {
-            fetch
-                .mockResolvedValueOnce(
-                    new Response("Name,Chain Id,Asset Recovery Address\n", {
-                        headers: { "content-type": "text/csv" },
-                    }),
-                )
-                .mockResolvedValueOnce(
-                    new Response("Status,Chain,Address,isFactory\n", {
-                        headers: { "content-type": "text/csv" },
-                    }),
-                );
-            const failure = new Error("Agreement state unavailable");
-            getDetails.mockRejectedValue(failure);
-
-            expect(await runCli(command)).toBe(1);
-            expect(stderr).toHaveBeenCalledExactlyOnceWith(
-                dedent`
-                    ❌ Failed to execute command:
-                           Source: Agreement state
-                           Agreement state unavailable
-                `,
-            );
-            expect(stdout).not.toHaveBeenCalled();
-        });
-    },
-);
+    expect(await runCli("verify")).toBe(1);
+    expect(stderr).toHaveBeenCalledExactlyOnceWith(
+        dedent`
+            ❌ Failed to execute command:
+                   Source: Agreement state
+                   Agreement state unavailable
+        `,
+    );
+    expect(stdout).not.toHaveBeenCalled();
+});

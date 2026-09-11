@@ -85,6 +85,51 @@ describe("recovery address comparison", () => {
 
     test.each([
         {
+            scenario:
+                "an existing ETHEREUM chain with an undefined recovery address",
+            chainId: "eip155:1",
+            agreementOnChainState: {
+                "eip155:1": {
+                    accounts: [
+                        {
+                            accountAddress:
+                                "0x2000000000000000000000000000000000000001",
+                            childContractScope: 0n,
+                        },
+                    ],
+                    assetRecoveryAddress: undefined,
+                },
+            },
+            sheetAddress: "0x1000000000000000000000000000000000000001",
+            warning: {
+                code: "MISSING_ONCHAIN_RECOVERY_ADDRESS",
+                context: { chainId: "eip155:1" },
+            },
+        },
+        {
+            scenario: "an existing SOLANA chain with an empty recovery address",
+            chainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+            agreementOnChainState: {
+                "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp": {
+                    accounts: [
+                        {
+                            accountAddress:
+                                "So11111111111111111111111111111111111111112",
+                            childContractScope: 0n,
+                        },
+                    ],
+                    assetRecoveryAddress: "",
+                },
+            },
+            sheetAddress: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+            warning: {
+                code: "MISSING_ONCHAIN_RECOVERY_ADDRESS",
+                context: {
+                    chainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+                },
+            },
+        },
+        {
             scenario: "a new chain accepts a lowercase EVM recovery address",
             chainId: "eip155:1",
             agreementOnChainState: {},

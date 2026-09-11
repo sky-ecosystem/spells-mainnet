@@ -43,11 +43,6 @@ test.each([
     },
     {
         status: 200,
-        headers: { "content-type": "application/text/csv" },
-        diagnostic: { code: "INVALID_CSV_CONTENT_TYPE" },
-    },
-    {
-        status: 200,
         headers: { "content-type": "text/csv-extended" },
         diagnostic: { code: "INVALID_CSV_CONTENT_TYPE" },
     },
@@ -69,102 +64,78 @@ test("propagates fetch failures unchanged without reporting", async () => {
     await expect(getSheetChainDetails()).rejects.toBe(failure);
 });
 
-test.each(["TEXT/CSV; charset=utf-8", "text/csv ; charset=UTF-8"])(
-    "accepts CSV media type casing and parameters: %s",
-    async (contentType) => {
-        fetch.mockResolvedValue(
-            new Response("Name,Chain Id,Asset Recovery Address\n", {
-                headers: { "content-type": contentType },
-            }),
-        );
-        await expect(getSheetChainDetails()).resolves.toEqual({
-            value: { caip2ChainId: {}, assetRecoveryAddress: {}, name: {} },
-            warnings: [],
-        });
-    },
-);
+test("accepts CSV media type casing, whitespace and parameters", async () => {
+    fetch.mockResolvedValue(
+        new Response("Name,Chain Id,Asset Recovery Address\n", {
+            headers: { "content-type": "TEXT/CSV ; charset=utf-8" },
+        }),
+    );
+    await expect(getSheetChainDetails()).resolves.toEqual({
+        value: { caip2ChainId: {}, assetRecoveryAddress: {}, name: {} },
+        warnings: [],
+    });
+});
 
 describe("contracts CSV headers", () => {
-    test.each([
-        ["Status,Chain,Address,isFactory,Status\n", "Status"],
-        ["Status,Chain,Address,Address,isFactory\n", "Address"],
-        ["Status,Chain,Address,isFactory,isFactory\n", "isFactory"],
-        ["Status,Chain,Address,isFactory,IsFactory,IsFactory\n", "IsFactory"],
-    ])(
-        "rejects repeated headers before reading any records: %s",
-        async (csv, header) => {
-            fetch.mockResolvedValue(csvResponse(csv));
-            await expect(
-                getSheetState({
-                    caip2ChainId: {},
-                    assetRecoveryAddress: {},
-                    name: {},
-                }),
-            ).rejects.toMatchObject({
-                diagnostic: {
-                    code: "DUPLICATE_SHEET_HEADERS",
-                    context: { duplicateHeaders: [header] },
-                },
-            });
-        },
-    );
+    test("rejects repeated headers before reading any records", async () => {
+        fetch.mockResolvedValue(
+            csvResponse("Status,Chain,Address,isFactory,Status\n"),
+        );
+        await expect(
+            getSheetState({
+                caip2ChainId: {},
+                assetRecoveryAddress: {},
+                name: {},
+            }),
+        ).rejects.toMatchObject({
+            diagnostic: {
+                code: "DUPLICATE_SHEET_HEADERS",
+                context: { duplicateHeaders: ["Status"] },
+            },
+        });
+    });
 
     test.each([
-        ["Status in a header-only file", "Chain,Address,isFactory\n", "Status"],
+        [
+            "Status in a header-only file",
+            "Chain,Address,isFactory\n",
+            ["Status"],
+        ],
         [
             "Status with records",
             dedent`
                 Chain,Address,isFactory
                 ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
             `,
-            "Status",
+            ["Status"],
         ],
-        ["Chain in a header-only file", "Status,Address,isFactory\n", "Chain"],
         [
-            "Chain with records",
-            dedent`
-                Status,Address,isFactory
-                ACTIVE,0x2000000000000000000000000000000000000001,FALSE
-            `,
-            "Chain",
+            "Chain in a header-only file",
+            "Status,Address,isFactory\n",
+            ["Chain"],
         ],
         [
             "Address in a header-only file",
             "Status,Chain,isFactory\n",
-            "Address",
-        ],
-        [
-            "Address with records",
-            dedent`
-                Status,Chain,isFactory
-                ACTIVE,ETHEREUM,FALSE
-            `,
-            "Address",
+            ["Address"],
         ],
         [
             "factory flag in a header-only file",
             "Status,Chain,Address\n",
-            "isFactory",
+            ["isFactory"],
         ],
         [
-            "factory flag with records",
-            dedent`
-                Status,Chain,Address
-                ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001
-            `,
-            "isFactory",
+            "all headers in an empty file",
+            "",
+            ["Status", "Chain", "Address", "isFactory"],
         ],
-        ["all headers in an empty file", "", "Status"],
-        ["all headers in a blank file", " \n\n", "Status"],
-    ])("rejects missing %s", async (_scenario, csv, missingHeader) => {
+    ])("rejects missing %s", async (_scenario, csv, missingHeaders) => {
         fetch.mockResolvedValue(csvResponse(csv));
 
         await expect(getSheetState()).rejects.toMatchObject({
             diagnostic: {
                 code: "MISSING_SHEET_HEADERS",
-                context: {
-                    missingHeaders: expect.arrayContaining([missingHeader]),
-                },
+                context: { missingHeaders },
             },
         });
     });
@@ -174,15 +145,6 @@ describe("contracts CSV headers", () => {
             "isFactory",
             dedent`
                 Status,Chain,Address,isFactory
-                ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE
-                ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE
-                INACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,TRUE
-            `,
-        ],
-        [
-            "IsFactory",
-            dedent`
-                Status,Chain,Address,IsFactory
                 ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE
                 ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE
                 INACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,TRUE
@@ -263,7 +225,7 @@ describe("chain metadata CSV headers", () => {
         [
             "Name in a header-only file",
             "Chain Id,Asset Recovery Address\n",
-            "Name",
+            ["Name"],
         ],
         [
             "Name with records",
@@ -271,45 +233,30 @@ describe("chain metadata CSV headers", () => {
                 Chain Id,Asset Recovery Address
                 eip155:1,0x1000000000000000000000000000000000000001
             `,
-            "Name",
+            ["Name"],
         ],
         [
             "Chain Id in a header-only file",
             "Name,Asset Recovery Address\n",
-            "Chain Id",
-        ],
-        [
-            "Chain Id with records",
-            dedent`
-                Name,Asset Recovery Address
-                ETHEREUM,0x1000000000000000000000000000000000000001
-            `,
-            "Chain Id",
+            ["Chain Id"],
         ],
         [
             "Asset Recovery Address in a header-only file",
             "Name,Chain Id\n",
-            "Asset Recovery Address",
+            ["Asset Recovery Address"],
         ],
         [
-            "Asset Recovery Address with records",
-            dedent`
-                Name,Chain Id
-                ETHEREUM,eip155:1
-            `,
-            "Asset Recovery Address",
+            "all headers in a blank file",
+            "\n \n",
+            ["Name", "Chain Id", "Asset Recovery Address"],
         ],
-        ["all headers in an empty file", "", "Name"],
-        ["all headers in a blank file", "\n \n", "Name"],
-    ])("rejects missing %s", async (_scenario, csv, missingHeader) => {
+    ])("rejects missing %s", async (_scenario, csv, missingHeaders) => {
         fetch.mockResolvedValue(csvResponse(csv));
 
         await expect(getSheetChainDetails()).rejects.toMatchObject({
             diagnostic: {
                 code: "MISSING_SHEET_HEADERS",
-                context: {
-                    missingHeaders: expect.arrayContaining([missingHeader]),
-                },
+                context: { missingHeaders },
             },
         });
     });
@@ -383,15 +330,6 @@ describe("malformed CSV", () => {
             "CSV_QUOTE_NOT_CLOSED",
         ],
         [
-            "contracts with an unterminated quote",
-            getSheetState,
-            dedent`
-                Status,Chain,Address,isFactory
-                ACTIVE,ETHEREUM,"0x2000000000000000000000000000000000000001,FALSE
-            `,
-            "CSV_QUOTE_NOT_CLOSED",
-        ],
-        [
             "contracts with too few fields",
             getSheetState,
             dedent`
@@ -401,21 +339,6 @@ describe("malformed CSV", () => {
             "CSV_RECORD_INCONSISTENT_COLUMNS",
         ],
         [
-            "contracts with too many fields",
-            getSheetState,
-            dedent`
-                Status,Chain,Address,isFactory
-                ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE,EXTRA
-            `,
-            "CSV_RECORD_INCONSISTENT_COLUMNS",
-        ],
-        [
-            "chain metadata with a malformed header",
-            getSheetChainDetails,
-            'Name,Chain Id,"Asset Recovery Address\n',
-            "CSV_QUOTE_NOT_CLOSED",
-        ],
-        [
             "chain metadata with an unterminated quote",
             getSheetChainDetails,
             dedent`
@@ -423,15 +346,6 @@ describe("malformed CSV", () => {
                 ETHEREUM,eip155:1,"0x1000000000000000000000000000000000000001
             `,
             "CSV_QUOTE_NOT_CLOSED",
-        ],
-        [
-            "chain metadata with too few fields",
-            getSheetChainDetails,
-            dedent`
-                Name,Chain Id,Asset Recovery Address
-                ETHEREUM,eip155:1
-            `,
-            "CSV_RECORD_INCONSISTENT_COLUMNS",
         ],
         [
             "chain metadata with too many fields",

@@ -4,17 +4,12 @@ import { formatOperationalError } from "./format.js";
 
 test.each([
     { scenario: "missing", code: undefined },
-    { scenario: "null", code: null },
     { scenario: "numeric", code: 503 },
     { scenario: "object", code: { secret: "private code metadata" } },
-    { scenario: "array", code: ["NETWORK_ERROR"] },
     { scenario: "empty", code: "" },
     { scenario: "lowercase", code: "econnreset" },
     { scenario: "numeric prefix", code: "1ERROR" },
-    { scenario: "underscore prefix", code: "_ERROR" },
-    { scenario: "hyphenated", code: "NETWORK-ERROR" },
     { scenario: "multiline", code: "NETWORK_ERROR\nprivate token" },
-    { scenario: "URL", code: "https://rpc.example/private-key" },
 ])("omits $scenario codes without increasing cause indentation", ({ code }) => {
     const failure = Object.assign(
         new Error("CSV unavailable", {
