@@ -12,7 +12,7 @@ Use Node.js 24. From `scripts/safeharbor`, install dependencies:
 npm ci
 ```
 
-Set `ETH_RPC_URL` to Ethereum mainnet or a compatible fork containing the mainnet Chainlog and its registered Agreement. The script uses the `SAFE_HARBOR_AGREEMENT` Chainlog entry; it does not accept an arbitrary Agreement address.
+Set `ETH_RPC_URL` to Ethereum mainnet or a compatible fork containing the mainnet Chainlog, its registered Agreement, and the Agreement's configured chain validator. The script uses the `SAFE_HARBOR_AGREEMENT` Chainlog entry; it does not accept an arbitrary Agreement address.
 
 Choose an explicit command:
 
@@ -46,6 +46,7 @@ npm run --silent inspect > inspect.json && jq . inspect.json
 
 - **The approved Sheet is the desired state.** Review its contents as source data; matching the Sheet does not establish that its accounts belong in Sky's scope.
 - **Warnings block generation.** Problems require review instead of producing a partial payload.
+- **New chains must be accepted by the Agreement.** The script checks new chain IDs against its configured validator; rejected IDs block generation.
 - **Account identifiers retain their exact spelling.** SafeHarbor supports non-EVM accounts, so account strings are case-sensitive. EVM recovery addresses are compared canonically; non-EVM recovery identifiers are compared exactly.
 - **Recovery-address mismatches require a separate decision.** The script reports them rather than generating recovery-address changes.
 - **An empty approved scope is valid.** A correctly formed Sheet with no active accounts can request chain removals.

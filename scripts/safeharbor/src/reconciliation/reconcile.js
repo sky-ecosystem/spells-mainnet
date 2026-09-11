@@ -11,12 +11,13 @@ export async function reconcile({
         "sheetChainDetails",
         getSheetChainDetails,
     );
-    const [sheetResult, agreementOnChainResult] = await Promise.all([
-        loadSource("sheetState", () =>
-            getSheetState(sheetChainDetailsResult.value),
-        ),
-        loadSource("agreementOnChainState", getAgreementState),
-    ]);
+    const sheetResult = await loadSource("sheetState", () =>
+        getSheetState(sheetChainDetailsResult.value),
+    );
+    const agreementOnChainResult = await loadSource(
+        "agreementOnChainState",
+        () => getAgreementState(Object.keys(sheetResult.value)),
+    );
     const validationWarnings = [
         ...sheetChainDetailsResult.warnings,
         ...validateKnownOnChainIds(

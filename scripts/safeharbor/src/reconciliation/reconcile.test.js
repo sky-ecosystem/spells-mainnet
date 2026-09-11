@@ -13,7 +13,7 @@ afterEach(() => {
     vi.unstubAllGlobals();
 });
 
-test("waits for metadata before reading the Sheet state and Agreement concurrently", async () => {
+test("loads metadata and Sheet state before passing desired chain IDs to the Agreement reader", async () => {
     let resolveMetadata;
     const metadata = new Promise((resolve) => {
         resolveMetadata = resolve;
@@ -51,7 +51,7 @@ test("waits for metadata before reading the Sheet state and Agreement concurrent
         assetRecoveryAddress: {},
         name: {},
     });
-    expect(getAgreementState).toHaveBeenCalledExactlyOnceWith();
+    expect(getAgreementState).not.toHaveBeenCalled();
     expect(settled).not.toHaveBeenCalled();
 
     resolveSheetState({ value: {}, warnings: [] });
@@ -59,6 +59,7 @@ test("waits for metadata before reading the Sheet state and Agreement concurrent
         changes: [],
         validationWarnings: [],
     });
+    expect(getAgreementState).toHaveBeenCalledExactlyOnceWith([]);
 });
 
 test("does not read either state when chain metadata fails", async () => {

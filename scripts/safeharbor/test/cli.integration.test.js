@@ -16,6 +16,7 @@ let stdout;
 let stderr;
 let warnings;
 let encodeSpy;
+let isChainValid;
 
 beforeEach(() => {
     getDetails = vi.fn();
@@ -23,11 +24,21 @@ beforeEach(() => {
     vi.stubEnv("ETH_RPC_URL", "https://rpc.example");
     provider = { destroy: vi.fn() };
     JsonRpcProvider.mockReturnValue(provider);
+    isChainValid = vi.fn().mockResolvedValue(true);
     Contract.mockReturnValueOnce({
         "getAddress(bytes32)": vi
             .fn()
             .mockResolvedValue("0x7000000000000000000000000000000000000001"),
-    }).mockReturnValueOnce({ getDetails });
+    })
+        .mockReturnValueOnce({
+            getDetails,
+            getChainValidator: vi
+                .fn()
+                .mockResolvedValue(
+                    "0x8000000000000000000000000000000000000001",
+                ),
+        })
+        .mockReturnValue({ isChainValid });
     vi.stubGlobal("fetch", vi.fn());
     stdout = vi.spyOn(console, "log").mockImplementation(() => {});
     stderr = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -60,6 +71,84 @@ function mockSources({ chainCSV, contractCSV, details }) {
         );
     getDetails.mockResolvedValue(details);
 }
+
+test("blocks all generation when the configured validator rejects new chain IDs", async () => {
+    mockSources({
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+            UNKNOWN_EVM,eip155:999999,0x1000000000000000000000000000000000000002
+            UNKNOWN_NETWORK,unsupported:network,RecoveryAddress
+            UNUSED,unsupported:unused,UnusedRecoveryAddress
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,B,FALSE
+            ACTIVE,UNKNOWN_EVM,C,FALSE
+            ACTIVE,UNKNOWN_NETWORK,D,FALSE
+        `,
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress:
+                        "0x1000000000000000000000000000000000000001",
+                    accounts: [["A", 0n]],
+                },
+            ],
+        },
+    });
+    isChainValid.mockResolvedValue(false);
+
+    expect(await runCli("generate")).toBe(2);
+    expect(isChainValid.mock.calls).toEqual([
+        ["eip155:999999"],
+        ["unsupported:network"],
+    ]);
+    expect(warnings.mock.calls).toEqual([
+        [
+            "⚠️ Chain ID 'eip155:999999' is not accepted by the Agreement's configured chain validator",
+        ],
+        [
+            "⚠️ Chain ID 'unsupported:network' is not accepted by the Agreement's configured chain validator",
+        ],
+        ["❌ Payload generation blocked: 2 validation warning(s)."],
+    ]);
+    expect(stdout).not.toHaveBeenCalled();
+    expect(encodeSpy).not.toHaveBeenCalled();
+    expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
+});
+
+test("validator RPC failure exits 1 and cleans up without generating output", async () => {
+    mockSources({
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,A,FALSE
+        `,
+        details: { chains: [] },
+    });
+    isChainValid.mockRejectedValue(
+        Object.assign(new Error("Validator unavailable"), {
+            code: "NETWORK_ERROR",
+        }),
+    );
+
+    expect(await runCli("generate")).toBe(1);
+    expect(stderr).toHaveBeenCalledExactlyOnceWith(dedent`
+        ❌ Failed to execute command:
+               Source: Agreement state
+               Validator unavailable
+               Code: NETWORK_ERROR
+    `);
+    expect(stdout).not.toHaveBeenCalled();
+    expect(warnings).not.toHaveBeenCalled();
+    expect(encodeSpy).not.toHaveBeenCalled();
+    expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
+});
 
 describe.each([
     {
@@ -378,6 +467,7 @@ describe.each([
             }
             expect(fetch).toHaveBeenCalledTimes(2);
             expect(getDetails).toHaveBeenCalledExactlyOnceWith();
+            expect(isChainValid).not.toHaveBeenCalled();
             expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
             expect(stderr).not.toHaveBeenCalled();
 

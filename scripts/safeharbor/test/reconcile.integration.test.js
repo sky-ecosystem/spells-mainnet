@@ -12,14 +12,25 @@ vi.mock("ethers", async (importOriginal) => ({
 
 const provider = {};
 const getDetails = vi.fn();
+const isChainValid = vi.fn();
 let encodeSpy;
 
 beforeEach(() => {
+    isChainValid.mockResolvedValue(true);
     Contract.mockReturnValueOnce({
         "getAddress(bytes32)": vi
             .fn()
             .mockResolvedValue("0x7000000000000000000000000000000000000001"),
-    }).mockReturnValueOnce({ getDetails });
+    })
+        .mockReturnValueOnce({
+            getDetails,
+            getChainValidator: vi
+                .fn()
+                .mockResolvedValue(
+                    "0x8000000000000000000000000000000000000001",
+                ),
+        })
+        .mockReturnValue({ isChainValid });
     vi.stubGlobal("fetch", vi.fn());
     vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -454,6 +465,7 @@ describe("validation warnings", () => {
 
     describe("Validation warning aggregation", () => {
         test("should collect warnings from every stage before planning updates", async () => {
+            isChainValid.mockResolvedValue(false);
             const duplicateWarning = {
                 code: "DUPLICATE_CHAIN_NAME",
                 context: {
@@ -482,6 +494,7 @@ describe("validation warnings", () => {
                     ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
                     ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE
                     ACTIVE,UNKNOWN,0x6000000000000000000000000000000000000001,FALSE
+                    ACTIVE,BASE,0x4000000000000000000000000000000000000001,FALSE
                 `,
                 details: {
                     chains: [
@@ -529,6 +542,10 @@ describe("validation warnings", () => {
                     },
                 },
                 {
+                    code: "INVALID_CHAIN_ID",
+                    context: { chainId: "eip155:8453" },
+                },
+                {
                     code: "UNKNOWN_SHEET_CHAIN",
                     context: { chainName: "UNKNOWN" },
                 },
@@ -543,6 +560,7 @@ describe("validation warnings", () => {
                     },
                 },
             ]);
+            expect(isChainValid).toHaveBeenCalledExactlyOnceWith("eip155:8453");
         });
     });
 });
@@ -807,6 +825,7 @@ describe("CSV validation before reconciliation", () => {
                 getSheetChainDetails,
             }),
         ).rejects.toMatchObject({ cause: error });
+        expect(getDetails).not.toHaveBeenCalled();
     });
 
     test.each([

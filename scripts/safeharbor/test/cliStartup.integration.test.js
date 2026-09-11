@@ -1,6 +1,5 @@
 import { Contract, Interface, JsonRpcProvider } from "ethers";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { setImmediate } from "node:timers/promises";
 import { dedent } from "../src/utils/dedent.js";
 import { main } from "../src/cli/index.js";
 
@@ -160,42 +159,21 @@ test("indents multiline pipeline errors and nested codes without displaying the 
     expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
 });
 
-test("reports a Sheet failure and destroys the provider without waiting for an in-flight Agreement read", async () => {
-    let rejectSheet;
-    const sheet = new Promise((_resolve, reject) => {
-        rejectSheet = reject;
-    });
-    let rejectAgreement;
-    const agreement = new Promise((_resolve, reject) => {
-        rejectAgreement = reject;
-    });
+test("reports a Sheet failure and destroys the provider without starting an Agreement read", async () => {
     fetch
         .mockResolvedValueOnce(
             new Response("Name,Chain Id,Asset Recovery Address\n", {
                 headers: { "content-type": "text/csv" },
             }),
         )
-        .mockReturnValueOnce(sheet);
-    const getDetails = vi.fn(() => agreement);
+        .mockRejectedValueOnce(new Error("Contracts unavailable"));
+    const getChainlogAddress = vi.fn();
     Contract.mockReturnValueOnce({
-        "getAddress(bytes32)": vi
-            .fn()
-            .mockResolvedValue("0x7000000000000000000000000000000000000001"),
-    }).mockReturnValueOnce({ getDetails });
+        "getAddress(bytes32)": getChainlogAddress,
+    });
 
-    const result = main();
-    await setImmediate();
-
-    expect(getDetails).toHaveBeenCalledExactlyOnceWith();
-    rejectSheet(new Error("Contracts unavailable"));
-    await setImmediate();
-
-    expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
-    expect(await result).toBe(1);
-
-    rejectAgreement(new Error("Agreement unavailable"));
-    await setImmediate();
-
+    expect(await main()).toBe(1);
+    expect(getChainlogAddress).not.toHaveBeenCalled();
     expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
     expect(console.error).toHaveBeenCalledExactlyOnceWith(
         dedent`

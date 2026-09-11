@@ -1,6 +1,7 @@
 import { Contract } from "ethers";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import AGREEMENT_V3_ABI from "../src/agreement/abis/agreement.json" with { type: "json" };
+import CHAIN_VALIDATOR_ABI from "../src/agreement/abis/chainValidator.json" with { type: "json" };
 import { createAgreementReader } from "../src/agreement/index.js";
 import { createChainlogReader } from "../src/agreement/chainlog.js";
 
@@ -55,7 +56,7 @@ test("resolves the Agreement and returns normalized state with diagnostics", asy
     );
     Contract.mockReturnValue({ getDetails });
 
-    expect(await getAgreementState()).toEqual({
+    expect(await getAgreementState([])).toEqual({
         value: {
             "eip155:1": {
                 accounts: [
@@ -117,11 +118,11 @@ test("reuses the Chainlog reader without caching the resolved Agreement address"
         getDetails: vi.fn().mockResolvedValue({ chains: [] }),
     });
 
-    await expect(getAgreementState()).resolves.toEqual({
+    await expect(getAgreementState([])).resolves.toEqual({
         value: {},
         warnings: [],
     });
-    await expect(getAgreementState()).resolves.toEqual({
+    await expect(getAgreementState([])).resolves.toEqual({
         value: {},
         warnings: [],
     });
@@ -149,7 +150,7 @@ test("propagates Chainlog lookup failures", async () => {
     const failure = new Error("Chainlog unavailable");
     getChainlogAddress.mockRejectedValue(failure);
 
-    await expect(getAgreementState()).rejects.toBe(failure);
+    await expect(getAgreementState([])).rejects.toBe(failure);
     expect(Contract).not.toHaveBeenCalled();
 });
 
@@ -162,7 +163,7 @@ test("propagates Agreement construction failures", async () => {
         throw failure;
     });
 
-    await expect(getAgreementState()).rejects.toBe(failure);
+    await expect(getAgreementState([])).rejects.toBe(failure);
 });
 
 test("propagates Agreement state-read failures", async () => {
@@ -174,5 +175,143 @@ test("propagates Agreement state-read failures", async () => {
         getDetails: vi.fn().mockRejectedValue(failure),
     });
 
-    await expect(getAgreementState()).rejects.toBe(failure);
+    await expect(getAgreementState([])).rejects.toBe(failure);
 });
+
+test("returns normalized state and validates only new desired chain IDs exactly", async () => {
+    getChainlogAddress.mockResolvedValue(
+        "0x7000000000000000000000000000000000000001",
+    );
+    const getDetails = vi.fn().mockResolvedValue({
+        chains: [
+            {
+                caip2ChainId: "eip155:1",
+                assetRecoveryAddress:
+                    "0x1000000000000000000000000000000000000001",
+                accounts: [["0x2000000000000000000000000000000000000001", 0n]],
+            },
+        ],
+    });
+    const getChainValidator = vi
+        .fn()
+        .mockResolvedValue("0x8000000000000000000000000000000000000001");
+    const isChainValid = vi
+        .fn()
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce(false)
+        .mockResolvedValueOnce(false);
+    Contract.mockReturnValueOnce({
+        getDetails,
+        getChainValidator,
+    }).mockReturnValueOnce({ isChainValid });
+
+    await expect(
+        getAgreementState([
+            "eip155:1",
+            "eip155:10",
+            "eip155:999999",
+            "EIP155:1",
+        ]),
+    ).resolves.toEqual({
+        value: {
+            "eip155:1": {
+                accounts: [
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000001",
+                        childContractScope: 0n,
+                    },
+                ],
+                assetRecoveryAddress:
+                    "0x1000000000000000000000000000000000000001",
+            },
+        },
+        warnings: [
+            { code: "INVALID_CHAIN_ID", context: { chainId: "eip155:999999" } },
+            { code: "INVALID_CHAIN_ID", context: { chainId: "EIP155:1" } },
+        ],
+    });
+
+    expect(isChainValid.mock.calls).toEqual([
+        ["eip155:10"],
+        ["eip155:999999"],
+        ["EIP155:1"],
+    ]);
+    expect(getDetails).toHaveBeenCalledExactlyOnceWith();
+    expect(getChainValidator).toHaveBeenCalledExactlyOnceWith();
+    expect(getChainlogAddress).toHaveBeenCalledExactlyOnceWith(
+        "SAFE_HARBOR_AGREEMENT",
+    );
+    expect(Contract.mock.calls).toEqual([
+        [
+            "0x7000000000000000000000000000000000000001",
+            AGREEMENT_V3_ABI,
+            provider,
+        ],
+        [
+            "0x8000000000000000000000000000000000000001",
+            CHAIN_VALIDATOR_ABI,
+            provider,
+        ],
+    ]);
+});
+
+test("skips validator access when every desired chain already exists", async () => {
+    getChainlogAddress.mockResolvedValue(
+        "0x7000000000000000000000000000000000000001",
+    );
+    const getDetails = vi.fn().mockResolvedValue({
+        chains: [
+            {
+                caip2ChainId: "eip155:1",
+                assetRecoveryAddress:
+                    "0x1000000000000000000000000000000000000001",
+                accounts: [["0x2000000000000000000000000000000000000001", 0n]],
+            },
+        ],
+    });
+    const getChainValidator = vi.fn();
+    Contract.mockReturnValue({ getDetails, getChainValidator });
+
+    await expect(getAgreementState(["eip155:1"])).resolves.toEqual({
+        value: {
+            "eip155:1": {
+                accounts: [
+                    {
+                        accountAddress:
+                            "0x2000000000000000000000000000000000000001",
+                        childContractScope: 0n,
+                    },
+                ],
+                assetRecoveryAddress:
+                    "0x1000000000000000000000000000000000000001",
+            },
+        },
+        warnings: [],
+    });
+    expect(getDetails).toHaveBeenCalledExactlyOnceWith();
+    expect(getChainValidator).not.toHaveBeenCalled();
+    expect(Contract).toHaveBeenCalledTimes(1);
+});
+
+test.each(["getChainValidator", "isChainValid"])(
+    "propagates %s RPC failures instead of returning an invalid-chain diagnostic",
+    async (method) => {
+        const failure = new Error("Validator unavailable");
+        getChainlogAddress.mockResolvedValue(
+            "0x7000000000000000000000000000000000000001",
+        );
+        const getChainValidator = vi
+            .fn()
+            .mockResolvedValue("0x8000000000000000000000000000000000000001");
+        const isChainValid = vi.fn().mockResolvedValue(true);
+        const methods = { getChainValidator, isChainValid };
+        methods[method].mockRejectedValue(failure);
+        Contract.mockReturnValueOnce({
+            getDetails: vi.fn().mockResolvedValue({ chains: [] }),
+            getChainValidator,
+        }).mockReturnValueOnce({ isChainValid });
+
+        await expect(getAgreementState(["eip155:1"])).rejects.toBe(failure);
+    },
+);

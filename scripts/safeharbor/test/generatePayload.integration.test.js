@@ -26,7 +26,16 @@ beforeEach(() => {
         "getAddress(bytes32)": vi
             .fn()
             .mockResolvedValue("0x7000000000000000000000000000000000000001"),
-    }).mockReturnValueOnce({ getDetails });
+    })
+        .mockReturnValueOnce({
+            getDetails,
+            getChainValidator: vi
+                .fn()
+                .mockResolvedValue(
+                    "0x8000000000000000000000000000000000000001",
+                ),
+        })
+        .mockReturnValue({ isChainValid: vi.fn().mockResolvedValue(true) });
     vi.stubGlobal("fetch", vi.fn());
     consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
