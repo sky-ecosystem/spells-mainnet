@@ -1,0 +1,48 @@
+name: Setup Foundry
+
+on:
+  push:
+    paths:
+      - ".github/workflows/setup-foundry.yaml"
+      - "Makefile"
+      - "scripts/setup-foundry/**"
+  pull_request:
+    paths:
+      - ".github/workflows/setup-foundry.yaml"
+      - "Makefile"
+      - "scripts/setup-foundry/**"
+
+permissions:
+  contents: read
+  attestations: read
+
+env:
+  FOUNDRY_RELEASE: v1.7.1
+  FOUNDRY_IGNORE_AGE: "0"
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test Setup Foundry
+        run: make test-setup-foundry
+
+      - name: Add Foundry to PATH
+        run: echo "$HOME/.foundry/bin" >> "$GITHUB_PATH"
+
+      - name: Install Foundry
+        run: make install-foundry release="${FOUNDRY_RELEASE}" ignore-age="${FOUNDRY_IGNORE_AGE}"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Verify Foundry
+        run: make verify-foundry release="${FOUNDRY_RELEASE}" ignore-age="${FOUNDRY_IGNORE_AGE}"
+        env:
+          GH_TOKEN: ${{ github.token }}

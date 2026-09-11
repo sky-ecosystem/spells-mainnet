@@ -1,5 +1,12 @@
+ignore-age           ?= 0
+foundry-ignore-age    = $(if $(or $(word 2,$(ignore-age)),$(filter-out 0 1,$(ignore-age))),$(error ignore-age must be 0 or 1),$(if $(filter 1,$(ignore-age)),--ignore-age,))
+
 all                  :; forge build
 clean                :; forge clean
+install-foundry      :; ./scripts/setup-foundry/setup-foundry.sh install --release "$(release)" $(foundry-ignore-age)
+select-foundry       :; ./scripts/setup-foundry/setup-foundry.sh select $(foundry-ignore-age)
+verify-foundry       :; ./scripts/setup-foundry/setup-foundry.sh verify --release "$(release)" $(foundry-ignore-age)
+test-setup-foundry   :; ./scripts/setup-foundry/test-setup-foundry.sh
                         # Usage example: make test match=SpellIsCast
 test                 :; ./scripts/test-dssspell-forge.sh no-match="$(no-match)" match="$(match)" block="$(block)"
 estimate             :; forge build --quiet; BYTECODE=$$(jq -r '.bytecode.object' out/DssSpell.sol/DssSpell.json); GAS=$$(cast estimate --create $$BYTECODE); echo "Estimated gas: $$GAS"
