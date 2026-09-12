@@ -1,4 +1,3 @@
-// SPDX-FileCopyrightText: © 2026 Dai Foundation <www.daifoundation.org>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //
 // This program is free software: you can redistribute it and/or modify
@@ -14,10 +13,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.16;
 
-struct PASInstance {
-    address beamState;
-    address configurator;
-    address timelock;
+struct VestedRewardsDistributionInitParams {
+    uint256 vestId;
+}
+
+library VestedRewardsDistributionInit {
+    function init(address dist, VestedRewardsDistributionInitParams memory p) internal {
+        VestedRewardsDistributionLike(dist).file("vestId", p.vestId);
+    }
+}
+
+interface VestedRewardsDistributionLike {
+    function file(bytes32 what, uint256 data) external;
 }
