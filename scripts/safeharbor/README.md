@@ -1,92 +1,76 @@
-# Overview
+# SafeHarbor
 
-Safeharbor registry is a contract that allows protocols to identify addresses that are entitled to have funds recovered by a white hat during an attack.
+This script compares the approved Safeharbor Sheet with Sky's on-chain Agreement and generates the Solidity snippet needed to update its scope. It reads on-chain data but does not send transactions.
 
-- Read more about the SafeHarbor [here](https://github.com/security-alliance/safe-harbor)
-- The full contracts for the registry can be found [here](https://github.com/PatrickAlphaC/safe-harbor/tree/0b0abb8b627eff87e2f7b52bf8ec484cd6ce0e32/registry-contracts/src)
+See the [SafeHarbor project](https://github.com/security-alliance/safe-harbor) and [registry contracts](https://github.com/security-alliance/safe-harbor/tree/0b0abb8b627eff87e2f7b52bf8ec484cd6ce0e32/registry-contracts/src) for background.
 
-# Initial Deployment
+## Usage
 
-Before adoption, a single-time deploy and configuration needs to happen so Sky protocol can safely include changes to the scope within spells. The deployment will happen with the following steps:
-
-1. **EOA Agreement deployment**
-
-   - Anyone can deploy an instance of the `Agreement` contract through its factory
-   - Since the initial configuration is too big to safely fit within a spell execution, the first step will be done through an EOA
-
-2. **Initial chain configuration**
-
-   - The EOA will use the reference sheet to create the initial state of the scope
-   - This includes adding all necessary chains and contracts, as well as the asset recovery addresses
-
-3. **Ownership transfer to DSPause**
-
-   - After the initial setup is done, the EOA will fully transfer the ownership of the `Agreement` contract to the PauseProxy
-   - This enables the PauseProxy to modify the scope in the future
-
-4. **Adoption**
-   - In a future spell, the pause proxy will call `safeharborRegistry.adoptSafeHarbor(agreementAddress)`
-   - This officially accepts the terms and initiates the validity of SafeHarbor integration
-
-## Validating the Agreement
-
-There are a few steps to independently validate that a given agreement can be adopted by Sky protocol.
-
-1. It has to be deployed via a transaction to known public factory.
-2. The owner of the agreement has to be PauseProxy.
-3. Agreement details (protocol name, agreement URI, contact details and bounty terms) has to match what's described in the Atlas.
-4. The output of `make safeharbor-generate` command, on spells-mainnet repo, has to be "no updates".
-
-If all of these steps are done, the agreement can be adopted by Sky protocol.
-
-# General Flow of `generatePayload.js`
-
-The script follows these steps:
-
-1. Downloads latest CSV from Google Sheets and parses it locally
-
-2. Builds internal representation of CSV data organized by chains/networks
-
-3. Downloads current on-chain state from SafeHarbor registry
-
-4. Builds comparable internal representation of on-chain state
-
-5. Compares CSV vs on-chain state to identify differences
-
-6. Generates encoded payload for executing the changes (if any).
-
-7. Generates the solidity code for the updates.
-
-# Running the script
-
-Required env variables:
-
-```
-- ETH_RPC_URL: An endpoint to a node that has the registry and the agreement deployed.
-```
-
-To run the script, run the following command:
+Use Node.js 24. From `scripts/safeharbor`, install dependencies:
 
 ```bash
-npm run generate
+npm ci
 ```
 
-This will output a solidity snippet that contains the encoded calldatas calling the agreement contract to update it.
+Set `ETH_RPC_URL` to Ethereum mainnet or a compatible fork containing the mainnet Chainlog, its registered Agreement, and the Agreement's configured chain validator. The script uses the `SAFE_HARBOR_AGREEMENT` Chainlog entry; it does not accept an arbitrary Agreement address.
+
+Choose an explicit command:
 
 ```bash
-npm run inspect
+npm run --silent generate  # Generate the Solidity snippet for a spell
+npm run --silent inspect   # Inspect source data, proposed changes, and warnings as JSON
+npm run --silent verify    # Check that the Agreement matches the Sheet
 ```
 
-Returns a JSON object containing the individual updates and the solidity snippet.
+From the repository root, `make safeharbor-generate`, `make safeharbor-inspect`, and `make safeharbor-verify` install dependencies and run the corresponding command.
 
-In order to obtain machine-readable JSON output of the script, use the following command:
+### Results and exit codes
+
+Resolve all warnings before using generated output. An empty changes list alone does not mean the Agreement matches: warnings can prevent changes from being calculated.
+
+| Code | Meaning                                                                                                                              |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `0`  | Command completed. For `verify`, the Agreement matches with no warnings. For `inspect`, warnings may still be present in the report. |
+| `1`  | Invalid input, configuration, network, or RPC error.                                                                                 |
+| `2`  | `generate` is blocked by warnings, or `verify` found changes or warnings.                                                            |
+
+Warnings go to stderr. `generate` prints Solidity only when changes are needed and there are no warnings. `inspect` prints JSON, not calldata or Solidity.
+
+For scripting, use npm directly to preserve these exit codes; Make does not preserve distinct failure codes. Consume inspection output only after a successful command:
 
 ```bash
-npm run --silent inspect > inspect.json
+npm run --silent inspect > inspect.json && jq . inspect.json
 ```
 
-See the Solidity code to be used in the spell:
+## Design decisions
+
+- **The approved Sheet is the desired state.** Review its contents as source data; matching the Sheet does not establish that its accounts belong in Sky's scope.
+- **Warnings block generation.** Problems require review instead of producing a partial payload.
+- **New chains must be accepted by the Agreement.** The script checks new chain IDs against its configured validator; rejected IDs block generation.
+- **Account identifiers retain their exact spelling.** SafeHarbor supports non-EVM accounts, so account strings are case-sensitive. EVM recovery addresses are compared canonically; non-EVM recovery identifiers are compared exactly.
+- **Recovery-address mismatches require a separate decision.** The script reports them rather than generating recovery-address changes.
+- **An empty approved scope is valid.** A correctly formed Sheet with no active accounts can request chain removals.
+- **Generator checks and execution checks serve different purposes.** The offline tests check script output; each spell still requires simulated execution and post-state verification.
+
+## Reviewing a spell
+
+1. Review and approve the Safeharbor Sheet change.
+2. Run `generate` and confirm the calldata inserted in the spell matches its output.
+3. Simulate the exact spell against the Agreement.
+4. Point `ETH_RPC_URL` at the simulated post-state and run `verify`. Require exit `0`: no changes and no warnings.
+
+## Initial Agreement setup
+
+Initial setup is separate from the script. Deploy the Agreement through its public factory, configure its scope from the approved Sheet, transfer ownership to the PauseProxy, and adopt it through the registry in a governance spell.
+
+Before adoption, independently verify factory provenance, PauseProxy ownership, and that the protocol name, agreement URI, contact details, and bounty terms match the Atlas. For the Agreement registered in Chainlog, also require clean `verify` output. The script does not check provenance, ownership, or adoption terms.
+
+## Development checks
+
+From `scripts/safeharbor`:
 
 ```bash
-jq -r .solidityCode inspect.json
+npm test -- --run
+npm run lint
+npm run format:check
 ```

@@ -9,5 +9,8 @@ export default [
             sourceType: "module",
             globals: globals.node,
         },
+        rules: {
+            curly: ["error", "all"],
+        },
     },
 ];
