@@ -157,7 +157,7 @@ print(test_logs.stdout)
 
 if test_logs.returncode != 0:
     print(test_logs.stderr)
-    print("Ensure Tests PASS before commiting the `config.sol` changes!")
+    print("Ensure Tests PASS before committing the `config.sol` changes!")
     sys.exit(test_logs.returncode)
 
 # Commit the changes
