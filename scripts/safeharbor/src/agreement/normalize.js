@@ -7,9 +7,7 @@ export function normalizeOnChainState(agreementDetails) {
 }
 
 function normalizeChains(chains) {
-    return Object.fromEntries(
-        chains.map((chain) => [chain.caip2ChainId, normalizeChain(chain)]),
-    );
+    return Object.fromEntries(chains.map((chain) => [chain.caip2ChainId, normalizeChain(chain)]));
 }
 
 function normalizeChain(chain) {
@@ -24,8 +22,8 @@ function normalizeAccount(account) {
 }
 
 function validateUniqueAccounts(agreementOnChainState) {
-    return Object.entries(agreementOnChainState).flatMap(
-        ([chainId, { accounts }]) => validateChainAccounts(chainId, accounts),
+    return Object.entries(agreementOnChainState).flatMap(([chainId, { accounts }]) =>
+        validateChainAccounts(chainId, accounts),
     );
 }
 
@@ -36,9 +34,7 @@ function validateChainAccounts(chainId, accounts) {
         context: {
             chainId,
             address: addresses[index],
-            firstScope:
-                accounts[addresses.indexOf(addresses[index])]
-                    .childContractScope,
+            firstScope: accounts[addresses.indexOf(addresses[index])].childContractScope,
             duplicateScope: accounts[index].childContractScope,
         },
     }));

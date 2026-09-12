@@ -12,9 +12,7 @@ export async function main() {
     const rpcUrl = process.env.ETH_RPC_URL;
     const diagnostics = validateOptions({ command, rpcUrl });
     if (diagnostics.length > 0) {
-        diagnostics.forEach((diagnostic) =>
-            console.error(formatCliMessage("❌", formatDiagnostic(diagnostic))),
-        );
+        diagnostics.forEach((diagnostic) => console.error(formatCliMessage("❌", formatDiagnostic(diagnostic))));
         return 1;
     }
 
@@ -27,9 +25,7 @@ export async function main() {
                 getSheetChainDetails,
             });
             result.validationWarnings.forEach((diagnostic) =>
-                console.warn(
-                    formatCliMessage("⚠️", formatDiagnostic(diagnostic)),
-                ),
+                console.warn(formatCliMessage("⚠️", formatDiagnostic(diagnostic))),
             );
             return COMMANDS[command](result);
         } finally {

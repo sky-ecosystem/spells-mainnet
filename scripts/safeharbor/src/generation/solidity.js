@@ -21,8 +21,7 @@ function escapeCommentLineTerminators(description) {
     // Solidity ends // comments at any of these seven Unicode line terminators.
     return description.replace(
         /[\n\v\f\r\u0085\u2028\u2029]/g,
-        (character) =>
-            `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`,
+        (character) => `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`,
     );
 }
 

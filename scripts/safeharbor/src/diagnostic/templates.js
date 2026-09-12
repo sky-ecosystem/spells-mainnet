@@ -2,12 +2,10 @@ import { DIAGNOSTIC_CODES as $ } from "./codes.js";
 import { dedent } from "../utils/dedent.js";
 
 export const diagnosticTemplates = {
-    [$.INVALID_CHAIN_ID]:
-        "Chain ID '{chainId}' is not accepted by the Agreement's configured chain validator",
+    [$.INVALID_CHAIN_ID]: "Chain ID '{chainId}' is not accepted by the Agreement's configured chain validator",
     [$.INVALID_SHEET_FACTORY_FLAG]:
         "Invalid factory flag in Safeharbor Sheet for chain '{chainName}', account '{address}': {column}='{value}'; expected TRUE, FALSE, or blank",
-    [$.MISSING_SHEET_ACCOUNT_ADDRESS]:
-        "Missing active account address in Safeharbor Sheet for chain '{chainName}'",
+    [$.MISSING_SHEET_ACCOUNT_ADDRESS]: "Missing active account address in Safeharbor Sheet for chain '{chainName}'",
     [$.DUPLICATE_SHEET_ACCOUNT]:
         "Duplicate account address in Safeharbor Sheet for chain '{chainName}': {address}; first scope={firstScope}, duplicate scope={duplicateScope}",
     [$.DUPLICATE_ONCHAIN_ACCOUNT]:
@@ -20,8 +18,7 @@ export const diagnosticTemplates = {
         Unknown chain details in on-chain state: caip2ChainId='{chainId}'.
         To either remove or keep this chain, please add the chain details to the chain details tab in the Safeharbor Sheet.
     `,
-    [$.MISSING_ONCHAIN_RECOVERY_ADDRESS]:
-        "Missing on-chain Asset Recovery Address for existing chain '{chainId}'",
+    [$.MISSING_ONCHAIN_RECOVERY_ADDRESS]: "Missing on-chain Asset Recovery Address for existing chain '{chainId}'",
     [$.RECOVERY_ADDRESS_MISMATCH]: dedent`
         Asset Recovery Address mismatch for chain '{chainId}'.
         On-chain: {onChainRecoveryAddress}
@@ -53,12 +50,8 @@ export const diagnosticTemplates = {
         Example: ETH_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR_API_KEY
     `,
     [$.HTTP_ERROR]: "HTTP error! status: {status}",
-    [$.INVALID_CSV_CONTENT_TYPE]:
-        "Invalid content type. Expected CSV data. Please check the URL format.",
-    [$.ADDED_CHAIN_WITHOUT_ACCOUNTS]:
-        "Cannot add chain '{chainId}' without accounts",
-    [$.EXISTING_CHAIN_WITHOUT_ACCOUNTS]:
-        "Chain '{chainId}' must be removed instead of configured without accounts",
-    [$.INVALID_NEW_CHAIN_ACCOUNTS]:
-        "Problematic accounts found in chain {chainId}: {accounts}",
+    [$.INVALID_CSV_CONTENT_TYPE]: "Invalid content type. Expected CSV data. Please check the URL format.",
+    [$.ADDED_CHAIN_WITHOUT_ACCOUNTS]: "Cannot add chain '{chainId}' without accounts",
+    [$.EXISTING_CHAIN_WITHOUT_ACCOUNTS]: "Chain '{chainId}' must be removed instead of configured without accounts",
+    [$.INVALID_NEW_CHAIN_ACCOUNTS]: "Problematic accounts found in chain {chainId}: {accounts}",
 };

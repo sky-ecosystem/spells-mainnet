@@ -23,17 +23,11 @@ let encodeSpy;
 
 beforeEach(() => {
     Contract.mockReturnValueOnce({
-        "getAddress(bytes32)": vi
-            .fn()
-            .mockResolvedValue("0x7000000000000000000000000000000000000001"),
+        "getAddress(bytes32)": vi.fn().mockResolvedValue("0x7000000000000000000000000000000000000001"),
     })
         .mockReturnValueOnce({
             getDetails,
-            getChainValidator: vi
-                .fn()
-                .mockResolvedValue(
-                    "0x8000000000000000000000000000000000000001",
-                ),
+            getChainValidator: vi.fn().mockResolvedValue("0x8000000000000000000000000000000000000001"),
         })
         .mockReturnValue({ isChainValid: vi.fn().mockResolvedValue(true) });
     vi.stubGlobal("fetch", vi.fn());
@@ -65,9 +59,7 @@ async function generateFrom(fixture) {
 
 async function reconcileFrom({ chainCSV, contractCSV, details }) {
     fetch
-        .mockResolvedValueOnce(
-            new Response(chainCSV, { headers: { "content-type": "text/csv" } }),
-        )
+        .mockResolvedValueOnce(new Response(chainCSV, { headers: { "content-type": "text/csv" } }))
         .mockResolvedValueOnce(
             new Response(contractCSV, {
                 headers: { "content-type": "text/csv" },
@@ -108,43 +100,23 @@ describe("generatePayload", () => {
                     chains: [
                         {
                             caip2ChainId: "eip155:1",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000001",
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                             accounts: [
-                                [
-                                    "0x2000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                                [
-                                    "0x2000000000000000000000000000000000000002",
-                                    2n,
-                                ],
+                                ["0x2000000000000000000000000000000000000001", 0n],
+                                ["0x2000000000000000000000000000000000000002", 2n],
                             ],
                         },
                         {
                             caip2ChainId: "eip155:8453",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000002",
-                            accounts: [
-                                [
-                                    "0x3000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                            ],
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000002",
+                            accounts: [["0x3000000000000000000000000000000000000001", 0n]],
                         },
                         {
                             caip2ChainId: "eip155:42161",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000003",
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000003",
                             accounts: [
-                                [
-                                    "0x4000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                                [
-                                    "0x4000000000000000000000000000000000000002",
-                                    0n,
-                                ],
+                                ["0x4000000000000000000000000000000000000001", 0n],
+                                ["0x4000000000000000000000000000000000000002", 0n],
                             ],
                         },
                     ],
@@ -182,60 +154,37 @@ describe("generatePayload", () => {
                     chains: [
                         {
                             caip2ChainId: "eip155:1",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000001",
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                             accounts: [
-                                [
-                                    "0x2000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                                [
-                                    "0x2000000000000000000000000000000000000002",
-                                    2n,
-                                ],
+                                ["0x2000000000000000000000000000000000000001", 0n],
+                                ["0x2000000000000000000000000000000000000002", 2n],
                             ],
                         },
                         {
                             caip2ChainId: "eip155:8453",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000002",
-                            accounts: [
-                                [
-                                    "0x3000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                            ],
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000002",
+                            accounts: [["0x3000000000000000000000000000000000000001", 0n]],
                         },
                         {
                             caip2ChainId: "eip155:42161",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000003",
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000003",
                             accounts: [
-                                [
-                                    "0x4000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                                [
-                                    "0x4000000000000000000000000000000000000002",
-                                    0n,
-                                ],
+                                ["0x4000000000000000000000000000000000000001", 0n],
+                                ["0x4000000000000000000000000000000000000002", 0n],
                             ],
                         },
                     ],
                 },
             });
             expect(payloadSnapshot(result)).toMatchSnapshot();
-            expect(
-                result.updates.map(({ fn, args }) => ({ fn, args })),
-            ).toEqual([
+            expect(result.updates.map(({ fn, args }) => ({ fn, args }))).toEqual([
                 {
                     fn: "addAccounts",
                     args: [
                         "eip155:1",
                         [
                             {
-                                accountAddress:
-                                    "0x2000000000000000000000000000000000000003",
+                                accountAddress: "0x2000000000000000000000000000000000000003",
                                 childContractScope: 0,
                             },
                         ],
@@ -247,8 +196,7 @@ describe("generatePayload", () => {
                         "eip155:8453",
                         [
                             {
-                                accountAddress:
-                                    "0x3000000000000000000000000000000000000002",
+                                accountAddress: "0x3000000000000000000000000000000000000002",
                                 childContractScope: 2,
                             },
                         ],
@@ -278,65 +226,37 @@ describe("generatePayload", () => {
                     chains: [
                         {
                             caip2ChainId: "eip155:1",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000001",
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                             accounts: [
-                                [
-                                    "0x2000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                                [
-                                    "0x2000000000000000000000000000000000000002",
-                                    2n,
-                                ],
+                                ["0x2000000000000000000000000000000000000001", 0n],
+                                ["0x2000000000000000000000000000000000000002", 2n],
                             ],
                         },
                         {
                             caip2ChainId: "eip155:8453",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000002",
-                            accounts: [
-                                [
-                                    "0x3000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                            ],
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000002",
+                            accounts: [["0x3000000000000000000000000000000000000001", 0n]],
                         },
                         {
                             caip2ChainId: "eip155:42161",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000003",
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000003",
                             accounts: [
-                                [
-                                    "0x4000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                                [
-                                    "0x4000000000000000000000000000000000000002",
-                                    0n,
-                                ],
+                                ["0x4000000000000000000000000000000000000001", 0n],
+                                ["0x4000000000000000000000000000000000000002", 0n],
                             ],
                         },
                     ],
                 },
             });
             expect(payloadSnapshot(result)).toMatchSnapshot();
-            expect(
-                result.updates.map(({ fn, args }) => ({ fn, args })),
-            ).toEqual([
+            expect(result.updates.map(({ fn, args }) => ({ fn, args }))).toEqual([
                 {
                     fn: "removeAccounts",
-                    args: [
-                        "eip155:1",
-                        ["0x2000000000000000000000000000000000000002"],
-                    ],
+                    args: ["eip155:1", ["0x2000000000000000000000000000000000000002"]],
                 },
                 {
                     fn: "removeAccounts",
-                    args: [
-                        "eip155:42161",
-                        ["0x4000000000000000000000000000000000000001"],
-                    ],
+                    args: ["eip155:42161", ["0x4000000000000000000000000000000000000001"]],
                 },
             ]);
         });
@@ -367,82 +287,54 @@ describe("generatePayload", () => {
                     chains: [
                         {
                             caip2ChainId: "eip155:1",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000001",
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                             accounts: [
-                                [
-                                    "0x2000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                                [
-                                    "0x2000000000000000000000000000000000000002",
-                                    2n,
-                                ],
+                                ["0x2000000000000000000000000000000000000001", 0n],
+                                ["0x2000000000000000000000000000000000000002", 2n],
                             ],
                         },
                         {
                             caip2ChainId: "eip155:8453",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000002",
-                            accounts: [
-                                [
-                                    "0x3000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                            ],
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000002",
+                            accounts: [["0x3000000000000000000000000000000000000001", 0n]],
                         },
                         {
                             caip2ChainId: "eip155:42161",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000003",
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000003",
                             accounts: [
-                                [
-                                    "0x4000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                                [
-                                    "0x4000000000000000000000000000000000000002",
-                                    0n,
-                                ],
+                                ["0x4000000000000000000000000000000000000001", 0n],
+                                ["0x4000000000000000000000000000000000000002", 0n],
                             ],
                         },
                     ],
                 },
             });
             expect(payloadSnapshot(result)).toMatchSnapshot();
-            expect(
-                result.updates.map(({ fn, args }) => ({ fn, args })),
-            ).toEqual([
+            expect(result.updates.map(({ fn, args }) => ({ fn, args }))).toEqual([
                 {
                     fn: "addChains",
                     args: [
                         [
                             {
                                 caip2ChainId: "eip155:10",
-                                assetRecoveryAddress:
-                                    "0x1000000000000000000000000000000000000004",
+                                assetRecoveryAddress: "0x1000000000000000000000000000000000000004",
                                 accounts: [
                                     {
-                                        accountAddress:
-                                            "0x5000000000000000000000000000000000000001",
+                                        accountAddress: "0x5000000000000000000000000000000000000001",
                                         childContractScope: 0,
                                     },
                                     {
-                                        accountAddress:
-                                            "0x5000000000000000000000000000000000000002",
+                                        accountAddress: "0x5000000000000000000000000000000000000002",
                                         childContractScope: 2,
                                     },
                                 ],
                             },
                             {
-                                caip2ChainId:
-                                    "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
-                                assetRecoveryAddress:
-                                    "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+                                caip2ChainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+                                assetRecoveryAddress: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
                                 accounts: [
                                     {
-                                        accountAddress:
-                                            "3EKkiwNLWqoUbzFkPrmKbtUB4EweE6f4STzevYUmezeL",
+                                        accountAddress: "3EKkiwNLWqoUbzFkPrmKbtUB4EweE6f4STzevYUmezeL",
                                         childContractScope: 0,
                                     },
                                 ],
@@ -473,52 +365,30 @@ describe("generatePayload", () => {
                     chains: [
                         {
                             caip2ChainId: "eip155:1",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000001",
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                             accounts: [
-                                [
-                                    "0x2000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                                [
-                                    "0x2000000000000000000000000000000000000002",
-                                    2n,
-                                ],
+                                ["0x2000000000000000000000000000000000000001", 0n],
+                                ["0x2000000000000000000000000000000000000002", 2n],
                             ],
                         },
                         {
                             caip2ChainId: "eip155:8453",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000002",
-                            accounts: [
-                                [
-                                    "0x3000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                            ],
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000002",
+                            accounts: [["0x3000000000000000000000000000000000000001", 0n]],
                         },
                         {
                             caip2ChainId: "eip155:42161",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000003",
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000003",
                             accounts: [
-                                [
-                                    "0x4000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                                [
-                                    "0x4000000000000000000000000000000000000002",
-                                    0n,
-                                ],
+                                ["0x4000000000000000000000000000000000000001", 0n],
+                                ["0x4000000000000000000000000000000000000002", 0n],
                             ],
                         },
                     ],
                 },
             });
             expect(payloadSnapshot(result)).toMatchSnapshot();
-            expect(
-                result.updates.map(({ fn, args }) => ({ fn, args })),
-            ).toEqual([
+            expect(result.updates.map(({ fn, args }) => ({ fn, args }))).toEqual([
                 {
                     fn: "removeChains",
                     args: [["eip155:8453", "eip155:42161"]],
@@ -550,52 +420,30 @@ describe("generatePayload", () => {
                     chains: [
                         {
                             caip2ChainId: "eip155:1",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000001",
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                             accounts: [
-                                [
-                                    "0x2000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                                [
-                                    "0x2000000000000000000000000000000000000002",
-                                    2n,
-                                ],
+                                ["0x2000000000000000000000000000000000000001", 0n],
+                                ["0x2000000000000000000000000000000000000002", 2n],
                             ],
                         },
                         {
                             caip2ChainId: "eip155:8453",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000002",
-                            accounts: [
-                                [
-                                    "0x3000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                            ],
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000002",
+                            accounts: [["0x3000000000000000000000000000000000000001", 0n]],
                         },
                         {
                             caip2ChainId: "eip155:42161",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000003",
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000003",
                             accounts: [
-                                [
-                                    "0x4000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                                [
-                                    "0x4000000000000000000000000000000000000002",
-                                    0n,
-                                ],
+                                ["0x4000000000000000000000000000000000000001", 0n],
+                                ["0x4000000000000000000000000000000000000002", 0n],
                             ],
                         },
                     ],
                 },
             });
             expect(payloadSnapshot(result)).toMatchSnapshot();
-            expect(
-                result.updates.map(({ fn, args }) => ({ fn, args })),
-            ).toEqual([
+            expect(result.updates.map(({ fn, args }) => ({ fn, args }))).toEqual([
                 { fn: "removeChains", args: [["eip155:8453"]] },
                 {
                     fn: "addChains",
@@ -603,12 +451,10 @@ describe("generatePayload", () => {
                         [
                             {
                                 caip2ChainId: "eip155:10",
-                                assetRecoveryAddress:
-                                    "0x1000000000000000000000000000000000000004",
+                                assetRecoveryAddress: "0x1000000000000000000000000000000000000004",
                                 accounts: [
                                     {
-                                        accountAddress:
-                                            "0x5000000000000000000000000000000000000001",
+                                        accountAddress: "0x5000000000000000000000000000000000000001",
                                         childContractScope: 0,
                                     },
                                 ],
@@ -618,10 +464,7 @@ describe("generatePayload", () => {
                 },
                 {
                     fn: "removeAccounts",
-                    args: [
-                        "eip155:1",
-                        ["0x2000000000000000000000000000000000000002"],
-                    ],
+                    args: ["eip155:1", ["0x2000000000000000000000000000000000000002"]],
                 },
                 {
                     fn: "addAccounts",
@@ -629,8 +472,7 @@ describe("generatePayload", () => {
                         "eip155:1",
                         [
                             {
-                                accountAddress:
-                                    "0x2000000000000000000000000000000000000003",
+                                accountAddress: "0x2000000000000000000000000000000000000003",
                                 childContractScope: 0,
                             },
                         ],
@@ -642,8 +484,7 @@ describe("generatePayload", () => {
                         "eip155:42161",
                         [
                             {
-                                accountAddress:
-                                    "0x4000000000000000000000000000000000000003",
+                                accountAddress: "0x4000000000000000000000000000000000000003",
                                 childContractScope: 2,
                             },
                         ],
@@ -673,52 +514,30 @@ describe("generatePayload", () => {
                     chains: [
                         {
                             caip2ChainId: "eip155:1",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000001",
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                             accounts: [
-                                [
-                                    "0x2000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                                [
-                                    "0x2000000000000000000000000000000000000002",
-                                    2n,
-                                ],
+                                ["0x2000000000000000000000000000000000000001", 0n],
+                                ["0x2000000000000000000000000000000000000002", 2n],
                             ],
                         },
                         {
                             caip2ChainId: "eip155:8453",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000002",
-                            accounts: [
-                                [
-                                    "0x3000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                            ],
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000002",
+                            accounts: [["0x3000000000000000000000000000000000000001", 0n]],
                         },
                         {
                             caip2ChainId: "eip155:42161",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000003",
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000003",
                             accounts: [
-                                [
-                                    "0x4000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                                [
-                                    "0x4000000000000000000000000000000000000002",
-                                    0n,
-                                ],
+                                ["0x4000000000000000000000000000000000000001", 0n],
+                                ["0x4000000000000000000000000000000000000002", 0n],
                             ],
                         },
                     ],
                 },
             });
             expect(payloadSnapshot(result)).toMatchSnapshot();
-            expect(
-                result.updates.map(({ fn, args }) => ({ fn, args })),
-            ).toEqual([
+            expect(result.updates.map(({ fn, args }) => ({ fn, args }))).toEqual([
                 {
                     fn: "removeChains",
                     args: [["eip155:8453", "eip155:42161"]],
@@ -729,22 +548,18 @@ describe("generatePayload", () => {
                         [
                             {
                                 caip2ChainId: "eip155:10",
-                                assetRecoveryAddress:
-                                    "0x1000000000000000000000000000000000000004",
+                                assetRecoveryAddress: "0x1000000000000000000000000000000000000004",
                                 accounts: [
                                     {
-                                        accountAddress:
-                                            "0x5000000000000000000000000000000000000003",
+                                        accountAddress: "0x5000000000000000000000000000000000000003",
                                         childContractScope: 2,
                                     },
                                     {
-                                        accountAddress:
-                                            "0x5000000000000000000000000000000000000004",
+                                        accountAddress: "0x5000000000000000000000000000000000000004",
                                         childContractScope: 0,
                                     },
                                     {
-                                        accountAddress:
-                                            "0x5000000000000000000000000000000000000005",
+                                        accountAddress: "0x5000000000000000000000000000000000000005",
                                         childContractScope: 0,
                                     },
                                 ],
@@ -758,13 +573,11 @@ describe("generatePayload", () => {
                         "eip155:1",
                         [
                             {
-                                accountAddress:
-                                    "0x2000000000000000000000000000000000000004",
+                                accountAddress: "0x2000000000000000000000000000000000000004",
                                 childContractScope: 2,
                             },
                             {
-                                accountAddress:
-                                    "0x2000000000000000000000000000000000000005",
+                                accountAddress: "0x2000000000000000000000000000000000000005",
                                 childContractScope: 0,
                             },
                         ],
@@ -774,10 +587,7 @@ describe("generatePayload", () => {
                     fn: "removeAccounts",
                     args: [
                         "eip155:1",
-                        [
-                            "0x2000000000000000000000000000000000000002",
-                            "0x2000000000000000000000000000000000000001",
-                        ],
+                        ["0x2000000000000000000000000000000000000002", "0x2000000000000000000000000000000000000001"],
                     ],
                 },
             ]);
@@ -806,64 +616,40 @@ describe("generatePayload", () => {
                     chains: [
                         {
                             caip2ChainId: "eip155:1",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000001",
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                             accounts: [
-                                [
-                                    "0x2000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                                [
-                                    "0x2000000000000000000000000000000000000002",
-                                    2n,
-                                ],
+                                ["0x2000000000000000000000000000000000000001", 0n],
+                                ["0x2000000000000000000000000000000000000002", 2n],
                             ],
                         },
                         {
                             caip2ChainId: "eip155:8453",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000002",
-                            accounts: [
-                                [
-                                    "0x3000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                            ],
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000002",
+                            accounts: [["0x3000000000000000000000000000000000000001", 0n]],
                         },
                         {
                             caip2ChainId: "eip155:42161",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000003",
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000003",
                             accounts: [
-                                [
-                                    "0x4000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                                [
-                                    "0x4000000000000000000000000000000000000002",
-                                    0n,
-                                ],
+                                ["0x4000000000000000000000000000000000000001", 0n],
+                                ["0x4000000000000000000000000000000000000002", 0n],
                             ],
                         },
                     ],
                 },
             });
-            expect(
-                result.updates.map(({ fn, args }) => ({ fn, args })),
-            ).toEqual([
+            expect(result.updates.map(({ fn, args }) => ({ fn, args }))).toEqual([
                 {
                     fn: "addAccounts",
                     args: [
                         "eip155:1",
                         [
                             {
-                                accountAddress:
-                                    "0x2000000000000000000000000000000000000003",
+                                accountAddress: "0x2000000000000000000000000000000000000003",
                                 childContractScope: 0,
                             },
                             {
-                                accountAddress:
-                                    "0x2000000000000000000000000000000000000004",
+                                accountAddress: "0x2000000000000000000000000000000000000004",
                                 childContractScope: 2,
                             },
                         ],
@@ -873,10 +659,7 @@ describe("generatePayload", () => {
                     fn: "removeAccounts",
                     args: [
                         "eip155:1",
-                        [
-                            "0x2000000000000000000000000000000000000002",
-                            "0x2000000000000000000000000000000000000001",
-                        ],
+                        ["0x2000000000000000000000000000000000000002", "0x2000000000000000000000000000000000000001"],
                     ],
                 },
             ]);
@@ -901,21 +684,17 @@ describe("generatePayload", () => {
                 },
             });
             expect(payloadSnapshot(result)).toMatchSnapshot();
-            expect(
-                result.updates.map(({ fn, args }) => ({ fn, args })),
-            ).toEqual([
+            expect(result.updates.map(({ fn, args }) => ({ fn, args }))).toEqual([
                 {
                     fn: "addChains",
                     args: [
                         [
                             {
                                 caip2ChainId: "eip155:1",
-                                assetRecoveryAddress:
-                                    "0x1000000000000000000000000000000000000001",
+                                assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                                 accounts: [
                                     {
-                                        accountAddress:
-                                            "0x2000000000000000000000000000000000000001",
+                                        accountAddress: "0x2000000000000000000000000000000000000001",
                                         childContractScope: 0,
                                     },
                                 ],
@@ -940,52 +719,30 @@ describe("generatePayload", () => {
                     chains: [
                         {
                             caip2ChainId: "eip155:1",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000001",
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                             accounts: [
-                                [
-                                    "0x2000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                                [
-                                    "0x2000000000000000000000000000000000000002",
-                                    2n,
-                                ],
+                                ["0x2000000000000000000000000000000000000001", 0n],
+                                ["0x2000000000000000000000000000000000000002", 2n],
                             ],
                         },
                         {
                             caip2ChainId: "eip155:8453",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000002",
-                            accounts: [
-                                [
-                                    "0x3000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                            ],
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000002",
+                            accounts: [["0x3000000000000000000000000000000000000001", 0n]],
                         },
                         {
                             caip2ChainId: "eip155:42161",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000003",
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000003",
                             accounts: [
-                                [
-                                    "0x4000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                                [
-                                    "0x4000000000000000000000000000000000000002",
-                                    0n,
-                                ],
+                                ["0x4000000000000000000000000000000000000001", 0n],
+                                ["0x4000000000000000000000000000000000000002", 0n],
                             ],
                         },
                     ],
                 },
             });
             expect(payloadSnapshot(result)).toMatchSnapshot();
-            expect(
-                result.updates.map(({ fn, args }) => ({ fn, args })),
-            ).toEqual([
+            expect(result.updates.map(({ fn, args }) => ({ fn, args }))).toEqual([
                 {
                     fn: "removeChains",
                     args: [["eip155:1", "eip155:8453", "eip155:42161"]],
@@ -1014,43 +771,23 @@ describe("generatePayload", () => {
                     chains: [
                         {
                             caip2ChainId: "eip155:1",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000001",
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                             accounts: [
-                                [
-                                    "0x2000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                                [
-                                    "0x2000000000000000000000000000000000000002",
-                                    2n,
-                                ],
+                                ["0x2000000000000000000000000000000000000001", 0n],
+                                ["0x2000000000000000000000000000000000000002", 2n],
                             ],
                         },
                         {
                             caip2ChainId: "eip155:8453",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000002",
-                            accounts: [
-                                [
-                                    "0x3000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                            ],
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000002",
+                            accounts: [["0x3000000000000000000000000000000000000001", 0n]],
                         },
                         {
                             caip2ChainId: "eip155:42161",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000003",
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000003",
                             accounts: [
-                                [
-                                    "0x4000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                                [
-                                    "0x4000000000000000000000000000000000000002",
-                                    0n,
-                                ],
+                                ["0x4000000000000000000000000000000000000001", 0n],
+                                ["0x4000000000000000000000000000000000000002", 0n],
                             ],
                         },
                     ],
@@ -1063,8 +800,7 @@ describe("generatePayload", () => {
 
 test.each([
     {
-        scenario:
-            "a new EVM chain with a lowercase recovery address and blank metadata rows",
+        scenario: "a new EVM chain with a lowercase recovery address and blank metadata rows",
         chainCSV: dedent`
             Name,Chain Id,Asset Recovery Address
             ,,
@@ -1083,12 +819,10 @@ test.each([
                     [
                         {
                             caip2ChainId: "eip155:1",
-                            assetRecoveryAddress:
-                                "0x8ba1f109551bd432803012645ac136ddd64dba72",
+                            assetRecoveryAddress: "0x8ba1f109551bd432803012645ac136ddd64dba72",
                             accounts: [
                                 {
-                                    accountAddress:
-                                        "0x2000000000000000000000000000000000000001",
+                                    accountAddress: "0x2000000000000000000000000000000000000001",
                                     childContractScope: 0,
                                 },
                             ],
@@ -1117,12 +851,10 @@ test.each([
                     [
                         {
                             caip2ChainId: "eip155:1",
-                            assetRecoveryAddress:
-                                "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
+                            assetRecoveryAddress: "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
                             accounts: [
                                 {
-                                    accountAddress:
-                                        "0x2000000000000000000000000000000000000001",
+                                    accountAddress: "0x2000000000000000000000000000000000000001",
                                     childContractScope: 0,
                                 },
                             ],
@@ -1150,14 +882,11 @@ test.each([
                 args: [
                     [
                         {
-                            caip2ChainId:
-                                "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
-                            assetRecoveryAddress:
-                                "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+                            caip2ChainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+                            assetRecoveryAddress: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
                             accounts: [
                                 {
-                                    accountAddress:
-                                        "So11111111111111111111111111111111111111112",
+                                    accountAddress: "So11111111111111111111111111111111111111112",
                                     childContractScope: 0,
                                 },
                             ],
@@ -1182,11 +911,8 @@ test.each([
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
-                    accounts: [
-                        ["0x2000000000000000000000000000000000000001", 0n],
-                    ],
+                    assetRecoveryAddress: "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
+                    accounts: [["0x2000000000000000000000000000000000000001", 0n]],
                 },
             ],
         },
@@ -1204,11 +930,8 @@ test.each([
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
-                    accounts: [
-                        ["0x2000000000000000000000000000000000000001", 0n],
-                    ],
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+                    accounts: [["0x2000000000000000000000000000000000000001", 0n]],
                 },
             ],
         },
@@ -1220,14 +943,11 @@ test.each([
             },
         ],
     },
-])(
-    "accepts $scenario",
-    async ({ chainCSV, contractCSV, details, expectedUpdates }) => {
-        const result = await generateFrom({ chainCSV, contractCSV, details });
+])("accepts $scenario", async ({ chainCSV, contractCSV, details, expectedUpdates }) => {
+    const result = await generateFrom({ chainCSV, contractCSV, details });
 
-        expect(result.updates).toEqual(expectedUpdates);
-    },
-);
+    expect(result.updates).toEqual(expectedUpdates);
+});
 
 test.each([
     {
@@ -1245,11 +965,8 @@ test.each([
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
-                    accounts: [
-                        ["0x2000000000000000000000000000000000000001", 0n],
-                    ],
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+                    accounts: [["0x2000000000000000000000000000000000000001", 0n]],
                 },
             ],
         },
@@ -1260,13 +977,11 @@ test.each([
                     "eip155:1",
                     [
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000002",
+                            accountAddress: "0x2000000000000000000000000000000000000002",
                             childContractScope: 0,
                         },
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000003",
+                            accountAddress: "0x2000000000000000000000000000000000000003",
                             childContractScope: 2,
                         },
                     ],
@@ -1274,10 +989,7 @@ test.each([
             },
             {
                 fn: "removeAccounts",
-                args: [
-                    "eip155:1",
-                    ["0x2000000000000000000000000000000000000001"],
-                ],
+                args: ["eip155:1", ["0x2000000000000000000000000000000000000001"]],
             },
         ],
     },
@@ -1295,8 +1007,7 @@ test.each([
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                     accounts: [
                         ["0x2000000000000000000000000000000000000001", 0n],
                         ["0x2000000000000000000000000000000000000002", 0n],
@@ -1312,8 +1023,7 @@ test.each([
                     "eip155:1",
                     [
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000004",
+                            accountAddress: "0x2000000000000000000000000000000000000004",
                             childContractScope: 0,
                         },
                     ],
@@ -1348,8 +1058,7 @@ test.each([
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                     accounts: [
                         ["0x2000000000000000000000000000000000000001", 0n],
                         ["0x2000000000000000000000000000000000000002", 0n],
@@ -1361,10 +1070,7 @@ test.each([
         expectedUpdates: [
             {
                 fn: "removeAccounts",
-                args: [
-                    "eip155:1",
-                    ["0x2000000000000000000000000000000000000002"],
-                ],
+                args: ["eip155:1", ["0x2000000000000000000000000000000000000002"]],
             },
             {
                 fn: "addAccounts",
@@ -1372,8 +1078,7 @@ test.each([
                     "eip155:1",
                     [
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000004",
+                            accountAddress: "0x2000000000000000000000000000000000000004",
                             childContractScope: 2,
                         },
                     ],
@@ -1397,8 +1102,7 @@ test.each([
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                     accounts: [
                         ["0x2000000000000000000000000000000000000001", 0n],
                         ["0x2000000000000000000000000000000000000002", 2n],
@@ -1423,11 +1127,8 @@ test.each([
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
-                    accounts: [
-                        ["0x2000000000000000000000000000000000000001", 0n],
-                    ],
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+                    accounts: [["0x2000000000000000000000000000000000000001", 0n]],
                 },
             ],
         },
@@ -1438,8 +1139,7 @@ test.each([
                     "eip155:1",
                     [
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000001",
+                            accountAddress: "0x2000000000000000000000000000000000000001",
                             childContractScope: 2,
                         },
                     ],
@@ -1447,16 +1147,12 @@ test.each([
             },
             {
                 fn: "removeAccounts",
-                args: [
-                    "eip155:1",
-                    ["0x2000000000000000000000000000000000000001"],
-                ],
+                args: ["eip155:1", ["0x2000000000000000000000000000000000000001"]],
             },
         ],
     },
     {
-        scenario:
-            "replaces every account scope without removing the new scopes",
+        scenario: "replaces every account scope without removing the new scopes",
         chainCSV: dedent`
             Name,Chain Id,Asset Recovery Address
             ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
@@ -1470,8 +1166,7 @@ test.each([
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                     accounts: [
                         ["0x2000000000000000000000000000000000000001", 0n],
                         ["0x2000000000000000000000000000000000000002", 0n],
@@ -1486,13 +1181,11 @@ test.each([
                     "eip155:1",
                     [
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000001",
+                            accountAddress: "0x2000000000000000000000000000000000000001",
                             childContractScope: 2,
                         },
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000002",
+                            accountAddress: "0x2000000000000000000000000000000000000002",
                             childContractScope: 2,
                         },
                     ],
@@ -1502,10 +1195,7 @@ test.each([
                 fn: "removeAccounts",
                 args: [
                     "eip155:1",
-                    [
-                        "0x2000000000000000000000000000000000000002",
-                        "0x2000000000000000000000000000000000000001",
-                    ],
+                    ["0x2000000000000000000000000000000000000002", "0x2000000000000000000000000000000000000001"],
                 ],
             },
         ],
@@ -1526,8 +1216,7 @@ test.each([
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                     accounts: [
                         ["0x2000000000000000000000000000000000000001", 0n],
                         ["0x2000000000000000000000000000000000000002", 0n],
@@ -1543,18 +1232,15 @@ test.each([
                     "eip155:1",
                     [
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000003",
+                            accountAddress: "0x2000000000000000000000000000000000000003",
                             childContractScope: 2,
                         },
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000001",
+                            accountAddress: "0x2000000000000000000000000000000000000001",
                             childContractScope: 2,
                         },
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000002",
+                            accountAddress: "0x2000000000000000000000000000000000000002",
                             childContractScope: 2,
                         },
                     ],
@@ -1574,8 +1260,7 @@ test.each([
         ],
     },
     {
-        scenario:
-            "mixes a scope replacement with new and removed accounts: [A:0,B:0] -> [B:2,C:0]",
+        scenario: "mixes a scope replacement with new and removed accounts: [A:0,B:0] -> [B:2,C:0]",
         snapshot: true,
         chainCSV: dedent`
             Name,Chain Id,Asset Recovery Address
@@ -1590,8 +1275,7 @@ test.each([
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                     accounts: [
                         ["0x2000000000000000000000000000000000000001", 0n],
                         ["0x2000000000000000000000000000000000000002", 0n],
@@ -1606,13 +1290,11 @@ test.each([
                     "eip155:1",
                     [
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000002",
+                            accountAddress: "0x2000000000000000000000000000000000000002",
                             childContractScope: 2,
                         },
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000003",
+                            accountAddress: "0x2000000000000000000000000000000000000003",
                             childContractScope: 0,
                         },
                     ],
@@ -1622,17 +1304,13 @@ test.each([
                 fn: "removeAccounts",
                 args: [
                     "eip155:1",
-                    [
-                        "0x2000000000000000000000000000000000000002",
-                        "0x2000000000000000000000000000000000000001",
-                    ],
+                    ["0x2000000000000000000000000000000000000002", "0x2000000000000000000000000000000000000001"],
                 ],
             },
         ],
     },
     {
-        scenario:
-            "isolates full and partial replacements across chains sharing an account address",
+        scenario: "isolates full and partial replacements across chains sharing an account address",
         chainCSV: dedent`
             Name,Chain Id,Asset Recovery Address
             ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
@@ -1648,16 +1326,12 @@ test.each([
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
-                    accounts: [
-                        ["0x2000000000000000000000000000000000000001", 0n],
-                    ],
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+                    accounts: [["0x2000000000000000000000000000000000000001", 0n]],
                 },
                 {
                     caip2ChainId: "eip155:8453",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000002",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000002",
                     accounts: [
                         ["0x2000000000000000000000000000000000000001", 0n],
                         ["0x2000000000000000000000000000000000000002", 0n],
@@ -1672,8 +1346,7 @@ test.each([
                     "eip155:1",
                     [
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000001",
+                            accountAddress: "0x2000000000000000000000000000000000000001",
                             childContractScope: 2,
                         },
                     ],
@@ -1681,17 +1354,11 @@ test.each([
             },
             {
                 fn: "removeAccounts",
-                args: [
-                    "eip155:1",
-                    ["0x2000000000000000000000000000000000000001"],
-                ],
+                args: ["eip155:1", ["0x2000000000000000000000000000000000000001"]],
             },
             {
                 fn: "removeAccounts",
-                args: [
-                    "eip155:8453",
-                    ["0x2000000000000000000000000000000000000002"],
-                ],
+                args: ["eip155:8453", ["0x2000000000000000000000000000000000000002"]],
             },
             {
                 fn: "addAccounts",
@@ -1699,8 +1366,7 @@ test.each([
                     "eip155:8453",
                     [
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000003",
+                            accountAddress: "0x2000000000000000000000000000000000000003",
                             childContractScope: 2,
                         },
                     ],
@@ -1723,8 +1389,7 @@ test.each([
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                     accounts: [
                         ["0x2000000000000000000000000000000000000001", 2n],
                         ["0x2000000000000000000000000000000000000002", 0n],
@@ -1735,10 +1400,7 @@ test.each([
         expectedUpdates: [
             {
                 fn: "removeAccounts",
-                args: [
-                    "eip155:1",
-                    ["0x2000000000000000000000000000000000000001"],
-                ],
+                args: ["eip155:1", ["0x2000000000000000000000000000000000000001"]],
             },
             {
                 fn: "addAccounts",
@@ -1746,8 +1408,7 @@ test.each([
                     "eip155:1",
                     [
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000001",
+                            accountAddress: "0x2000000000000000000000000000000000000001",
                             childContractScope: 0,
                         },
                     ],
@@ -1770,8 +1431,7 @@ test.each([
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                     accounts: [
                         ["A", 3n],
                         ["B", 3n],
@@ -1807,11 +1467,8 @@ test.each([
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
-                    accounts: [
-                        ["0x2000000000000000000000000000000000000001", 1n],
-                    ],
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+                    accounts: [["0x2000000000000000000000000000000000000001", 1n]],
                 },
             ],
         },
@@ -1822,8 +1479,7 @@ test.each([
                     "eip155:1",
                     [
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000001",
+                            accountAddress: "0x2000000000000000000000000000000000000001",
                             childContractScope: 0,
                         },
                     ],
@@ -1831,10 +1487,7 @@ test.each([
             },
             {
                 fn: "removeAccounts",
-                args: [
-                    "eip155:1",
-                    ["0x2000000000000000000000000000000000000001"],
-                ],
+                args: ["eip155:1", ["0x2000000000000000000000000000000000000001"]],
             },
         ],
     },
@@ -1852,11 +1505,8 @@ test.each([
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
-                    accounts: [
-                        ["0x2000000000000000000000000000000000000001", 1n],
-                    ],
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+                    accounts: [["0x2000000000000000000000000000000000000001", 1n]],
                 },
             ],
         },
@@ -1867,8 +1517,7 @@ test.each([
                     "eip155:1",
                     [
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000001",
+                            accountAddress: "0x2000000000000000000000000000000000000001",
                             childContractScope: 2,
                         },
                     ],
@@ -1876,16 +1525,12 @@ test.each([
             },
             {
                 fn: "removeAccounts",
-                args: [
-                    "eip155:1",
-                    ["0x2000000000000000000000000000000000000001"],
-                ],
+                args: ["eip155:1", ["0x2000000000000000000000000000000000000001"]],
             },
         ],
     },
     {
-        scenario:
-            "treats EVM account case changes as exact string replacements",
+        scenario: "treats EVM account case changes as exact string replacements",
         chainCSV: dedent`
             Name,Chain Id,Asset Recovery Address
             ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
@@ -1899,8 +1544,7 @@ test.each([
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                     accounts: [
                         ["0xA000000000000000000000000000000000000001", 0n],
                         ["0x2000000000000000000000000000000000000002", 0n],
@@ -1911,10 +1555,7 @@ test.each([
         expectedUpdates: [
             {
                 fn: "removeAccounts",
-                args: [
-                    "eip155:1",
-                    ["0xA000000000000000000000000000000000000001"],
-                ],
+                args: ["eip155:1", ["0xA000000000000000000000000000000000000001"]],
             },
             {
                 fn: "addAccounts",
@@ -1922,8 +1563,7 @@ test.each([
                     "eip155:1",
                     [
                         {
-                            accountAddress:
-                                "0xa000000000000000000000000000000000000001",
+                            accountAddress: "0xa000000000000000000000000000000000000001",
                             childContractScope: 0,
                         },
                     ],
@@ -1932,8 +1572,7 @@ test.each([
         ],
     },
     {
-        scenario:
-            "treats Solana account case changes as exact string replacements",
+        scenario: "treats Solana account case changes as exact string replacements",
         snapshot: true,
         chainCSV: dedent`
             Name,Chain Id,Asset Recovery Address
@@ -1948,8 +1587,7 @@ test.each([
             chains: [
                 {
                     caip2ChainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
-                    assetRecoveryAddress:
-                        "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+                    assetRecoveryAddress: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
                     accounts: [
                         ["So11111111111111111111111111111111111111112", 0n],
                         ["3EKkiwNLWqoUbzFkPrmKbtUB4EweE6f4STzevYUmezeL", 0n],
@@ -1960,10 +1598,7 @@ test.each([
         expectedUpdates: [
             {
                 fn: "removeAccounts",
-                args: [
-                    "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
-                    ["So11111111111111111111111111111111111111112"],
-                ],
+                args: ["solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", ["So11111111111111111111111111111111111111112"]],
             },
             {
                 fn: "addAccounts",
@@ -1971,8 +1606,7 @@ test.each([
                     "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
                     [
                         {
-                            accountAddress:
-                                "so11111111111111111111111111111111111111112",
+                            accountAddress: "so11111111111111111111111111111111111111112",
                             childContractScope: 0,
                         },
                     ],
@@ -1980,18 +1614,13 @@ test.each([
             },
         ],
     },
-])(
-    "$scenario",
-    async ({ chainCSV, contractCSV, details, expectedUpdates, snapshot }) => {
-        const result = await generateFrom({ chainCSV, contractCSV, details });
-        expect(result.updates.map(({ fn, args }) => ({ fn, args }))).toEqual(
-            expectedUpdates,
-        );
-        if (snapshot) {
-            expect(payloadSnapshot(result)).toMatchSnapshot();
-        }
-    },
-);
+])("$scenario", async ({ chainCSV, contractCSV, details, expectedUpdates, snapshot }) => {
+    const result = await generateFrom({ chainCSV, contractCSV, details });
+    expect(result.updates.map(({ fn, args }) => ({ fn, args }))).toEqual(expectedUpdates);
+    if (snapshot) {
+        expect(payloadSnapshot(result)).toMatchSnapshot();
+    }
+});
 
 const agreementInterface = new Interface(AGREEMENT_V3_ABI);
 
@@ -2017,9 +1646,7 @@ function normalizeDecodedValue(value, param) {
     }
 
     if (param.baseType === "array") {
-        return value.map((item) =>
-            normalizeDecodedValue(item, param.arrayChildren),
-        );
+        return value.map((item) => normalizeDecodedValue(item, param.arrayChildren));
     }
 
     if (param.baseType === "tuple") {

@@ -30,16 +30,14 @@ describe("recovery address comparison", () => {
         const matchingState = {
             "eip155:1": {
                 accounts: [],
-                assetRecoveryAddress:
-                    "0x1000000000000000000000000000000000000001",
+                assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
             },
         };
         expect(
             checkStateConsistency(matchingState, {
                 "eip155:1": {
                     accounts: [],
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                 },
             }),
         ).toEqual([]);
@@ -48,15 +46,13 @@ describe("recovery address comparison", () => {
                 {
                     "eip155:8453": {
                         accounts: [],
-                        assetRecoveryAddress:
-                            "0x1000000000000000000000000000000000000002",
+                        assetRecoveryAddress: "0x1000000000000000000000000000000000000002",
                     },
                 },
                 {
                     "eip155:8453": {
                         accounts: [],
-                        assetRecoveryAddress:
-                            "0x1000000000000000000000000000000000000003",
+                        assetRecoveryAddress: "0x1000000000000000000000000000000000000003",
                     },
                 },
             ),
@@ -65,10 +61,8 @@ describe("recovery address comparison", () => {
                 code: "RECOVERY_ADDRESS_MISMATCH",
                 context: {
                     chainId: "eip155:8453",
-                    onChainRecoveryAddress:
-                        "0x1000000000000000000000000000000000000002",
-                    sheetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000003",
+                    onChainRecoveryAddress: "0x1000000000000000000000000000000000000002",
+                    sheetRecoveryAddress: "0x1000000000000000000000000000000000000003",
                 },
             },
         ]);
@@ -76,8 +70,7 @@ describe("recovery address comparison", () => {
             checkStateConsistency(matchingState, {
                 "eip155:1": {
                     accounts: [],
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                 },
             }),
         ).toEqual([]);
@@ -85,15 +78,13 @@ describe("recovery address comparison", () => {
 
     test.each([
         {
-            scenario:
-                "an existing ETHEREUM chain with an undefined recovery address",
+            scenario: "an existing ETHEREUM chain with an undefined recovery address",
             chainId: "eip155:1",
             agreementOnChainState: {
                 "eip155:1": {
                     accounts: [
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000001",
+                            accountAddress: "0x2000000000000000000000000000000000000001",
                             childContractScope: 0n,
                         },
                     ],
@@ -113,8 +104,7 @@ describe("recovery address comparison", () => {
                 "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp": {
                     accounts: [
                         {
-                            accountAddress:
-                                "So11111111111111111111111111111111111111112",
+                            accountAddress: "So11111111111111111111111111111111111111112",
                             childContractScope: 0n,
                         },
                     ],
@@ -154,8 +144,7 @@ describe("recovery address comparison", () => {
                     chainId: "eip155:1",
                     isNewChain: true,
                     onChainRecoveryAddress: undefined,
-                    sheetRecoveryAddress:
-                        "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
+                    sheetRecoveryAddress: "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
                 },
             },
         },
@@ -175,8 +164,7 @@ describe("recovery address comparison", () => {
             },
         },
         {
-            scenario:
-                "a new Solana chain has no current recovery address to compare",
+            scenario: "a new Solana chain has no current recovery address to compare",
             chainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
             agreementOnChainState: {},
             sheetAddress: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
@@ -188,8 +176,7 @@ describe("recovery address comparison", () => {
             agreementOnChainState: {
                 "eip155:1": {
                     accounts: [],
-                    assetRecoveryAddress:
-                        "0x8ba1f109551bd432803012645ac136ddd64dba72",
+                    assetRecoveryAddress: "0x8ba1f109551bd432803012645ac136ddd64dba72",
                 },
             },
             sheetAddress: "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
@@ -201,8 +188,7 @@ describe("recovery address comparison", () => {
             agreementOnChainState: {
                 "eip155:8453": {
                     accounts: [],
-                    assetRecoveryAddress:
-                        "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
+                    assetRecoveryAddress: "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
                 },
             },
             sheetAddress: "0x8ba1f109551bd432803012645ac136ddd64dba72",
@@ -214,8 +200,7 @@ describe("recovery address comparison", () => {
             agreementOnChainState: {
                 "eip155:1": {
                     accounts: [],
-                    assetRecoveryAddress:
-                        "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
+                    assetRecoveryAddress: "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
                 },
             },
             sheetAddress: "0x1000000000000000000000000000000000000001",
@@ -223,22 +208,18 @@ describe("recovery address comparison", () => {
                 code: "RECOVERY_ADDRESS_MISMATCH",
                 context: {
                     chainId: "eip155:1",
-                    onChainRecoveryAddress:
-                        "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
-                    sheetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    onChainRecoveryAddress: "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
+                    sheetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                 },
             },
         },
         {
-            scenario:
-                "an invalid Safeharbor Sheet checksum is not normalized away",
+            scenario: "an invalid Safeharbor Sheet checksum is not normalized away",
             chainId: "eip155:1",
             agreementOnChainState: {
                 "eip155:1": {
                     accounts: [],
-                    assetRecoveryAddress:
-                        "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
+                    assetRecoveryAddress: "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
                 },
             },
             sheetAddress: "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
@@ -247,10 +228,8 @@ describe("recovery address comparison", () => {
                 context: {
                     chainId: "eip155:1",
                     isNewChain: false,
-                    onChainRecoveryAddress:
-                        "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
-                    sheetRecoveryAddress:
-                        "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
+                    onChainRecoveryAddress: "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
+                    sheetRecoveryAddress: "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
                 },
             },
         },
@@ -260,8 +239,7 @@ describe("recovery address comparison", () => {
             agreementOnChainState: {
                 "eip155:1": {
                     accounts: [],
-                    assetRecoveryAddress:
-                        "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
+                    assetRecoveryAddress: "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
                 },
             },
             sheetAddress: "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
@@ -270,10 +248,8 @@ describe("recovery address comparison", () => {
                 context: {
                     chainId: "eip155:1",
                     isNewChain: false,
-                    onChainRecoveryAddress:
-                        "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
-                    sheetRecoveryAddress:
-                        "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
+                    onChainRecoveryAddress: "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
+                    sheetRecoveryAddress: "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
                 },
             },
         },
@@ -283,8 +259,7 @@ describe("recovery address comparison", () => {
             agreementOnChainState: {
                 "eip155:1": {
                     accounts: [],
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                 },
             },
             sheetAddress: "not-an-address",
@@ -293,8 +268,7 @@ describe("recovery address comparison", () => {
                 context: {
                     chainId: "eip155:1",
                     isNewChain: false,
-                    onChainRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    onChainRecoveryAddress: "0x1000000000000000000000000000000000000001",
                     sheetRecoveryAddress: "not-an-address",
                 },
             },
@@ -325,8 +299,7 @@ describe("recovery address comparison", () => {
             agreementOnChainState: {
                 "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp": {
                     accounts: [],
-                    assetRecoveryAddress:
-                        "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+                    assetRecoveryAddress: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
                 },
             },
             sheetAddress: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
@@ -338,8 +311,7 @@ describe("recovery address comparison", () => {
             agreementOnChainState: {
                 "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp": {
                     accounts: [],
-                    assetRecoveryAddress:
-                        "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+                    assetRecoveryAddress: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
                 },
             },
             sheetAddress: "29d2s7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
@@ -347,10 +319,8 @@ describe("recovery address comparison", () => {
                 code: "RECOVERY_ADDRESS_MISMATCH",
                 context: {
                     chainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
-                    onChainRecoveryAddress:
-                        "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
-                    sheetRecoveryAddress:
-                        "29d2s7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+                    onChainRecoveryAddress: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+                    sheetRecoveryAddress: "29d2s7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
                 },
             },
         },
@@ -385,17 +355,14 @@ describe("recovery address comparison", () => {
                 },
             },
         },
-    ])(
-        "$scenario",
-        ({ chainId, agreementOnChainState, sheetAddress, warning }) => {
-            expect(
-                checkStateConsistency(agreementOnChainState, {
-                    [chainId]: {
-                        accounts: [],
-                        assetRecoveryAddress: sheetAddress,
-                    },
-                }),
-            ).toEqual(warning ? [warning] : []);
-        },
-    );
+    ])("$scenario", ({ chainId, agreementOnChainState, sheetAddress, warning }) => {
+        expect(
+            checkStateConsistency(agreementOnChainState, {
+                [chainId]: {
+                    accounts: [],
+                    assetRecoveryAddress: sheetAddress,
+                },
+            }),
+        ).toEqual(warning ? [warning] : []);
+    });
 });

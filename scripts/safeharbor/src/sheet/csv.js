@@ -11,13 +11,7 @@ export async function downloadAndParse(url) {
         };
         throw Object.assign(new Error(diagnostic.code), { diagnostic });
     }
-    if (
-        response.headers
-            .get("content-type")
-            ?.split(";")[0]
-            .trim()
-            .toLowerCase() !== "text/csv"
-    ) {
+    if (response.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "text/csv") {
         const diagnostic = { code: $.INVALID_CSV_CONTENT_TYPE };
         throw Object.assign(new Error(diagnostic.code), { diagnostic });
     }
@@ -35,9 +29,7 @@ export async function downloadAndParse(url) {
 }
 
 function assertUniqueHeaders(headers) {
-    const duplicateHeaders = [...findDuplicateIndexes(headers)].map(
-        (index) => headers[index],
-    );
+    const duplicateHeaders = [...findDuplicateIndexes(headers)].map((index) => headers[index]);
     if (duplicateHeaders.length === 0) {
         return;
     }

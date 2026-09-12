@@ -34,16 +34,10 @@ test("prints generated Solidity and the success summary for pending changes", ()
     });
 
     expect(generate(report)).toBe(0);
-    expect(generatePayload).toHaveBeenCalledExactlyOnceWith([
-        { fn: "removeChains", args: [["eip155:8453"]] },
-    ]);
+    expect(generatePayload).toHaveBeenCalledExactlyOnceWith([{ fn: "removeChains", args: [["eip155:8453"]] }]);
     expect(console.log).toHaveBeenCalledExactlyOnceWith("generated Solidity");
-    expect(console.warn).toHaveBeenCalledExactlyOnceWith(
-        "✅ Payload generation completed successfully.",
-    );
-    expect(report.changes).toEqual([
-        { fn: "removeChains", args: [["eip155:8453"]] },
-    ]);
+    expect(console.warn).toHaveBeenCalledExactlyOnceWith("✅ Payload generation completed successfully.");
+    expect(report.changes).toEqual([{ fn: "removeChains", args: [["eip155:8453"]] }]);
 });
 
 test("prints only the no-updates summary for clean state", () => {
@@ -59,9 +53,7 @@ test("prints only the no-updates summary for clean state", () => {
     expect(generate(report)).toBe(0);
     expect(generatePayload).toHaveBeenCalledExactlyOnceWith([]);
     expect(console.log).not.toHaveBeenCalled();
-    expect(console.warn).toHaveBeenCalledExactlyOnceWith(
-        "✅ No updates to generate",
-    );
+    expect(console.warn).toHaveBeenCalledExactlyOnceWith("✅ No updates to generate");
 });
 
 test("blocks generation on validation warnings without printing individual diagnostics", () => {
@@ -81,9 +73,7 @@ test("blocks generation on validation warnings without printing individual diagn
     expect(generate(report)).toBe(2);
     expect(generatePayload).not.toHaveBeenCalled();
     expect(console.log).not.toHaveBeenCalled();
-    expect(console.warn).toHaveBeenCalledExactlyOnceWith(
-        "❌ Payload generation blocked: 1 validation warning(s).",
-    );
+    expect(console.warn).toHaveBeenCalledExactlyOnceWith("❌ Payload generation blocked: 1 validation warning(s).");
 });
 
 test("propagates generation errors to the CLI", () => {

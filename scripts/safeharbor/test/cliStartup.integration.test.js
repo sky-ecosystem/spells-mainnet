@@ -99,15 +99,11 @@ test("wires the provider through the real pipeline and destroys it after success
         );
     const getDetails = vi.fn().mockResolvedValue({ chains: [] });
     Contract.mockReturnValueOnce({
-        "getAddress(bytes32)": vi
-            .fn()
-            .mockResolvedValue("0x7000000000000000000000000000000000000001"),
+        "getAddress(bytes32)": vi.fn().mockResolvedValue("0x7000000000000000000000000000000000000001"),
     }).mockReturnValueOnce({ getDetails });
 
     expect(await main()).toBe(0);
-    expect(JsonRpcProvider).toHaveBeenCalledExactlyOnceWith(
-        "https://rpc.example",
-    );
+    expect(JsonRpcProvider).toHaveBeenCalledExactlyOnceWith("https://rpc.example");
     expect(getDetails).toHaveBeenCalledExactlyOnceWith();
     expect(console.log).toHaveBeenCalledExactlyOnceWith(
         "✅ SafeHarbor verification passed: no updates or validation warnings.",
@@ -129,10 +125,7 @@ test("indents multiline pipeline errors and nested codes without displaying the 
                         [new Error("private AggregateError member")],
                         "Request to https://rpc.example/private-key failed",
                         {
-                            cause: Object.assign(
-                                new Error("private connection details"),
-                                { code: "ECONNREFUSED" },
-                            ),
+                            cause: Object.assign(new Error("private connection details"), { code: "ECONNREFUSED" }),
                         },
                     ),
                     { code: "NETWORK_ERROR" },
@@ -220,66 +213,53 @@ test("reports Chainlog construction failures and destroys the provider", async (
     expect(fetch).not.toHaveBeenCalled();
 });
 
-test.each(["encoding", "reporting"])(
-    "reports a %s failure once and destroys the provider",
-    async (stage) => {
-        process.argv = ["node", "index.js", "generate"];
-        fetch
-            .mockResolvedValueOnce(
-                new Response(
-                    dedent`
+test.each(["encoding", "reporting"])("reports a %s failure once and destroys the provider", async (stage) => {
+    process.argv = ["node", "index.js", "generate"];
+    fetch
+        .mockResolvedValueOnce(
+            new Response(
+                dedent`
                         Name,Chain Id,Asset Recovery Address
                         ETH,eip155:1,0x1000000000000000000000000000000000000001
                     `,
-                    { headers: { "content-type": "text/csv" } },
-                ),
-            )
-            .mockResolvedValueOnce(
-                new Response("Status,Chain,Address,isFactory\n", {
-                    headers: { "content-type": "text/csv" },
-                }),
-            );
-        Contract.mockReturnValueOnce({
-            "getAddress(bytes32)": vi
-                .fn()
-                .mockResolvedValue(
-                    "0x7000000000000000000000000000000000000001",
-                ),
-        }).mockReturnValueOnce({
-            getDetails: vi.fn().mockResolvedValue({
-                chains: [
-                    {
-                        caip2ChainId: "eip155:1",
-                        assetRecoveryAddress:
-                            "0x1000000000000000000000000000000000000001",
-                        accounts: [
-                            ["0x2000000000000000000000000000000000000001", 0n],
-                        ],
-                    },
-                ],
+                { headers: { "content-type": "text/csv" } },
+            ),
+        )
+        .mockResolvedValueOnce(
+            new Response("Status,Chain,Address,isFactory\n", {
+                headers: { "content-type": "text/csv" },
             }),
+        );
+    Contract.mockReturnValueOnce({
+        "getAddress(bytes32)": vi.fn().mockResolvedValue("0x7000000000000000000000000000000000000001"),
+    }).mockReturnValueOnce({
+        getDetails: vi.fn().mockResolvedValue({
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+                    accounts: [["0x2000000000000000000000000000000000000001", 0n]],
+                },
+            ],
+        }),
+    });
+    const failure = new Error(`${stage} failed`);
+    if (stage === "encoding") {
+        vi.spyOn(Interface.prototype, "encodeFunctionData").mockImplementation(() => {
+            throw failure;
         });
-        const failure = new Error(`${stage} failed`);
-        if (stage === "encoding") {
-            vi.spyOn(
-                Interface.prototype,
-                "encodeFunctionData",
-            ).mockImplementation(() => {
-                throw failure;
-            });
-        } else {
-            console.log.mockImplementation(() => {
-                throw failure;
-            });
-        }
+    } else {
+        console.log.mockImplementation(() => {
+            throw failure;
+        });
+    }
 
-        expect(await main()).toBe(1);
-        expect(console.error).toHaveBeenCalledExactlyOnceWith(
-            dedent`
+    expect(await main()).toBe(1);
+    expect(console.error).toHaveBeenCalledExactlyOnceWith(
+        dedent`
                 ❌ Failed to execute command:
                        ${stage} failed
             `,
-        );
-        expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
-    },
-);
+    );
+    expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
+});

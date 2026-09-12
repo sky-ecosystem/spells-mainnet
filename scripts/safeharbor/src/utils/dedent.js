@@ -9,14 +9,10 @@ export function dedent(strings, ...values) {
     // The least-indented content line determines how much to remove from all
     // content lines. Blank lines must not lower that shared indentation to zero.
     const indentation = Math.min(
-        ...lines
-            .filter((line) => line.trim().length > 0)
-            .map((line) => line.match(/^[ \t]*/)[0].length),
+        ...lines.filter((line) => line.trim().length > 0).map((line) => line.match(/^[ \t]*/)[0].length),
     );
 
     // Keep relative indentation and trailing whitespace; normalize blank lines
     // to empty strings so indentation-only spaces do not enter the fixture.
-    return lines
-        .map((line) => (line.trim().length > 0 ? line.slice(indentation) : ""))
-        .join("\n");
+    return lines.map((line) => (line.trim().length > 0 ? line.slice(indentation) : "")).join("\n");
 }

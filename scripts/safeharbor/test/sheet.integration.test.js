@@ -46,16 +46,13 @@ test.each([
         headers: { "content-type": "text/csv-extended" },
         diagnostic: { code: "INVALID_CSV_CONTENT_TYPE" },
     },
-])(
-    "rejects invalid CSV response $diagnostic.code without reporting",
-    async ({ status, headers, diagnostic }) => {
-        fetch.mockResolvedValue(new Response(null, { status, headers }));
+])("rejects invalid CSV response $diagnostic.code without reporting", async ({ status, headers, diagnostic }) => {
+    fetch.mockResolvedValue(new Response(null, { status, headers }));
 
-        await expect(getSheetChainDetails()).rejects.toMatchObject({
-            diagnostic,
-        });
-    },
-);
+    await expect(getSheetChainDetails()).rejects.toMatchObject({
+        diagnostic,
+    });
+});
 
 test("propagates fetch failures unchanged without reporting", async () => {
     const failure = new Error("Network unavailable");
@@ -78,9 +75,7 @@ test("accepts CSV media type casing, whitespace and parameters", async () => {
 
 describe("contracts CSV headers", () => {
     test("rejects repeated headers before reading any records", async () => {
-        fetch.mockResolvedValue(
-            csvResponse("Status,Chain,Address,isFactory,Status\n"),
-        );
+        fetch.mockResolvedValue(csvResponse("Status,Chain,Address,isFactory,Status\n"));
         await expect(
             getSheetState({
                 caip2ChainId: {},
@@ -96,11 +91,7 @@ describe("contracts CSV headers", () => {
     });
 
     test.each([
-        [
-            "Status in a header-only file",
-            "Chain,Address,isFactory\n",
-            ["Status"],
-        ],
+        ["Status in a header-only file", "Chain,Address,isFactory\n", ["Status"]],
         [
             "Status with records",
             dedent`
@@ -109,26 +100,10 @@ describe("contracts CSV headers", () => {
             `,
             ["Status"],
         ],
-        [
-            "Chain in a header-only file",
-            "Status,Address,isFactory\n",
-            ["Chain"],
-        ],
-        [
-            "Address in a header-only file",
-            "Status,Chain,isFactory\n",
-            ["Address"],
-        ],
-        [
-            "factory flag in a header-only file",
-            "Status,Chain,Address\n",
-            ["isFactory"],
-        ],
-        [
-            "all headers in an empty file",
-            "",
-            ["Status", "Chain", "Address", "isFactory"],
-        ],
+        ["Chain in a header-only file", "Status,Address,isFactory\n", ["Chain"]],
+        ["Address in a header-only file", "Status,Chain,isFactory\n", ["Address"]],
+        ["factory flag in a header-only file", "Status,Chain,Address\n", ["isFactory"]],
+        ["all headers in an empty file", "", ["Status", "Chain", "Address", "isFactory"]],
     ])("rejects missing %s", async (_scenario, csv, missingHeaders) => {
         fetch.mockResolvedValue(csvResponse(csv));
 
@@ -184,18 +159,15 @@ describe("contracts CSV headers", () => {
                 "eip155:1": {
                     accounts: [
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000001",
+                            accountAddress: "0x2000000000000000000000000000000000000001",
                             childContractScope: 2,
                         },
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000002",
+                            accountAddress: "0x2000000000000000000000000000000000000002",
                             childContractScope: 0,
                         },
                     ],
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                 },
             },
             warnings: [],
@@ -222,11 +194,7 @@ describe("chain metadata CSV headers", () => {
         });
     });
     test.each([
-        [
-            "Name in a header-only file",
-            "Chain Id,Asset Recovery Address\n",
-            ["Name"],
-        ],
+        ["Name in a header-only file", "Chain Id,Asset Recovery Address\n", ["Name"]],
         [
             "Name with records",
             dedent`
@@ -235,21 +203,9 @@ describe("chain metadata CSV headers", () => {
             `,
             ["Name"],
         ],
-        [
-            "Chain Id in a header-only file",
-            "Name,Asset Recovery Address\n",
-            ["Chain Id"],
-        ],
-        [
-            "Asset Recovery Address in a header-only file",
-            "Name,Chain Id\n",
-            ["Asset Recovery Address"],
-        ],
-        [
-            "all headers in a blank file",
-            "\n \n",
-            ["Name", "Chain Id", "Asset Recovery Address"],
-        ],
+        ["Chain Id in a header-only file", "Name,Asset Recovery Address\n", ["Chain Id"]],
+        ["Asset Recovery Address in a header-only file", "Name,Chain Id\n", ["Asset Recovery Address"]],
+        ["all headers in a blank file", "\n \n", ["Name", "Chain Id", "Asset Recovery Address"]],
     ])("rejects missing %s", async (_scenario, csv, missingHeaders) => {
         fetch.mockResolvedValue(csvResponse(csv));
 
@@ -262,9 +218,7 @@ describe("chain metadata CSV headers", () => {
     });
 
     test("accepts a header-only file", async () => {
-        fetch.mockResolvedValue(
-            csvResponse("Name,Chain Id,Asset Recovery Address\n"),
-        );
+        fetch.mockResolvedValue(csvResponse("Name,Chain Id,Asset Recovery Address\n"));
 
         await expect(getSheetChainDetails()).resolves.toEqual({
             value: {

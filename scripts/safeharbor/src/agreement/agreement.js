@@ -16,12 +16,8 @@ export function createAgreementReader(provider) {
             AGREEMENT_V3_ABI,
             provider,
         );
-        const { value, warnings } = normalizeOnChainState(
-            await agreementInstance.getDetails(),
-        );
-        const newChainIds = desiredChainIds.filter(
-            (chainId) => !value[chainId],
-        );
+        const { value, warnings } = normalizeOnChainState(await agreementInstance.getDetails());
+        const newChainIds = desiredChainIds.filter((chainId) => !value[chainId]);
         if (newChainIds.length === 0) {
             return { value, warnings };
         }
@@ -32,10 +28,7 @@ export function createAgreementReader(provider) {
         );
         return {
             value,
-            warnings: [
-                ...warnings,
-                ...(await checkChainIds(chainValidatorInstance, newChainIds)),
-            ],
+            warnings: [...warnings, ...(await checkChainIds(chainValidatorInstance, newChainIds))],
         };
     };
 }
@@ -51,9 +44,7 @@ const AGREEMENT_CHAINLOG_KEY = "SAFE_HARBOR_AGREEMENT";
 const agreementInterface = new Interface(AGREEMENT_V3_ABI);
 
 async function checkChainIds(chainValidatorInstance, chainIds) {
-    const valid = await Promise.all(
-        chainIds.map((chainId) => chainValidatorInstance.isChainValid(chainId)),
-    );
+    const valid = await Promise.all(chainIds.map((chainId) => chainValidatorInstance.isChainValid(chainId)));
     return chainIds
         .filter((_chainId, index) => !valid[index])
         .map((chainId) => ({

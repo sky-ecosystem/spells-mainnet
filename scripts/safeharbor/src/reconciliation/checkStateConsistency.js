@@ -11,8 +11,7 @@ function checkChainRecoveryAddress(chainId, agreementOnChainState, sheetState) {
     const recoveryDetails = {
         chainId,
         isNewChain: !agreementOnChainState[chainId],
-        onChainRecoveryAddress:
-            agreementOnChainState[chainId]?.assetRecoveryAddress,
+        onChainRecoveryAddress: agreementOnChainState[chainId]?.assetRecoveryAddress,
         sheetRecoveryAddress: sheetState[chainId].assetRecoveryAddress,
     };
     return validateRecoveryAddress(recoveryDetails).map((diagnostic) =>
@@ -20,14 +19,8 @@ function checkChainRecoveryAddress(chainId, agreementOnChainState, sheetState) {
     );
 }
 
-function validateRecoveryAddress({
-    chainId,
-    isNewChain,
-    onChainRecoveryAddress,
-    sheetRecoveryAddress,
-}) {
-    const missingOnChainRecoveryAddress =
-        !isNewChain && !onChainRecoveryAddress;
+function validateRecoveryAddress({ chainId, isNewChain, onChainRecoveryAddress, sheetRecoveryAddress }) {
+    const missingOnChainRecoveryAddress = !isNewChain && !onChainRecoveryAddress;
     if (!sheetRecoveryAddress && !missingOnChainRecoveryAddress) {
         return [];
     }
@@ -37,16 +30,10 @@ function validateRecoveryAddress({
     if (isNewChain) {
         return checkNewRecoveryAddress(chainId, sheetRecoveryAddress);
     }
-    return getRecoveryAddressComparator(chainId)(
-        onChainRecoveryAddress,
-        sheetRecoveryAddress,
-    );
+    return getRecoveryAddressComparator(chainId)(onChainRecoveryAddress, sheetRecoveryAddress);
 }
 
-function addRecoveryAddressContext(
-    { code },
-    { chainId, isNewChain, onChainRecoveryAddress, sheetRecoveryAddress },
-) {
+function addRecoveryAddressContext({ code }, { chainId, isNewChain, onChainRecoveryAddress, sheetRecoveryAddress }) {
     if (code === $.MISSING_ONCHAIN_RECOVERY_ADDRESS) {
         return { code, context: { chainId } };
     }

@@ -13,9 +13,7 @@ const formatContext = {
         duplicateHeaders: context.duplicateHeaders.join(", "),
     }),
     [$.INVALID_EVM_RECOVERY_ADDRESS]: (context) => ({
-        onChainRecoveryAddress: context.isNewChain
-            ? "not registered"
-            : context.onChainRecoveryAddress,
+        onChainRecoveryAddress: context.isNewChain ? "not registered" : context.onChainRecoveryAddress,
     }),
     [$.INCOMPLETE_CHAIN_METADATA]: (context) => ({
         missingFields: context.missingFields.join(", "),

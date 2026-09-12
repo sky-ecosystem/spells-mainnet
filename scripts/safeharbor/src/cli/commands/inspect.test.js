@@ -55,31 +55,26 @@ test("prints raw state and changes with bigint values as decimal strings without
             "eip155:1": {
                 accounts: [
                     {
-                        accountAddress:
-                            "0x2000000000000000000000000000000000000001",
+                        accountAddress: "0x2000000000000000000000000000000000000001",
                         childContractScope: 2n,
                     },
                 ],
-                assetRecoveryAddress:
-                    "0x1000000000000000000000000000000000000001",
+                assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
             },
         },
         sheetState: {
             "eip155:1": {
                 accounts: [
                     {
-                        accountAddress:
-                            "0x2000000000000000000000000000000000000001",
+                        accountAddress: "0x2000000000000000000000000000000000000001",
                         childContractScope: 2,
                     },
                     {
-                        accountAddress:
-                            "0x2000000000000000000000000000000000000002",
+                        accountAddress: "0x2000000000000000000000000000000000000002",
                         childContractScope: 0,
                     },
                 ],
-                assetRecoveryAddress:
-                    "0x1000000000000000000000000000000000000001",
+                assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
             },
         },
         changes: [
@@ -89,8 +84,7 @@ test("prints raw state and changes with bigint values as decimal strings without
                     "eip155:1",
                     [
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000002",
+                            accountAddress: "0x2000000000000000000000000000000000000002",
                             childContractScope: 0,
                         },
                     ],
@@ -161,12 +155,8 @@ test("prints raw state and changes with bigint values as decimal strings without
             `,
         ],
     ]);
-    expect(
-        report.agreementOnChainState["eip155:1"].accounts[0].childContractScope,
-    ).toBe(2n);
-    expect(report.sheetState["eip155:1"].accounts[0].childContractScope).toBe(
-        2,
-    );
+    expect(report.agreementOnChainState["eip155:1"].accounts[0].childContractScope).toBe(2n);
+    expect(report.sheetState["eip155:1"].accounts[0].childContractScope).toBe(2);
     expect(report.changes).toEqual([
         {
             fn: "addAccounts",
@@ -174,8 +164,7 @@ test("prints raw state and changes with bigint values as decimal strings without
                 "eip155:1",
                 [
                     {
-                        accountAddress:
-                            "0x2000000000000000000000000000000000000002",
+                        accountAddress: "0x2000000000000000000000000000000000000002",
                         childContractScope: 0,
                     },
                 ],

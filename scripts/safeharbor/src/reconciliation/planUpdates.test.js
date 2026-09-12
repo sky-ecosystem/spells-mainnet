@@ -10,8 +10,7 @@ test.each([" ", false, -1, 4, 0.5, "0x", "1.0000000000000001"])(
                 {
                     "eip155:10": {
                         accounts: [{ accountAddress: "A", childContractScope }],
-                        assetRecoveryAddress:
-                            "0x1000000000000000000000000000000000000004",
+                        assetRecoveryAddress: "0x1000000000000000000000000000000000000004",
                     },
                 },
             ),
@@ -38,8 +37,7 @@ test.each([0, 1, 2, 3, 0n, "1", "0x2", "0X03"])(
                 {
                     "eip155:10": {
                         accounts: [{ accountAddress: "A", childContractScope }],
-                        assetRecoveryAddress:
-                            "0x1000000000000000000000000000000000000004",
+                        assetRecoveryAddress: "0x1000000000000000000000000000000000000004",
                     },
                 },
             ),
@@ -49,11 +47,8 @@ test.each([0, 1, 2, 3, 0n, "1", "0x2", "0X03"])(
                 args: [
                     [
                         {
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000004",
-                            accounts: [
-                                { accountAddress: "A", childContractScope },
-                            ],
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000004",
+                            accounts: [{ accountAddress: "A", childContractScope }],
                             caip2ChainId: "eip155:10",
                         },
                     ],
@@ -120,8 +115,7 @@ test.each([
         desired: {
             "eip155:10": {
                 accounts: [],
-                assetRecoveryAddress:
-                    "0x1000000000000000000000000000000000000004",
+                assetRecoveryAddress: "0x1000000000000000000000000000000000000004",
             },
         },
         diagnostic: {
@@ -135,20 +129,17 @@ test.each([
             "eip155:8453": {
                 accounts: [
                     {
-                        accountAddress:
-                            "0x3000000000000000000000000000000000000001",
+                        accountAddress: "0x3000000000000000000000000000000000000001",
                         childContractScope: 0n,
                     },
                 ],
-                assetRecoveryAddress:
-                    "0x1000000000000000000000000000000000000002",
+                assetRecoveryAddress: "0x1000000000000000000000000000000000000002",
             },
         },
         desired: {
             "eip155:8453": {
                 accounts: [],
-                assetRecoveryAddress:
-                    "0x1000000000000000000000000000000000000002",
+                assetRecoveryAddress: "0x1000000000000000000000000000000000000002",
             },
         },
         diagnostic: {
@@ -162,31 +153,26 @@ test.each([
             "eip155:1": {
                 accounts: [
                     {
-                        accountAddress:
-                            "0x2000000000000000000000000000000000000001",
+                        accountAddress: "0x2000000000000000000000000000000000000001",
                         childContractScope: 0n,
                     },
                 ],
-                assetRecoveryAddress:
-                    "0x1000000000000000000000000000000000000001",
+                assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
             },
         },
         desired: {
             "eip155:8453": {
                 accounts: [
                     {
-                        accountAddress:
-                            "0x3000000000000000000000000000000000000001",
+                        accountAddress: "0x3000000000000000000000000000000000000001",
                         childContractScope: 0,
                     },
                 ],
-                assetRecoveryAddress:
-                    "0x1000000000000000000000000000000000000002",
+                assetRecoveryAddress: "0x1000000000000000000000000000000000000002",
             },
             "eip155:10": {
                 accounts: [{ accountAddress: "", childContractScope: 0 }],
-                assetRecoveryAddress:
-                    "0x1000000000000000000000000000000000000004",
+                assetRecoveryAddress: "0x1000000000000000000000000000000000000004",
             },
         },
         diagnostic: {

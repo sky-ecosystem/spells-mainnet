@@ -34,17 +34,14 @@ test.each([
                     [
                         {
                             caip2ChainId: "eip155:8453",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000002",
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000002",
                             accounts: [
                                 {
-                                    accountAddress:
-                                        "0x3000000000000000000000000000000000000002",
+                                    accountAddress: "0x3000000000000000000000000000000000000002",
                                     childContractScope: 2,
                                 },
                                 {
-                                    accountAddress:
-                                        "0x3000000000000000000000000000000000000001",
+                                    accountAddress: "0x3000000000000000000000000000000000000001",
                                     childContractScope: 0,
                                 },
                             ],
@@ -70,10 +67,7 @@ test.each([
                 fn: "removeAccounts",
                 args: [
                     "eip155:1",
-                    [
-                        "0x2000000000000000000000000000000000000002",
-                        "0x2000000000000000000000000000000000000001",
-                    ],
+                    ["0x2000000000000000000000000000000000000002", "0x2000000000000000000000000000000000000001"],
                 ],
                 calldata: "0xabcd",
             },
@@ -96,13 +90,11 @@ test.each([
                     "eip155:1",
                     [
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000002",
+                            accountAddress: "0x2000000000000000000000000000000000000002",
                             childContractScope: 2,
                         },
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000001",
+                            accountAddress: "0x2000000000000000000000000000000000000001",
                             childContractScope: 0,
                         },
                     ],
@@ -124,11 +116,9 @@ test.each([
 });
 
 test("rejects unknown operations", () => {
-    expect(() =>
-        generateSolidity([
-            { fn: "unknownOperation", args: [], calldata: "0x1234" },
-        ]),
-    ).toThrow("Unknown update");
+    expect(() => generateSolidity([{ fn: "unknownOperation", args: [], calldata: "0x1234" }])).toThrow(
+        "Unknown update",
+    );
 });
 
 test("renders a mixed operation sequence including Solana identifiers", () => {
@@ -144,14 +134,11 @@ test("renders a mixed operation sequence including Solana identifiers", () => {
                 args: [
                     [
                         {
-                            caip2ChainId:
-                                "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
-                            assetRecoveryAddress:
-                                "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+                            caip2ChainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+                            assetRecoveryAddress: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
                             accounts: [
                                 {
-                                    accountAddress:
-                                        "So11111111111111111111111111111111111111112",
+                                    accountAddress: "So11111111111111111111111111111111111111112",
                                     childContractScope: 0,
                                 },
                             ],
@@ -162,10 +149,7 @@ test("renders a mixed operation sequence including Solana identifiers", () => {
             },
             {
                 fn: "removeAccounts",
-                args: [
-                    "eip155:1",
-                    ["0x2000000000000000000000000000000000000001"],
-                ],
+                args: ["eip155:1", ["0x2000000000000000000000000000000000000001"]],
                 calldata: "0x5566",
             },
             {
@@ -174,8 +158,7 @@ test("renders a mixed operation sequence including Solana identifiers", () => {
                     "eip155:1",
                     [
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000002",
+                            accountAddress: "0x2000000000000000000000000000000000000002",
                             childContractScope: 2,
                         },
                     ],
@@ -230,10 +213,7 @@ test("escapes every Solidity comment terminator without changing calldata", () =
             },
             {
                 fn: "removeAccounts",
-                args: [
-                    "chain\u0085revert(); //",
-                    ["account\u2028revert(); //"],
-                ],
+                args: ["chain\u0085revert(); //", ["account\u2028revert(); //"]],
                 calldata: "0x5566",
             },
             {

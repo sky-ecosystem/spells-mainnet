@@ -18,10 +18,7 @@ test.each([
                     cause: new Error("codeless private details", {
                         cause: Object.assign(
                             new Error("private invalid-code details", {
-                                cause: Object.assign(
-                                    new Error("private socket details"),
-                                    { code: "ECONNRESET" },
-                                ),
+                                cause: Object.assign(new Error("private socket details"), { code: "ECONNRESET" }),
                             }),
                             { code },
                         ),
@@ -44,16 +41,11 @@ test("retains repeated codes on distinct causes and stops at a repeated object",
     const firstCause = Object.assign(new Error("first private failure"), {
         code: "NETWORK_ERROR",
     });
-    const secondCause = Object.assign(
-        new Error("second private failure", { cause: firstCause }),
-        { code: "NETWORK_ERROR" },
-    );
+    const secondCause = Object.assign(new Error("second private failure", { cause: firstCause }), {
+        code: "NETWORK_ERROR",
+    });
     firstCause.cause = secondCause;
-    expect(
-        formatOperationalError(
-            new Error("CSV unavailable", { cause: firstCause }),
-        ),
-    ).toBe(dedent`
+    expect(formatOperationalError(new Error("CSV unavailable", { cause: firstCause }))).toBe(dedent`
         Failed to execute command:
         CSV unavailable
             Cause: NETWORK_ERROR

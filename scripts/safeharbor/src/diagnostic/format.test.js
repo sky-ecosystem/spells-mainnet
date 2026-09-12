@@ -68,8 +68,7 @@ test.each([
                 chainId: "eip155:8453",
                 isNewChain: false,
                 onChainRecoveryAddress: "invalid",
-                sheetRecoveryAddress:
-                    "0x1000000000000000000000000000000000000001",
+                sheetRecoveryAddress: "0x1000000000000000000000000000000000000001",
             },
         },
         message:
@@ -96,8 +95,7 @@ test.each([
     },
     {
         diagnostic: { code: "INVALID_CSV_CONTENT_TYPE" },
-        message:
-            "Invalid content type. Expected CSV data. Please check the URL format.",
+        message: "Invalid content type. Expected CSV data. Please check the URL format.",
     },
 ])("formats $diagnostic.code", ({ diagnostic, message }) => {
     expect(formatDiagnostic(diagnostic)).toBe(message);

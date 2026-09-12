@@ -25,8 +25,7 @@ test.each([
             validationWarnings: [],
         },
         exitCode: 0,
-        message:
-            "✅ SafeHarbor verification passed: no updates or validation warnings.",
+        message: "✅ SafeHarbor verification passed: no updates or validation warnings.",
     },
     {
         scenario: "pending changes",
@@ -38,8 +37,7 @@ test.each([
             validationWarnings: [],
         },
         exitCode: 2,
-        message:
-            "❌ SafeHarbor verification failed: 1 update(s), 0 validation warning(s).",
+        message: "❌ SafeHarbor verification failed: 1 update(s), 0 validation warning(s).",
     },
     {
         scenario: "blocked planning",
@@ -56,15 +54,11 @@ test.each([
             ],
         },
         exitCode: 2,
-        message:
-            "❌ SafeHarbor verification failed: 0 update(s), 1 validation warning(s).",
+        message: "❌ SafeHarbor verification failed: 0 update(s), 1 validation warning(s).",
     },
-])(
-    "reports $scenario without generating a payload",
-    ({ report, exitCode, message }) => {
-        expect(verify(report)).toBe(exitCode);
-        expect(console.log.mock.calls).toEqual([[message]]);
-        expect(console.warn).not.toHaveBeenCalled();
-        expect(generatePayload).not.toHaveBeenCalled();
-    },
-);
+])("reports $scenario without generating a payload", ({ report, exitCode, message }) => {
+    expect(verify(report)).toBe(exitCode);
+    expect(console.log.mock.calls).toEqual([[message]]);
+    expect(console.warn).not.toHaveBeenCalled();
+    expect(generatePayload).not.toHaveBeenCalled();
+});

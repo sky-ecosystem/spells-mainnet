@@ -26,17 +26,11 @@ beforeEach(() => {
     JsonRpcProvider.mockReturnValue(provider);
     isChainValid = vi.fn().mockResolvedValue(true);
     Contract.mockReturnValueOnce({
-        "getAddress(bytes32)": vi
-            .fn()
-            .mockResolvedValue("0x7000000000000000000000000000000000000001"),
+        "getAddress(bytes32)": vi.fn().mockResolvedValue("0x7000000000000000000000000000000000000001"),
     })
         .mockReturnValueOnce({
             getDetails,
-            getChainValidator: vi
-                .fn()
-                .mockResolvedValue(
-                    "0x8000000000000000000000000000000000000001",
-                ),
+            getChainValidator: vi.fn().mockResolvedValue("0x8000000000000000000000000000000000000001"),
         })
         .mockReturnValue({ isChainValid });
     vi.stubGlobal("fetch", vi.fn());
@@ -61,9 +55,7 @@ async function runCli(command) {
 
 function mockSources({ chainCSV, contractCSV, details }) {
     fetch
-        .mockResolvedValueOnce(
-            new Response(chainCSV, { headers: { "content-type": "text/csv" } }),
-        )
+        .mockResolvedValueOnce(new Response(chainCSV, { headers: { "content-type": "text/csv" } }))
         .mockResolvedValueOnce(
             new Response(contractCSV, {
                 headers: { "content-type": "text/csv" },
@@ -91,8 +83,7 @@ test("blocks all generation when the configured validator rejects new chain IDs"
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                     accounts: [["A", 0n]],
                 },
             ],
@@ -101,17 +92,10 @@ test("blocks all generation when the configured validator rejects new chain IDs"
     isChainValid.mockResolvedValue(false);
 
     expect(await runCli("generate")).toBe(2);
-    expect(isChainValid.mock.calls).toEqual([
-        ["eip155:999999"],
-        ["unsupported:network"],
-    ]);
+    expect(isChainValid.mock.calls).toEqual([["eip155:999999"], ["unsupported:network"]]);
     expect(warnings.mock.calls).toEqual([
-        [
-            "⚠️ Chain ID 'eip155:999999' is not accepted by the Agreement's configured chain validator",
-        ],
-        [
-            "⚠️ Chain ID 'unsupported:network' is not accepted by the Agreement's configured chain validator",
-        ],
+        ["⚠️ Chain ID 'eip155:999999' is not accepted by the Agreement's configured chain validator"],
+        ["⚠️ Chain ID 'unsupported:network' is not accepted by the Agreement's configured chain validator"],
         ["❌ Payload generation blocked: 2 validation warning(s)."],
     ]);
     expect(stdout).not.toHaveBeenCalled();
@@ -166,11 +150,8 @@ describe.each([
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
-                    accounts: [
-                        ["0x2000000000000000000000000000000000000001", 0n],
-                    ],
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+                    accounts: [["0x2000000000000000000000000000000000000001", 0n]],
                 },
             ],
         },
@@ -191,26 +172,22 @@ describe.each([
                 "eip155:1": {
                     accounts: [
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000001",
+                            accountAddress: "0x2000000000000000000000000000000000000001",
                             childContractScope: "0",
                         },
                     ],
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                 },
             },
             sheetState: {
                 "eip155:1": {
                     accounts: [
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000001",
+                            accountAddress: "0x2000000000000000000000000000000000000001",
                             childContractScope: 0,
                         },
                     ],
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                 },
             },
             changes: [],
@@ -219,8 +196,7 @@ describe.each([
         warningMessages: [],
         exitCodes: { generate: 0, inspect: 0, verify: 0 },
         generateMessage: "✅ No updates to generate",
-        verifyMessage:
-            "✅ SafeHarbor verification passed: no updates or validation warnings.",
+        verifyMessage: "✅ SafeHarbor verification passed: no updates or validation warnings.",
     },
     {
         scenario: "valid chain removal",
@@ -234,11 +210,8 @@ describe.each([
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
-                    accounts: [
-                        ["0x2000000000000000000000000000000000000001", 0n],
-                    ],
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+                    accounts: [["0x2000000000000000000000000000000000000001", 0n]],
                 },
             ],
         },
@@ -266,13 +239,11 @@ describe.each([
                 "eip155:1": {
                     accounts: [
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000001",
+                            accountAddress: "0x2000000000000000000000000000000000000001",
                             childContractScope: "0",
                         },
                     ],
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                 },
             },
             sheetState: {},
@@ -287,8 +258,7 @@ describe.each([
         warningMessages: [],
         exitCodes: { generate: 0, inspect: 0, verify: 2 },
         generateMessage: "✅ Payload generation completed successfully.",
-        verifyMessage:
-            "❌ SafeHarbor verification failed: 1 update(s), 0 validation warning(s).",
+        verifyMessage: "❌ SafeHarbor verification failed: 1 update(s), 0 validation warning(s).",
     },
     {
         scenario: "multiple warnings blocking account changes",
@@ -306,11 +276,8 @@ describe.each([
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000002",
-                    accounts: [
-                        ["0x2000000000000000000000000000000000000001", 0n],
-                    ],
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000002",
+                    accounts: [["0x2000000000000000000000000000000000000001", 0n]],
                 },
             ],
         },
@@ -331,31 +298,26 @@ describe.each([
                 "eip155:1": {
                     accounts: [
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000001",
+                            accountAddress: "0x2000000000000000000000000000000000000001",
                             childContractScope: "0",
                         },
                     ],
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000002",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000002",
                 },
             },
             sheetState: {
                 "eip155:1": {
                     accounts: [
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000002",
+                            accountAddress: "0x2000000000000000000000000000000000000002",
                             childContractScope: 0,
                         },
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000002",
+                            accountAddress: "0x2000000000000000000000000000000000000002",
                             childContractScope: 2,
                         },
                     ],
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                 },
             },
             changes: [],
@@ -373,10 +335,8 @@ describe.each([
                     code: "RECOVERY_ADDRESS_MISMATCH",
                     context: {
                         chainId: "eip155:1",
-                        onChainRecoveryAddress:
-                            "0x1000000000000000000000000000000000000002",
-                        sheetRecoveryAddress:
-                            "0x1000000000000000000000000000000000000001",
+                        onChainRecoveryAddress: "0x1000000000000000000000000000000000000002",
+                        sheetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                     },
                 },
             ],
@@ -390,14 +350,11 @@ describe.each([
             `,
         ],
         exitCodes: { generate: 2, inspect: 0, verify: 2 },
-        generateMessage:
-            "❌ Payload generation blocked: 2 validation warning(s).",
-        verifyMessage:
-            "❌ SafeHarbor verification failed: 0 update(s), 2 validation warning(s).",
+        generateMessage: "❌ Payload generation blocked: 2 validation warning(s).",
+        verifyMessage: "❌ SafeHarbor verification failed: 0 update(s), 2 validation warning(s).",
     },
     {
-        scenario:
-            "unknown on-chain IDs and their duplicate accounts remain inspectable",
+        scenario: "unknown on-chain IDs and their duplicate accounts remain inspectable",
         commands: ["inspect"],
         chainCSV: "Name,Chain Id,Asset Recovery Address\n",
         contractCSV: "Status,Chain,Address,isFactory\n",
@@ -456,53 +413,38 @@ describe.each([
         exitCodes: { inspect: 0 },
     },
 ])("$scenario", (fixture) => {
-    test.each(fixture.commands)(
-        "%s uses the real pipeline",
-        async (command) => {
-            mockSources(fixture);
+    test.each(fixture.commands)("%s uses the real pipeline", async (command) => {
+        mockSources(fixture);
 
-            expect(await runCli(command)).toBe(fixture.exitCodes[command]);
-            if (command !== "generate") {
-                expect(encodeSpy).not.toHaveBeenCalled();
-            }
-            expect(fetch).toHaveBeenCalledTimes(2);
-            expect(getDetails).toHaveBeenCalledExactlyOnceWith();
-            expect(isChainValid).not.toHaveBeenCalled();
-            expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
-            expect(stderr).not.toHaveBeenCalled();
+        expect(await runCli(command)).toBe(fixture.exitCodes[command]);
+        if (command !== "generate") {
+            expect(encodeSpy).not.toHaveBeenCalled();
+        }
+        expect(fetch).toHaveBeenCalledTimes(2);
+        expect(getDetails).toHaveBeenCalledExactlyOnceWith();
+        expect(isChainValid).not.toHaveBeenCalled();
+        expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
+        expect(stderr).not.toHaveBeenCalled();
 
-            if (command === "inspect") {
-                expect(stdout.mock.calls).toEqual([
-                    [JSON.stringify(fixture.report, null, 2)],
-                ]);
-            } else if (command === "verify") {
-                expect(stdout.mock.calls).toEqual([[fixture.verifyMessage]]);
-            } else {
-                expect(stdout.mock.calls).toEqual(
-                    fixture.solidityCode ? [[fixture.solidityCode]] : [],
-                );
-                expect(warnings).toHaveBeenLastCalledWith(
-                    fixture.generateMessage,
-                );
-            }
+        if (command === "inspect") {
+            expect(stdout.mock.calls).toEqual([[JSON.stringify(fixture.report, null, 2)]]);
+        } else if (command === "verify") {
+            expect(stdout.mock.calls).toEqual([[fixture.verifyMessage]]);
+        } else {
+            expect(stdout.mock.calls).toEqual(fixture.solidityCode ? [[fixture.solidityCode]] : []);
+            expect(warnings).toHaveBeenLastCalledWith(fixture.generateMessage);
+        }
 
-            const expectedWarnings = fixture.warningMessages.map((message) => [
-                message,
-            ]);
-            if (command === "generate") {
-                expectedWarnings.push([fixture.generateMessage]);
-            }
-            expect(warnings.mock.calls).toEqual(expectedWarnings);
-            if (fixture.report.validationWarnings.length > 0) {
-                expect(warnings).not.toHaveBeenCalledWith(
-                    "✅ Payload generation completed successfully.",
-                );
-                expect(warnings).not.toHaveBeenCalledWith(
-                    "✅ No updates to generate",
-                );
-            }
-        },
-    );
+        const expectedWarnings = fixture.warningMessages.map((message) => [message]);
+        if (command === "generate") {
+            expectedWarnings.push([fixture.generateMessage]);
+        }
+        expect(warnings.mock.calls).toEqual(expectedWarnings);
+        if (fixture.report.validationWarnings.length > 0) {
+            expect(warnings).not.toHaveBeenCalledWith("✅ Payload generation completed successfully.");
+            expect(warnings).not.toHaveBeenCalledWith("✅ No updates to generate");
+        }
+    });
 });
 
 describe.each([
@@ -518,11 +460,8 @@ describe.each([
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
-                    accounts: [
-                        ["0x2000000000000000000000000000000000000001", 0n],
-                    ],
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+                    accounts: [["0x2000000000000000000000000000000000000001", 0n]],
                 },
             ],
         },
@@ -547,11 +486,8 @@ describe.each([
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
-                    accounts: [
-                        ["0x2000000000000000000000000000000000000001", 0n],
-                    ],
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+                    accounts: [["0x2000000000000000000000000000000000000001", 0n]],
                 },
             ],
         },
@@ -563,25 +499,16 @@ describe.each([
         `,
     },
 ])("$scenario", (fixture) => {
-    test.each(fixture.commands)(
-        "%s exits 1 without output",
-        async (command) => {
-            mockSources(fixture);
+    test.each(fixture.commands)("%s exits 1 without output", async (command) => {
+        mockSources(fixture);
 
-            expect(await runCli(command)).toBe(1);
-            expect(stdout).not.toHaveBeenCalled();
-            expect(stderr).toHaveBeenCalledExactlyOnceWith(
-                fixture.errorMessage,
-            );
-            expect(warnings).not.toHaveBeenCalledWith("Generating updates...");
-            expect(warnings).not.toHaveBeenCalledWith(
-                "✅ Payload generation completed successfully.",
-            );
-            expect(warnings).not.toHaveBeenCalledWith(
-                "✅ No updates to generate",
-            );
-        },
-    );
+        expect(await runCli(command)).toBe(1);
+        expect(stdout).not.toHaveBeenCalled();
+        expect(stderr).toHaveBeenCalledExactlyOnceWith(fixture.errorMessage);
+        expect(warnings).not.toHaveBeenCalledWith("Generating updates...");
+        expect(warnings).not.toHaveBeenCalledWith("✅ Payload generation completed successfully.");
+        expect(warnings).not.toHaveBeenCalledWith("✅ No updates to generate");
+    });
 });
 
 test("verify exits 1 when fetching Agreement details fails", async () => {

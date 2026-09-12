@@ -1,13 +1,8 @@
 import { describe, expect, test } from "vitest";
-import {
-    normalizeChainDetails,
-    normalizeContractsInScope,
-} from "./normalize.js";
+import { normalizeChainDetails, normalizeContractsInScope } from "./normalize.js";
 
 test("rejects missing headers in required order", () => {
-    expect(() =>
-        normalizeContractsInScope({ headers: ["Status"], records: [] }),
-    ).toThrow(
+    expect(() => normalizeContractsInScope({ headers: ["Status"], records: [] })).toThrow(
         expect.objectContaining({
             diagnostic: {
                 code: "MISSING_SHEET_HEADERS",
@@ -58,8 +53,7 @@ test("diagnoses empty active addresses without dropping records or trimming quot
                     { accountAddress: "", childContractScope: 0 },
                     { accountAddress: " ", childContractScope: 0 },
                 ],
-                assetRecoveryAddress:
-                    "0x1000000000000000000000000000000000000001",
+                assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
             },
         },
         warnings: [
@@ -75,13 +69,7 @@ test("checks both factory aliases while accepting blanks and ignoring inactive r
     expect(
         normalizeContractsInScope(
             {
-                headers: [
-                    "Status",
-                    "Chain",
-                    "Address",
-                    "isFactory",
-                    "IsFactory",
-                ],
+                headers: ["Status", "Chain", "Address", "isFactory", "IsFactory"],
                 records: [
                     {
                         Status: "ACTIVE",
@@ -129,8 +117,7 @@ test("checks both factory aliases while accepting blanks and ignoring inactive r
                     { accountAddress: "B", childContractScope: 2 },
                     { accountAddress: "C", childContractScope: 0 },
                 ],
-                assetRecoveryAddress:
-                    "0x1000000000000000000000000000000000000001",
+                assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
             },
         },
         warnings: [
@@ -206,8 +193,7 @@ test.each(["__proto__", "constructor", "toString"])(
                         { accountAddress: "A", childContractScope: 0 },
                         { accountAddress: "B", childContractScope: 2 },
                     ],
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                 },
             },
             warnings: [],
@@ -241,9 +227,7 @@ test("joins raw recovery addresses without mutating either source", () => {
     expect(normalizeContractsInScope(sheet, metadata)).toEqual({
         value: {
             "eip155:1": {
-                accounts: [
-                    { accountAddress: " Account ", childContractScope: 2 },
-                ],
+                accounts: [{ accountAddress: " Account ", childContractScope: 2 }],
                 assetRecoveryAddress: " InvalidChecksumAndSpaces ",
             },
         },
@@ -286,8 +270,7 @@ describe("normalizeChainDetails", () => {
                     {
                         Name: "",
                         "Chain Id": "eip155:8453",
-                        "Asset Recovery Address":
-                            "0x1000000000000000000000000000000000000001",
+                        "Asset Recovery Address": "0x1000000000000000000000000000000000000001",
                     },
                 ],
             },
@@ -310,8 +293,7 @@ describe("normalizeChainDetails", () => {
                     {
                         Name: "BASE",
                         "Chain Id": "",
-                        "Asset Recovery Address":
-                            "0x1000000000000000000000000000000000000001",
+                        "Asset Recovery Address": "0x1000000000000000000000000000000000000001",
                     },
                 ],
             },
@@ -352,12 +334,7 @@ describe("normalizeChainDetails", () => {
         {
             scenario: "only an extra column is populated",
             sheet: {
-                headers: [
-                    "Name",
-                    "Chain Id",
-                    "Asset Recovery Address",
-                    "Notes",
-                ],
+                headers: ["Name", "Chain Id", "Asset Recovery Address", "Notes"],
                 records: [
                     {
                         Name: "",
@@ -373,11 +350,7 @@ describe("normalizeChainDetails", () => {
                     context: {
                         chainName: "",
                         chainId: "",
-                        missingFields: [
-                            "Name",
-                            "Chain Id",
-                            "Asset Recovery Address",
-                        ],
+                        missingFields: ["Name", "Chain Id", "Asset Recovery Address"],
                     },
                 },
             ],
@@ -385,12 +358,7 @@ describe("normalizeChainDetails", () => {
         {
             scenario: "completely blank rows",
             sheet: {
-                headers: [
-                    "Name",
-                    "Chain Id",
-                    "Asset Recovery Address",
-                    "Notes",
-                ],
+                headers: ["Name", "Chain Id", "Asset Recovery Address", "Notes"],
                 records: [
                     {
                         Name: "",
@@ -428,14 +396,12 @@ describe("normalizeChainDetails", () => {
                     {
                         Name: "ETHEREUM",
                         "Chain Id": "eip155:1",
-                        "Asset Recovery Address":
-                            "0x1000000000000000000000000000000000000001",
+                        "Asset Recovery Address": "0x1000000000000000000000000000000000000001",
                     },
                     {
                         Name: "ETHEREUM",
                         "Chain Id": "eip155:2",
-                        "Asset Recovery Address":
-                            "0x1000000000000000000000000000000000000002",
+                        "Asset Recovery Address": "0x1000000000000000000000000000000000000002",
                     },
                 ],
             },
@@ -456,14 +422,12 @@ describe("normalizeChainDetails", () => {
                     {
                         Name: "ETHEREUM",
                         "Chain Id": "eip155:1",
-                        "Asset Recovery Address":
-                            "0x1000000000000000000000000000000000000001",
+                        "Asset Recovery Address": "0x1000000000000000000000000000000000000001",
                     },
                     {
                         Name: "ETH_DUPLICATE",
                         "Chain Id": "eip155:1",
-                        "Asset Recovery Address":
-                            "0x1000000000000000000000000000000000000002",
+                        "Asset Recovery Address": "0x1000000000000000000000000000000000000002",
                     },
                 ],
             },
@@ -476,21 +440,18 @@ describe("normalizeChainDetails", () => {
                 },
             },
         ],
-    ])(
-        "preserves earlier mappings for a duplicate %s",
-        (_case, sheet, warning) => {
-            const { value, warnings } = normalizeChainDetails(sheet);
+    ])("preserves earlier mappings for a duplicate %s", (_case, sheet, warning) => {
+        const { value, warnings } = normalizeChainDetails(sheet);
 
-            expect(warnings).toEqual([warning]);
-            expect(value).toEqual({
-                caip2ChainId: { ETHEREUM: "eip155:1" },
-                assetRecoveryAddress: {
-                    ETHEREUM: "0x1000000000000000000000000000000000000001",
-                },
-                name: { "eip155:1": "ETHEREUM" },
-            });
-        },
-    );
+        expect(warnings).toEqual([warning]);
+        expect(value).toEqual({
+            caip2ChainId: { ETHEREUM: "eip155:1" },
+            assetRecoveryAddress: {
+                ETHEREUM: "0x1000000000000000000000000000000000000001",
+            },
+            name: { "eip155:1": "ETHEREUM" },
+        });
+    });
 
     test.each([
         [
@@ -501,20 +462,17 @@ describe("normalizeChainDetails", () => {
                     {
                         Name: "ETHEREUM",
                         "Chain Id": "eip155:1",
-                        "Asset Recovery Address":
-                            "0x1000000000000000000000000000000000000001",
+                        "Asset Recovery Address": "0x1000000000000000000000000000000000000001",
                     },
                     {
                         Name: "ETHEREUM",
                         "Chain Id": "eip155:1",
-                        "Asset Recovery Address":
-                            "0x1000000000000000000000000000000000000002",
+                        "Asset Recovery Address": "0x1000000000000000000000000000000000000002",
                     },
                     {
                         Name: "BASE",
                         "Chain Id": "eip155:8453",
-                        "Asset Recovery Address":
-                            "0x1000000000000000000000000000000000000003",
+                        "Asset Recovery Address": "0x1000000000000000000000000000000000000003",
                     },
                 ],
             },
@@ -545,26 +503,22 @@ describe("normalizeChainDetails", () => {
                     {
                         Name: "ETHEREUM",
                         "Chain Id": "eip155:1",
-                        "Asset Recovery Address":
-                            "0x1000000000000000000000000000000000000001",
+                        "Asset Recovery Address": "0x1000000000000000000000000000000000000001",
                     },
                     {
                         Name: "ETHEREUM",
                         "Chain Id": "eip155:2",
-                        "Asset Recovery Address":
-                            "0x1000000000000000000000000000000000000002",
+                        "Asset Recovery Address": "0x1000000000000000000000000000000000000002",
                     },
                     {
                         Name: "OTHER",
                         "Chain Id": "eip155:2",
-                        "Asset Recovery Address":
-                            "0x1000000000000000000000000000000000000002",
+                        "Asset Recovery Address": "0x1000000000000000000000000000000000000002",
                     },
                     {
                         Name: "BASE",
                         "Chain Id": "eip155:8453",
-                        "Asset Recovery Address":
-                            "0x1000000000000000000000000000000000000003",
+                        "Asset Recovery Address": "0x1000000000000000000000000000000000000003",
                     },
                 ],
             },
@@ -595,26 +549,22 @@ describe("normalizeChainDetails", () => {
                     {
                         Name: "ETHEREUM",
                         "Chain Id": "eip155:1",
-                        "Asset Recovery Address":
-                            "0x1000000000000000000000000000000000000001",
+                        "Asset Recovery Address": "0x1000000000000000000000000000000000000001",
                     },
                     {
                         Name: "OTHER",
                         "Chain Id": "eip155:1",
-                        "Asset Recovery Address":
-                            "0x1000000000000000000000000000000000000002",
+                        "Asset Recovery Address": "0x1000000000000000000000000000000000000002",
                     },
                     {
                         Name: "OTHER",
                         "Chain Id": "eip155:2",
-                        "Asset Recovery Address":
-                            "0x1000000000000000000000000000000000000002",
+                        "Asset Recovery Address": "0x1000000000000000000000000000000000000002",
                     },
                     {
                         Name: "BASE",
                         "Chain Id": "eip155:8453",
-                        "Asset Recovery Address":
-                            "0x1000000000000000000000000000000000000003",
+                        "Asset Recovery Address": "0x1000000000000000000000000000000000000003",
                     },
                 ],
             },
@@ -637,22 +587,19 @@ describe("normalizeChainDetails", () => {
                 },
             ],
         ],
-    ])(
-        "diagnoses %s while retaining unrelated mappings",
-        (_scenario, sheet, warnings) => {
-            expect(normalizeChainDetails(sheet)).toEqual({
-                value: {
-                    caip2ChainId: { ETHEREUM: "eip155:1", BASE: "eip155:8453" },
-                    assetRecoveryAddress: {
-                        ETHEREUM: "0x1000000000000000000000000000000000000001",
-                        BASE: "0x1000000000000000000000000000000000000003",
-                    },
-                    name: { "eip155:1": "ETHEREUM", "eip155:8453": "BASE" },
+    ])("diagnoses %s while retaining unrelated mappings", (_scenario, sheet, warnings) => {
+        expect(normalizeChainDetails(sheet)).toEqual({
+            value: {
+                caip2ChainId: { ETHEREUM: "eip155:1", BASE: "eip155:8453" },
+                assetRecoveryAddress: {
+                    ETHEREUM: "0x1000000000000000000000000000000000000001",
+                    BASE: "0x1000000000000000000000000000000000000003",
                 },
-                warnings,
-            });
-        },
-    );
+                name: { "eip155:1": "ETHEREUM", "eip155:8453": "BASE" },
+            },
+            warnings,
+        });
+    });
 });
 
 test("groups active contracts in order with exact addresses and both factory aliases", () => {
@@ -727,10 +674,7 @@ test("groups active contracts in order with exact addresses and both factory ali
         },
     );
 
-    expect(Object.keys(result.value)).toEqual([
-        "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
-        "eip155:1",
-    ]);
+    expect(Object.keys(result.value)).toEqual(["solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "eip155:1"]);
     expect(result.value).toEqual({
         "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp": {
             accounts: [
@@ -738,19 +682,16 @@ test("groups active contracts in order with exact addresses and both factory ali
                 { accountAddress: "accountUpperCase", childContractScope: 0 },
                 { accountAddress: "AccountUpperCase", childContractScope: 0 },
             ],
-            assetRecoveryAddress:
-                "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+            assetRecoveryAddress: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
         },
         "eip155:1": {
             accounts: [
                 {
-                    accountAddress:
-                        "0xA000000000000000000000000000000000000001",
+                    accountAddress: "0xA000000000000000000000000000000000000001",
                     childContractScope: 2,
                 },
                 {
-                    accountAddress:
-                        "0xa000000000000000000000000000000000000001",
+                    accountAddress: "0xa000000000000000000000000000000000000001",
                     childContractScope: 0,
                 },
             ],

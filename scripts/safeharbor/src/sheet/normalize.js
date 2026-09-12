@@ -1,10 +1,7 @@
 import { DIAGNOSTIC_CODES as $ } from "../diagnostic/index.js";
 import { findDuplicateIndexes } from "../utils/findDuplicateIndexes.js";
 
-export function normalizeContractsInScope(
-    { headers, records },
-    sheetChainDetails,
-) {
+export function normalizeContractsInScope({ headers, records }, sheetChainDetails) {
     assertContractHeaders(headers);
     const activeRecords = getActiveContracts(records);
     const accountsByChainName = groupAccountsByChain(activeRecords);
@@ -27,10 +24,7 @@ export function normalizeChainDetails({ headers, records }) {
 
     return {
         value: buildChainLookups(getUniqueChains(chains, duplicates)),
-        warnings: [
-            ...validateChainMetadata(records),
-            ...validateDuplicateChains(chains, duplicates),
-        ],
+        warnings: [...validateChainMetadata(records), ...validateDuplicateChains(chains, duplicates)],
     };
 }
 
@@ -50,8 +44,7 @@ function buildChainStates(accountsByChainName, sheetChainDetails) {
                 sheetChainDetails.caip2ChainId[chainName],
                 {
                     accounts,
-                    assetRecoveryAddress:
-                        sheetChainDetails.assetRecoveryAddress[chainName],
+                    assetRecoveryAddress: sheetChainDetails.assetRecoveryAddress[chainName],
                 },
             ]),
     );
@@ -67,15 +60,12 @@ function normalizeAccount(record) {
     return {
         accountAddress: record.Address,
         // Handle both possible column names for the factory flag.
-        childContractScope:
-            record.isFactory === "TRUE" || record.IsFactory === "TRUE" ? 2 : 0,
+        childContractScope: record.isFactory === "TRUE" || record.IsFactory === "TRUE" ? 2 : 0,
     };
 }
 
 function getCompleteChains(records) {
-    return records.filter(
-        (record) => getMissingChainFields(record).length === 0,
-    );
+    return records.filter((record) => getMissingChainFields(record).length === 0);
 }
 
 function analyzeDuplicateChains(chains) {
@@ -90,27 +80,14 @@ function analyzeDuplicateChains(chains) {
 }
 
 function getUniqueChains(chains, duplicates) {
-    return chains.filter(
-        (_chain, index) =>
-            !duplicates.nameIndexes.has(index) &&
-            !duplicates.idIndexes.has(index),
-    );
+    return chains.filter((_chain, index) => !duplicates.nameIndexes.has(index) && !duplicates.idIndexes.has(index));
 }
 
 function buildChainLookups(chains) {
     return {
-        caip2ChainId: Object.fromEntries(
-            chains.map((chain) => [chain.Name, chain["Chain Id"]]),
-        ),
-        assetRecoveryAddress: Object.fromEntries(
-            chains.map((chain) => [
-                chain.Name,
-                chain["Asset Recovery Address"],
-            ]),
-        ),
-        name: Object.fromEntries(
-            chains.map((chain) => [chain["Chain Id"], chain.Name]),
-        ),
+        caip2ChainId: Object.fromEntries(chains.map((chain) => [chain.Name, chain["Chain Id"]])),
+        assetRecoveryAddress: Object.fromEntries(chains.map((chain) => [chain.Name, chain["Asset Recovery Address"]])),
+        name: Object.fromEntries(chains.map((chain) => [chain["Chain Id"], chain.Name])),
     };
 }
 
@@ -151,10 +128,7 @@ function validateDuplicateChainName(chain, index, duplicates) {
             code: $.DUPLICATE_CHAIN_NAME,
             context: {
                 chainName: chain.Name,
-                firstChainId:
-                    duplicates.chainIds[
-                        duplicates.chainNames.indexOf(chain.Name)
-                    ],
+                firstChainId: duplicates.chainIds[duplicates.chainNames.indexOf(chain.Name)],
                 duplicateChainId: chain["Chain Id"],
             },
         },
@@ -170,10 +144,7 @@ function validateDuplicateChainId(chain, index, duplicates) {
             code: $.DUPLICATE_CHAIN_ID,
             context: {
                 chainId: chain["Chain Id"],
-                firstChainName:
-                    duplicates.chainNames[
-                        duplicates.chainIds.indexOf(chain["Chain Id"])
-                    ],
+                firstChainName: duplicates.chainNames[duplicates.chainIds.indexOf(chain["Chain Id"])],
                 duplicateChainName: chain.Name,
             },
         },
@@ -181,12 +152,8 @@ function validateDuplicateChainId(chain, index, duplicates) {
 }
 
 function validateFactoryFlags(records, headers) {
-    const columns = headers.filter(
-        (header) => header === "isFactory" || header === "IsFactory",
-    );
-    return records.flatMap((record) =>
-        columns.flatMap((column) => validateFactoryFlag(record, column)),
-    );
+    const columns = headers.filter((header) => header === "isFactory" || header === "IsFactory");
+    return records.flatMap((record) => columns.flatMap((column) => validateFactoryFlag(record, column)));
 }
 
 function validateFactoryFlag(record, column) {
@@ -207,9 +174,7 @@ function validateFactoryFlag(record, column) {
 }
 
 function validateKnownChains(sheetState, sheetChainDetails) {
-    return Object.keys(sheetState).flatMap((chainName) =>
-        validateKnownChain(chainName, sheetChainDetails),
-    );
+    return Object.keys(sheetState).flatMap((chainName) => validateKnownChain(chainName, sheetChainDetails));
 }
 
 function validateKnownChain(chainName, sheetChainDetails) {
@@ -225,9 +190,7 @@ function validateKnownChain(chainName, sheetChainDetails) {
 }
 
 function validateUniqueAccounts(sheetState) {
-    return Object.entries(sheetState).flatMap(([chainName, accounts]) =>
-        validateChainAccounts(chainName, accounts),
-    );
+    return Object.entries(sheetState).flatMap(([chainName, accounts]) => validateChainAccounts(chainName, accounts));
 }
 
 function validateChainAccounts(chainName, accounts) {
@@ -237,9 +200,7 @@ function validateChainAccounts(chainName, accounts) {
         context: {
             chainName,
             address: addresses[index],
-            firstScope:
-                accounts[addresses.indexOf(addresses[index])]
-                    .childContractScope,
+            firstScope: accounts[addresses.indexOf(addresses[index])].childContractScope,
             duplicateScope: accounts[index].childContractScope,
         },
     }));
@@ -247,9 +208,7 @@ function validateChainAccounts(chainName, accounts) {
 
 function validateAccountAddresses(sheetState) {
     return Object.entries(sheetState).flatMap(([chainName, accounts]) =>
-        accounts.flatMap((account) =>
-            validateAccountAddress(account, chainName),
-        ),
+        accounts.flatMap((account) => validateAccountAddress(account, chainName)),
     );
 }
 
@@ -266,18 +225,11 @@ function validateAccountAddress({ accountAddress }, chainName) {
 }
 
 function assertContractHeaders(headers) {
-    assertHeaders(headers, [
-        "Status",
-        "Chain",
-        "Address",
-        headers.includes("IsFactory") ? "IsFactory" : "isFactory",
-    ]);
+    assertHeaders(headers, ["Status", "Chain", "Address", headers.includes("IsFactory") ? "IsFactory" : "isFactory"]);
 }
 
 function assertHeaders(headers, requiredHeaders) {
-    const missingHeaders = requiredHeaders.filter(
-        (header) => !headers.includes(header),
-    );
+    const missingHeaders = requiredHeaders.filter((header) => !headers.includes(header));
     if (missingHeaders.length === 0) {
         return;
     }

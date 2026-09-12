@@ -18,17 +18,11 @@ let encodeSpy;
 beforeEach(() => {
     isChainValid.mockResolvedValue(true);
     Contract.mockReturnValueOnce({
-        "getAddress(bytes32)": vi
-            .fn()
-            .mockResolvedValue("0x7000000000000000000000000000000000000001"),
+        "getAddress(bytes32)": vi.fn().mockResolvedValue("0x7000000000000000000000000000000000000001"),
     })
         .mockReturnValueOnce({
             getDetails,
-            getChainValidator: vi
-                .fn()
-                .mockResolvedValue(
-                    "0x8000000000000000000000000000000000000001",
-                ),
+            getChainValidator: vi.fn().mockResolvedValue("0x8000000000000000000000000000000000000001"),
         })
         .mockReturnValue({ isChainValid });
     vi.stubGlobal("fetch", vi.fn());
@@ -56,9 +50,7 @@ function csvResponse(csv) {
 }
 
 async function reconcileFrom({ chainCSV, contractCSV, details }) {
-    fetch
-        .mockResolvedValueOnce(csvResponse(chainCSV))
-        .mockResolvedValueOnce(csvResponse(contractCSV));
+    fetch.mockResolvedValueOnce(csvResponse(chainCSV)).mockResolvedValueOnce(csvResponse(contractCSV));
     getDetails.mockResolvedValue(details);
     const report = await reconcile({
         getAgreementState: createAgreementReader(provider),
@@ -81,8 +73,7 @@ test.each([
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                     accounts: [["A", 0n]],
                 },
             ],
@@ -98,8 +89,7 @@ test.each([
             agreementOnChainState: {
                 "eip155:1": {
                     accounts: [{ accountAddress: "A", childContractScope: 0n }],
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                 },
             },
             sheetState: {},
@@ -121,11 +111,8 @@ test.each([
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
-                    accounts: [
-                        ["0x2000000000000000000000000000000000000001", 0n],
-                    ],
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+                    accounts: [["0x2000000000000000000000000000000000000001", 0n]],
                 },
             ],
         },
@@ -141,26 +128,22 @@ test.each([
                 "eip155:1": {
                     accounts: [
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000001",
+                            accountAddress: "0x2000000000000000000000000000000000000001",
                             childContractScope: 0n,
                         },
                     ],
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                 },
             },
             sheetState: {
                 "eip155:1": {
                     accounts: [
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000001",
+                            accountAddress: "0x2000000000000000000000000000000000000001",
                             childContractScope: 0,
                         },
                     ],
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                 },
             },
             changes: [],
@@ -184,19 +167,12 @@ test.each([
             agreementOnChainState: {},
             sheetState: {},
             changes: [],
-            validationWarnings: [
-                { code: "UNKNOWN_SHEET_CHAIN", context: { chainName: "BASE" } },
-            ],
+            validationWarnings: [{ code: "UNKNOWN_SHEET_CHAIN", context: { chainName: "BASE" } }],
         },
     },
-])(
-    "returns $scenario without encoding or reporting",
-    async ({ chainCSV, contractCSV, details, expected }) => {
-        expect(await reconcileFrom({ chainCSV, contractCSV, details })).toEqual(
-            expected,
-        );
-    },
-);
+])("returns $scenario without encoding or reporting", async ({ chainCSV, contractCSV, details, expected }) => {
+    expect(await reconcileFrom({ chainCSV, contractCSV, details })).toEqual(expected);
+});
 
 test.each([
     {
@@ -231,12 +207,10 @@ test.each([
                     [
                         {
                             caip2ChainId: "eip155:8453",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000001",
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                             accounts: [
                                 {
-                                    accountAddress:
-                                        "0x2000000000000000000000000000000000000001",
+                                    accountAddress: "0x2000000000000000000000000000000000000001",
                                     childContractScope: 0,
                                 },
                             ],
@@ -265,29 +239,23 @@ test.each([
             },
         ],
     },
-])(
-    "$scenario",
-    async ({ chainCSV, contractCSV, expectedChanges, expectedWarnings }) => {
-        const result = await reconcileFrom({
-            chainCSV,
-            contractCSV,
-            details: {
-                chains: [
-                    {
-                        caip2ChainId: "eip155:1",
-                        assetRecoveryAddress:
-                            "0x1000000000000000000000000000000000000001",
-                        accounts: [
-                            ["0x2000000000000000000000000000000000000001", 0n],
-                        ],
-                    },
-                ],
-            },
-        });
-        expect(result.changes).toEqual(expectedChanges);
-        expect(result.validationWarnings).toEqual(expectedWarnings);
-    },
-);
+])("$scenario", async ({ chainCSV, contractCSV, expectedChanges, expectedWarnings }) => {
+    const result = await reconcileFrom({
+        chainCSV,
+        contractCSV,
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+                    accounts: [["0x2000000000000000000000000000000000000001", 0n]],
+                },
+            ],
+        },
+    });
+    expect(result.changes).toEqual(expectedChanges);
+    expect(result.validationWarnings).toEqual(expectedWarnings);
+});
 
 describe("validation warnings", () => {
     test.each([
@@ -302,8 +270,7 @@ describe("validation warnings", () => {
                 chains: [
                     {
                         caip2ChainId: "eip155:1",
-                        assetRecoveryAddress:
-                            "0x1000000000000000000000000000000000000001",
+                        assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                         accounts: [["A", 0n]],
                     },
                 ],
@@ -319,8 +286,7 @@ describe("validation warnings", () => {
                 chains: [
                     {
                         caip2ChainId: "eip155:1",
-                        assetRecoveryAddress:
-                            "0x1000000000000000000000000000000000000001",
+                        assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                         accounts: [["A", 0n]],
                     },
                 ],
@@ -334,26 +300,23 @@ describe("validation warnings", () => {
             `,
             details: { chains: [] },
         },
-    ])(
-        "blocks an empty address for $scenario before encoding",
-        async ({ contractCSV, details }) => {
-            const result = await reconcileFrom({
-                chainCSV: dedent`
+    ])("blocks an empty address for $scenario before encoding", async ({ contractCSV, details }) => {
+        const result = await reconcileFrom({
+            chainCSV: dedent`
                     Name,Chain Id,Asset Recovery Address
                     ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
                 `,
-                contractCSV,
-                details,
-            });
-            expect(result.changes).toEqual([]);
-            expect(result.validationWarnings).toEqual([
-                {
-                    code: "MISSING_SHEET_ACCOUNT_ADDRESS",
-                    context: { chainName: "ETHEREUM" },
-                },
-            ]);
-        },
-    );
+            contractCSV,
+            details,
+        });
+        expect(result.changes).toEqual([]);
+        expect(result.validationWarnings).toEqual([
+            {
+                code: "MISSING_SHEET_ACCOUNT_ADDRESS",
+                context: { chainName: "ETHEREUM" },
+            },
+        ]);
+    });
 
     describe("Chain Property Validation", () => {
         test("should block account planning on a recovery mismatch", async () => {
@@ -375,14 +338,8 @@ describe("validation warnings", () => {
                     chains: [
                         {
                             caip2ChainId: "eip155:1",
-                            assetRecoveryAddress:
-                                "0x10000000000000000000000000000000000000ff",
-                            accounts: [
-                                [
-                                    "0x2000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                            ],
+                            assetRecoveryAddress: "0x10000000000000000000000000000000000000ff",
+                            accounts: [["0x2000000000000000000000000000000000000001", 0n]],
                         },
                     ],
                 },
@@ -394,10 +351,8 @@ describe("validation warnings", () => {
                     code: "RECOVERY_ADDRESS_MISMATCH",
                     context: {
                         chainId: "eip155:1",
-                        onChainRecoveryAddress:
-                            "0x10000000000000000000000000000000000000ff",
-                        sheetRecoveryAddress:
-                            "0x1000000000000000000000000000000000000001",
+                        onChainRecoveryAddress: "0x10000000000000000000000000000000000000ff",
+                        sheetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                     },
                 },
             ]);
@@ -422,25 +377,13 @@ describe("validation warnings", () => {
                     chains: [
                         {
                             caip2ChainId: "eip155:1",
-                            assetRecoveryAddress:
-                                "0x10000000000000000000000000000000000000ff",
-                            accounts: [
-                                [
-                                    "0x2000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                            ],
+                            assetRecoveryAddress: "0x10000000000000000000000000000000000000ff",
+                            accounts: [["0x2000000000000000000000000000000000000001", 0n]],
                         },
                         {
                             caip2ChainId: "eip155:8453",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000002",
-                            accounts: [
-                                [
-                                    "0x3000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                            ],
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000002",
+                            accounts: [["0x3000000000000000000000000000000000000001", 0n]],
                         },
                     ],
                 },
@@ -453,10 +396,8 @@ describe("validation warnings", () => {
                     code: "RECOVERY_ADDRESS_MISMATCH",
                     context: {
                         chainId: "eip155:1",
-                        onChainRecoveryAddress:
-                            "0x10000000000000000000000000000000000000ff",
-                        sheetRecoveryAddress:
-                            "0x1000000000000000000000000000000000000001",
+                        onChainRecoveryAddress: "0x10000000000000000000000000000000000000ff",
+                        sheetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                     },
                 },
             ]);
@@ -500,29 +441,16 @@ describe("validation warnings", () => {
                     chains: [
                         {
                             caip2ChainId: "eip155:1",
-                            assetRecoveryAddress:
-                                "0x10000000000000000000000000000000000000ff",
+                            assetRecoveryAddress: "0x10000000000000000000000000000000000000ff",
                             accounts: [
-                                [
-                                    "0x2000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                                [
-                                    "0x2000000000000000000000000000000000000001",
-                                    2n,
-                                ],
+                                ["0x2000000000000000000000000000000000000001", 0n],
+                                ["0x2000000000000000000000000000000000000001", 2n],
                             ],
                         },
                         {
                             caip2ChainId: "eip155:137",
-                            assetRecoveryAddress:
-                                "0x1000000000000000000000000000000000000001",
-                            accounts: [
-                                [
-                                    "0x6000000000000000000000000000000000000001",
-                                    0n,
-                                ],
-                            ],
+                            assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+                            accounts: [["0x6000000000000000000000000000000000000001", 0n]],
                         },
                     ],
                 },
@@ -553,10 +481,8 @@ describe("validation warnings", () => {
                     code: "RECOVERY_ADDRESS_MISMATCH",
                     context: {
                         chainId: "eip155:1",
-                        onChainRecoveryAddress:
-                            "0x10000000000000000000000000000000000000ff",
-                        sheetRecoveryAddress:
-                            "0x1000000000000000000000000000000000000001",
+                        onChainRecoveryAddress: "0x10000000000000000000000000000000000000ff",
+                        sheetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                     },
                 },
             ]);
@@ -584,15 +510,13 @@ test.each([
                     chainId: "eip155:1",
                     isNewChain: true,
                     onChainRecoveryAddress: undefined,
-                    sheetRecoveryAddress:
-                        "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
+                    sheetRecoveryAddress: "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
                 },
             },
         ],
     },
     {
-        scenario:
-            "incomplete unused metadata with an otherwise valid chain removal",
+        scenario: "incomplete unused metadata with an otherwise valid chain removal",
         chainCSV: dedent`
             Name,Chain Id,Asset Recovery Address
             ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
@@ -603,11 +527,8 @@ test.each([
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
-                    accounts: [
-                        ["0x2000000000000000000000000000000000000001", 0n],
-                    ],
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+                    accounts: [["0x2000000000000000000000000000000000000001", 0n]],
                 },
             ],
         },
@@ -661,8 +582,7 @@ test.each([
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                     accounts: [
                         ["0x2000000000000000000000000000000000000001", 0n],
                         ["0x2000000000000000000000000000000000000001", 0n],
@@ -697,8 +617,7 @@ test.each([
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                     accounts: [
                         ["0x2000000000000000000000000000000000000002", 0n],
                         ["0x2000000000000000000000000000000000000002", 2n],
@@ -727,14 +646,11 @@ test.each([
             },
         ],
     },
-])(
-    "returns diagnostics only for $scenario",
-    async ({ chainCSV, contractCSV, details, expectedWarnings }) => {
-        const result = await reconcileFrom({ chainCSV, contractCSV, details });
-        expect(result.changes).toEqual([]);
-        expect(result.validationWarnings).toEqual(expectedWarnings);
-    },
-);
+])("returns diagnostics only for $scenario", async ({ chainCSV, contractCSV, details, expectedWarnings }) => {
+    const result = await reconcileFrom({ chainCSV, contractCSV, details });
+    expect(result.changes).toEqual([]);
+    expect(result.validationWarnings).toEqual(expectedWarnings);
+});
 
 describe("CSV validation before reconciliation", () => {
     test.each([
@@ -802,18 +718,13 @@ describe("CSV validation before reconciliation", () => {
             error: { code: "CSV_QUOTE_NOT_CLOSED" },
         },
     ])("rejects $scenario", async ({ chainCSV, contractCSV, error }) => {
-        fetch
-            .mockResolvedValueOnce(csvResponse(chainCSV))
-            .mockResolvedValueOnce(csvResponse(contractCSV));
+        fetch.mockResolvedValueOnce(csvResponse(chainCSV)).mockResolvedValueOnce(csvResponse(contractCSV));
         getDetails.mockResolvedValue({
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
-                    accounts: [
-                        ["0x2000000000000000000000000000000000000001", 0n],
-                    ],
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+                    accounts: [["0x2000000000000000000000000000000000000001", 0n]],
                 },
             ],
         });
@@ -838,46 +749,40 @@ describe("CSV validation before reconciliation", () => {
                 INACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
             `,
         ],
-    ])(
-        "preserves intentional chain removal for %s",
-        async (_scenario, contractCSV) => {
-            fetch
-                .mockResolvedValueOnce(
-                    csvResponse(
-                        dedent`
+    ])("preserves intentional chain removal for %s", async (_scenario, contractCSV) => {
+        fetch
+            .mockResolvedValueOnce(
+                csvResponse(
+                    dedent`
                             Name,Chain Id,Asset Recovery Address
                             ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
                         `,
-                    ),
-                )
-                .mockResolvedValueOnce(csvResponse(contractCSV));
-            getDetails.mockResolvedValue({
-                chains: [
-                    {
-                        caip2ChainId: "eip155:1",
-                        assetRecoveryAddress:
-                            "0x1000000000000000000000000000000000000001",
-                        accounts: [
-                            ["0x2000000000000000000000000000000000000001", 0n],
-                        ],
-                    },
-                ],
-            });
-
-            const result = await reconcile({
-                getAgreementState: createAgreementReader(provider),
-                getSheetState,
-                getSheetChainDetails,
-            });
-
-            expect(result.validationWarnings).toEqual([]);
-            expect(result.changes).toEqual([
+                ),
+            )
+            .mockResolvedValueOnce(csvResponse(contractCSV));
+        getDetails.mockResolvedValue({
+            chains: [
                 {
-                    fn: "removeChains",
-                    args: [["eip155:1"]],
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+                    accounts: [["0x2000000000000000000000000000000000000001", 0n]],
                 },
-            ]);
-            expect(result).not.toHaveProperty("solidityCode");
-        },
-    );
+            ],
+        });
+
+        const result = await reconcile({
+            getAgreementState: createAgreementReader(provider),
+            getSheetState,
+            getSheetChainDetails,
+        });
+
+        expect(result.validationWarnings).toEqual([]);
+        expect(result.changes).toEqual([
+            {
+                fn: "removeChains",
+                args: [["eip155:1"]],
+            },
+        ]);
+        expect(result).not.toHaveProperty("solidityCode");
+    });
 });

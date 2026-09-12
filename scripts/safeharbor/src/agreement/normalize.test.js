@@ -9,8 +9,7 @@ describe("normalizeOnChainState", () => {
                 chains: [
                     {
                         caip2ChainId: "eip155:1",
-                        assetRecoveryAddress:
-                            "0x1000000000000000000000000000000000000001",
+                        assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                         accounts: [
                             ["0x2000000000000000000000000000000000000001", 0n],
                             ["0x2000000000000000000000000000000000000001", 0n],
@@ -46,19 +45,13 @@ describe("normalizeOnChainState", () => {
                 chains: [
                     {
                         caip2ChainId: "eip155:1",
-                        assetRecoveryAddress:
-                            "0x1000000000000000000000000000000000000001",
-                        accounts: [
-                            ["0x2000000000000000000000000000000000000001", 0n],
-                        ],
+                        assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+                        accounts: [["0x2000000000000000000000000000000000000001", 0n]],
                     },
                     {
                         caip2ChainId: "eip155:8453",
-                        assetRecoveryAddress:
-                            "0x1000000000000000000000000000000000000002",
-                        accounts: [
-                            ["0x2000000000000000000000000000000000000001", 2n],
-                        ],
+                        assetRecoveryAddress: "0x1000000000000000000000000000000000000002",
+                        accounts: [["0x2000000000000000000000000000000000000001", 2n]],
                     },
                 ],
             },
@@ -70,8 +63,7 @@ describe("normalizeOnChainState", () => {
                 chains: [
                     {
                         caip2ChainId: "eip155:1",
-                        assetRecoveryAddress:
-                            "0x1000000000000000000000000000000000000001",
+                        assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                         accounts: [
                             ["0x8ba1f109551bd432803012645ac136ddd64dba72", 0n],
                             ["0x8ba1f109551bD432803012645Ac136ddd64DBA72", 2n],
@@ -87,17 +79,10 @@ describe("normalizeOnChainState", () => {
                 chains: [
                     {
                         caip2ChainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
-                        assetRecoveryAddress:
-                            "3EKkiwNLWqoUbzFkPrmKbtUB4EweE6f4STzevYUmezeL",
+                        assetRecoveryAddress: "3EKkiwNLWqoUbzFkPrmKbtUB4EweE6f4STzevYUmezeL",
                         accounts: [
-                            [
-                                "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
-                                0n,
-                            ],
-                            [
-                                "29d2s7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
-                                2n,
-                            ],
+                            ["29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2", 0n],
+                            ["29d2s7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2", 2n],
                         ],
                     },
                 ],
@@ -114,8 +99,7 @@ describe("normalizeOnChainState", () => {
                 chains: [
                     {
                         caip2ChainId: "eip155:1",
-                        assetRecoveryAddress:
-                            "0x1000000000000000000000000000000000000001",
+                        assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                         accounts: [
                             ["A", 0n],
                             ["A", 2n],
@@ -134,8 +118,7 @@ describe("normalizeOnChainState", () => {
         ).toEqual({
             value: {
                 "eip155:1": {
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                     accounts: [
                         { accountAddress: "A", childContractScope: 0n },
                         { accountAddress: "A", childContractScope: 2n },
@@ -190,9 +173,7 @@ describe("normalizeOnChainState", () => {
                 value: {
                     [chainId]: {
                         assetRecoveryAddress: "recovery",
-                        accounts: [
-                            { accountAddress: "A", childContractScope: 0n },
-                        ],
+                        accounts: [{ accountAddress: "A", childContractScope: 0n }],
                     },
                 },
                 warnings: [],
@@ -212,19 +193,13 @@ describe("normalizeOnChainState", () => {
             chains: [
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
-                    accounts: [
-                        ["0x2000000000000000000000000000000000000001", 0n],
-                    ],
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+                    accounts: [["0x2000000000000000000000000000000000000001", 0n]],
                 },
                 {
                     caip2ChainId: "eip155:999999",
-                    assetRecoveryAddress:
-                        "0x10000000000000000000000000000000000000fe",
-                    accounts: [
-                        ["0x6000000000000000000000000000000000000001", 0n],
-                    ],
+                    assetRecoveryAddress: "0x10000000000000000000000000000000000000fe",
+                    accounts: [["0x6000000000000000000000000000000000000001", 0n]],
                 },
             ],
         };
@@ -234,24 +209,20 @@ describe("normalizeOnChainState", () => {
                 "eip155:1": {
                     accounts: [
                         {
-                            accountAddress:
-                                "0x2000000000000000000000000000000000000001",
+                            accountAddress: "0x2000000000000000000000000000000000000001",
                             childContractScope: 0n,
                         },
                     ],
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                 },
                 "eip155:999999": {
                     accounts: [
                         {
-                            accountAddress:
-                                "0x6000000000000000000000000000000000000001",
+                            accountAddress: "0x6000000000000000000000000000000000000001",
                             childContractScope: 0n,
                         },
                     ],
-                    assetRecoveryAddress:
-                        "0x10000000000000000000000000000000000000fe",
+                    assetRecoveryAddress: "0x10000000000000000000000000000000000000fe",
                 },
             },
             warnings: [],
@@ -276,11 +247,8 @@ describe("normalizeOnChainState", () => {
                 },
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
-                    accounts: [
-                        ["0xA000000000000000000000000000000000000001", 1n],
-                    ],
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+                    accounts: [["0xA000000000000000000000000000000000000001", 1n]],
                 },
                 {
                     caip2ChainId: "unknown:second",
@@ -291,12 +259,7 @@ describe("normalizeOnChainState", () => {
         };
         const { value, warnings } = normalizeOnChainState(details);
 
-        expect(Object.keys(value)).toEqual([
-            "unknown:first",
-            "solana:mainnet",
-            "eip155:1",
-            "unknown:second",
-        ]);
+        expect(Object.keys(value)).toEqual(["unknown:first", "solana:mainnet", "eip155:1", "unknown:second"]);
         expect(value).toEqual({
             "unknown:first": {
                 accounts: [],
@@ -318,13 +281,11 @@ describe("normalizeOnChainState", () => {
             "eip155:1": {
                 accounts: [
                     {
-                        accountAddress:
-                            "0xA000000000000000000000000000000000000001",
+                        accountAddress: "0xA000000000000000000000000000000000000001",
                         childContractScope: 1n,
                     },
                 ],
-                assetRecoveryAddress:
-                    "0x1000000000000000000000000000000000000001",
+                assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
             },
             "unknown:second": {
                 accounts: [],
@@ -349,11 +310,8 @@ describe("normalizeOnChainState", () => {
                 },
                 {
                     caip2ChainId: "eip155:1",
-                    assetRecoveryAddress:
-                        "0x1000000000000000000000000000000000000001",
-                    accounts: [
-                        ["0xA000000000000000000000000000000000000001", 1n],
-                    ],
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+                    accounts: [["0xA000000000000000000000000000000000000001", 1n]],
                 },
                 {
                     caip2ChainId: "unknown:second",

@@ -9,9 +9,7 @@ export function formatOperationalError(error) {
     return [
         "Failed to execute command:",
         ...(source ? [`Source: ${source}`] : []),
-        error?.diagnostic
-            ? formatDiagnostic(error.diagnostic)
-            : String(error?.message ?? error),
+        error?.diagnostic ? formatDiagnostic(error.diagnostic) : String(error?.message ?? error),
         ...formatErrorCodes(source ? error.cause : error),
     ].join("\n");
 }
@@ -20,16 +18,9 @@ function formatErrorCodes(error) {
     const lines = [];
     const seen = new Set();
     let indentation = 0;
-    for (
-        let current = error;
-        current && !seen.has(current);
-        current = current.cause
-    ) {
+    for (let current = error; current && !seen.has(current); current = current.cause) {
         seen.add(current);
-        if (
-            typeof current.code !== "string" ||
-            !/^[A-Z][A-Z0-9_]*$/.test(current.code)
-        ) {
+        if (typeof current.code !== "string" || !/^[A-Z][A-Z0-9_]*$/.test(current.code)) {
             continue;
         }
         if (current === error) {
