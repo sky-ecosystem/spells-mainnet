@@ -1,3 +1,4 @@
+import { formatList } from "../utils/formatList.js";
 import { DIAGNOSTIC_CODES as $ } from "./codes.js";
 import { diagnosticTemplates } from "./templates.js";
 
@@ -10,16 +11,16 @@ export function formatDiagnostic({ code, context = {} }) {
 
 const formatContext = {
     [$.DUPLICATE_SHEET_HEADERS]: (context) => ({
-        duplicateHeaders: context.duplicateHeaders.join(", "),
+        duplicateHeaders: formatList(context.duplicateHeaders),
     }),
     [$.INVALID_EVM_RECOVERY_ADDRESS]: (context) => ({
         onChainRecoveryAddress: context.isNewChain ? "not registered" : context.onChainRecoveryAddress,
     }),
     [$.INCOMPLETE_CHAIN_METADATA]: (context) => ({
-        missingFields: context.missingFields.join(", "),
+        missingFields: formatList(context.missingFields),
     }),
     [$.MISSING_SHEET_HEADERS]: (context) => ({
-        missingHeaders: context.missingHeaders.join(", "),
+        missingHeaders: formatList(context.missingHeaders),
     }),
     [$.INVALID_NEW_CHAIN_ACCOUNTS]: (context) => ({
         accounts: JSON.stringify(context.accounts, (_key, value) =>
