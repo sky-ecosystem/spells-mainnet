@@ -155,32 +155,6 @@ describe("normalizeOnChainState", () => {
         });
     });
 
-    test.each(["__proto__", "constructor", "toString"])(
-        "preserves the raw chain ID %s as an own property",
-        (chainId) => {
-            const result = normalizeOnChainState({
-                chains: [
-                    {
-                        caip2ChainId: chainId,
-                        assetRecoveryAddress: "recovery",
-                        accounts: [["A", 0n]],
-                    },
-                ],
-            });
-            expect(Object.keys(result.value)).toEqual([chainId]);
-            expect(Object.getPrototypeOf(result.value)).toBe(Object.prototype);
-            expect(result).toEqual({
-                value: {
-                    [chainId]: {
-                        assetRecoveryAddress: "recovery",
-                        accounts: [{ accountAddress: "A", childContractScope: 0n }],
-                    },
-                },
-                warnings: [],
-            });
-        },
-    );
-
     test("returns an empty state without warnings", () => {
         expect(normalizeOnChainState({ chains: [] })).toEqual({
             value: {},

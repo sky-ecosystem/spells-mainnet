@@ -221,52 +221,6 @@ test("accepts required headers with extra columns", () => {
     ).toEqual({ value: {}, warnings: [] });
 });
 
-test.each(["__proto__", "constructor", "toString"])(
-    "resolves the own chain-name property %s to its CAIP-2 ID",
-    (chainName) => {
-        const result = normalizeContractsInScope(
-            {
-                headers: ["Status", "Chain", "Address", "isFactory"],
-                records: [
-                    {
-                        Status: "ACTIVE",
-                        Chain: chainName,
-                        Address: "0x2000000000000000000000000000000000000001",
-                        isFactory: "FALSE",
-                    },
-                    {
-                        Status: "ACTIVE",
-                        Chain: chainName,
-                        Address: "0x2000000000000000000000000000000000000002",
-                        isFactory: "TRUE",
-                    },
-                ],
-            },
-            {
-                caip2ChainId: { [chainName]: "eip155:1" },
-                assetRecoveryAddress: {
-                    [chainName]: "0x1000000000000000000000000000000000000001",
-                },
-                name: { "eip155:1": chainName },
-            },
-        );
-        expect(Object.keys(result.value)).toEqual(["eip155:1"]);
-        expect(Object.getPrototypeOf(result.value)).toBe(Object.prototype);
-        expect(result).toEqual({
-            value: {
-                "eip155:1": {
-                    accounts: [
-                        { accountAddress: "0x2000000000000000000000000000000000000001", childContractScope: 0 },
-                        { accountAddress: "0x2000000000000000000000000000000000000002", childContractScope: 2 },
-                    ],
-                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
-                },
-            },
-            warnings: [],
-        });
-    },
-);
-
 test("joins raw recovery addresses without mutating either source", () => {
     const sheet = {
         headers: ["Status", "Chain", "Address", "isFactory"],

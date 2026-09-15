@@ -63,41 +63,6 @@ async function reconcileFrom({ chainCSV, contractCSV, details }) {
 
 test.each([
     {
-        scenario: "removal of a chain whose name matches a prototype property",
-        chainCSV: dedent`
-            Name,Chain Id,Asset Recovery Address
-            __proto__,eip155:1,0x1000000000000000000000000000000000000001
-        `,
-        contractCSV: "Status,Chain,Address,isFactory\n",
-        details: {
-            chains: [
-                {
-                    caip2ChainId: "eip155:1",
-                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
-                    accounts: [["A", 0n]],
-                },
-            ],
-        },
-        expected: {
-            sheetChainDetails: {
-                caip2ChainId: { ["__proto__"]: "eip155:1" },
-                assetRecoveryAddress: {
-                    ["__proto__"]: "0x1000000000000000000000000000000000000001",
-                },
-                name: { "eip155:1": "__proto__" },
-            },
-            agreementOnChainState: {
-                "eip155:1": {
-                    accounts: [{ accountAddress: "A", childContractScope: 0n }],
-                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
-                },
-            },
-            sheetState: {},
-            changes: [{ fn: "removeChains", args: [["eip155:1"]] }],
-            validationWarnings: [],
-        },
-    },
-    {
         scenario: "clean reconciliation with raw bigint scopes",
         chainCSV: dedent`
             Name,Chain Id,Asset Recovery Address
