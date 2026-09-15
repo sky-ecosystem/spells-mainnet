@@ -34,7 +34,7 @@ function getDescription(update) {
             return update.args[0]
                 .map(
                     (chainInfo) =>
-                        `Add new ${chainInfo.caip2ChainId} with recovery address ${chainInfo.assetRecoveryAddress} and accounts: ${listAccountAddresses(chainInfo.accounts)}`,
+                        `Add new ${chainInfo.caip2ChainId} with recovery address ${chainInfo.assetRecoveryAddress} and accounts: ${listAccounts(chainInfo.accounts)}`,
                 )
                 .join("; ");
         }
@@ -42,13 +42,15 @@ function getDescription(update) {
             return `Remove accounts from ${update.args[0]} chain: ${update.args[1].join(", ")}`;
         }
         case "addAccounts": {
-            return `Add accounts to ${update.args[0]} chain: ${listAccountAddresses(update.args[1])}`;
+            return `Add accounts to ${update.args[0]} chain: ${listAccounts(update.args[1])}`;
         }
         default:
             throw new Error("Unknown update");
     }
 }
 
-function listAccountAddresses(accounts) {
-    return accounts.map((account) => account.accountAddress).join(", ");
+function listAccounts(accounts) {
+    return accounts
+        .map(({ accountAddress, childContractScope }) => `${accountAddress} (scope=${childContractScope})`)
+        .join(", ");
 }

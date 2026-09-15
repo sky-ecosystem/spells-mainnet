@@ -54,7 +54,7 @@ test.each([
         expected: dedent`
             bytes[] memory calldatas = new bytes[](1);
 
-            // Add new eip155:8453 with recovery address 0x1000000000000000000000000000000000000002 and accounts: 0x3000000000000000000000000000000000000002, 0x3000000000000000000000000000000000000001
+            // Add new eip155:8453 with recovery address 0x1000000000000000000000000000000000000002 and accounts: 0x3000000000000000000000000000000000000002 (scope=2), 0x3000000000000000000000000000000000000001 (scope=0)
             calldatas[0] = hex'abcd';
 
             _updateSafeHarbor(calldatas);
@@ -105,7 +105,7 @@ test.each([
         expected: dedent`
             bytes[] memory calldatas = new bytes[](1);
 
-            // Add accounts to eip155:1 chain: 0x2000000000000000000000000000000000000002, 0x2000000000000000000000000000000000000001
+            // Add accounts to eip155:1 chain: 0x2000000000000000000000000000000000000002 (scope=2), 0x2000000000000000000000000000000000000001 (scope=0)
             calldatas[0] = hex'1234';
 
             _updateSafeHarbor(calldatas);
@@ -172,13 +172,13 @@ test("renders a mixed operation sequence including Solana identifiers", () => {
         // Remove chains: eip155:8453
         calldatas[0] = hex'1122';
 
-        // Add new solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp with recovery address 29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2 and accounts: So11111111111111111111111111111111111111112
+        // Add new solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp with recovery address 29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2 and accounts: So11111111111111111111111111111111111111112 (scope=0)
         calldatas[1] = hex'3344';
 
         // Remove accounts from eip155:1 chain: 0x2000000000000000000000000000000000000001
         calldatas[2] = hex'5566';
 
-        // Add accounts to eip155:1 chain: 0x2000000000000000000000000000000000000002
+        // Add accounts to eip155:1 chain: 0x2000000000000000000000000000000000000002 (scope=2)
         calldatas[3] = hex'7788';
 
         _updateSafeHarbor(calldatas);
@@ -236,13 +236,13 @@ test("escapes every Solidity comment terminator without changing calldata", () =
         // Remove chains: chain\\u000arevert(); //
         calldatas[0] = hex'1122';
 
-        // Add new chain\\u000drevert(); // with recovery address recovery\\u000brevert(); // and accounts: account\\u000crevert(); //
+        // Add new chain\\u000drevert(); // with recovery address recovery\\u000brevert(); // and accounts: account\\u000crevert(); // (scope=0)
         calldatas[1] = hex'3344';
 
         // Remove accounts from chain\\u0085revert(); // chain: account\\u2028revert(); //
         calldatas[2] = hex'5566';
 
-        // Add accounts to chain\\u000d\\u000arevert(); // chain: account\\u2029revert(); //
+        // Add accounts to chain\\u000d\\u000arevert(); // chain: account\\u2029revert(); // (scope=2)
         calldatas[3] = hex'7788';
 
         _updateSafeHarbor(calldatas);
