@@ -12,7 +12,7 @@ test("rejects missing headers in required order", () => {
     );
 });
 
-test("diagnoses empty active addresses without dropping records or trimming quoted values", () => {
+test("diagnoses invalid active addresses without dropping records or normalizing their values", () => {
     expect(
         normalizeContractsInScope(
             {
@@ -61,6 +61,72 @@ test("diagnoses empty active addresses without dropping records or trimming quot
                 code: "MISSING_SHEET_ACCOUNT_ADDRESS",
                 context: { chainName: "ETHEREUM" },
             },
+            {
+                code: "INVALID_SHEET_ACCOUNT_ADDRESS",
+                context: {
+                    chainName: "ETHEREUM",
+                    chainId: "eip155:1",
+                    address: " ",
+                },
+            },
+        ],
+    });
+});
+
+test.each([
+    {
+        scenario: "an EVM address with an invalid checksum",
+        chainName: "ETHEREUM",
+        chainId: "eip155:1",
+        address: "0x52908400098527886E0F7030069857D2E4169Ee7",
+        assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+    },
+    {
+        scenario: "an ICAP address on an EVM chain",
+        chainName: "ETHEREUM",
+        chainId: "eip155:1",
+        address: "XE65GB6LDNXYOFTX0NSV3FUWKOWIXAMJK36",
+        assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+    },
+    {
+        scenario: "a Solana address with fewer than 32 bytes",
+        chainName: "SOLANA",
+        chainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+        address: "1",
+        assetRecoveryAddress: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+    },
+    {
+        scenario: "a Solana address with an invalid Base58 character",
+        chainName: "SOLANA",
+        chainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+        address: "0",
+        assetRecoveryAddress: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+    },
+])("diagnoses $scenario", ({ chainName, chainId, address, assetRecoveryAddress }) => {
+    expect(
+        normalizeContractsInScope(
+            {
+                headers: ["Status", "Chain", "Address", "isFactory"],
+                records: [{ Status: "ACTIVE", Chain: chainName, Address: address, isFactory: "FALSE" }],
+            },
+            {
+                caip2ChainId: { [chainName]: chainId },
+                assetRecoveryAddress: { [chainName]: assetRecoveryAddress },
+                name: { [chainId]: chainName },
+            },
+        ),
+    ).toEqual({
+        value: {
+            [chainId]: {
+                accounts: [{ accountAddress: address, childContractScope: 0 }],
+                assetRecoveryAddress,
+            },
+        },
+        warnings: [
+            {
+                code: "INVALID_SHEET_ACCOUNT_ADDRESS",
+                context: { chainName, chainId, address },
+            },
         ],
     });
 });
@@ -74,21 +140,21 @@ test("checks both factory aliases while accepting blanks and ignoring inactive r
                     {
                         Status: "ACTIVE",
                         Chain: "ETHEREUM",
-                        Address: "A",
+                        Address: "0x2000000000000000000000000000000000000001",
                         isFactory: "TRU",
                         IsFactory: "TRUE",
                     },
                     {
                         Status: "ACTIVE",
                         Chain: "ETHEREUM",
-                        Address: "B",
+                        Address: "0x2000000000000000000000000000000000000002",
                         isFactory: "TRUE",
                         IsFactory: "false",
                     },
                     {
                         Status: "ACTIVE",
                         Chain: "ETHEREUM",
-                        Address: "C",
+                        Address: "0x2000000000000000000000000000000000000003",
                         isFactory: "",
                         IsFactory: "",
                     },
@@ -113,9 +179,9 @@ test("checks both factory aliases while accepting blanks and ignoring inactive r
         value: {
             "eip155:1": {
                 accounts: [
-                    { accountAddress: "A", childContractScope: 2 },
-                    { accountAddress: "B", childContractScope: 2 },
-                    { accountAddress: "C", childContractScope: 0 },
+                    { accountAddress: "0x2000000000000000000000000000000000000001", childContractScope: 2 },
+                    { accountAddress: "0x2000000000000000000000000000000000000002", childContractScope: 2 },
+                    { accountAddress: "0x2000000000000000000000000000000000000003", childContractScope: 0 },
                 ],
                 assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
             },
@@ -125,7 +191,7 @@ test("checks both factory aliases while accepting blanks and ignoring inactive r
                 code: "INVALID_SHEET_FACTORY_FLAG",
                 context: {
                     chainName: "ETHEREUM",
-                    address: "A",
+                    address: "0x2000000000000000000000000000000000000001",
                     column: "isFactory",
                     value: "TRU",
                 },
@@ -134,7 +200,7 @@ test("checks both factory aliases while accepting blanks and ignoring inactive r
                 code: "INVALID_SHEET_FACTORY_FLAG",
                 context: {
                     chainName: "ETHEREUM",
-                    address: "B",
+                    address: "0x2000000000000000000000000000000000000002",
                     column: "IsFactory",
                     value: "false",
                 },
@@ -165,13 +231,13 @@ test.each(["__proto__", "constructor", "toString"])(
                     {
                         Status: "ACTIVE",
                         Chain: chainName,
-                        Address: "A",
+                        Address: "0x2000000000000000000000000000000000000001",
                         isFactory: "FALSE",
                     },
                     {
                         Status: "ACTIVE",
                         Chain: chainName,
-                        Address: "B",
+                        Address: "0x2000000000000000000000000000000000000002",
                         isFactory: "TRUE",
                     },
                 ],
@@ -190,8 +256,8 @@ test.each(["__proto__", "constructor", "toString"])(
             value: {
                 "eip155:1": {
                     accounts: [
-                        { accountAddress: "A", childContractScope: 0 },
-                        { accountAddress: "B", childContractScope: 2 },
+                        { accountAddress: "0x2000000000000000000000000000000000000001", childContractScope: 0 },
+                        { accountAddress: "0x2000000000000000000000000000000000000002", childContractScope: 2 },
                     ],
                     assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                 },
@@ -208,7 +274,7 @@ test("joins raw recovery addresses without mutating either source", () => {
             {
                 Status: "ACTIVE",
                 Chain: "ETHEREUM",
-                Address: " Account ",
+                Address: "0x2000000000000000000000000000000000000001",
                 isFactory: "TRUE",
             },
         ],
@@ -227,7 +293,12 @@ test("joins raw recovery addresses without mutating either source", () => {
     expect(normalizeContractsInScope(sheet, metadata)).toEqual({
         value: {
             "eip155:1": {
-                accounts: [{ accountAddress: " Account ", childContractScope: 2 }],
+                accounts: [
+                    {
+                        accountAddress: "0x2000000000000000000000000000000000000001",
+                        childContractScope: 2,
+                    },
+                ],
                 assetRecoveryAddress: " InvalidChecksumAndSpaces ",
             },
         },
@@ -617,7 +688,7 @@ test("groups active contracts in order with exact addresses and both factory ali
                 {
                     Status: "ACTIVE",
                     Chain: "SOLANA",
-                    Address: "AccountUpperCase",
+                    Address: "So11111111111111111111111111111111111111112",
                     isFactory: "FALSE",
                     IsFactory: "TRUE",
                 },
@@ -631,14 +702,14 @@ test("groups active contracts in order with exact addresses and both factory ali
                 {
                     Status: "ACTIVE",
                     Chain: "SOLANA",
-                    Address: "accountUpperCase",
+                    Address: "so11111111111111111111111111111111111111112",
                     isFactory: "FALSE",
                     IsFactory: "FALSE",
                 },
                 {
                     Status: "ACTIVE",
                     Chain: "SOLANA",
-                    Address: "AccountUpperCase",
+                    Address: "So11111111111111111111111111111111111111112",
                     isFactory: "FALSE",
                     IsFactory: "FALSE",
                 },
@@ -678,9 +749,9 @@ test("groups active contracts in order with exact addresses and both factory ali
     expect(result.value).toEqual({
         "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp": {
             accounts: [
-                { accountAddress: "AccountUpperCase", childContractScope: 2 },
-                { accountAddress: "accountUpperCase", childContractScope: 0 },
-                { accountAddress: "AccountUpperCase", childContractScope: 0 },
+                { accountAddress: "So11111111111111111111111111111111111111112", childContractScope: 2 },
+                { accountAddress: "so11111111111111111111111111111111111111112", childContractScope: 0 },
+                { accountAddress: "So11111111111111111111111111111111111111112", childContractScope: 0 },
             ],
             assetRecoveryAddress: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
         },
@@ -712,7 +783,7 @@ test("groups active contracts in order with exact addresses and both factory ali
             code: "DUPLICATE_SHEET_ACCOUNT",
             context: {
                 chainName: "SOLANA",
-                address: "AccountUpperCase",
+                address: "So11111111111111111111111111111111111111112",
                 firstScope: 2,
                 duplicateScope: 0,
             },

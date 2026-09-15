@@ -1,3 +1,4 @@
+import { decodeBase58, encodeBase58, isAddress, isHexString, toBeHex } from "ethers";
 import { DIAGNOSTIC_CODES as $ } from "../diagnostic/index.js";
 import { findDuplicateIndexes } from "../utils/findDuplicateIndexes.js";
 
@@ -11,7 +12,7 @@ export function normalizeContractsInScope({ headers, records }, sheetChainDetail
         warnings: [
             ...validateKnownChains(accountsByChainName, sheetChainDetails),
             ...validateFactoryFlags(activeRecords, headers),
-            ...validateAccountAddresses(accountsByChainName),
+            ...validateAccountAddresses(accountsByChainName, sheetChainDetails),
             ...validateUniqueAccounts(accountsByChainName),
         ],
     };
@@ -206,22 +207,55 @@ function validateChainAccounts(chainName, accounts) {
     }));
 }
 
-function validateAccountAddresses(sheetState) {
+function validateAccountAddresses(sheetState, sheetChainDetails) {
     return Object.entries(sheetState).flatMap(([chainName, accounts]) =>
-        accounts.flatMap((account) => validateAccountAddress(account, chainName)),
+        accounts.flatMap((account) =>
+            validateAccountAddress(account, chainName, sheetChainDetails.caip2ChainId[chainName]),
+        ),
     );
 }
 
-function validateAccountAddress({ accountAddress }, chainName) {
-    if (accountAddress) {
+function validateAccountAddress({ accountAddress }, chainName, chainId) {
+    if (!accountAddress) {
+        return [
+            {
+                code: $.MISSING_SHEET_ACCOUNT_ADDRESS,
+                context: { chainName },
+            },
+        ];
+    }
+    if (!chainId || isValidAccountAddress(accountAddress, chainId)) {
         return [];
     }
     return [
         {
-            code: $.MISSING_SHEET_ACCOUNT_ADDRESS,
-            context: { chainName },
+            code: $.INVALID_SHEET_ACCOUNT_ADDRESS,
+            context: { chainName, chainId, address: accountAddress },
         },
     ];
+}
+
+function isValidAccountAddress(address, chainId) {
+    if (chainId.startsWith("eip155:")) {
+        return isValidEvmAddress(address);
+    }
+    if (chainId.startsWith("solana:")) {
+        return isValidSolanaAddress(address);
+    }
+    return true;
+}
+
+function isValidEvmAddress(address) {
+    return isHexString(address, 20) && isAddress(address);
+}
+
+function isValidSolanaAddress(address) {
+    try {
+        // Re-encode as 32 bytes to reject wrong-length or noncanonical Base58 values.
+        return encodeBase58(toBeHex(decodeBase58(address), 32)) === address;
+    } catch {
+        return false;
+    }
 }
 
 function assertContractHeaders(headers) {

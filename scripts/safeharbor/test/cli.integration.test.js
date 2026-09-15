@@ -75,8 +75,8 @@ test("blocks all generation when the configured validator rejects new chain IDs"
         `,
         contractCSV: dedent`
             Status,Chain,Address,isFactory
-            ACTIVE,ETHEREUM,B,FALSE
-            ACTIVE,UNKNOWN_EVM,C,FALSE
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE
+            ACTIVE,UNKNOWN_EVM,0x2000000000000000000000000000000000000003,FALSE
             ACTIVE,UNKNOWN_NETWORK,D,FALSE
         `,
         details: {
@@ -103,6 +103,39 @@ test("blocks all generation when the configured validator rejects new chain IDs"
     expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
 });
 
+test("blocks generation for an invalid Sheet account address", async () => {
+    mockSources({
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x52908400098527886E0F7030069857D2E4169Ee7,FALSE
+        `,
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+                    accounts: [["0x2000000000000000000000000000000000000001", 0n]],
+                },
+            ],
+        },
+    });
+
+    expect(await runCli("generate")).toBe(2);
+    expect(warnings.mock.calls).toEqual([
+        [
+            "⚠️ Invalid account address in SafeHarbor Sheet for chain 'ETHEREUM' (eip155:1): 0x52908400098527886E0F7030069857D2E4169Ee7",
+        ],
+        ["❌ Payload generation blocked: 1 validation warning(s)."],
+    ]);
+    expect(stdout).not.toHaveBeenCalled();
+    expect(encodeSpy).not.toHaveBeenCalled();
+    expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
+});
+
 test("validator RPC failure exits 1 and cleans up without generating output", async () => {
     mockSources({
         chainCSV: dedent`
@@ -111,7 +144,7 @@ test("validator RPC failure exits 1 and cleans up without generating output", as
         `,
         contractCSV: dedent`
             Status,Chain,Address,isFactory
-            ACTIVE,ETHEREUM,A,FALSE
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
         `,
         details: { chains: [] },
     });
@@ -405,8 +438,8 @@ describe.each([
         },
         warningMessages: [
             dedent`
-                ⚠️ Unknown chain details in on-chain state: caip2ChainId='eip155:8453'.
-                       To either remove or keep this chain, please add the chain details to the chain details tab in the Safeharbor Sheet.
+                ⚠️ Unknown chain in on-chain state: caip2ChainId='eip155:8453'.
+                       Add this chain to the 'safe-harbor-asset-recovery' tab before keeping or removing it.
             `,
             "⚠️ Duplicate account address in on-chain state for chain 'eip155:8453': A; first scope=0, duplicate scope=2",
         ],

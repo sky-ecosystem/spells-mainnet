@@ -6,17 +6,19 @@ export const diagnosticTemplates = {
     [$.INVALID_SHEET_FACTORY_FLAG]:
         "Invalid factory flag in Safeharbor Sheet for chain '{chainName}', account '{address}': {column}='{value}'; expected TRUE, FALSE, or blank",
     [$.MISSING_SHEET_ACCOUNT_ADDRESS]: "Missing active account address in Safeharbor Sheet for chain '{chainName}'",
+    [$.INVALID_SHEET_ACCOUNT_ADDRESS]:
+        "Invalid account address in SafeHarbor Sheet for chain '{chainName}' ({chainId}): {address}",
     [$.DUPLICATE_SHEET_ACCOUNT]:
         "Duplicate account address in Safeharbor Sheet for chain '{chainName}': {address}; first scope={firstScope}, duplicate scope={duplicateScope}",
     [$.DUPLICATE_ONCHAIN_ACCOUNT]:
         "Duplicate account address in on-chain state for chain '{chainId}': {address}; first scope={firstScope}, duplicate scope={duplicateScope}",
     [$.UNKNOWN_SHEET_CHAIN]: dedent`
-        Unknown chain details in Safeharbor Sheet: name='{chainName}'
-        Include chain details to the chain details tab in the Safeharbor Sheet to add coverage to it.
+        Unknown chain in SafeHarbor Sheet: name='{chainName}'.
+        Add this chain to the 'safe-harbor-asset-recovery' tab before including it in scope.
     `,
     [$.UNKNOWN_ONCHAIN_CHAIN]: dedent`
-        Unknown chain details in on-chain state: caip2ChainId='{chainId}'.
-        To either remove or keep this chain, please add the chain details to the chain details tab in the Safeharbor Sheet.
+        Unknown chain in on-chain state: caip2ChainId='{chainId}'.
+        Add this chain to the 'safe-harbor-asset-recovery' tab before keeping or removing it.
     `,
     [$.MISSING_ONCHAIN_RECOVERY_ADDRESS]: "Missing on-chain Asset Recovery Address for existing chain '{chainId}'",
     [$.RECOVERY_ADDRESS_MISMATCH]: dedent`

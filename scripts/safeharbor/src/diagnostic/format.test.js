@@ -1,4 +1,5 @@
 import { expect, test } from "vitest";
+import { dedent } from "../utils/dedent.js";
 import { formatDiagnostic } from "./format.js";
 
 test("rejects missing template values", () => {
@@ -41,6 +42,37 @@ test("inserts placeholder-like and replacement-pattern text literally", () => {
 });
 
 test.each([
+    {
+        diagnostic: {
+            code: "UNKNOWN_SHEET_CHAIN",
+            context: { chainName: "BASE" },
+        },
+        message: dedent`
+            Unknown chain in SafeHarbor Sheet: name='BASE'.
+            Add this chain to the 'safe-harbor-asset-recovery' tab before including it in scope.
+        `,
+    },
+    {
+        diagnostic: {
+            code: "UNKNOWN_ONCHAIN_CHAIN",
+            context: { chainId: "eip155:8453" },
+        },
+        message: dedent`
+            Unknown chain in on-chain state: caip2ChainId='eip155:8453'.
+            Add this chain to the 'safe-harbor-asset-recovery' tab before keeping or removing it.
+        `,
+    },
+    {
+        diagnostic: {
+            code: "INVALID_SHEET_ACCOUNT_ADDRESS",
+            context: {
+                chainName: "ETHEREUM",
+                chainId: "eip155:1",
+                address: "invalid",
+            },
+        },
+        message: "Invalid account address in SafeHarbor Sheet for chain 'ETHEREUM' (eip155:1): invalid",
+    },
     {
         diagnostic: {
             code: "DUPLICATE_SHEET_HEADERS",

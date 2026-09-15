@@ -263,7 +263,7 @@ describe("validation warnings", () => {
             scenario: "an addition on an existing chain",
             contractCSV: dedent`
                 Status,Chain,Address,isFactory
-                ACTIVE,ETHEREUM,A,FALSE
+                ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
                 ACTIVE,ETHEREUM,,FALSE
             `,
             details: {
@@ -271,7 +271,7 @@ describe("validation warnings", () => {
                     {
                         caip2ChainId: "eip155:1",
                         assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
-                        accounts: [["A", 0n]],
+                        accounts: [["0x2000000000000000000000000000000000000001", 0n]],
                     },
                 ],
             },

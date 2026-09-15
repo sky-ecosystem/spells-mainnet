@@ -1424,8 +1424,8 @@ test.each([
         `,
         contractCSV: dedent`
             Status,Chain,Address,isFactory
-            ACTIVE,ETHEREUM,A,FALSE
-            ACTIVE,ETHEREUM,B,TRUE
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,TRUE
         `,
         details: {
             chains: [
@@ -1433,8 +1433,8 @@ test.each([
                     caip2ChainId: "eip155:1",
                     assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                     accounts: [
-                        ["A", 3n],
-                        ["B", 3n],
+                        ["0x2000000000000000000000000000000000000001", 3n],
+                        ["0x2000000000000000000000000000000000000002", 3n],
                     ],
                 },
             ],
@@ -1445,12 +1445,24 @@ test.each([
                 args: [
                     "eip155:1",
                     [
-                        { accountAddress: "A", childContractScope: 0 },
-                        { accountAddress: "B", childContractScope: 2 },
+                        {
+                            accountAddress: "0x2000000000000000000000000000000000000001",
+                            childContractScope: 0,
+                        },
+                        {
+                            accountAddress: "0x2000000000000000000000000000000000000002",
+                            childContractScope: 2,
+                        },
                     ],
                 ],
             },
-            { fn: "removeAccounts", args: ["eip155:1", ["B", "A"]] },
+            {
+                fn: "removeAccounts",
+                args: [
+                    "eip155:1",
+                    ["0x2000000000000000000000000000000000000002", "0x2000000000000000000000000000000000000001"],
+                ],
+            },
         ],
     },
     {
