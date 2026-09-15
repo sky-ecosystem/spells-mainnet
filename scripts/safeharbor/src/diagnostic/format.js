@@ -22,11 +22,6 @@ const formatContext = {
     [$.MISSING_SHEET_HEADERS]: (context) => ({
         missingHeaders: formatList(context.missingHeaders),
     }),
-    [$.INVALID_NEW_CHAIN_ACCOUNTS]: (context) => ({
-        accounts: JSON.stringify(context.accounts, (_key, value) =>
-            typeof value === "bigint" ? value.toString() : value,
-        ),
-    }),
 };
 
 function renderTemplate(template, values) {

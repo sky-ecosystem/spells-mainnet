@@ -53,7 +53,4 @@ export const diagnosticTemplates = {
     `,
     [$.HTTP_ERROR]: "HTTP error! status: {status}",
     [$.INVALID_CSV_CONTENT_TYPE]: "Invalid content type. Expected CSV data. Please check the URL format.",
-    [$.ADDED_CHAIN_WITHOUT_ACCOUNTS]: "Cannot add chain '{chainId}' without accounts",
-    [$.EXISTING_CHAIN_WITHOUT_ACCOUNTS]: "Chain '{chainId}' must be removed instead of configured without accounts",
-    [$.INVALID_NEW_CHAIN_ACCOUNTS]: "Problematic accounts found in chain {chainId}: {accounts}",
 };

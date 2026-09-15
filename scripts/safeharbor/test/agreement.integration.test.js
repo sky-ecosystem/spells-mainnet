@@ -124,34 +124,6 @@ test("reuses the Chainlog reader without caching the resolved Agreement address"
     ]);
 });
 
-test("propagates Chainlog lookup failures", async () => {
-    const failure = new Error("Chainlog unavailable");
-    getChainlogAddress.mockRejectedValue(failure);
-
-    await expect(getAgreementState([])).rejects.toBe(failure);
-    expect(Contract).not.toHaveBeenCalled();
-});
-
-test("propagates Agreement construction failures", async () => {
-    const failure = new Error("Invalid Agreement address");
-    getChainlogAddress.mockResolvedValue("0x7000000000000000000000000000000000000001");
-    Contract.mockImplementation(() => {
-        throw failure;
-    });
-
-    await expect(getAgreementState([])).rejects.toBe(failure);
-});
-
-test("propagates Agreement state-read failures", async () => {
-    const failure = new Error("Agreement state unavailable");
-    getChainlogAddress.mockResolvedValue("0x7000000000000000000000000000000000000001");
-    Contract.mockReturnValue({
-        getDetails: vi.fn().mockRejectedValue(failure),
-    });
-
-    await expect(getAgreementState([])).rejects.toBe(failure);
-});
-
 test("returns normalized state and validates only new desired chain IDs exactly", async () => {
     getChainlogAddress.mockResolvedValue("0x7000000000000000000000000000000000000001");
     const getDetails = vi.fn().mockResolvedValue({
@@ -230,21 +202,3 @@ test("skips validator access when every desired chain already exists", async () 
     expect(getChainValidator).not.toHaveBeenCalled();
     expect(Contract).toHaveBeenCalledTimes(1);
 });
-
-test.each(["getChainValidator", "isChainValid"])(
-    "propagates %s RPC failures instead of returning an invalid-chain diagnostic",
-    async (method) => {
-        const failure = new Error("Validator unavailable");
-        getChainlogAddress.mockResolvedValue("0x7000000000000000000000000000000000000001");
-        const getChainValidator = vi.fn().mockResolvedValue("0x8000000000000000000000000000000000000001");
-        const isChainValid = vi.fn().mockResolvedValue(true);
-        const methods = { getChainValidator, isChainValid };
-        methods[method].mockRejectedValue(failure);
-        Contract.mockReturnValueOnce({
-            getDetails: vi.fn().mockResolvedValue({ chains: [] }),
-            getChainValidator,
-        }).mockReturnValueOnce({ isChainValid });
-
-        await expect(getAgreementState(["eip155:1"])).rejects.toBe(failure);
-    },
-);

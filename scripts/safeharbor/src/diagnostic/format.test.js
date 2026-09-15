@@ -132,24 +132,3 @@ test.each([
 ])("formats $diagnostic.code", ({ diagnostic, message }) => {
     expect(formatDiagnostic(diagnostic)).toBe(message);
 });
-
-test("renders bigint scopes without changing raw diagnostic context", () => {
-    const diagnostic = {
-        code: "INVALID_NEW_CHAIN_ACCOUNTS",
-        context: {
-            chainId: "eip155:8453",
-            accounts: [{ accountAddress: "", childContractScope: 0n }],
-        },
-    };
-
-    expect(formatDiagnostic(diagnostic)).toBe(
-        'Problematic accounts found in chain eip155:8453: [{"accountAddress":"","childContractScope":"0"}]',
-    );
-    expect(diagnostic).toEqual({
-        code: "INVALID_NEW_CHAIN_ACCOUNTS",
-        context: {
-            chainId: "eip155:8453",
-            accounts: [{ accountAddress: "", childContractScope: 0n }],
-        },
-    });
-});
