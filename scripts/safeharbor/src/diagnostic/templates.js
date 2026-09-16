@@ -1,5 +1,5 @@
-import { DIAGNOSTIC_CODES as $ } from "./codes.js";
 import { dedent } from "../utils/dedent.js";
+import { DIAGNOSTIC_CODES as $ } from "./codes.js";
 
 export const diagnosticTemplates = {
     [$.INVALID_CHAIN_ID]: "Chain ID '{chainId}' is not accepted by the Agreement's configured chain validator",

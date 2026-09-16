@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { dedent } from "../src/utils/dedent.js";
 import { getSheetChainDetails, getSheetState } from "../src/sheet/index.js";
+import { dedent } from "../src/utils/dedent.js";
 
 beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());

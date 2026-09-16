@@ -1,5 +1,5 @@
-import { JsonRpcProvider } from "ethers";
 import { expect, test, vi } from "vitest";
+import { JsonRpcProvider } from "ethers";
 import { createChainlogReader } from "../src/agreement/chainlog.js";
 
 test("loads the Safe Harbor agreement address from the Chainlog", async () => {

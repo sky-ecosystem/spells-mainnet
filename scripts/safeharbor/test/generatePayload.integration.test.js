@@ -1,12 +1,12 @@
-import { test, expect, describe, vi, beforeEach, afterEach } from "vitest";
 import assert from "node:assert";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { Contract, Interface } from "ethers";
-import { dedent } from "../src/utils/dedent.js";
+import AGREEMENT_V3_ABI from "../src/agreement/abis/agreement.json" with { type: "json" };
+import { createAgreementReader } from "../src/agreement/index.js";
 import { generatePayload } from "../src/generation/index.js";
 import { reconcile } from "../src/reconciliation/index.js";
-import { createAgreementReader } from "../src/agreement/index.js";
 import { getSheetChainDetails, getSheetState } from "../src/sheet/index.js";
-import AGREEMENT_V3_ABI from "../src/agreement/abis/agreement.json" with { type: "json" };
+import { dedent } from "../src/utils/dedent.js";
 
 vi.mock("ethers", async (importOriginal) => ({
     ...(await importOriginal()),

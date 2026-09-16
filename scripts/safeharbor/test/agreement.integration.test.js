@@ -1,9 +1,9 @@
-import { Contract } from "ethers";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { Contract } from "ethers";
 import AGREEMENT_V3_ABI from "../src/agreement/abis/agreement.json" with { type: "json" };
 import CHAIN_VALIDATOR_ABI from "../src/agreement/abis/chainValidator.json" with { type: "json" };
-import { createAgreementReader } from "../src/agreement/index.js";
 import { createChainlogReader } from "../src/agreement/chainlog.js";
+import { createAgreementReader } from "../src/agreement/index.js";
 
 vi.mock("ethers", async (importOriginal) => ({
     ...(await importOriginal()),

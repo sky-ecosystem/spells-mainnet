@@ -1,9 +1,9 @@
-import { Contract, Interface } from "ethers";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { dedent } from "../src/utils/dedent.js";
-import { reconcile } from "../src/reconciliation/index.js";
+import { Contract, Interface } from "ethers";
 import { createAgreementReader } from "../src/agreement/index.js";
+import { reconcile } from "../src/reconciliation/index.js";
 import { getSheetChainDetails, getSheetState } from "../src/sheet/index.js";
+import { dedent } from "../src/utils/dedent.js";
 
 vi.mock("ethers", async (importOriginal) => ({
     ...(await importOriginal()),

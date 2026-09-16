@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { setImmediate } from "node:timers/promises";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { reconcile } from "./reconcile.js";
 
 beforeEach(() => {

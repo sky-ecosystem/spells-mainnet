@@ -1,8 +1,8 @@
 import { JsonRpcProvider } from "ethers";
-import { formatDiagnostic } from "../diagnostic/index.js";
 import { createAgreementReader } from "../agreement/index.js";
-import { getSheetChainDetails, getSheetState } from "../sheet/index.js";
+import { formatDiagnostic } from "../diagnostic/index.js";
 import { reconcile } from "../reconciliation/index.js";
+import { getSheetChainDetails, getSheetState } from "../sheet/index.js";
 import { COMMANDS } from "./commands/index.js";
 import { formatCliMessage, formatOperationalError } from "./format.js";
 import { validateOptions } from "./validate.js";
