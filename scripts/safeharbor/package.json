@@ -19,7 +19,7 @@
     "printWidth": 120
   },
   "dependencies": {
-    "csv-parse": "^5.5.0",
+    "csv-parse": "^7.0.2",
     "dotenv": "^16.5.0",
     "ethers": "^6.15.0"
   },
