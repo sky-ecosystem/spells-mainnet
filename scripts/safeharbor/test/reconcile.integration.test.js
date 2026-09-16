@@ -11,20 +11,28 @@ vi.mock("ethers", async (importOriginal) => ({
 }));
 
 const provider = {};
-const getDetails = vi.fn();
-const isChainValid = vi.fn();
+let agreementInstance;
+let chainValidatorInstance;
 let encodeSpy;
 
 beforeEach(() => {
-    isChainValid.mockResolvedValue(true);
-    Contract.mockReturnValueOnce({
+    const chainlogInstance = {
         "getAddress(bytes32)": vi.fn().mockResolvedValue("0x7000000000000000000000000000000000000001"),
+    };
+    agreementInstance = {
+        getDetails: vi.fn(),
+        getChainValidator: vi.fn().mockResolvedValue("0x8000000000000000000000000000000000000001"),
+    };
+    chainValidatorInstance = { isChainValid: vi.fn().mockResolvedValue(true) };
+    Contract.mockImplementationOnce(function Contract() {
+        return chainlogInstance;
     })
-        .mockReturnValueOnce({
-            getDetails,
-            getChainValidator: vi.fn().mockResolvedValue("0x8000000000000000000000000000000000000001"),
+        .mockImplementationOnce(function Contract() {
+            return agreementInstance;
         })
-        .mockReturnValue({ isChainValid });
+        .mockImplementation(function Contract() {
+            return chainValidatorInstance;
+        });
     vi.stubGlobal("fetch", vi.fn());
     vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -51,13 +59,13 @@ function csvResponse(csv) {
 
 async function reconcileFrom({ chainCSV, contractCSV, details }) {
     fetch.mockResolvedValueOnce(csvResponse(chainCSV)).mockResolvedValueOnce(csvResponse(contractCSV));
-    getDetails.mockResolvedValue(details);
+    agreementInstance.getDetails.mockResolvedValue(details);
     const report = await reconcile({
         getAgreementState: createAgreementReader(provider),
         getSheetState,
         getSheetChainDetails,
     });
-    expect(getDetails).toHaveBeenCalledExactlyOnceWith();
+    expect(agreementInstance.getDetails).toHaveBeenCalledExactlyOnceWith();
     return report;
 }
 
@@ -201,7 +209,7 @@ test.each([
 });
 
 test("collects warnings from every stage before planning updates", async () => {
-    isChainValid.mockResolvedValue(false);
+    chainValidatorInstance.isChainValid.mockResolvedValue(false);
     const duplicateWarning = {
         code: "DUPLICATE_CHAIN_NAME",
         context: {
@@ -278,7 +286,7 @@ test("collects warnings from every stage before planning updates", async () => {
             },
         },
     ]);
-    expect(isChainValid).toHaveBeenCalledExactlyOnceWith("eip155:8453");
+    expect(chainValidatorInstance.isChainValid).toHaveBeenCalledExactlyOnceWith("eip155:8453");
 });
 
 test("preserves intentional chain removal for an empty desired state", async () => {

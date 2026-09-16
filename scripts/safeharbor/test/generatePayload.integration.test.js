@@ -13,7 +13,7 @@ vi.mock("ethers", async (importOriginal) => ({
     Contract: vi.fn(),
 }));
 
-const getDetails = vi.fn();
+let agreementInstance;
 
 const provider = {};
 let consoleWarnSpy;
@@ -22,14 +22,23 @@ let consoleLogSpy;
 let encodeSpy;
 
 beforeEach(() => {
-    Contract.mockReturnValueOnce({
+    const chainlogInstance = {
         "getAddress(bytes32)": vi.fn().mockResolvedValue("0x7000000000000000000000000000000000000001"),
+    };
+    agreementInstance = {
+        getDetails: vi.fn(),
+        getChainValidator: vi.fn().mockResolvedValue("0x8000000000000000000000000000000000000001"),
+    };
+    const chainValidatorInstance = { isChainValid: vi.fn().mockResolvedValue(true) };
+    Contract.mockImplementationOnce(function Contract() {
+        return chainlogInstance;
     })
-        .mockReturnValueOnce({
-            getDetails,
-            getChainValidator: vi.fn().mockResolvedValue("0x8000000000000000000000000000000000000001"),
+        .mockImplementationOnce(function Contract() {
+            return agreementInstance;
         })
-        .mockReturnValue({ isChainValid: vi.fn().mockResolvedValue(true) });
+        .mockImplementation(function Contract() {
+            return chainValidatorInstance;
+        });
     vi.stubGlobal("fetch", vi.fn());
     consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -65,14 +74,14 @@ async function reconcileFrom({ chainCSV, contractCSV, details }) {
                 headers: { "content-type": "text/csv" },
             }),
         );
-    getDetails.mockResolvedValue(details);
+    agreementInstance.getDetails.mockResolvedValue(details);
     const report = await reconcile({
         getAgreementState: createAgreementReader(provider),
         getSheetState,
         getSheetChainDetails,
     });
     expect(encodeSpy).not.toHaveBeenCalled();
-    expect(getDetails).toHaveBeenCalledExactlyOnceWith();
+    expect(agreementInstance.getDetails).toHaveBeenCalledExactlyOnceWith();
     return report;
 }
 

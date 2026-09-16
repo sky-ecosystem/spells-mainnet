@@ -9,30 +9,39 @@ vi.mock("ethers", async (importOriginal) => ({
     JsonRpcProvider: vi.fn(),
 }));
 
-let getDetails;
+let agreementInstance;
 let argv;
 let provider;
 let stdout;
 let stderr;
 let warnings;
 let encodeSpy;
-let isChainValid;
+let chainValidatorInstance;
 
 beforeEach(() => {
-    getDetails = vi.fn();
+    agreementInstance = {
+        getDetails: vi.fn(),
+        getChainValidator: vi.fn().mockResolvedValue("0x8000000000000000000000000000000000000001"),
+    };
     argv = process.argv;
     vi.stubEnv("ETH_RPC_URL", "https://rpc.example");
     provider = { destroy: vi.fn() };
-    JsonRpcProvider.mockReturnValue(provider);
-    isChainValid = vi.fn().mockResolvedValue(true);
-    Contract.mockReturnValueOnce({
+    JsonRpcProvider.mockImplementation(function JsonRpcProvider() {
+        return provider;
+    });
+    const chainlogInstance = {
         "getAddress(bytes32)": vi.fn().mockResolvedValue("0x7000000000000000000000000000000000000001"),
+    };
+    chainValidatorInstance = { isChainValid: vi.fn().mockResolvedValue(true) };
+    Contract.mockImplementationOnce(function Contract() {
+        return chainlogInstance;
     })
-        .mockReturnValueOnce({
-            getDetails,
-            getChainValidator: vi.fn().mockResolvedValue("0x8000000000000000000000000000000000000001"),
+        .mockImplementationOnce(function Contract() {
+            return agreementInstance;
         })
-        .mockReturnValue({ isChainValid });
+        .mockImplementation(function Contract() {
+            return chainValidatorInstance;
+        });
     vi.stubGlobal("fetch", vi.fn());
     stdout = vi.spyOn(console, "log").mockImplementation(() => {});
     stderr = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -61,7 +70,7 @@ function mockSources({ chainCSV, contractCSV, details }) {
                 headers: { "content-type": "text/csv" },
             }),
         );
-    getDetails.mockResolvedValue(details);
+    agreementInstance.getDetails.mockResolvedValue(details);
 }
 
 test("blocks all generation when the configured validator rejects new chain IDs", async () => {
@@ -89,10 +98,10 @@ test("blocks all generation when the configured validator rejects new chain IDs"
             ],
         },
     });
-    isChainValid.mockResolvedValue(false);
+    chainValidatorInstance.isChainValid.mockResolvedValue(false);
 
     expect(await runCli("generate")).toBe(2);
-    expect(isChainValid.mock.calls).toEqual([["eip155:999999"], ["unsupported:network"]]);
+    expect(chainValidatorInstance.isChainValid.mock.calls).toEqual([["eip155:999999"], ["unsupported:network"]]);
     expect(warnings.mock.calls).toEqual([
         ["⚠️ Chain ID 'eip155:999999' is not accepted by the Agreement's configured chain validator"],
         ["⚠️ Chain ID 'unsupported:network' is not accepted by the Agreement's configured chain validator"],
@@ -148,7 +157,7 @@ test("validator RPC failure exits 1 and cleans up without generating output", as
         `,
         details: { chains: [] },
     });
-    isChainValid.mockRejectedValue(
+    chainValidatorInstance.isChainValid.mockRejectedValue(
         Object.assign(new Error("Validator unavailable"), {
             code: "NETWORK_ERROR",
         }),
@@ -454,8 +463,8 @@ describe.each([
             expect(encodeSpy).not.toHaveBeenCalled();
         }
         expect(fetch).toHaveBeenCalledTimes(2);
-        expect(getDetails).toHaveBeenCalledExactlyOnceWith();
-        expect(isChainValid).not.toHaveBeenCalled();
+        expect(agreementInstance.getDetails).toHaveBeenCalledExactlyOnceWith();
+        expect(chainValidatorInstance.isChainValid).not.toHaveBeenCalled();
         expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
         expect(stderr).not.toHaveBeenCalled();
 
@@ -557,7 +566,7 @@ test("verify exits 1 when fetching Agreement details fails", async () => {
             }),
         );
     const failure = new Error("Agreement state unavailable");
-    getDetails.mockRejectedValue(failure);
+    agreementInstance.getDetails.mockRejectedValue(failure);
 
     expect(await runCli("verify")).toBe(1);
     expect(stderr).toHaveBeenCalledExactlyOnceWith(

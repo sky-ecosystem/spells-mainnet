@@ -21,7 +21,9 @@ beforeEach(() => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
     provider = { destroy: vi.fn() };
-    JsonRpcProvider.mockReturnValue(provider);
+    JsonRpcProvider.mockImplementation(function JsonRpcProvider() {
+        return provider;
+    });
 });
 
 afterEach(() => {
@@ -97,14 +99,19 @@ test("wires the provider through the real pipeline and destroys it after success
                 headers: { "content-type": "text/csv" },
             }),
         );
-    const getDetails = vi.fn().mockResolvedValue({ chains: [] });
-    Contract.mockReturnValueOnce({
+    const chainlogInstance = {
         "getAddress(bytes32)": vi.fn().mockResolvedValue("0x7000000000000000000000000000000000000001"),
-    }).mockReturnValueOnce({ getDetails });
+    };
+    const agreementInstance = { getDetails: vi.fn().mockResolvedValue({ chains: [] }) };
+    Contract.mockImplementationOnce(function Contract() {
+        return chainlogInstance;
+    }).mockImplementationOnce(function Contract() {
+        return agreementInstance;
+    });
 
     expect(await main()).toBe(0);
     expect(JsonRpcProvider).toHaveBeenCalledExactlyOnceWith("https://rpc.example");
-    expect(getDetails).toHaveBeenCalledExactlyOnceWith();
+    expect(agreementInstance.getDetails).toHaveBeenCalledExactlyOnceWith();
     expect(console.log).toHaveBeenCalledExactlyOnceWith(
         "✅ SafeHarbor verification passed: no updates or validation warnings.",
     );
@@ -160,13 +167,13 @@ test("reports a Sheet failure and destroys the provider without starting an Agre
             }),
         )
         .mockRejectedValueOnce(new Error("Contracts unavailable"));
-    const getChainlogAddress = vi.fn();
-    Contract.mockReturnValueOnce({
-        "getAddress(bytes32)": getChainlogAddress,
+    const chainlogInstance = { "getAddress(bytes32)": vi.fn() };
+    Contract.mockImplementationOnce(function Contract() {
+        return chainlogInstance;
     });
 
     expect(await main()).toBe(1);
-    expect(getChainlogAddress).not.toHaveBeenCalled();
+    expect(chainlogInstance["getAddress(bytes32)"]).not.toHaveBeenCalled();
     expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
     expect(console.error).toHaveBeenCalledExactlyOnceWith(
         dedent`
@@ -182,7 +189,7 @@ test("reports provider construction failures as command errors", async () => {
     const failure = Object.assign(new Error("Invalid RPC configuration"), {
         code: "INVALID_ARGUMENT",
     });
-    JsonRpcProvider.mockImplementation(() => {
+    JsonRpcProvider.mockImplementation(function JsonRpcProvider() {
         throw failure;
     });
 
@@ -198,7 +205,7 @@ test("reports provider construction failures as command errors", async () => {
 });
 
 test("reports Chainlog construction failures and destroys the provider", async () => {
-    Contract.mockImplementation(() => {
+    Contract.mockImplementation(function Contract() {
         throw new Error("Chainlog construction failed");
     });
 
@@ -230,9 +237,10 @@ test.each(["encoding", "reporting"])("reports a %s failure once and destroys the
                 headers: { "content-type": "text/csv" },
             }),
         );
-    Contract.mockReturnValueOnce({
+    const chainlogInstance = {
         "getAddress(bytes32)": vi.fn().mockResolvedValue("0x7000000000000000000000000000000000000001"),
-    }).mockReturnValueOnce({
+    };
+    const agreementInstance = {
         getDetails: vi.fn().mockResolvedValue({
             chains: [
                 {
@@ -242,6 +250,11 @@ test.each(["encoding", "reporting"])("reports a %s failure once and destroys the
                 },
             ],
         }),
+    };
+    Contract.mockImplementationOnce(function Contract() {
+        return chainlogInstance;
+    }).mockImplementationOnce(function Contract() {
+        return agreementInstance;
     });
     const failure = new Error(`${stage} failed`);
     if (stage === "encoding") {

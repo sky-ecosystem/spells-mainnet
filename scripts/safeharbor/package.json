@@ -30,6 +30,6 @@
     "eslint-plugin-import": "^2.32.0",
     "globals": "^16.3.0",
     "prettier": "^3.5.3",
-    "vitest": "^3.2.4"
+    "vitest": "^5.0.1"
   }
 }

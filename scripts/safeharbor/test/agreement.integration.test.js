@@ -48,9 +48,11 @@ test("resolves the Agreement and returns normalized state with diagnostics", asy
             },
         ],
     };
-    const getDetails = vi.fn().mockResolvedValue(details);
+    const agreementInstance = { getDetails: vi.fn().mockResolvedValue(details) };
     getChainlogAddress.mockResolvedValue("0x7000000000000000000000000000000000000001");
-    Contract.mockReturnValue({ getDetails });
+    Contract.mockImplementation(function Contract() {
+        return agreementInstance;
+    });
 
     expect(await getAgreementState([])).toEqual({
         value: {
@@ -96,15 +98,16 @@ test("resolves the Agreement and returns normalized state with diagnostics", asy
         AGREEMENT_V3_ABI,
         provider,
     );
-    expect(getDetails).toHaveBeenCalledExactlyOnceWith();
+    expect(agreementInstance.getDetails).toHaveBeenCalledExactlyOnceWith();
 });
 
 test("reuses the Chainlog reader without caching the resolved Agreement address", async () => {
     getChainlogAddress
         .mockResolvedValueOnce("0x7000000000000000000000000000000000000001")
         .mockResolvedValueOnce("0x7000000000000000000000000000000000000002");
-    Contract.mockReturnValue({
-        getDetails: vi.fn().mockResolvedValue({ chains: [] }),
+    const agreementInstance = { getDetails: vi.fn().mockResolvedValue({ chains: [] }) };
+    Contract.mockImplementation(function Contract() {
+        return agreementInstance;
     });
 
     await expect(getAgreementState([])).resolves.toEqual({
@@ -126,21 +129,26 @@ test("reuses the Chainlog reader without caching the resolved Agreement address"
 
 test("returns normalized state and validates only new desired chain IDs exactly", async () => {
     getChainlogAddress.mockResolvedValue("0x7000000000000000000000000000000000000001");
-    const getDetails = vi.fn().mockResolvedValue({
-        chains: [
-            {
-                caip2ChainId: "eip155:1",
-                assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
-                accounts: [["0x2000000000000000000000000000000000000001", 0n]],
-            },
-        ],
+    const agreementInstance = {
+        getDetails: vi.fn().mockResolvedValue({
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+                    accounts: [["0x2000000000000000000000000000000000000001", 0n]],
+                },
+            ],
+        }),
+        getChainValidator: vi.fn().mockResolvedValue("0x8000000000000000000000000000000000000001"),
+    };
+    const chainValidatorInstance = {
+        isChainValid: vi.fn().mockResolvedValueOnce(true).mockResolvedValueOnce(false).mockResolvedValueOnce(false),
+    };
+    Contract.mockImplementationOnce(function Contract() {
+        return agreementInstance;
+    }).mockImplementationOnce(function Contract() {
+        return chainValidatorInstance;
     });
-    const getChainValidator = vi.fn().mockResolvedValue("0x8000000000000000000000000000000000000001");
-    const isChainValid = vi.fn().mockResolvedValueOnce(true).mockResolvedValueOnce(false).mockResolvedValueOnce(false);
-    Contract.mockReturnValueOnce({
-        getDetails,
-        getChainValidator,
-    }).mockReturnValueOnce({ isChainValid });
 
     await expect(getAgreementState(["eip155:1", "eip155:10", "eip155:999999", "EIP155:1"])).resolves.toEqual({
         value: {
@@ -160,9 +168,9 @@ test("returns normalized state and validates only new desired chain IDs exactly"
         ],
     });
 
-    expect(isChainValid.mock.calls).toEqual([["eip155:10"], ["eip155:999999"], ["EIP155:1"]]);
-    expect(getDetails).toHaveBeenCalledExactlyOnceWith();
-    expect(getChainValidator).toHaveBeenCalledExactlyOnceWith();
+    expect(chainValidatorInstance.isChainValid.mock.calls).toEqual([["eip155:10"], ["eip155:999999"], ["EIP155:1"]]);
+    expect(agreementInstance.getDetails).toHaveBeenCalledExactlyOnceWith();
+    expect(agreementInstance.getChainValidator).toHaveBeenCalledExactlyOnceWith();
     expect(getChainlogAddress).toHaveBeenCalledExactlyOnceWith("SAFE_HARBOR_AGREEMENT");
     expect(Contract.mock.calls).toEqual([
         ["0x7000000000000000000000000000000000000001", AGREEMENT_V3_ABI, provider],
@@ -172,17 +180,21 @@ test("returns normalized state and validates only new desired chain IDs exactly"
 
 test("skips validator access when every desired chain already exists", async () => {
     getChainlogAddress.mockResolvedValue("0x7000000000000000000000000000000000000001");
-    const getDetails = vi.fn().mockResolvedValue({
-        chains: [
-            {
-                caip2ChainId: "eip155:1",
-                assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
-                accounts: [["0x2000000000000000000000000000000000000001", 0n]],
-            },
-        ],
+    const agreementInstance = {
+        getDetails: vi.fn().mockResolvedValue({
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+                    accounts: [["0x2000000000000000000000000000000000000001", 0n]],
+                },
+            ],
+        }),
+        getChainValidator: vi.fn(),
+    };
+    Contract.mockImplementation(function Contract() {
+        return agreementInstance;
     });
-    const getChainValidator = vi.fn();
-    Contract.mockReturnValue({ getDetails, getChainValidator });
 
     await expect(getAgreementState(["eip155:1"])).resolves.toEqual({
         value: {
@@ -198,7 +210,7 @@ test("skips validator access when every desired chain already exists", async () 
         },
         warnings: [],
     });
-    expect(getDetails).toHaveBeenCalledExactlyOnceWith();
-    expect(getChainValidator).not.toHaveBeenCalled();
+    expect(agreementInstance.getDetails).toHaveBeenCalledExactlyOnceWith();
+    expect(agreementInstance.getChainValidator).not.toHaveBeenCalled();
     expect(Contract).toHaveBeenCalledTimes(1);
 });
