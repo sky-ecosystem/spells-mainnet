@@ -943,13 +943,22 @@ contract DssSpellTestBase is Config, DssTest {
             expectedRate_ - yearlyYield_ : yearlyYield_ - expectedRate_;
     }
 
-    function _getUnmaterializedFees(bytes32 ilk, uint256 Art, uint256 rate, uint256 line) internal view returns (uint256) {
-        (uint256 duty, uint256 rho) = jug.ilks(ilk);
+    function _getUnmaterializedFees(bytes32 ilk, uint256 Art, uint256 rate, uint256 line) internal withSnapshot() returns (uint256) {
         // Assume all currently drawable debt is drawn before fees are materialized.
         uint256 maxArtForFeeAccrual = Art * rate < line ? line / rate : Art;
-        uint256 projectedRate = _rpow(jug.base() + duty, block.timestamp - rho, RAY) * rate / RAY;
+        // Simulate the accrual of fees by setting the Art to the maximum drawable debt, then calling drip().
+        stdstore
+            .target(address(vat))
+            .sig("ilks(bytes32)")
+            .with_key(ilk)
+            .depth(0) // Art is the first value returned by vat.ilks().
+            .checked_write(maxArtForFeeAccrual);
 
-        return maxArtForFeeAccrual * (projectedRate - rate);
+        uint256 debtBefore = vat.debt();
+        jug.drip(ilk);
+        uint256 debtAfter = vat.debt();
+
+        return debtAfter - debtBefore;
     }
 
     function _castPreviousSpell() internal {
