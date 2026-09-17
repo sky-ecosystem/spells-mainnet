@@ -943,16 +943,14 @@ contract DssSpellTestBase is Config, DssTest {
             expectedRate_ - yearlyYield_ : yearlyYield_ - expectedRate_;
     }
 
-    function _getUnmaterializedFees(bytes32 ilk, uint256 Art, uint256 rate, uint256 line) internal withSnapshot() returns (uint256) {
-        // Assume all currently drawable debt is drawn before fees are materialized.
-        uint256 maxArtForFeeAccrual = Art * rate < line ? line / rate : Art;
+    function _getUnmaterializedFees(bytes32 ilk, uint256 maxDrawableArt) internal withSnapshot() returns (uint256) {
         // Simulate the accrual of fees by setting the Art to the maximum drawable debt, then calling drip().
         stdstore
             .target(address(vat))
             .sig("ilks(bytes32)")
             .with_key(ilk)
             .depth(0) // Art is the first value returned by vat.ilks().
-            .checked_write(maxArtForFeeAccrual);
+            .checked_write(maxDrawableArt);
 
         uint256 debtBefore = vat.debt();
         jug.drip(ilk);
@@ -1361,13 +1359,10 @@ contract DssSpellTestBase is Config, DssTest {
             uint256 Art;
             uint256 rate;
             (Art, rate,, line, dust) = vat.ilks(ilk);
-            uint256 debt = Art * rate;
-            if (debt < line) {
-                uint256 maxDrawableArt = line / rate;
-                sums[1] += (maxDrawableArt - Art) * rate;
-            }
-
-            sums[2] += _getUnmaterializedFees(ilk, Art, rate, line);
+            // Assume all currently drawable debt is drawn before fees are materialized.
+            uint256 maxDrawableArt = Art * rate < line ? line / rate : Art;
+            sums[1] += (maxDrawableArt - Art) * rate;
+            sums[2] += _getUnmaterializedFees(ilk, maxDrawableArt);
             }
             sums[0] += line;
             (uint256 aL_line, uint256 aL_gap, uint256 aL_ttl,,) = autoLine.ilks(ilk);
