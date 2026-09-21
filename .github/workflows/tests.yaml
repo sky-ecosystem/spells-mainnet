@@ -7,7 +7,7 @@ permissions:
   attestations: read
 
 env:
-  FOUNDRY_RELEASE: v1.7.1
+  FOUNDRY_RELEASE: v1.8.1
   FOUNDRY_IGNORE_AGE: "0"
 
 jobs:
