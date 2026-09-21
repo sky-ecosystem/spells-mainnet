@@ -104,13 +104,15 @@ Display the built-in command reference without performing environment or network
 
 ## CI installation
 
-CI environments are expected to be clean, with no previous Foundry installation. The setup tool requires an authenticated GitHub CLI, and subsequent steps must resolve the installed binaries from `PATH`. Define the pinned release and age-waiver setting at workflow level:
+CI environments are expected to be clean, with no previous Foundry installation. The setup tool requires an authenticated GitHub CLI, and subsequent steps must resolve the installed binaries from `PATH`. Define the pinned release and age-waiver setting only in `.github/workflows/tests.yaml`:
 
 ```yaml
 env:
   FOUNDRY_RELEASE: vMAJOR.MINOR.PATCH
   FOUNDRY_IGNORE_AGE: "0"
 ```
+
+The `setup-foundry.yaml` workflow reads both values from `tests.yaml` when it runs, then tests the setup scripts and installs and verifies that release on Linux and macOS. It runs for changes to the setup workflow, `Makefile`, or `scripts/setup-foundry/`; changing only `tests.yaml` does not trigger it.
 
 Expose the workflow token as `GH_TOKEN` and add the installation directory to `GITHUB_PATH` before installing:
 

@@ -4,6 +4,7 @@ set -u
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 CLI="$ROOT/scripts/setup-foundry/setup-foundry.sh"
+CI_SETTINGS="$ROOT/scripts/setup-foundry/load-ci-settings.sh"
 BASH_PATH=$(command -v bash)
 JQ_PATH=$(command -v jq) || {
     printf 'test prerequisite not found: jq\n' >&2
@@ -1406,6 +1407,39 @@ test_missing_command_fails() {
     rm -rf "$FIXTURE"
 }
 
+test_ci_settings_share_one_pin() {
+    new_fixture
+    local settings="$FIXTURE/tests.yaml" github_env="$FIXTURE/github-env" age ok=1
+
+    for age in 0 1; do
+        printf 'env:\n  FOUNDRY_RELEASE: v1.8.1\n  FOUNDRY_IGNORE_AGE: "%s"\n' "$age" > "$settings"
+        : > "$github_env"
+        GITHUB_ENV="$github_env" "$BASH_PATH" "$CI_SETTINGS" "$settings" > "$FIXTURE/out" 2>&1 || ok=0
+        diff -u <(printf 'FOUNDRY_RELEASE=v1.8.1\nFOUNDRY_IGNORE_AGE=%s\n' "$age") "$github_env" >/dev/null || ok=0
+    done
+
+    for invalid in missing-release missing-age duplicate-release duplicate-age malformed-release malformed-age; do
+        case "$invalid" in
+            missing-release) printf 'env:\n  FOUNDRY_IGNORE_AGE: "0"\n' > "$settings" ;;
+            missing-age) printf 'env:\n  FOUNDRY_RELEASE: v1.8.1\n' > "$settings" ;;
+            duplicate-release) printf 'env:\n  FOUNDRY_RELEASE: v1.8.1\n  FOUNDRY_RELEASE: v1.8.1\n  FOUNDRY_IGNORE_AGE: "0"\n' > "$settings" ;;
+            duplicate-age) printf 'env:\n  FOUNDRY_RELEASE: v1.8.1\n  FOUNDRY_IGNORE_AGE: "0"\n  FOUNDRY_IGNORE_AGE: "1"\n' > "$settings" ;;
+            malformed-release) printf 'env:\n  FOUNDRY_RELEASE: nightly\n  FOUNDRY_IGNORE_AGE: "0"\n' > "$settings" ;;
+            malformed-age) printf 'env:\n  FOUNDRY_RELEASE: v1.8.1\n  FOUNDRY_IGNORE_AGE: "2"\n' > "$settings" ;;
+        esac
+        printf 'SENTINEL=keep\n' > "$github_env"
+        if GITHUB_ENV="$github_env" "$BASH_PATH" "$CI_SETTINGS" "$settings" > "$FIXTURE/out" 2>&1; then ok=0; fi
+        diff -u <(printf 'SENTINEL=keep\n') "$github_env" >/dev/null || ok=0
+    done
+
+    if [ "$ok" -eq 1 ]; then
+        pass 'CI settings use one pin and reject missing, duplicate, or malformed values'
+    else
+        fail 'CI settings use one pin and reject missing, duplicate, or malformed values'
+    fi
+    rm -rf "$FIXTURE"
+}
+
 test_select_preflights_archive_attestations_without_downloading
 test_select_skips_uninstallable_release_candidates
 test_select_fails_without_an_installable_candidate
@@ -1455,6 +1489,7 @@ test_release_option_requires_value
 test_release_option_rejects_empty_equals_value
 test_short_options_are_rejected
 test_missing_command_fails
+test_ci_settings_share_one_pin
 
 printf '%s passed; %s failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

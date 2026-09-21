@@ -16,10 +16,6 @@ permissions:
   contents: read
   attestations: read
 
-env:
-  FOUNDRY_RELEASE: v1.7.1
-  FOUNDRY_IGNORE_AGE: "0"
-
 jobs:
   test:
     name: Test (${{ matrix.os }})
@@ -30,6 +26,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Load Foundry settings from Tests workflow
+        run: bash scripts/setup-foundry/load-ci-settings.sh .github/workflows/tests.yaml
 
       - name: Test Setup Foundry
         run: make test-setup-foundry
