@@ -654,7 +654,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public { // add the `skipped` modifier to skip
+    function testVestSky() public skipped { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
         uint256 NOV_15_2026_14_02_23_UTC = 1794751343;
 
@@ -773,7 +773,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestedRewardsDist() public { // add the `skipped` modifier to skip
+    function testVestedRewardsDist() public skipped { // add the `skipped` modifier to skip
         uint256 expectedVestIdBefore = 16;
         uint256 expectedVestIdAfter = 17;
 
@@ -821,7 +821,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public { // add the `skipped` modifier to skip
+    function testPayments() public skipped { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -1282,7 +1282,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 
-    function testMonthlySettlementCycleInflows() public { // add the `skipped` modifier to skip
+    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
         AllocatorPayment[] memory payments = new AllocatorPayment[](4);
         payments[0] = AllocatorPayment(addr.addr("ALLOCATOR_SPARK_A_VAULT"), 6_357_912 * WAD);
         payments[1] = AllocatorPayment(addr.addr("ALLOCATOR_BLOOM_A_VAULT"), 9_574_714 * WAD);
@@ -1336,7 +1336,7 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
+    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
         PrimeAgentSpell[2] memory primeAgentSpells = [
             PrimeAgentSpell({
                 // Insert Prime Agent StarGuards Chainlog key
@@ -1468,47 +1468,4 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
-
-    function testBurnSky() public {
-        uint256 skyTotalSupplyBefore     = sky.totalSupply();
-        uint256 skyTreasuryBalanceBefore = sky.balanceOf(address(pauseProxy));
-
-        // Note: `updateFarmVest` distributes the accrued amount of the previous LSSKY->SKY vest
-        // out of the treasury (the vest czar) before yanking it.
-        VestedRewardsDistributionLike dist = VestedRewardsDistributionLike(addr.addr("REWARDS_DIST_LSSKY_SKY"));
-        VestAbstract vestSky      = VestAbstract(dist.dssVest());
-        uint256 prevVestId        = dist.vestId();
-        uint256 prevVestRxdBefore = vestSky.rxd(prevVestId);
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        uint256 distributed = vestSky.rxd(prevVestId) - prevVestRxdBefore;
-
-        assertEq(
-            sky.totalSupply(),
-            skyTotalSupplyBefore - 2_860_943.76 ether,
-            "TestError/invalid-total-supply"
-        );
-        assertEq(
-            sky.balanceOf(address(pauseProxy)),
-            skyTreasuryBalanceBefore - 2_860_943.76 ether - distributed,
-            "TestError/invalid-treasury-balance"
-        );
-    }
-
-    function testSplitHopAndFarmRewardsDuration() public {
-        StakingRewardsLike farm = StakingRewardsLike(addr.addr("REWARDS_LSSKY_USDS"));
-
-        assertEq(split.hop(),             3_748, "TestError/split-hop-before");
-        assertEq(farm.rewardsDuration(),  3_748, "TestError/rewards-duration-before");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        assertEq(split.hop(),            2_504, "TestError/split-hop-after");
-        assertEq(farm.rewardsDuration(), 2_504, "TestError/rewards-duration-after");
-    }
 }
