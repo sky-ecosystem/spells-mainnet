@@ -16,7 +16,7 @@
     "inputs": [
       {
         "internalType": "string",
-        "name": "caip2ChainId",
+        "name": "_caip2ChainId",
         "type": "string"
       }
     ],

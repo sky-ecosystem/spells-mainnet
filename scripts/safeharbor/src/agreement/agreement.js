@@ -2,7 +2,7 @@ import { Contract, Interface } from "ethers";
 import { DIAGNOSTIC_CODES as $ } from "../diagnostic/index.js";
 // Verified ABI: https://etherscan.io/address/0xf17bB418B4EC251f300Aa3517Cb37349f17697A1#code
 import AGREEMENT_V3_ABI from "./abis/agreement.json" with { type: "json" };
-// ABI compiled with solc 0.8.30 from https://github.com/security-alliance/safe-harbor/blob/0b0abb8b627eff87e2f7b52bf8ec484cd6ce0e32/registry-contracts/src/interface/IChainValidator.sol
+// Verified ABI: https://etherscan.io/address/0x1eee8E721816CD5A0033FBA6Ba93486C074dD1cB#code
 import CHAIN_VALIDATOR_ABI from "./abis/chainValidator.json" with { type: "json" };
 import { createChainlogReader } from "./chainlog.js";
 import { normalizeOnChainState } from "./normalize.js";
