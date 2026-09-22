@@ -1239,11 +1239,11 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(Art, 0, "GUSD-A Art is not 0");
     }
 
-    function testDaoResolutions() public skipped { // replace `view` with the `skipped` modifier to skip
+    function testDaoResolutions() public view { // replace `view` with the `skipped` modifier to skip
         // For each resolution, add IPFS hash as item to the resolutions array
         // Initialize the array with the number of resolutions
         string[1] memory resolutions = [
-            "bafkreiczdjq55zsxvxcf4le3oaqvhp4jgvls4n4b7xbnzvkwilzen3a2te"
+            "bafkreickfbtcslmburi6s4q6br6hn3j2cgdykf3ekv5i46r622vo3jzznm"
         ];
 
         string memory comma_separated_resolutions = "";
@@ -1336,15 +1336,15 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
-        PrimeAgentSpell[2] memory primeAgentSpells = [
+    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
+        PrimeAgentSpell[3] memory primeAgentSpells = [
             PrimeAgentSpell({
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "SPARK_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0x7602cc457786c06778258A0b004f2D66c54386fC,
+                addr: 0xdE40689816DA168b0A56f8F22CBD7FfCFA403E6B,
                 // Insert Prime Agent spell codehash
-                codehash: 0xb3b1f22f29ef3d269404004599f13b840e45ec98909ac3de529e27c155bed088,
+                codehash: 0xf5148b6a9fccbde7f225f4f098c28a112c065205a6bc321418154d41aa384bda,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             }),
@@ -1352,9 +1352,19 @@ contract DssSpellTest is DssSpellTestBase {
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "GROVE_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0x73F9798B24b7843B8028f905373124EfCAF25Da4,
+                addr: 0xFB1DEBB9CD8eD442103092C6aCd9ACC231224CFb,
                 // Insert Prime Agent spell codehash
-                codehash: 0xc72bda25146c6225b10ee085a10e21b0126b34dde6036a24d7023142846d34c0,
+                codehash: 0x0106daf3bc397e10d8ee0b19996928b7a046d1f31bd31dba04c5cc2b2ea84fa6,
+                // Set to true if the Prime Agent spell is executed directly from core spell
+                directExecutionEnabled: false
+            }),
+            PrimeAgentSpell({
+                // Insert Prime Agent StarGuards Chainlog key
+                starGuardKey: "OSERO_STARGUARD",
+                // Insert Prime Agent spell address
+                addr: 0xA061628c7f7bD95f571fd41f645746cC0d22f812,
+                // Insert Prime Agent spell codehash
+                codehash: 0x0c01396cee9cf147f0e4e5a715bf14326a81cd0e11c31d96c963d47bba52f4d8,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             })
