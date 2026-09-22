@@ -802,6 +802,24 @@ describe("Generation pipeline", () => {
                 },
             });
             expect(payloadSnapshot(result)).toMatchSnapshot();
+            expect(result.updates.map(({ fn, args }) => ({ fn, args }))).toStrictEqual([
+                {
+                    fn: "removeAccounts",
+                    args: ["eip155:1", ["0x2000000000000000000000000000000000000001"]],
+                },
+                {
+                    fn: "addAccounts",
+                    args: [
+                        "eip155:1",
+                        [
+                            {
+                                accountAddress: "0x2000000000000000000000000000000000000001",
+                                childContractScope: 2,
+                            },
+                        ],
+                    ],
+                },
+            ]);
         });
     });
 });
