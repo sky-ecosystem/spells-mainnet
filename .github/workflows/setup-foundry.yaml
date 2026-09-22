@@ -3,11 +3,13 @@ name: Setup Foundry
 on:
   push:
     paths:
+      - ".github/foundry-ci.env"
       - ".github/workflows/setup-foundry.yaml"
       - "Makefile"
       - "scripts/setup-foundry/**"
   pull_request:
     paths:
+      - ".github/foundry-ci.env"
       - ".github/workflows/setup-foundry.yaml"
       - "Makefile"
       - "scripts/setup-foundry/**"
@@ -15,10 +17,6 @@ on:
 permissions:
   contents: read
   attestations: read
-
-env:
-  FOUNDRY_RELEASE: v1.7.1
-  FOUNDRY_IGNORE_AGE: "0"
 
 jobs:
   test:
@@ -30,6 +28,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Load Foundry settings
+        run: |
+          settings=.github/foundry-ci.env
+          [ "$(wc -l < "$settings")" -eq 2 ]
+          grep -Exq 'FOUNDRY_RELEASE=v[0-9]+\.[0-9]+\.[0-9]+' "$settings"
+          grep -Exq 'FOUNDRY_IGNORE_AGE=[01]' "$settings"
+          cat "$settings" >> "$GITHUB_ENV"
 
       - name: Test Setup Foundry
         run: make test-setup-foundry
