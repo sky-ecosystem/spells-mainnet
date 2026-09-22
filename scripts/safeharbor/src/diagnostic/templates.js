@@ -3,6 +3,7 @@ import { DIAGNOSTIC_CODES as $ } from "./codes.js";
 
 export const diagnosticTemplates = {
     [$.INVALID_CHAIN_ID]: "Chain ID '{chainId}' is not accepted by the Agreement's configured chain validator",
+    [$.SHEET_CHAIN_ID_LINE_TERMINATOR]: "Line terminator in SafeHarbor Sheet Chain Id for '{chainName}': {chainId}",
     [$.INVALID_SHEET_STATUS]:
         "Unrecognized status in SafeHarbor Sheet for chain '{chainName}', account '{address}': '{status}'; expected ACTIVE or DISABLED",
     [$.INVALID_SHEET_FACTORY_FLAG]:

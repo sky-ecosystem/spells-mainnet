@@ -7,24 +7,19 @@ export function generateSolidity(updates) {
 
     return [
         `bytes[] memory calldatas = new bytes[](${updates.length});`,
-        ...updates.map(
-            (update, index) =>
-                `// ${escapeCommentLineTerminators(getDescription(update))}\ncalldatas[${index}] = hex'${update.calldata.slice(2)}';`,
-        ),
+        ...updates.map((update, index) => {
+            const description = getDescription(update);
+            if (/[\n\v\f\r\u0085\u2028\u2029]/.test(description)) {
+                throw new Error("Cannot generate Solidity with a line terminator");
+            }
+            return `// ${description}\ncalldatas[${index}] = hex'${update.calldata.slice(2)}';`;
+        }),
         "_updateSafeHarbor(calldatas);",
     ]
         .join("\n\n")
         .split("\n")
         .map((line) => line.trim())
         .join("\n");
-}
-
-function escapeCommentLineTerminators(description) {
-    // Solidity ends // comments at any of these seven Unicode line terminators.
-    return description.replace(
-        /[\n\v\f\r\u0085\u2028\u2029]/g,
-        (character) => `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`,
-    );
 }
 
 function getDescription(update) {

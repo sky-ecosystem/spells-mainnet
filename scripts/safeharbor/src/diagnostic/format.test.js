@@ -41,6 +41,18 @@ test("inserts placeholder-like and replacement-pattern text literally", () => {
     );
 });
 
+test("shows line terminators visibly in a Sheet chain ID diagnostic", () => {
+    expect(
+        formatDiagnostic({
+            code: "SHEET_CHAIN_ID_LINE_TERMINATOR",
+            context: {
+                chainName: "ETHEREUM",
+                chainId: "eip155:1\nrevert(); //\u2028hidden",
+            },
+        }),
+    ).toBe("Line terminator in SafeHarbor Sheet Chain Id for 'ETHEREUM': \"eip155:1\\nrevert(); //\\u2028hidden\"");
+});
+
 test.each([
     {
         diagnostic: {

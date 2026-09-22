@@ -141,6 +141,48 @@ test("blocks generation for an invalid Sheet account address", async () => {
     expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
 });
 
+test.each(["generate", "inspect"])("%s reports a line terminator in an allowlisted Sheet chain ID", async (command) => {
+    const chainId = "eip155:1\nrevert(); //";
+    mockSources({
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,"eip155:1
+            revert(); //",0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+        `,
+        details: { chains: [] },
+    });
+
+    expect(await runCli(command)).toBe(command === "generate" ? 2 : 0);
+    expect(chainValidatorInstance.isChainValid).toHaveBeenCalledExactlyOnceWith(chainId);
+    expect(warnings.mock.calls[0]).toEqual([
+        "⚠️ Line terminator in SafeHarbor Sheet Chain Id for 'ETHEREUM': \"eip155:1\\nrevert(); //\"",
+    ]);
+    if (command === "generate") {
+        expect(stdout).not.toHaveBeenCalled();
+        expect(warnings.mock.calls[1]).toEqual(["❌ Payload generation blocked: 1 validation warning(s)."]);
+    } else {
+        expect(JSON.parse(stdout.mock.calls[0][0])).toMatchObject({
+            changes: [],
+            warnings: [
+                {
+                    code: "SHEET_CHAIN_ID_LINE_TERMINATOR",
+                    context: {
+                        chainName: "ETHEREUM",
+                        chainId,
+                    },
+                },
+            ],
+        });
+    }
+    expect(stderr).not.toHaveBeenCalled();
+    expect(encodeSpy).not.toHaveBeenCalled();
+    expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
+});
+
 test("validator RPC failure exits 1 and cleans up without generating output", async () => {
     mockSources({
         chainCSV: dedent`

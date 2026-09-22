@@ -129,6 +129,60 @@ test("uses only isFactory when an IsFactory column is also present", () => {
     });
 });
 
+test("warns on a line terminator in an active Sheet chain ID only", () => {
+    const chainId = "eip155:1\nrevert(); //";
+    expect(
+        normalizeContractsInScope(
+            {
+                headers: ["Status", "Chain", "Address", "isFactory"],
+                records: [
+                    {
+                        Status: "ACTIVE",
+                        Chain: "ETHEREUM",
+                        Address: "0x2000000000000000000000000000000000000001",
+                        isFactory: "FALSE",
+                    },
+                ],
+            },
+            {
+                caip2ChainId: {
+                    ETHEREUM: chainId,
+                    BASE: "eip155:8453\nunused",
+                },
+                assetRecoveryAddress: {
+                    ETHEREUM: "0x1000000000000000000000000000000000000001",
+                    BASE: "0x1000000000000000000000000000000000000002",
+                },
+                name: {
+                    [chainId]: "ETHEREUM",
+                    "eip155:8453\nunused": "BASE",
+                },
+            },
+        ),
+    ).toStrictEqual({
+        value: {
+            [chainId]: {
+                accounts: [
+                    {
+                        accountAddress: "0x2000000000000000000000000000000000000001",
+                        childContractScope: 0,
+                    },
+                ],
+                assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+            },
+        },
+        warnings: [
+            {
+                code: "SHEET_CHAIN_ID_LINE_TERMINATOR",
+                context: {
+                    chainName: "ETHEREUM",
+                    chainId,
+                },
+            },
+        ],
+    });
+});
+
 test("diagnoses invalid active addresses without dropping records or normalizing their values", () => {
     expect(
         normalizeContractsInScope(

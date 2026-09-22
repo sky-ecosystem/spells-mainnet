@@ -185,68 +185,18 @@ test("renders a mixed operation sequence including Solana identifiers", () => {
     `);
 });
 
-test("escapes every Solidity comment terminator without changing calldata", () => {
-    expect(
-        generateSolidity([
-            {
-                fn: "removeChains",
-                args: [["chain\nrevert(); //"]],
-                calldata: "0x1122",
-            },
-            {
-                fn: "addChains",
-                args: [
-                    [
-                        {
-                            caip2ChainId: "chain\rrevert(); //",
-                            assetRecoveryAddress: "recovery\vrevert(); //",
-                            accounts: [
-                                {
-                                    accountAddress: "account\frevert(); //",
-                                    childContractScope: 0,
-                                },
-                            ],
-                        },
-                    ],
-                ],
-                calldata: "0x3344",
-            },
-            {
-                fn: "removeAccounts",
-                args: ["chain\u0085revert(); //", ["account\u2028revert(); //"]],
-                calldata: "0x5566",
-            },
-            {
-                fn: "addAccounts",
-                args: [
-                    "chain\r\nrevert(); //",
-                    [
-                        {
-                            accountAddress: "account\u2029revert(); //",
-                            childContractScope: 2,
-                        },
-                    ],
-                ],
-                calldata: "0x7788",
-            },
-        ]),
-    ).toBe(dedent`
-        bytes[] memory calldatas = new bytes[](4);
-
-        // Remove chains: chain\\u000arevert(); //
-        calldatas[0] = hex'1122';
-
-        // Add new chain\\u000drevert(); // with recovery address recovery\\u000brevert(); // and accounts: account\\u000crevert(); // (scope=0)
-        calldatas[1] = hex'3344';
-
-        // Remove accounts from chain\\u0085revert(); // chain: account\\u2028revert(); //
-        calldatas[2] = hex'5566';
-
-        // Add accounts to chain\\u000d\\u000arevert(); // chain: account\\u2029revert(); // (scope=2)
-        calldatas[3] = hex'7788';
-
-        _updateSafeHarbor(calldatas);
-    `);
+test("rejects every Solidity line terminator before producing code", () => {
+    for (const terminator of ["\n", "\v", "\f", "\r", "\u0085", "\u2028", "\u2029"]) {
+        expect(() =>
+            generateSolidity([
+                {
+                    fn: "removeChains",
+                    args: [[`eip155:1${terminator}revert(); //`]],
+                    calldata: "0x1122",
+                },
+            ]),
+        ).toThrow("Cannot generate Solidity with a line terminator");
+    }
 });
 
 test("trims each Solidity line while preserving internal spacing and blank lines", () => {
