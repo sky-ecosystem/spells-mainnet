@@ -1265,7 +1265,6 @@ test_invalid_command_fails() {
         fail 'invalid subcommand reports a specific error and the manual entry'
     fi
     rm -rf "$FIXTURE"
-
 }
 
 test_help_succeeds_without_environment_checks() {
