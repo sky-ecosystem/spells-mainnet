@@ -7,18 +7,18 @@ export function normalizeOnChainState(agreementDetails) {
 }
 
 function normalizeChains(chains) {
-    return Object.fromEntries(chains.map((chain) => [chain.caip2ChainId, normalizeChain(chain)]));
-}
-
-function normalizeChain(chain) {
-    return {
-        accounts: chain.accounts.map(normalizeAccount),
-        assetRecoveryAddress: chain.assetRecoveryAddress,
-    };
-}
-
-function normalizeAccount(account) {
-    return { accountAddress: account[0], childContractScope: account[1] };
+    return Object.fromEntries(
+        chains.map(({ caip2ChainId, accounts, assetRecoveryAddress }) => [
+            caip2ChainId,
+            {
+                accounts: accounts.map(([accountAddress, childContractScope]) => ({
+                    accountAddress,
+                    childContractScope,
+                })),
+                assetRecoveryAddress,
+            },
+        ]),
+    );
 }
 
 function validateUniqueAccounts(agreementOnChainState) {

@@ -115,7 +115,7 @@ describe("normalizeOnChainState", () => {
                     },
                 ],
             }),
-        ).toEqual({
+        ).toStrictEqual({
             value: {
                 "eip155:1": {
                     assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
@@ -156,7 +156,7 @@ describe("normalizeOnChainState", () => {
     });
 
     test("returns an empty state without warnings", () => {
-        expect(normalizeOnChainState({ chains: [] })).toEqual({
+        expect(normalizeOnChainState({ chains: [] })).toStrictEqual({
             value: {},
             warnings: [],
         });
@@ -178,7 +178,7 @@ describe("normalizeOnChainState", () => {
             ],
         };
 
-        expect(normalizeOnChainState(details)).toEqual({
+        expect(normalizeOnChainState(details)).toStrictEqual({
             value: {
                 "eip155:1": {
                     accounts: [
@@ -234,7 +234,7 @@ describe("normalizeOnChainState", () => {
         const { value, warnings } = normalizeOnChainState(details);
 
         expect(Object.keys(value)).toEqual(["unknown:first", "solana:mainnet", "eip155:1", "unknown:second"]);
-        expect(value).toEqual({
+        expect(value).toStrictEqual({
             "unknown:first": {
                 accounts: [],
                 assetRecoveryAddress: "unused-first",
@@ -267,7 +267,7 @@ describe("normalizeOnChainState", () => {
             },
         });
         expect(warnings).toEqual([]);
-        expect(details).toEqual({
+        expect(details).toStrictEqual({
             chains: [
                 {
                     caip2ChainId: "unknown:first",
