@@ -8,7 +8,7 @@ export async function reconcile({ getAgreementState, getSheetState, getSheetChai
     const agreementOnChainResult = await loadSource("agreementOnChainState", () =>
         getAgreementState(Object.keys(sheetResult.value)),
     );
-    const validationWarnings = [
+    const warnings = [
         ...sheetChainDetailsResult.warnings,
         ...validateKnownOnChainIds(agreementOnChainResult.value, sheetChainDetailsResult.value),
         ...agreementOnChainResult.warnings,
@@ -20,8 +20,8 @@ export async function reconcile({ getAgreementState, getSheetState, getSheetChai
         sheetChainDetails: sheetChainDetailsResult.value,
         agreementOnChainState: agreementOnChainResult.value,
         sheetState: sheetResult.value,
-        changes: validationWarnings.length > 0 ? [] : planUpdates(agreementOnChainResult.value, sheetResult.value),
-        validationWarnings,
+        changes: warnings.length > 0 ? [] : planUpdates(agreementOnChainResult.value, sheetResult.value),
+        warnings,
     };
 }
 

@@ -233,7 +233,7 @@ describe.each([
                 },
             },
             changes: [],
-            validationWarnings: [],
+            warnings: [],
         },
         warningMessages: [],
         exitCodes: { generate: 0, inspect: 0, verify: 0 },
@@ -295,7 +295,7 @@ describe.each([
                     args: [["eip155:1"]],
                 },
             ],
-            validationWarnings: [],
+            warnings: [],
         },
         warningMessages: [],
         exitCodes: { generate: 0, inspect: 0, verify: 2 },
@@ -363,7 +363,7 @@ describe.each([
                 },
             },
             changes: [],
-            validationWarnings: [
+            warnings: [
                 {
                     code: "DUPLICATE_SHEET_ACCOUNT",
                     context: {
@@ -429,7 +429,7 @@ describe.each([
             },
             sheetState: {},
             changes: [],
-            validationWarnings: [
+            warnings: [
                 {
                     code: "UNKNOWN_ONCHAIN_CHAIN",
                     context: { chainId: "eip155:8453" },
@@ -459,7 +459,7 @@ describe.each([
         mockSources(fixture);
 
         expect(await runCli(command)).toBe(fixture.exitCodes[command]);
-        if (command !== "generate") {
+        if (command !== "generate" || fixture.report.changes.length === 0) {
             expect(encodeSpy).not.toHaveBeenCalled();
         }
         expect(fetch).toHaveBeenCalledTimes(2);
@@ -482,7 +482,7 @@ describe.each([
             expectedWarnings.push([fixture.generateMessage]);
         }
         expect(warnings.mock.calls).toEqual(expectedWarnings);
-        if (fixture.report.validationWarnings.length > 0) {
+        if (fixture.report.warnings.length > 0) {
             expect(warnings).not.toHaveBeenCalledWith("✅ Payload generation completed successfully.");
             expect(warnings).not.toHaveBeenCalledWith("✅ No updates to generate");
         }

@@ -1,9 +1,8 @@
-import assert from "node:assert";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { Contract, Interface } from "ethers";
 import AGREEMENT_V3_ABI from "../src/agreement/abis/agreement.json" with { type: "json" };
-import { createAgreementReader } from "../src/agreement/index.js";
-import { generatePayload } from "../src/generation/index.js";
+import { createAgreementReader, encodeUpdates } from "../src/agreement/index.js";
+import { generateSolidity } from "../src/generation/index.js";
 import { reconcile } from "../src/reconciliation/index.js";
 import { getSheetChainDetails, getSheetState } from "../src/sheet/index.js";
 import { dedent } from "../src/utils/dedent.js";
@@ -60,10 +59,10 @@ afterEach(() => {
 
 async function generateFrom(fixture) {
     const report = await reconcileFrom(fixture);
-    expect(report.validationWarnings).toEqual([]);
-    const result = generatePayload(report.changes);
-    assertPayloadEncoding(result.updates);
-    return result;
+    expect(report.warnings).toEqual([]);
+    const updates = encodeUpdates(report.changes);
+    assertPayloadEncoding(updates);
+    return { updates, solidityCode: generateSolidity(updates) };
 }
 
 async function reconcileFrom({ chainCSV, contractCSV, details }) {
@@ -85,7 +84,7 @@ async function reconcileFrom({ chainCSV, contractCSV, details }) {
     return report;
 }
 
-describe("generatePayload", () => {
+describe("Generation pipeline", () => {
     describe("No changes scenario", () => {
         test("should generate no updates when onChain and CSV data match", async () => {
             const result = await generateFrom({
@@ -133,8 +132,8 @@ describe("generatePayload", () => {
             });
 
             // Assert - should have empty result since no changes needed
-            assert.strictEqual(result.updates.length, 0);
-            assert.strictEqual(result.solidityCode, "");
+            expect(result.updates).toStrictEqual([]);
+            expect(result.solidityCode).toBe("");
         });
     });
 
@@ -1686,7 +1685,7 @@ function decodeUpdate(update, index) {
     const decoded = agreementInterface.parseTransaction({
         data: update.calldata,
     });
-    assert.ok(decoded, `Unable to decode payload update ${index}`);
+    expect(decoded, `Unable to decode payload update ${index}`).not.toBeNull();
 
     return {
         calldata: update.calldata,
@@ -1700,8 +1699,8 @@ function decodeUpdate(update, index) {
 function assertPayloadEncoding(updates) {
     updates.forEach((update, index) => {
         const { decodedName, decodedArgs } = decodeUpdate(update, index);
-        assert.strictEqual(decodedName, update.fn);
-        assert.deepStrictEqual(decodedArgs, update.args);
+        expect(decodedName).toBe(update.fn);
+        expect(decodedArgs).toStrictEqual(update.args);
     });
 }
 

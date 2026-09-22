@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`generatePayload > Account addition scenarios > should generate addAccounts updates when new accounts are added to existing chains 1`] = `
+exports[`Generation pipeline > Account addition scenarios > should generate addAccounts updates when new accounts are added to existing chains 1`] = `
 {
   "solidityCode": "bytes[] memory calldatas = new bytes[](2);
 
@@ -42,7 +42,7 @@ _updateSafeHarbor(calldatas);",
 }
 `;
 
-exports[`generatePayload > Account removal scenarios > should generate removeAccounts updates when accounts are removed 1`] = `
+exports[`Generation pipeline > Account removal scenarios > should generate removeAccounts updates when accounts are removed 1`] = `
 {
   "solidityCode": "bytes[] memory calldatas = new bytes[](2);
 
@@ -78,7 +78,7 @@ _updateSafeHarbor(calldatas);",
 }
 `;
 
-exports[`generatePayload > Chain addition scenarios > should generate addChains updates when new chains are introduced 1`] = `
+exports[`Generation pipeline > Chain addition scenarios > should generate addChains updates when new chains are introduced 1`] = `
 {
   "solidityCode": "bytes[] memory calldatas = new bytes[](1);
 
@@ -123,7 +123,7 @@ _updateSafeHarbor(calldatas);",
 }
 `;
 
-exports[`generatePayload > Chain removal scenarios > should generate removeChains updates when chains are removed 1`] = `
+exports[`Generation pipeline > Chain removal scenarios > should generate removeChains updates when chains are removed 1`] = `
 {
   "solidityCode": "bytes[] memory calldatas = new bytes[](1);
 
@@ -146,7 +146,7 @@ _updateSafeHarbor(calldatas);",
 }
 `;
 
-exports[`generatePayload > Complex mixed scenarios > should handle simultaneous chain additions, removals, and account changes 1`] = `
+exports[`Generation pipeline > Complex mixed scenarios > should handle simultaneous chain additions, removals, and account changes 1`] = `
 {
   "solidityCode": "bytes[] memory calldatas = new bytes[](5);
 
@@ -234,7 +234,7 @@ _updateSafeHarbor(calldatas);",
 }
 `;
 
-exports[`generatePayload > Complex mixed scenarios > should preserve childContractScope values correctly in complex scenarios 1`] = `
+exports[`Generation pipeline > Complex mixed scenarios > should preserve childContractScope values correctly in complex scenarios 1`] = `
 {
   "solidityCode": "bytes[] memory calldatas = new bytes[](4);
 
@@ -320,7 +320,7 @@ _updateSafeHarbor(calldatas);",
 }
 `;
 
-exports[`generatePayload > Edge cases > should handle account scope changes 1`] = `
+exports[`Generation pipeline > Edge cases > should handle account scope changes 1`] = `
 {
   "solidityCode": "bytes[] memory calldatas = new bytes[](2);
 
@@ -359,7 +359,7 @@ _updateSafeHarbor(calldatas);",
 }
 `;
 
-exports[`generatePayload > Edge cases > should handle completely empty CSV state 1`] = `
+exports[`Generation pipeline > Edge cases > should handle completely empty CSV state 1`] = `
 {
   "solidityCode": "bytes[] memory calldatas = new bytes[](1);
 
@@ -383,7 +383,7 @@ _updateSafeHarbor(calldatas);",
 }
 `;
 
-exports[`generatePayload > Edge cases > should handle completely empty onChain state 1`] = `
+exports[`Generation pipeline > Edge cases > should handle completely empty onChain state 1`] = `
 {
   "solidityCode": "bytes[] memory calldatas = new bytes[](1);
 

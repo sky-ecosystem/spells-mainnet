@@ -1,7 +1,7 @@
 import { JsonRpcProvider } from "ethers";
-import { createAgreementReader } from "../agreement/index.js";
+import { createAgreementReader, encodeUpdates } from "../agreement/index.js";
 import { DIAGNOSTIC_CODES as $, formatDiagnostic } from "../diagnostic/index.js";
-import { generatePayload } from "../generation/index.js";
+import { generateSolidity } from "../generation/index.js";
 import { reconcile } from "../reconciliation/index.js";
 import { getSheetChainDetails, getSheetState } from "../sheet/index.js";
 import { formatCliMessage, formatOperationalError } from "./format.js";
@@ -23,9 +23,7 @@ export async function main() {
                 getSheetState,
                 getSheetChainDetails,
             });
-            result.validationWarnings.forEach((diagnostic) =>
-                console.warn(formatCliMessage("⚠️", formatDiagnostic(diagnostic))),
-            );
+            result.warnings.forEach((diagnostic) => console.warn(formatCliMessage("⚠️", formatDiagnostic(diagnostic))));
             return COMMANDS[command](result);
         } finally {
             provider.destroy();
@@ -46,18 +44,19 @@ function validateOptions({ command, rpcUrl }) {
     return rpcUrl ? [] : [{ code: $.RPC_URL_REQUIRED }];
 }
 
-function generate(report) {
-    const warningCount = report.validationWarnings.length;
-    if (warningCount > 0) {
-        console.warn(`❌ Payload generation blocked: ${warningCount} validation warning(s).`);
+function generate({ changes, warnings }) {
+    if (warnings.length > 0) {
+        console.warn(`❌ Payload generation blocked: ${warnings.length} validation warning(s).`);
         return 2;
     }
 
-    const { updates, solidityCode } = generatePayload(report.changes);
-    if (updates.length > 0) {
-        console.log(solidityCode);
+    if (changes.length === 0) {
+        console.warn("✅ No updates to generate");
+        return 0;
     }
-    console.warn(updates.length > 0 ? "✅ Payload generation completed successfully." : "✅ No updates to generate");
+
+    console.log(generateSolidity(encodeUpdates(changes)));
+    console.warn("✅ Payload generation completed successfully.");
     return 0;
 }
 
@@ -66,15 +65,15 @@ function inspect(report) {
     return 0;
 }
 
-function verify(report) {
-    const updateCount = report.changes.length;
-    const warningCount = report.validationWarnings.length;
-    if (updateCount === 0 && warningCount === 0) {
+function verify({ changes, warnings }) {
+    if (changes.length === 0 && warnings.length === 0) {
         console.log("✅ SafeHarbor verification passed: no updates or validation warnings.");
         return 0;
     }
 
-    console.log(`❌ SafeHarbor verification failed: ${updateCount} update(s), ${warningCount} validation warning(s).`);
+    console.log(
+        `❌ SafeHarbor verification failed: ${changes.length} update(s), ${warnings.length} validation warning(s).`,
+    );
     return 2;
 }
 

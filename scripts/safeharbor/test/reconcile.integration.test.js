@@ -121,7 +121,7 @@ test("returns clean reconciliation with raw bigint scopes without encoding or re
             },
         },
         changes: [],
-        validationWarnings: [],
+        warnings: [],
     });
 });
 
@@ -205,7 +205,7 @@ test.each([
         },
     });
     expect(result.changes).toEqual(expectedChanges);
-    expect(result.validationWarnings).toEqual(expectedWarnings);
+    expect(result.warnings).toEqual(expectedWarnings);
 });
 
 test("collects warnings from every stage before planning updates", async () => {
@@ -257,7 +257,7 @@ test("collects warnings from every stage before planning updates", async () => {
     });
 
     expect(result.changes).toEqual([]);
-    expect(result.validationWarnings).toEqual([
+    expect(result.warnings).toEqual([
         duplicateWarning,
         unknownChainWarning,
         {
@@ -307,7 +307,7 @@ test("preserves intentional chain removal for an empty desired state", async () 
         },
     });
 
-    expect(result.validationWarnings).toEqual([]);
+    expect(result.warnings).toEqual([]);
     expect(result.changes).toEqual([
         {
             fn: "removeChains",

@@ -1,1 +1,1 @@
-export { generatePayload } from "./payload.js";
+export { generateSolidity } from "./solidity.js";

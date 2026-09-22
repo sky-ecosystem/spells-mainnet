@@ -54,7 +54,7 @@ test("loads metadata and Sheet state before passing desired chain IDs to the Agr
     resolveSheetState({ value: {}, warnings: [] });
     await expect(result).resolves.toMatchObject({
         changes: [],
-        validationWarnings: [],
+        warnings: [],
     });
     expect(getAgreementState).toHaveBeenCalledExactlyOnceWith([]);
 });
