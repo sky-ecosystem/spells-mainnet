@@ -42,7 +42,11 @@ export function normalizeChainDetails({ headers, records }) {
 
     return {
         value: buildChainLookups(getUniqueChains(chains, duplicates)),
-        warnings: [...records.flatMap(validateChainMetadataRecord), ...validateDuplicateChains(chains, duplicates)],
+        warnings: [
+            ...records.flatMap(validateChainMetadataRecord),
+            ...validateDuplicateChains(chains, duplicates),
+            ...validateSupportedNamespaces(chains),
+        ],
     };
 }
 
@@ -158,6 +162,19 @@ function validateDuplicateChainId(chain, index, duplicates) {
     ];
 }
 
+function validateSupportedNamespaces(chains) {
+    return chains
+        .filter((chain) => !isSupportedNamespace(chain["Chain Id"]))
+        .map((chain) => ({
+            code: $.UNSUPPORTED_SHEET_CHAIN_NAMESPACE,
+            context: { chainName: chain.Name, chainId: chain["Chain Id"] },
+        }));
+}
+
+function isSupportedNamespace(chainId) {
+    return chainId.startsWith("eip155:") || chainId.startsWith("solana:");
+}
+
 function validateFactoryFlags(records) {
     return records
         .filter((record) => !["", "TRUE", "FALSE"].includes(record.isFactory))
@@ -210,7 +227,7 @@ function validateAccountAddresses(sheetState, sheetChainDetails) {
                     },
                 ];
             }
-            if (!chainId || isValidAccountAddress(accountAddress, chainId)) {
+            if (!chainId || !isSupportedNamespace(chainId) || isValidAccountAddress(accountAddress, chainId)) {
                 return [];
             }
             return [
@@ -230,7 +247,7 @@ function isValidAccountAddress(address, chainId) {
     if (chainId.startsWith("solana:")) {
         return isValidSolanaAddress(address);
     }
-    return true;
+    return false;
 }
 
 function isValidEvmAddress(address) {

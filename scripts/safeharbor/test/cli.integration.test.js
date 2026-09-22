@@ -79,14 +79,11 @@ test("blocks all generation when the configured validator rejects new chain IDs"
             Name,Chain Id,Asset Recovery Address
             ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
             UNKNOWN_EVM,eip155:999999,0x1000000000000000000000000000000000000002
-            UNKNOWN_NETWORK,unsupported:network,RecoveryAddress
-            UNUSED,unsupported:unused,UnusedRecoveryAddress
         `,
         contractCSV: dedent`
             Status,Chain,Address,isFactory
             ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE
             ACTIVE,UNKNOWN_EVM,0x2000000000000000000000000000000000000003,FALSE
-            ACTIVE,UNKNOWN_NETWORK,D,FALSE
         `,
         details: {
             chains: [
@@ -101,11 +98,10 @@ test("blocks all generation when the configured validator rejects new chain IDs"
     chainValidatorInstance.isChainValid.mockResolvedValue(false);
 
     expect(await runCli("generate")).toBe(2);
-    expect(chainValidatorInstance.isChainValid.mock.calls).toEqual([["eip155:999999"], ["unsupported:network"]]);
+    expect(chainValidatorInstance.isChainValid.mock.calls).toEqual([["eip155:999999"]]);
     expect(warnings.mock.calls).toEqual([
         ["⚠️ Chain ID 'eip155:999999' is not accepted by the Agreement's configured chain validator"],
-        ["⚠️ Chain ID 'unsupported:network' is not accepted by the Agreement's configured chain validator"],
-        ["❌ Payload generation blocked: 2 validation warning(s)."],
+        ["❌ Payload generation blocked: 1 validation warning(s)."],
     ]);
     expect(stdout).not.toHaveBeenCalled();
     expect(encodeSpy).not.toHaveBeenCalled();

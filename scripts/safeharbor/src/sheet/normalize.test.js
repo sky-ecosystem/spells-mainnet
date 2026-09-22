@@ -175,6 +175,37 @@ test("diagnoses invalid active addresses without dropping records or normalizing
     });
 });
 
+test("leaves unsupported account formats to the metadata warning", () => {
+    expect(
+        normalizeContractsInScope(
+            {
+                headers: ["Status", "Chain", "Address", "isFactory"],
+                records: [
+                    {
+                        Status: "ACTIVE",
+                        Chain: "COSMOS",
+                        Address: "AccountAddress",
+                        isFactory: "FALSE",
+                    },
+                ],
+            },
+            {
+                caip2ChainId: { COSMOS: "cosmos:cosmoshub-4" },
+                assetRecoveryAddress: { COSMOS: "RecoveryAddress" },
+                name: { "cosmos:cosmoshub-4": "COSMOS" },
+            },
+        ),
+    ).toStrictEqual({
+        value: {
+            "cosmos:cosmoshub-4": {
+                accounts: [{ accountAddress: "AccountAddress", childContractScope: 0 }],
+                assetRecoveryAddress: "RecoveryAddress",
+            },
+        },
+        warnings: [],
+    });
+});
+
 test.each([
     {
         scenario: "an EVM address with an invalid checksum",
@@ -361,6 +392,60 @@ test("joins raw recovery addresses without mutating either source", () => {
 });
 
 describe("normalizeChainDetails", () => {
+    test("warns for every complete unsupported namespace without dropping metadata", () => {
+        expect(
+            normalizeChainDetails({
+                headers: ["Name", "Chain Id", "Asset Recovery Address"],
+                records: [
+                    { Name: "ETHEREUM", "Chain Id": "eip155:1", "Asset Recovery Address": "EvmRecovery" },
+                    { Name: "SOLANA", "Chain Id": "solana:mainnet", "Asset Recovery Address": "SolanaRecovery" },
+                    { Name: "COSMOS", "Chain Id": "cosmos:cosmoshub-4", "Asset Recovery Address": "CosmosRecovery" },
+                    { Name: "UNKNOWN", "Chain Id": "unknown", "Asset Recovery Address": "UnknownRecovery" },
+                    { Name: "INCOMPLETE", "Chain Id": "cosmos:other", "Asset Recovery Address": "" },
+                ],
+            }),
+        ).toStrictEqual({
+            value: {
+                caip2ChainId: {
+                    ETHEREUM: "eip155:1",
+                    SOLANA: "solana:mainnet",
+                    COSMOS: "cosmos:cosmoshub-4",
+                    UNKNOWN: "unknown",
+                },
+                assetRecoveryAddress: {
+                    ETHEREUM: "EvmRecovery",
+                    SOLANA: "SolanaRecovery",
+                    COSMOS: "CosmosRecovery",
+                    UNKNOWN: "UnknownRecovery",
+                },
+                name: {
+                    "eip155:1": "ETHEREUM",
+                    "solana:mainnet": "SOLANA",
+                    "cosmos:cosmoshub-4": "COSMOS",
+                    unknown: "UNKNOWN",
+                },
+            },
+            warnings: [
+                {
+                    code: "INCOMPLETE_CHAIN_METADATA",
+                    context: {
+                        chainName: "INCOMPLETE",
+                        chainId: "cosmos:other",
+                        missingFields: ["Asset Recovery Address"],
+                    },
+                },
+                {
+                    code: "UNSUPPORTED_SHEET_CHAIN_NAMESPACE",
+                    context: { chainName: "COSMOS", chainId: "cosmos:cosmoshub-4" },
+                },
+                {
+                    code: "UNSUPPORTED_SHEET_CHAIN_NAMESPACE",
+                    context: { chainName: "UNKNOWN", chainId: "unknown" },
+                },
+            ],
+        });
+    });
+
     test.each([
         {
             scenario: "missing recovery address",

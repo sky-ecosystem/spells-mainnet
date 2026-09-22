@@ -289,6 +289,35 @@ test("collects warnings from every stage before planning updates", async () => {
     expect(chainValidatorInstance.isChainValid).toHaveBeenCalledExactlyOnceWith("eip155:8453");
 });
 
+test("blocks chain removal when metadata-only chain uses an unsupported namespace", async () => {
+    const result = await reconcileFrom({
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+            UNUSED,cosmos:cosmoshub-4,RecoveryAddress
+        `,
+        contractCSV: "Status,Chain,Address,isFactory\n",
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+                    accounts: [["0x2000000000000000000000000000000000000001", 0n]],
+                },
+            ],
+        },
+    });
+
+    expect(result.changes).toStrictEqual([]);
+    expect(result.warnings).toStrictEqual([
+        {
+            code: "UNSUPPORTED_SHEET_CHAIN_NAMESPACE",
+            context: { chainName: "UNUSED", chainId: "cosmos:cosmoshub-4" },
+        },
+    ]);
+    expect(chainValidatorInstance.isChainValid).not.toHaveBeenCalled();
+});
+
 test("preserves intentional chain removal for an empty desired state", async () => {
     const result = await reconcileFrom({
         chainCSV: dedent`

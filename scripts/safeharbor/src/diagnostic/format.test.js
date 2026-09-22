@@ -44,6 +44,14 @@ test("inserts placeholder-like and replacement-pattern text literally", () => {
 test.each([
     {
         diagnostic: {
+            code: "UNSUPPORTED_SHEET_CHAIN_NAMESPACE",
+            context: { chainName: "COSMOS", chainId: "cosmos:cosmoshub-4" },
+        },
+        message:
+            "Unsupported chain namespace in SafeHarbor Sheet: name='COSMOS', chainId='cosmos:cosmoshub-4'; expected eip155 or solana",
+    },
+    {
+        diagnostic: {
             code: "INVALID_SHEET_STATUS",
             context: {
                 chainName: "ETHEREUM",
