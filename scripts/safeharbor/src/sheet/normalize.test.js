@@ -12,6 +12,108 @@ test("rejects missing headers in required order", () => {
     );
 });
 
+test("warns for unrecognized statuses on populated rows without treating them as active", () => {
+    expect(
+        normalizeContractsInScope(
+            {
+                headers: ["Status", "Chain", "Address", "isFactory"],
+                records: [
+                    {
+                        Status: "DISABLED",
+                        Chain: "ETHEREUM",
+                        Address: "0x2000000000000000000000000000000000000001",
+                        isFactory: "FALSE",
+                    },
+                    {
+                        Status: "PAUSED",
+                        Chain: "ETHEREUM",
+                        Address: "0x2000000000000000000000000000000000000002",
+                        isFactory: "FALSE",
+                    },
+                    {
+                        Status: "",
+                        Chain: "ETHEREUM",
+                        Address: "0x2000000000000000000000000000000000000003",
+                        isFactory: "FALSE",
+                    },
+                    {
+                        Status: "active",
+                        Chain: "ETHEREUM",
+                        Address: "0x2000000000000000000000000000000000000004",
+                        isFactory: "FALSE",
+                    },
+                    { Status: "", Chain: "", Address: "", isFactory: "" },
+                ],
+            },
+            {
+                caip2ChainId: { ETHEREUM: "eip155:1" },
+                assetRecoveryAddress: { ETHEREUM: "0x1000000000000000000000000000000000000001" },
+                name: { "eip155:1": "ETHEREUM" },
+            },
+        ),
+    ).toStrictEqual({
+        value: {},
+        warnings: [
+            {
+                code: "INVALID_SHEET_STATUS",
+                context: {
+                    chainName: "ETHEREUM",
+                    address: "0x2000000000000000000000000000000000000002",
+                    status: "PAUSED",
+                },
+            },
+            {
+                code: "INVALID_SHEET_STATUS",
+                context: {
+                    chainName: "ETHEREUM",
+                    address: "0x2000000000000000000000000000000000000003",
+                    status: "",
+                },
+            },
+            {
+                code: "INVALID_SHEET_STATUS",
+                context: {
+                    chainName: "ETHEREUM",
+                    address: "0x2000000000000000000000000000000000000004",
+                    status: "active",
+                },
+            },
+        ],
+    });
+});
+
+test("uses only isFactory when an IsFactory column is also present", () => {
+    expect(
+        normalizeContractsInScope(
+            {
+                headers: ["Status", "Chain", "Address", "isFactory", "IsFactory"],
+                records: [
+                    {
+                        Status: "ACTIVE",
+                        Chain: "ETHEREUM",
+                        Address: "0x2000000000000000000000000000000000000001",
+                        isFactory: "FALSE",
+                        IsFactory: "TRUE",
+                    },
+                ],
+            },
+            {
+                caip2ChainId: { ETHEREUM: "eip155:1" },
+                assetRecoveryAddress: { ETHEREUM: "0x1000000000000000000000000000000000000001" },
+                name: { "eip155:1": "ETHEREUM" },
+            },
+        ),
+    ).toStrictEqual({
+        value: {
+            "eip155:1": {
+                accounts: [{ accountAddress: "0x2000000000000000000000000000000000000001", childContractScope: 0 }],
+                assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+            },
+        },
+        warnings: [],
+    });
+});
+
 test("diagnoses invalid active addresses without dropping records or normalizing their values", () => {
     expect(
         normalizeContractsInScope(
@@ -25,7 +127,7 @@ test("diagnoses invalid active addresses without dropping records or normalizing
                         isFactory: "FALSE",
                     },
                     {
-                        Status: "INACTIVE",
+                        Status: "DISABLED",
                         Chain: "ETHEREUM",
                         Address: "",
                         isFactory: "FALSE",
@@ -131,39 +233,35 @@ test.each([
     });
 });
 
-test("checks both factory aliases while accepting blanks and ignoring inactive rows", () => {
+test("checks factory flags while accepting blanks and ignoring disabled rows", () => {
     expect(
         normalizeContractsInScope(
             {
-                headers: ["Status", "Chain", "Address", "isFactory", "IsFactory"],
+                headers: ["Status", "Chain", "Address", "isFactory"],
                 records: [
                     {
                         Status: "ACTIVE",
                         Chain: "ETHEREUM",
                         Address: "0x2000000000000000000000000000000000000001",
                         isFactory: "TRU",
-                        IsFactory: "TRUE",
                     },
                     {
                         Status: "ACTIVE",
                         Chain: "ETHEREUM",
                         Address: "0x2000000000000000000000000000000000000002",
-                        isFactory: "TRUE",
-                        IsFactory: "false",
+                        isFactory: "false",
                     },
                     {
                         Status: "ACTIVE",
                         Chain: "ETHEREUM",
                         Address: "0x2000000000000000000000000000000000000003",
                         isFactory: "",
-                        IsFactory: "",
                     },
                     {
-                        Status: "INACTIVE",
+                        Status: "DISABLED",
                         Chain: "ETHEREUM",
                         Address: "D",
                         isFactory: "TRU",
-                        IsFactory: "false",
                     },
                 ],
             },
@@ -179,8 +277,8 @@ test("checks both factory aliases while accepting blanks and ignoring inactive r
         value: {
             "eip155:1": {
                 accounts: [
-                    { accountAddress: "0x2000000000000000000000000000000000000001", childContractScope: 2 },
-                    { accountAddress: "0x2000000000000000000000000000000000000002", childContractScope: 2 },
+                    { accountAddress: "0x2000000000000000000000000000000000000001", childContractScope: 0 },
+                    { accountAddress: "0x2000000000000000000000000000000000000002", childContractScope: 0 },
                     { accountAddress: "0x2000000000000000000000000000000000000003", childContractScope: 0 },
                 ],
                 assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
@@ -201,7 +299,7 @@ test("checks both factory aliases while accepting blanks and ignoring inactive r
                 context: {
                     chainName: "ETHEREUM",
                     address: "0x2000000000000000000000000000000000000002",
-                    column: "IsFactory",
+                    column: "isFactory",
                     value: "false",
                 },
             },
@@ -627,59 +725,52 @@ describe("normalizeChainDetails", () => {
     });
 });
 
-test("groups active contracts in order with exact addresses and both factory aliases", () => {
+test("groups active contracts in order with exact addresses and factory scopes", () => {
     const result = normalizeContractsInScope(
         {
-            headers: ["Status", "Chain", "Address", "isFactory", "IsFactory"],
+            headers: ["Status", "Chain", "Address", "isFactory"],
             records: [
                 {
-                    Status: "INACTIVE",
+                    Status: "DISABLED",
                     Chain: "IGNORED",
                     Address: "InactiveAccount",
                     isFactory: "TRUE",
-                    IsFactory: "TRUE",
                 },
                 {
                     Status: "ACTIVE",
                     Chain: "SOLANA",
                     Address: "So11111111111111111111111111111111111111112",
-                    isFactory: "FALSE",
-                    IsFactory: "TRUE",
+                    isFactory: "TRUE",
                 },
                 {
                     Status: "ACTIVE",
                     Chain: "ETHEREUM",
                     Address: "0xA000000000000000000000000000000000000001",
                     isFactory: "TRUE",
-                    IsFactory: "FALSE",
                 },
                 {
                     Status: "ACTIVE",
                     Chain: "SOLANA",
                     Address: "so11111111111111111111111111111111111111112",
                     isFactory: "FALSE",
-                    IsFactory: "FALSE",
                 },
                 {
                     Status: "ACTIVE",
                     Chain: "SOLANA",
                     Address: "So11111111111111111111111111111111111111112",
                     isFactory: "FALSE",
-                    IsFactory: "FALSE",
                 },
                 {
                     Status: "ACTIVE",
                     Chain: "ETHEREUM",
                     Address: "0xa000000000000000000000000000000000000001",
                     isFactory: "true",
-                    IsFactory: "FALSE",
                 },
                 {
-                    Status: "active",
+                    Status: "DISABLED",
                     Chain: "IGNORED",
                     Address: "LowercaseStatusAccount",
                     isFactory: "FALSE",
-                    IsFactory: "FALSE",
                 },
             ],
         },
@@ -794,7 +885,7 @@ test("omits unresolved chains while preserving their account diagnostics", () =>
                         isFactory: "invalid",
                     },
                     {
-                        Status: "INACTIVE",
+                        Status: "DISABLED",
                         Chain: "IGNORED",
                         Address: "0x2000000000000000000000000000000000000001",
                         isFactory: "FALSE",

@@ -2,16 +2,33 @@ import { decodeBase58, encodeBase58, isAddress, isHexString, toBeHex } from "eth
 import { DIAGNOSTIC_CODES as $ } from "../diagnostic/index.js";
 import { findDuplicateIndexes } from "../utils/findDuplicateIndexes.js";
 
+const STATUS = Object.freeze({
+    ACTIVE: "ACTIVE",
+    DISABLED: "DISABLED",
+});
+const CONTRACT_HEADERS = ["Status", "Chain", "Address", "isFactory"];
+const CHAIN_DETAILS_HEADERS = ["Name", "Chain Id", "Asset Recovery Address"];
+
 export function normalizeContractsInScope({ headers, records }, sheetChainDetails) {
-    assertContractHeaders(headers);
-    const activeRecords = getActiveContracts(records);
-    const accountsByChainName = groupAccountsByChain(activeRecords);
+    assertHeaders(headers, CONTRACT_HEADERS);
+    const activeRecords = records.filter((record) => record.Status === STATUS.ACTIVE);
+    const accountsByChainName = Object.fromEntries(
+        activeRecords.reduce((chains, record) => {
+            const accounts = chains.get(record.Chain) ?? [];
+            accounts.push({
+                accountAddress: record.Address,
+                childContractScope: record.isFactory === "TRUE" ? 2 : 0,
+            });
+            return chains.set(record.Chain, accounts);
+        }, new Map()),
+    );
 
     return {
         value: buildChainStates(accountsByChainName, sheetChainDetails),
         warnings: [
+            ...validateStatuses(records),
             ...validateKnownChains(accountsByChainName, sheetChainDetails),
-            ...validateFactoryFlags(activeRecords, headers),
+            ...validateFactoryFlags(activeRecords),
             ...validateAccountAddresses(accountsByChainName, sheetChainDetails),
             ...validateUniqueAccounts(accountsByChainName),
         ],
@@ -20,21 +37,32 @@ export function normalizeContractsInScope({ headers, records }, sheetChainDetail
 
 export function normalizeChainDetails({ headers, records }) {
     assertHeaders(headers, CHAIN_DETAILS_HEADERS);
-    const chains = getCompleteChains(records);
+    const chains = records.filter((record) => getMissingChainFields(record).length === 0);
     const duplicates = analyzeDuplicateChains(chains);
 
     return {
         value: buildChainLookups(getUniqueChains(chains, duplicates)),
-        warnings: [...validateChainMetadata(records), ...validateDuplicateChains(chains, duplicates)],
+        warnings: [...records.flatMap(validateChainMetadataRecord), ...validateDuplicateChains(chains, duplicates)],
     };
 }
 
-function getActiveContracts(records) {
-    return records.filter((record) => record.Status === "ACTIVE");
-}
-
-function groupAccountsByChain(records) {
-    return Object.fromEntries(records.reduce(addAccountToChain, new Map()));
+function validateStatuses(records) {
+    return records
+        .filter(
+            (record) =>
+                // Ignores fully blank lines
+                Object.values(record).some((v) => !!v) &&
+                // Otherwise rejects records with invalid status
+                !Object.values(STATUS).includes(record.Status),
+        )
+        .map((record) => ({
+            code: $.INVALID_SHEET_STATUS,
+            context: {
+                chainName: record.Chain,
+                address: record.Address,
+                status: record.Status,
+            },
+        }));
 }
 
 function buildChainStates(accountsByChainName, sheetChainDetails) {
@@ -49,24 +77,6 @@ function buildChainStates(accountsByChainName, sheetChainDetails) {
                 },
             ]),
     );
-}
-
-function addAccountToChain(chains, record) {
-    const accounts = chains.get(record.Chain) ?? [];
-    accounts.push(normalizeAccount(record));
-    return chains.set(record.Chain, accounts);
-}
-
-function normalizeAccount(record) {
-    return {
-        accountAddress: record.Address,
-        // Handle both possible column names for the factory flag.
-        childContractScope: record.isFactory === "TRUE" || record.IsFactory === "TRUE" ? 2 : 0,
-    };
-}
-
-function getCompleteChains(records) {
-    return records.filter((record) => getMissingChainFields(record).length === 0);
 }
 
 function analyzeDuplicateChains(chains) {
@@ -90,10 +100,6 @@ function buildChainLookups(chains) {
         assetRecoveryAddress: Object.fromEntries(chains.map((chain) => [chain.Name, chain["Asset Recovery Address"]])),
         name: Object.fromEntries(chains.map((chain) => [chain["Chain Id"], chain.Name])),
     };
-}
-
-function validateChainMetadata(records) {
-    return records.flatMap(validateChainMetadataRecord);
 }
 
 function validateChainMetadataRecord(record) {
@@ -152,42 +158,27 @@ function validateDuplicateChainId(chain, index, duplicates) {
     ];
 }
 
-function validateFactoryFlags(records, headers) {
-    const columns = headers.filter((header) => header === "isFactory" || header === "IsFactory");
-    return records.flatMap((record) => columns.flatMap((column) => validateFactoryFlag(record, column)));
-}
-
-function validateFactoryFlag(record, column) {
-    if (["", "TRUE", "FALSE"].includes(record[column])) {
-        return [];
-    }
-    return [
-        {
+function validateFactoryFlags(records) {
+    return records
+        .filter((record) => !["", "TRUE", "FALSE"].includes(record.isFactory))
+        .map((record) => ({
             code: $.INVALID_SHEET_FACTORY_FLAG,
             context: {
                 chainName: record.Chain,
                 address: record.Address,
-                column,
-                value: record[column],
+                column: "isFactory",
+                value: record.isFactory,
             },
-        },
-    ];
+        }));
 }
 
 function validateKnownChains(sheetState, sheetChainDetails) {
-    return Object.keys(sheetState).flatMap((chainName) => validateKnownChain(chainName, sheetChainDetails));
-}
-
-function validateKnownChain(chainName, sheetChainDetails) {
-    if (sheetChainDetails.caip2ChainId[chainName]) {
-        return [];
-    }
-    return [
-        {
+    return Object.keys(sheetState)
+        .filter((chainName) => !sheetChainDetails.caip2ChainId[chainName])
+        .map((chainName) => ({
             code: $.UNKNOWN_SHEET_CHAIN,
             context: { chainName },
-        },
-    ];
+        }));
 }
 
 function validateUniqueAccounts(sheetState) {
@@ -208,31 +199,28 @@ function validateChainAccounts(chainName, accounts) {
 }
 
 function validateAccountAddresses(sheetState, sheetChainDetails) {
-    return Object.entries(sheetState).flatMap(([chainName, accounts]) =>
-        accounts.flatMap((account) =>
-            validateAccountAddress(account, chainName, sheetChainDetails.caip2ChainId[chainName]),
-        ),
-    );
-}
-
-function validateAccountAddress({ accountAddress }, chainName, chainId) {
-    if (!accountAddress) {
-        return [
-            {
-                code: $.MISSING_SHEET_ACCOUNT_ADDRESS,
-                context: { chainName },
-            },
-        ];
-    }
-    if (!chainId || isValidAccountAddress(accountAddress, chainId)) {
-        return [];
-    }
-    return [
-        {
-            code: $.INVALID_SHEET_ACCOUNT_ADDRESS,
-            context: { chainName, chainId, address: accountAddress },
-        },
-    ];
+    return Object.entries(sheetState).flatMap(([chainName, accounts]) => {
+        const chainId = sheetChainDetails.caip2ChainId[chainName];
+        return accounts.flatMap(({ accountAddress }) => {
+            if (!accountAddress) {
+                return [
+                    {
+                        code: $.MISSING_SHEET_ACCOUNT_ADDRESS,
+                        context: { chainName },
+                    },
+                ];
+            }
+            if (!chainId || isValidAccountAddress(accountAddress, chainId)) {
+                return [];
+            }
+            return [
+                {
+                    code: $.INVALID_SHEET_ACCOUNT_ADDRESS,
+                    context: { chainName, chainId, address: accountAddress },
+                },
+            ];
+        });
+    });
 }
 
 function isValidAccountAddress(address, chainId) {
@@ -258,10 +246,6 @@ function isValidSolanaAddress(address) {
     }
 }
 
-function assertContractHeaders(headers) {
-    assertHeaders(headers, ["Status", "Chain", "Address", headers.includes("IsFactory") ? "IsFactory" : "isFactory"]);
-}
-
 function assertHeaders(headers, requiredHeaders) {
     const missingHeaders = requiredHeaders.filter((header) => !headers.includes(header));
     if (missingHeaders.length === 0) {
@@ -273,8 +257,6 @@ function assertHeaders(headers, requiredHeaders) {
     };
     throw Object.assign(new Error(diagnostic.code), { diagnostic });
 }
-
-const CHAIN_DETAILS_HEADERS = ["Name", "Chain Id", "Asset Recovery Address"];
 
 function getMissingChainFields(record) {
     return CHAIN_DETAILS_HEADERS.filter((field) => !record[field]);

@@ -44,6 +44,18 @@ test("inserts placeholder-like and replacement-pattern text literally", () => {
 test.each([
     {
         diagnostic: {
+            code: "INVALID_SHEET_STATUS",
+            context: {
+                chainName: "ETHEREUM",
+                address: "0x2000000000000000000000000000000000000001",
+                status: "PAUSED",
+            },
+        },
+        message:
+            "Unrecognized status in SafeHarbor Sheet for chain 'ETHEREUM', account '0x2000000000000000000000000000000000000001': 'PAUSED'; expected ACTIVE or DISABLED",
+    },
+    {
+        diagnostic: {
             code: "UNKNOWN_SHEET_CHAIN",
             context: { chainName: "BASE" },
         },

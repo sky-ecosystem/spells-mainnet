@@ -103,6 +103,7 @@ describe("contracts CSV headers", () => {
         ["Chain in a header-only file", "Status,Address,isFactory\n", ["Chain"]],
         ["Address in a header-only file", "Status,Chain,isFactory\n", ["Address"]],
         ["factory flag in a header-only file", "Status,Chain,Address\n", ["isFactory"]],
+        ["isFactory when only IsFactory is present", "Status,Chain,Address,IsFactory\n", ["isFactory"]],
         ["all headers in an empty file", "", ["Status", "Chain", "Address", "isFactory"]],
     ])("rejects missing %s", async (_scenario, csv, missingHeaders) => {
         fetch.mockResolvedValue(csvResponse(csv));
@@ -122,25 +123,16 @@ describe("contracts CSV headers", () => {
                 Status,Chain,Address,isFactory
                 ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE
                 ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE
-                INACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,TRUE
+                DISABLED,ETHEREUM,0x2000000000000000000000000000000000000003,TRUE
             `,
         ],
         [
             "reordered, quoted headers and an extra column",
             dedent`
-                Notes,"Address",IsFactory,Chain,Status
+                Notes,"Address",isFactory,Chain,Status
                 "reviewed, factory",0x2000000000000000000000000000000000000001,TRUE,ETHEREUM,ACTIVE
                 reviewed,0x2000000000000000000000000000000000000002,FALSE,ETHEREUM,ACTIVE
-                old,0x2000000000000000000000000000000000000003,TRUE,ETHEREUM,INACTIVE
-            `,
-        ],
-        [
-            "both factory aliases without changing flag semantics",
-            dedent`
-                Status,Chain,Address,isFactory,IsFactory
-                ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,TRUE,FALSE
-                ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000002,FALSE,FALSE
-                INACTIVE,ETHEREUM,0x2000000000000000000000000000000000000003,FALSE,TRUE
+                old,0x2000000000000000000000000000000000000003,TRUE,ETHEREUM,DISABLED
             `,
         ],
     ])("accepts %s", async (_scenario, csv) => {
