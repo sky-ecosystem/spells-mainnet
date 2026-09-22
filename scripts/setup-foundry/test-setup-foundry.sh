@@ -47,9 +47,6 @@ COMMANDS
         Install an explicitly requested release in $HOME/.foundry/bin, replacing
         any existing Foundry binaries there.
 
-    load-ci-settings
-        Load the pinned Foundry release and age waiver from the Tests workflow.
-
 OPTIONS
     --help
         Display this help and exit.
@@ -63,33 +60,6 @@ EXAMPLES
     setup-foundry.sh select
     setup-foundry.sh install --release v1.7.1
     setup-foundry.sh verify --release v1.7.1
-    setup-foundry.sh load-ci-settings .github/workflows/tests.yaml
-EOF
-}
-
-expected_load_ci_settings_usage() {
-    cat <<'EOF'
-NAME
-    setup-foundry.sh load-ci-settings - load the Foundry CI settings
-
-SYNOPSIS
-    setup-foundry.sh load-ci-settings TESTS_WORKFLOW
-
-DESCRIPTION
-    Reads the workflow-level FOUNDRY_RELEASE and FOUNDRY_IGNORE_AGE from
-    TESTS_WORKFLOW and appends them to GITHUB_ENV. Missing, duplicate, or
-    malformed settings fail without updating GITHUB_ENV.
-
-OPTIONS
-    --help
-        Display this help and exit.
-
-EXIT STATUS
-    0       The settings were loaded, or help was displayed.
-    nonzero The invocation or settings were invalid.
-
-EXAMPLE
-    setup-foundry.sh load-ci-settings .github/workflows/tests.yaml
 EOF
 }
 
@@ -1295,12 +1265,21 @@ test_invalid_command_fails() {
         fail 'invalid subcommand reports a specific error and the manual entry'
     fi
     rm -rf "$FIXTURE"
+
+    new_fixture
+    run_cli foundry-path load-ci-settings .github/foundry-ci.env
+    if [ "$STATUS" -ne 0 ] && grep -Fq 'Error: unknown command: load-ci-settings' "$FIXTURE/out"; then
+        pass 'CI settings loader is not a setup command'
+    else
+        fail 'CI settings loader is not a setup command'
+    fi
+    rm -rf "$FIXTURE"
 }
 
 test_help_succeeds_without_environment_checks() {
     ok=1
 
-    for invocation in top-level select verify install load-ci-settings; do
+    for invocation in top-level select verify install; do
         new_fixture
         case "$invocation" in
             top-level)
@@ -1318,10 +1297,6 @@ test_help_succeeds_without_environment_checks() {
             install)
                 arguments=(install --help)
                 expected_usage=expected_install_usage
-                ;;
-            load-ci-settings)
-                arguments=(load-ci-settings --help)
-                expected_usage=expected_load_ci_settings_usage
                 ;;
         esac
         PATH="$FIXTURE/bin:/usr/bin:/bin" "$BASH_PATH" "$CLI" "${arguments[@]}" > "$FIXTURE/stdout" 2> "$FIXTURE/stderr"
@@ -1440,39 +1415,6 @@ test_missing_command_fails() {
     rm -rf "$FIXTURE"
 }
 
-test_ci_settings_share_one_pin() {
-    new_fixture
-    local settings="$FIXTURE/tests.yaml" github_env="$FIXTURE/github-env" age ok=1
-
-    for age in 0 1; do
-        printf 'env:\n  FOUNDRY_RELEASE: v1.8.1\n  FOUNDRY_IGNORE_AGE: "%s"\n' "$age" > "$settings"
-        : > "$github_env"
-        GITHUB_ENV="$github_env" "$BASH_PATH" "$CLI" load-ci-settings "$settings" > "$FIXTURE/out" 2>&1 || ok=0
-        diff -u <(printf 'FOUNDRY_RELEASE=v1.8.1\nFOUNDRY_IGNORE_AGE=%s\n' "$age") "$github_env" >/dev/null || ok=0
-    done
-
-    for invalid in missing-release missing-age duplicate-release duplicate-age malformed-release malformed-age; do
-        case "$invalid" in
-            missing-release) printf 'env:\n  FOUNDRY_IGNORE_AGE: "0"\n' > "$settings" ;;
-            missing-age) printf 'env:\n  FOUNDRY_RELEASE: v1.8.1\n' > "$settings" ;;
-            duplicate-release) printf 'env:\n  FOUNDRY_RELEASE: v1.8.1\n  FOUNDRY_RELEASE: v1.8.1\n  FOUNDRY_IGNORE_AGE: "0"\n' > "$settings" ;;
-            duplicate-age) printf 'env:\n  FOUNDRY_RELEASE: v1.8.1\n  FOUNDRY_IGNORE_AGE: "0"\n  FOUNDRY_IGNORE_AGE: "1"\n' > "$settings" ;;
-            malformed-release) printf 'env:\n  FOUNDRY_RELEASE: nightly\n  FOUNDRY_IGNORE_AGE: "0"\n' > "$settings" ;;
-            malformed-age) printf 'env:\n  FOUNDRY_RELEASE: v1.8.1\n  FOUNDRY_IGNORE_AGE: "2"\n' > "$settings" ;;
-        esac
-        printf 'SENTINEL=keep\n' > "$github_env"
-        if GITHUB_ENV="$github_env" "$BASH_PATH" "$CLI" load-ci-settings "$settings" > "$FIXTURE/out" 2>&1; then ok=0; fi
-        diff -u <(printf 'SENTINEL=keep\n') "$github_env" >/dev/null || ok=0
-    done
-
-    if [ "$ok" -eq 1 ]; then
-        pass 'CI settings use one pin and reject missing, duplicate, or malformed values'
-    else
-        fail 'CI settings use one pin and reject missing, duplicate, or malformed values'
-    fi
-    rm -rf "$FIXTURE"
-}
-
 test_select_preflights_archive_attestations_without_downloading
 test_select_skips_uninstallable_release_candidates
 test_select_fails_without_an_installable_candidate
@@ -1522,7 +1464,6 @@ test_release_option_requires_value
 test_release_option_rejects_empty_equals_value
 test_short_options_are_rejected
 test_missing_command_fails
-test_ci_settings_share_one_pin
 
 printf '%s passed; %s failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
