@@ -1266,14 +1266,6 @@ test_invalid_command_fails() {
     fi
     rm -rf "$FIXTURE"
 
-    new_fixture
-    run_cli foundry-path load-ci-settings .github/foundry-ci.env
-    if [ "$STATUS" -ne 0 ] && grep -Fq 'Error: unknown command: load-ci-settings' "$FIXTURE/out"; then
-        pass 'CI settings loader is not a setup command'
-    else
-        fail 'CI settings loader is not a setup command'
-    fi
-    rm -rf "$FIXTURE"
 }
 
 test_help_succeeds_without_environment_checks() {

@@ -683,8 +683,8 @@ main() {
         select | verify | install) ;;
         *) usage_error "unknown command: $command" ;;
     esac
-    shift
     command_usage="usage_$command"
+    shift
     if [ "$#" -gt 0 ] && [ "$1" = --help ]; then
         [ "$#" -eq 1 ] || usage_error '--help cannot be combined with other arguments' "$command_usage"
         "$command_usage"
