@@ -92,6 +92,11 @@ contract DssSpellTest is DssSpellTestBase {
         _testChainlogValues();
     }
 
+    // Leave this test always enabled as it acts as a config test
+    function testSafeHarborRecoveryAddresses() public {
+        _testSafeHarborRecoveryAddresses();
+    }
+
     function testSplitter() public {
         _testSplitter();
     }
