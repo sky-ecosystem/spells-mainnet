@@ -111,7 +111,7 @@ FOUNDRY_RELEASE=vMAJOR.MINOR.PATCH
 FOUNDRY_IGNORE_AGE=0
 ```
 
-Both CI workflows validate `.github/foundry-ci.env` and write its two values to `GITHUB_ENV` before installing Foundry. The `setup-foundry.yaml` workflow then tests the setup scripts and installs and verifies that release on Linux and macOS. It runs for changes to the setup workflow, `Makefile`, or `scripts/setup-foundry/`; changing only the pin file does not trigger it.
+Both CI workflows validate `.github/foundry-ci.env` and write its two values to `GITHUB_ENV` before installing Foundry. The `setup-foundry.yaml` workflow then tests the setup scripts and installs and verifies that release on Linux and macOS. It runs for changes to the pin file, setup workflow, `Makefile`, or `scripts/setup-foundry/`.
 
 Expose the workflow token as `GH_TOKEN` and add the installation directory to `GITHUB_PATH` before installing:
 
