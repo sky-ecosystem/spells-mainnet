@@ -648,5 +648,8 @@ contract Addresses {
         addr["GROVE_ACCESS_CONTROLS"]            = 0x4F6d1704700cd494DD4cd9bF59c0C39DA1Bc9164;
         addr["GROVE_RATE_LIMITS"]                = 0xE016Ae733A77Ba77E7907aAA749394Fc5e75C0e1;
         addr["GROVE_CONTROLLER"]                 = 0xbf83F5974B932c7D842254042717D6A2706CE5eE;
+        addr["OSERO_ACCESS_CONTROLS"]            = 0x791D2a017532CfAD881c446e6bF93BbC3c0778b2;
+        addr["OSERO_RATE_LIMITS"]                = 0xE9a78f34fe497e2186f81B8c014cd93B308BC62a;
+        addr["OSERO_CONTROLLER"]                 = 0x24169Afb34fAe4D4356BC54Bd80319131e35ca38;
     }
 }

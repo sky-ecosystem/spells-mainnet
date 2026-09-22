@@ -40,6 +40,38 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
+interface PASBeamStateLike {
+    function rateLimits(address) external view returns (uint256);
+    function controllers(address) external view returns (uint256);
+    function cBeams(address) external view returns (uint256);
+    function rateLimitsCBeams(address, address) external view returns (uint256);
+    function controllersCBeams(address, address) external view returns (uint256);
+    function hop(address) external view returns (uint256);
+    function maxChange(address) external view returns (uint256);
+    function getHop(address) external view returns (uint256);
+    function getMaxChange(address) external view returns (uint256);
+}
+
+interface PASConfiguratorLike {
+    function zzz(address, bytes32) external view returns (uint256);
+    function setRateLimit(address, bytes32, uint256, uint256) external;
+}
+
+interface AccessControlLike {
+    function hasRole(bytes32, address) external view returns (bool);
+}
+
+interface RateLimitsLike {
+    struct RateLimitData {
+        uint256 maxAmount;
+        uint256 slope;
+        uint256 lastAmount;
+        uint256 lastUpdated;
+    }
+
+    function getRateLimitData(bytes32) external view returns (RateLimitData memory);
+}
+
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -1478,4 +1510,109 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
+
+    function testOseroCBeamActivation() public {
+        PASBeamStateLike beamState       = PASBeamStateLike(addr.addr("PAS_STATE"));
+        address          oseroRateLimits = addr.addr("OSERO_RATE_LIMITS");
+        address          oseroController = addr.addr("OSERO_CONTROLLER");
+        address          oseroCBeam      = wallets.addr("OSERO_PAS_CBEAM");
+
+        // Check state before spell
+        assertEq(beamState.cBeams(oseroCBeam), 0, "testOseroCBeamActivation/cbeam-already-added");
+        assertEq(beamState.rateLimits(oseroRateLimits), 0, "testOseroCBeamActivation/rate-limits-already-added");
+        assertEq(beamState.controllers(oseroController), 0, "testOseroCBeamActivation/controller-already-added");
+        assertEq(beamState.rateLimitsCBeams(oseroRateLimits, oseroCBeam), 0, "testOseroCBeamActivation/rate-limits-pairing-already-set");
+        assertEq(beamState.controllersCBeams(oseroController, oseroCBeam), 0, "testOseroCBeamActivation/controller-pairing-already-set");
+
+        // Execute spell
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // Check state after spell
+        assertEq(beamState.cBeams(oseroCBeam), 1, "testOseroCBeamActivation/cbeam-not-added");
+        assertEq(beamState.rateLimits(oseroRateLimits), 1, "testOseroCBeamActivation/rate-limits-not-added");
+        assertEq(beamState.controllers(oseroController), 1, "testOseroCBeamActivation/controller-not-added");
+        assertEq(beamState.rateLimitsCBeams(oseroRateLimits, oseroCBeam), 1, "testOseroCBeamActivation/rate-limits-pairing-not-set");
+        assertEq(beamState.controllersCBeams(oseroController, oseroCBeam), 1, "testOseroCBeamActivation/controller-pairing-not-set");
+
+        // Check that the Osero rate limits keep the general PAS parameters
+        assertEq(beamState.hop(oseroRateLimits), 0, "testOseroCBeamActivation/hop-override-set");
+        assertEq(beamState.maxChange(oseroRateLimits), 0, "testOseroCBeamActivation/max-change-override-set");
+        assertEq(beamState.getHop(oseroRateLimits), 16 hours, "testOseroCBeamActivation/invalid-effective-hop");
+        assertEq(beamState.getMaxChange(oseroRateLimits), 120 * WAD / 100, "testOseroCBeamActivation/invalid-effective-max-change");
+    }
+
+    function testOseroCBeamIntegration() public {
+        PASConfiguratorLike configurator    = PASConfiguratorLike(addr.addr("PAS_CONFIGURATOR"));
+        address             oseroRateLimits = addr.addr("OSERO_RATE_LIMITS");
+
+        // Check PAS authorization in Osero
+        {
+            AccessControlLike accessControls   = AccessControlLike(addr.addr("OSERO_ACCESS_CONTROLS"));
+            AccessControlLike rateLimits       = AccessControlLike(oseroRateLimits);
+            StarGuardLike     starGuard        = StarGuardLike(addr.addr("OSERO_STARGUARD"));
+            address           oseroSubProxy    = addr.addr("OSERO_SUBPROXY");
+            bytes32           defaultAdminRole = bytes32(0);
+
+            assertTrue(accessControls.hasRole(defaultAdminRole, oseroSubProxy), "testOseroCBeamIntegration/subproxy-not-access-controls-admin-before-spell");
+            assertTrue(rateLimits.hasRole(defaultAdminRole, oseroSubProxy), "testOseroCBeamIntegration/subproxy-not-rate-limits-admin-before-spell");
+            assertFalse(accessControls.hasRole(defaultAdminRole, address(configurator)), "testOseroCBeamIntegration/access-controls-role-set-before-spell");
+            assertFalse(rateLimits.hasRole(defaultAdminRole, address(configurator)), "testOseroCBeamIntegration/rate-limits-role-set-before-spell");
+
+            _vote(address(spell));
+            _scheduleWaitAndCast(address(spell));
+            assertTrue(spell.done(), "TestError/spell-not-done");
+
+            assertFalse(accessControls.hasRole(defaultAdminRole, address(configurator)), "testOseroCBeamIntegration/access-controls-role-set-by-core-spell");
+            assertFalse(rateLimits.hasRole(defaultAdminRole, address(configurator)), "testOseroCBeamIntegration/rate-limits-role-set-by-core-spell");
+
+            // The Osero spell plotted by the core spell grants the Configurator both admin roles
+            (, , uint256 deadline) = starGuard.spellData();
+            while (!starGuard.prob()) {
+                assertLe(block.timestamp, deadline, "testOseroCBeamIntegration/osero-spell-not-executable-before-deadline");
+                skip(1 hours);
+            }
+            starGuard.exec();
+
+            assertTrue(accessControls.hasRole(defaultAdminRole, address(configurator)), "testOseroCBeamIntegration/access-controls-role-not-set");
+            assertTrue(rateLimits.hasRole(defaultAdminRole, address(configurator)), "testOseroCBeamIntegration/rate-limits-role-not-set");
+            assertTrue(accessControls.hasRole(defaultAdminRole, oseroSubProxy), "testOseroCBeamIntegration/subproxy-lost-access-controls-role");
+            assertTrue(rateLimits.hasRole(defaultAdminRole, oseroSubProxy), "testOseroCBeamIntegration/subproxy-lost-rate-limits-role");
+        }
+
+        // Check cBEAM happy path
+        {
+            bytes32 limitUsdsMint = keccak256("LIMIT_USDS_MINT");
+            address oseroCBeam    = wallets.addr("OSERO_PAS_CBEAM");
+
+            RateLimitsLike rateLimits = RateLimitsLike(oseroRateLimits);
+            RateLimitsLike.RateLimitData memory beforeData = rateLimits.getRateLimitData(limitUsdsMint);
+            uint256 newMaxAmount = beforeData.maxAmount * 110 / 100;
+            uint256 newSlope     = beforeData.slope * 110 / 100;
+
+            assertGt(beforeData.maxAmount, 0, "testOseroCBeamIntegration/rate-limit-max-is-zero");
+            assertLt(beforeData.maxAmount, type(uint256).max, "testOseroCBeamIntegration/rate-limit-max-is-unlimited");
+            assertGt(beforeData.slope, 0, "testOseroCBeamIntegration/rate-limit-slope-is-zero");
+            assertEq(configurator.zzz(oseroRateLimits, limitUsdsMint), 0, "testOseroCBeamIntegration/cooldown-set-before-call");
+
+            vm.expectRevert("Configurator/not-authorized-ratelimits-cBeam");
+            configurator.setRateLimit(oseroRateLimits, limitUsdsMint, newMaxAmount, newSlope);
+
+            vm.prank(oseroCBeam);
+            configurator.setRateLimit(oseroRateLimits, limitUsdsMint, newMaxAmount, newSlope);
+
+            RateLimitsLike.RateLimitData memory afterIncrease = rateLimits.getRateLimitData(limitUsdsMint);
+            assertEq(afterIncrease.maxAmount, newMaxAmount, "testOseroCBeamIntegration/rate-limit-max-not-increased");
+            assertEq(afterIncrease.slope, newSlope, "testOseroCBeamIntegration/rate-limit-slope-not-increased");
+            assertEq(configurator.zzz(oseroRateLimits, limitUsdsMint), block.timestamp, "testOseroCBeamIntegration/cooldown-not-updated");
+
+            vm.prank(oseroCBeam);
+            configurator.setRateLimit(oseroRateLimits, limitUsdsMint, beforeData.maxAmount, beforeData.slope);
+
+            RateLimitsLike.RateLimitData memory afterDecrease = rateLimits.getRateLimitData(limitUsdsMint);
+            assertEq(afterDecrease.maxAmount, beforeData.maxAmount, "testOseroCBeamIntegration/rate-limit-max-not-restored");
+            assertEq(afterDecrease.slope, beforeData.slope, "testOseroCBeamIntegration/rate-limit-slope-not-restored");
+        }
+    }
 }
