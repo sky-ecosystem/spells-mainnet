@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Select, verify, or install an age-eligible stable Foundry release from GitHub.com.
+# Load the shared CI pin without running Foundry or contacting GitHub.
 # GitHub.com and Foundry's official release workflow are the pinned trust roots.
 # Installed binaries are verified before execution; installation failures restore prior binaries.
 
@@ -61,6 +62,9 @@ COMMANDS
         Install an explicitly requested release in \$HOME/.foundry/bin, replacing
         any existing Foundry binaries there.
 
+    load-ci-settings
+        Load the pinned Foundry release and age waiver from the Tests workflow.
+
 OPTIONS
     --help
         Display this help and exit.
@@ -74,6 +78,36 @@ EXAMPLES
     $name select
     $name install --release v1.7.1
     $name verify --release v1.7.1
+    $name load-ci-settings .github/workflows/tests.yaml
+EOF
+}
+
+usage_load_ci_settings() {
+    local name
+
+    name=${0##*/}
+    cat <<EOF
+NAME
+    $name load-ci-settings - load the Foundry CI settings
+
+SYNOPSIS
+    $name load-ci-settings TESTS_WORKFLOW
+
+DESCRIPTION
+    Reads the workflow-level FOUNDRY_RELEASE and FOUNDRY_IGNORE_AGE from
+    TESTS_WORKFLOW and appends them to GITHUB_ENV. Missing, duplicate, or
+    malformed settings fail without updating GITHUB_ENV.
+
+OPTIONS
+    --help
+        Display this help and exit.
+
+EXIT STATUS
+    0       The settings were loaded, or help was displayed.
+    nonzero The invocation or settings were invalid.
+
+EXAMPLE
+    $name load-ci-settings .github/workflows/tests.yaml
 EOF
 }
 
@@ -196,6 +230,39 @@ usage_error() {
     printf 'Error: %s\n\n' "$message" >&2
     "$usage_function" >&2
     exit 1
+}
+
+load_ci_settings() {
+    local settings_file settings
+
+    settings_file=$1
+    [ -f "$settings_file" ] || die "Tests workflow not found: $settings_file"
+    [ -n "${GITHUB_ENV:-}" ] || die 'GITHUB_ENV is required to load CI settings'
+
+    settings=$(awk '
+        /^env:$/ { env_count++; in_env = 1; next }
+        in_env && /^[^[:space:]#]/ { in_env = 0 }
+        in_env && /^  FOUNDRY_RELEASE:/ {
+            release_count++
+            if ($0 !~ /^  FOUNDRY_RELEASE: v[0-9]+\.[0-9]+\.[0-9]+$/) invalid = 1
+            sub(/^  FOUNDRY_RELEASE: /, "")
+            release = $0
+        }
+        in_env && /^  FOUNDRY_IGNORE_AGE:/ {
+            age_count++
+            if ($0 !~ /^  FOUNDRY_IGNORE_AGE: "[01]"$/) invalid = 1
+            sub(/^  FOUNDRY_IGNORE_AGE: "/, "")
+            sub(/"$/, "")
+            age = $0
+        }
+        END {
+            if (env_count != 1 || release_count != 1 || age_count != 1 || invalid) exit 1
+            print "FOUNDRY_RELEASE=" release
+            print "FOUNDRY_IGNORE_AGE=" age
+        }
+    ' "$settings_file") || die "Invalid workflow-level Foundry settings in $settings_file"
+
+    printf '%s\n' "$settings" >> "$GITHUB_ENV"
 }
 
 sha256() {
@@ -680,11 +747,20 @@ main() {
     fi
     command=$1
     case "$command" in
-        select | verify | install) ;;
+        select | verify | install | load-ci-settings) ;;
         *) usage_error "unknown command: $command" ;;
     esac
-    command_usage="usage_$command"
     shift
+    if [ "$command" = load-ci-settings ]; then
+        if [ "$#" -eq 1 ] && [ "$1" = --help ]; then
+            usage_load_ci_settings
+            return
+        fi
+        [ "$#" -eq 1 ] || usage_error 'load-ci-settings requires a Tests workflow path' usage_load_ci_settings
+        load_ci_settings "$1"
+        return
+    fi
+    command_usage="usage_$command"
     if [ "$#" -gt 0 ] && [ "$1" = --help ]; then
         [ "$#" -eq 1 ] || usage_error '--help cannot be combined with other arguments' "$command_usage"
         "$command_usage"

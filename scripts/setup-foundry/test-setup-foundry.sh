@@ -4,7 +4,6 @@ set -u
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 CLI="$ROOT/scripts/setup-foundry/setup-foundry.sh"
-CI_SETTINGS="$ROOT/scripts/setup-foundry/load-ci-settings.sh"
 BASH_PATH=$(command -v bash)
 JQ_PATH=$(command -v jq) || {
     printf 'test prerequisite not found: jq\n' >&2
@@ -48,6 +47,9 @@ COMMANDS
         Install an explicitly requested release in $HOME/.foundry/bin, replacing
         any existing Foundry binaries there.
 
+    load-ci-settings
+        Load the pinned Foundry release and age waiver from the Tests workflow.
+
 OPTIONS
     --help
         Display this help and exit.
@@ -61,6 +63,33 @@ EXAMPLES
     setup-foundry.sh select
     setup-foundry.sh install --release v1.7.1
     setup-foundry.sh verify --release v1.7.1
+    setup-foundry.sh load-ci-settings .github/workflows/tests.yaml
+EOF
+}
+
+expected_load_ci_settings_usage() {
+    cat <<'EOF'
+NAME
+    setup-foundry.sh load-ci-settings - load the Foundry CI settings
+
+SYNOPSIS
+    setup-foundry.sh load-ci-settings TESTS_WORKFLOW
+
+DESCRIPTION
+    Reads the workflow-level FOUNDRY_RELEASE and FOUNDRY_IGNORE_AGE from
+    TESTS_WORKFLOW and appends them to GITHUB_ENV. Missing, duplicate, or
+    malformed settings fail without updating GITHUB_ENV.
+
+OPTIONS
+    --help
+        Display this help and exit.
+
+EXIT STATUS
+    0       The settings were loaded, or help was displayed.
+    nonzero The invocation or settings were invalid.
+
+EXAMPLE
+    setup-foundry.sh load-ci-settings .github/workflows/tests.yaml
 EOF
 }
 
@@ -1271,7 +1300,7 @@ test_invalid_command_fails() {
 test_help_succeeds_without_environment_checks() {
     ok=1
 
-    for invocation in top-level select verify install; do
+    for invocation in top-level select verify install load-ci-settings; do
         new_fixture
         case "$invocation" in
             top-level)
@@ -1289,6 +1318,10 @@ test_help_succeeds_without_environment_checks() {
             install)
                 arguments=(install --help)
                 expected_usage=expected_install_usage
+                ;;
+            load-ci-settings)
+                arguments=(load-ci-settings --help)
+                expected_usage=expected_load_ci_settings_usage
                 ;;
         esac
         PATH="$FIXTURE/bin:/usr/bin:/bin" "$BASH_PATH" "$CLI" "${arguments[@]}" > "$FIXTURE/stdout" 2> "$FIXTURE/stderr"
@@ -1414,7 +1447,7 @@ test_ci_settings_share_one_pin() {
     for age in 0 1; do
         printf 'env:\n  FOUNDRY_RELEASE: v1.8.1\n  FOUNDRY_IGNORE_AGE: "%s"\n' "$age" > "$settings"
         : > "$github_env"
-        GITHUB_ENV="$github_env" "$BASH_PATH" "$CI_SETTINGS" "$settings" > "$FIXTURE/out" 2>&1 || ok=0
+        GITHUB_ENV="$github_env" "$BASH_PATH" "$CLI" load-ci-settings "$settings" > "$FIXTURE/out" 2>&1 || ok=0
         diff -u <(printf 'FOUNDRY_RELEASE=v1.8.1\nFOUNDRY_IGNORE_AGE=%s\n' "$age") "$github_env" >/dev/null || ok=0
     done
 
@@ -1428,7 +1461,7 @@ test_ci_settings_share_one_pin() {
             malformed-age) printf 'env:\n  FOUNDRY_RELEASE: v1.8.1\n  FOUNDRY_IGNORE_AGE: "2"\n' > "$settings" ;;
         esac
         printf 'SENTINEL=keep\n' > "$github_env"
-        if GITHUB_ENV="$github_env" "$BASH_PATH" "$CI_SETTINGS" "$settings" > "$FIXTURE/out" 2>&1; then ok=0; fi
+        if GITHUB_ENV="$github_env" "$BASH_PATH" "$CLI" load-ci-settings "$settings" > "$FIXTURE/out" 2>&1; then ok=0; fi
         diff -u <(printf 'SENTINEL=keep\n') "$github_env" >/dev/null || ok=0
     done
 

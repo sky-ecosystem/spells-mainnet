@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Load Foundry settings from Tests workflow
-        run: bash scripts/setup-foundry/load-ci-settings.sh .github/workflows/tests.yaml
+        run: bash scripts/setup-foundry/setup-foundry.sh load-ci-settings .github/workflows/tests.yaml
 
       - name: Test Setup Foundry
         run: make test-setup-foundry

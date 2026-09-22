@@ -112,7 +112,7 @@ env:
   FOUNDRY_IGNORE_AGE: "0"
 ```
 
-The `setup-foundry.yaml` workflow reads both values from `tests.yaml` when it runs, then tests the setup scripts and installs and verifies that release on Linux and macOS. It runs for changes to the setup workflow, `Makefile`, or `scripts/setup-foundry/`; changing only `tests.yaml` does not trigger it.
+The `setup-foundry.yaml` workflow runs `setup-foundry.sh load-ci-settings .github/workflows/tests.yaml` to read both values, then tests the setup scripts and installs and verifies that release on Linux and macOS. It runs for changes to the setup workflow, `Makefile`, or `scripts/setup-foundry/`; changing only `tests.yaml` does not trigger it.
 
 Expose the workflow token as `GH_TOKEN` and add the installation directory to `GITHUB_PATH` before installing:
 
