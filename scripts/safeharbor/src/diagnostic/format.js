@@ -13,9 +13,6 @@ const formatContext = {
     [$.DUPLICATE_SHEET_HEADERS]: (context) => ({
         duplicateHeaders: formatList(context.duplicateHeaders),
     }),
-    [$.INVALID_EVM_RECOVERY_ADDRESS]: (context) => ({
-        onChainRecoveryAddress: context.isNewChain ? "not registered" : context.onChainRecoveryAddress,
-    }),
     [$.INCOMPLETE_CHAIN_METADATA]: (context) => ({
         missingFields: formatList(context.missingFields),
     }),

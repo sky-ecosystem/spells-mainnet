@@ -44,6 +44,55 @@ test("inserts placeholder-like and replacement-pattern text literally", () => {
 test.each([
     {
         diagnostic: {
+            code: "DUPLICATE_SHEET_EVM_ACCOUNT",
+            context: {
+                chainName: "ETHEREUM",
+                firstAddress: "0x8ba1f109551bd432803012645ac136ddd64dba72",
+                duplicateAddress: "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
+                firstScope: 0,
+                duplicateScope: 2,
+            },
+        },
+        message:
+            "Equivalent EVM account addresses in Safeharbor Sheet for chain 'ETHEREUM': first='0x8ba1f109551bd432803012645ac136ddd64dba72' (scope=0), duplicate='0x8ba1f109551bD432803012645Ac136ddd64DBA72' (scope=2)",
+    },
+    {
+        diagnostic: {
+            code: "DUPLICATE_ONCHAIN_EVM_ACCOUNT",
+            context: {
+                chainId: "eip155:1",
+                firstAddress: "0x8ba1f109551bd432803012645ac136ddd64dba72",
+                duplicateAddress: "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
+                firstScope: 0n,
+                duplicateScope: 2n,
+            },
+        },
+        message:
+            "Equivalent EVM account addresses in on-chain state for chain 'eip155:1': first='0x8ba1f109551bd432803012645ac136ddd64dba72' (scope=0), duplicate='0x8ba1f109551bD432803012645Ac136ddd64DBA72' (scope=2)",
+    },
+    {
+        diagnostic: {
+            code: "INVALID_SHEET_RECOVERY_ADDRESS",
+            context: {
+                chainName: "SOLANA",
+                chainId: "solana:mainnet",
+                address: "1",
+            },
+        },
+        message: "Invalid Asset Recovery Address in SafeHarbor Sheet for chain 'SOLANA' (solana:mainnet): 1",
+    },
+    {
+        diagnostic: {
+            code: "INVALID_ONCHAIN_RECOVERY_ADDRESS",
+            context: {
+                chainId: "eip155:1",
+                address: "invalid",
+            },
+        },
+        message: "Invalid on-chain Asset Recovery Address for chain 'eip155:1': invalid",
+    },
+    {
+        diagnostic: {
             code: "UNSUPPORTED_SHEET_CHAIN_NAMESPACE",
             context: { chainName: "COSMOS", chainId: "cosmos:cosmoshub-4" },
         },
@@ -99,32 +148,6 @@ test.each([
             context: { duplicateHeaders: ["Status", "Address"] },
         },
         message: "Duplicate CSV headers: Status, Address",
-    },
-    {
-        diagnostic: {
-            code: "INVALID_EVM_RECOVERY_ADDRESS",
-            context: {
-                chainId: "eip155:8453",
-                isNewChain: true,
-                onChainRecoveryAddress: undefined,
-                sheetRecoveryAddress: "invalid",
-            },
-        },
-        message:
-            "Invalid EVM Asset Recovery Address for chain 'eip155:8453'. On-chain: not registered; Safeharbor Sheet: invalid",
-    },
-    {
-        diagnostic: {
-            code: "INVALID_EVM_RECOVERY_ADDRESS",
-            context: {
-                chainId: "eip155:8453",
-                isNewChain: false,
-                onChainRecoveryAddress: "invalid",
-                sheetRecoveryAddress: "0x1000000000000000000000000000000000000001",
-            },
-        },
-        message:
-            "Invalid EVM Asset Recovery Address for chain 'eip155:8453'. On-chain: invalid; Safeharbor Sheet: 0x1000000000000000000000000000000000000001",
     },
     {
         diagnostic: {

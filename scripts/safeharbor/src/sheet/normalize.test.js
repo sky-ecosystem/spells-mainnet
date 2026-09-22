@@ -2,7 +2,12 @@ import { describe, expect, test } from "vitest";
 import { normalizeChainDetails, normalizeContractsInScope } from "./normalize.js";
 
 test("rejects missing headers in required order", () => {
-    expect(() => normalizeContractsInScope({ headers: ["Status"], records: [] })).toThrow(
+    expect(() =>
+        normalizeContractsInScope({
+            headers: ["Status"],
+            records: [],
+        }),
+    ).toThrow(
         expect.objectContaining({
             diagnostic: {
                 code: "MISSING_SHEET_HEADERS",
@@ -42,7 +47,12 @@ test("warns for unrecognized statuses on populated rows without treating them as
                         Address: "0x2000000000000000000000000000000000000004",
                         isFactory: "FALSE",
                     },
-                    { Status: "", Chain: "", Address: "", isFactory: "" },
+                    {
+                        Status: "",
+                        Chain: "",
+                        Address: "",
+                        isFactory: "",
+                    },
                 ],
             },
             {
@@ -106,7 +116,12 @@ test("uses only isFactory when an IsFactory column is also present", () => {
     ).toStrictEqual({
         value: {
             "eip155:1": {
-                accounts: [{ accountAddress: "0x2000000000000000000000000000000000000001", childContractScope: 0 }],
+                accounts: [
+                    {
+                        accountAddress: "0x2000000000000000000000000000000000000001",
+                        childContractScope: 0,
+                    },
+                ],
                 assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
             },
         },
@@ -152,8 +167,14 @@ test("diagnoses invalid active addresses without dropping records or normalizing
         value: {
             "eip155:1": {
                 accounts: [
-                    { accountAddress: "", childContractScope: 0 },
-                    { accountAddress: " ", childContractScope: 0 },
+                    {
+                        accountAddress: "",
+                        childContractScope: 0,
+                    },
+                    {
+                        accountAddress: " ",
+                        childContractScope: 0,
+                    },
                 ],
                 assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
             },
@@ -198,11 +219,79 @@ test("leaves unsupported account formats to the metadata warning", () => {
     ).toStrictEqual({
         value: {
             "cosmos:cosmoshub-4": {
-                accounts: [{ accountAddress: "AccountAddress", childContractScope: 0 }],
+                accounts: [
+                    {
+                        accountAddress: "AccountAddress",
+                        childContractScope: 0,
+                    },
+                ],
                 assetRecoveryAddress: "RecoveryAddress",
             },
         },
         warnings: [],
+    });
+});
+
+test("warns on equivalent EVM account spellings without rewriting either address", () => {
+    expect(
+        normalizeContractsInScope(
+            {
+                headers: ["Status", "Chain", "Address", "isFactory"],
+                records: [
+                    {
+                        Status: "ACTIVE",
+                        Chain: "ETHEREUM",
+                        Address: "0x8ba1f109551bd432803012645ac136ddd64dba72",
+                        isFactory: "FALSE",
+                    },
+                    {
+                        Status: "ACTIVE",
+                        Chain: "ETHEREUM",
+                        Address: "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
+                        isFactory: "TRUE",
+                    },
+                ],
+            },
+            {
+                caip2ChainId: {
+                    ETHEREUM: "eip155:1",
+                },
+                assetRecoveryAddress: {
+                    ETHEREUM: "0x1000000000000000000000000000000000000001",
+                },
+                name: {
+                    "eip155:1": "ETHEREUM",
+                },
+            },
+        ),
+    ).toStrictEqual({
+        value: {
+            "eip155:1": {
+                accounts: [
+                    {
+                        accountAddress: "0x8ba1f109551bd432803012645ac136ddd64dba72",
+                        childContractScope: 0,
+                    },
+                    {
+                        accountAddress: "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
+                        childContractScope: 2,
+                    },
+                ],
+                assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+            },
+        },
+        warnings: [
+            {
+                code: "DUPLICATE_SHEET_EVM_ACCOUNT",
+                context: {
+                    chainName: "ETHEREUM",
+                    firstAddress: "0x8ba1f109551bd432803012645ac136ddd64dba72",
+                    duplicateAddress: "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
+                    firstScope: 0,
+                    duplicateScope: 2,
+                },
+            },
+        ],
     });
 });
 
@@ -240,7 +329,14 @@ test.each([
         normalizeContractsInScope(
             {
                 headers: ["Status", "Chain", "Address", "isFactory"],
-                records: [{ Status: "ACTIVE", Chain: chainName, Address: address, isFactory: "FALSE" }],
+                records: [
+                    {
+                        Status: "ACTIVE",
+                        Chain: chainName,
+                        Address: address,
+                        isFactory: "FALSE",
+                    },
+                ],
             },
             {
                 caip2ChainId: { [chainName]: chainId },
@@ -251,14 +347,23 @@ test.each([
     ).toEqual({
         value: {
             [chainId]: {
-                accounts: [{ accountAddress: address, childContractScope: 0 }],
+                accounts: [
+                    {
+                        accountAddress: address,
+                        childContractScope: 0,
+                    },
+                ],
                 assetRecoveryAddress,
             },
         },
         warnings: [
             {
                 code: "INVALID_SHEET_ACCOUNT_ADDRESS",
-                context: { chainName, chainId, address },
+                context: {
+                    chainName,
+                    chainId,
+                    address,
+                },
             },
         ],
     });
@@ -308,9 +413,18 @@ test("checks factory flags while accepting blanks and ignoring disabled rows", (
         value: {
             "eip155:1": {
                 accounts: [
-                    { accountAddress: "0x2000000000000000000000000000000000000001", childContractScope: 0 },
-                    { accountAddress: "0x2000000000000000000000000000000000000002", childContractScope: 0 },
-                    { accountAddress: "0x2000000000000000000000000000000000000003", childContractScope: 0 },
+                    {
+                        accountAddress: "0x2000000000000000000000000000000000000001",
+                        childContractScope: 0,
+                    },
+                    {
+                        accountAddress: "0x2000000000000000000000000000000000000002",
+                        childContractScope: 0,
+                    },
+                    {
+                        accountAddress: "0x2000000000000000000000000000000000000003",
+                        childContractScope: 0,
+                    },
                 ],
                 assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
             },
@@ -345,9 +459,16 @@ test("accepts required headers with extra columns", () => {
                 headers: ["Notes", "Chain", "Status", "Address", "isFactory"],
                 records: [],
             },
-            { caip2ChainId: {}, assetRecoveryAddress: {}, name: {} },
+            {
+                caip2ChainId: {},
+                assetRecoveryAddress: {},
+                name: {},
+            },
         ),
-    ).toEqual({ value: {}, warnings: [] });
+    ).toEqual({
+        value: {},
+        warnings: [],
+    });
 });
 
 test("joins raw recovery addresses without mutating either source", () => {
@@ -363,12 +484,18 @@ test("joins raw recovery addresses without mutating either source", () => {
         ],
     };
     const metadata = {
-        caip2ChainId: { ETHEREUM: "eip155:1", BASE: "eip155:8453" },
+        caip2ChainId: {
+            ETHEREUM: "eip155:1",
+            BASE: "eip155:8453",
+        },
         assetRecoveryAddress: {
             ETHEREUM: " InvalidChecksumAndSpaces ",
             BASE: "OtherRecovery",
         },
-        name: { "eip155:1": "ETHEREUM", "eip155:8453": "BASE" },
+        name: {
+            "eip155:1": "ETHEREUM",
+            "eip155:8453": "BASE",
+        },
     };
     const originalSheet = structuredClone(sheet);
     const originalMetadata = structuredClone(metadata);
@@ -392,16 +519,89 @@ test("joins raw recovery addresses without mutating either source", () => {
 });
 
 describe("normalizeChainDetails", () => {
+    test("warns on malformed EVM and Solana recovery addresses in complete metadata rows", () => {
+        expect(
+            normalizeChainDetails({
+                headers: ["Name", "Chain Id", "Asset Recovery Address"],
+                records: [
+                    {
+                        Name: "ETHEREUM",
+                        "Chain Id": "eip155:1",
+                        "Asset Recovery Address": "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
+                    },
+                    {
+                        Name: "SOLANA",
+                        "Chain Id": "solana:mainnet",
+                        "Asset Recovery Address": "1",
+                    },
+                ],
+            }),
+        ).toStrictEqual({
+            value: {
+                caip2ChainId: {
+                    ETHEREUM: "eip155:1",
+                    SOLANA: "solana:mainnet",
+                },
+                assetRecoveryAddress: {
+                    ETHEREUM: "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
+                    SOLANA: "1",
+                },
+                name: {
+                    "eip155:1": "ETHEREUM",
+                    "solana:mainnet": "SOLANA",
+                },
+            },
+            warnings: [
+                {
+                    code: "INVALID_SHEET_RECOVERY_ADDRESS",
+                    context: {
+                        chainName: "ETHEREUM",
+                        chainId: "eip155:1",
+                        address: "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
+                    },
+                },
+                {
+                    code: "INVALID_SHEET_RECOVERY_ADDRESS",
+                    context: {
+                        chainName: "SOLANA",
+                        chainId: "solana:mainnet",
+                        address: "1",
+                    },
+                },
+            ],
+        });
+    });
+
     test("warns for every complete unsupported namespace without dropping metadata", () => {
         expect(
             normalizeChainDetails({
                 headers: ["Name", "Chain Id", "Asset Recovery Address"],
                 records: [
-                    { Name: "ETHEREUM", "Chain Id": "eip155:1", "Asset Recovery Address": "EvmRecovery" },
-                    { Name: "SOLANA", "Chain Id": "solana:mainnet", "Asset Recovery Address": "SolanaRecovery" },
-                    { Name: "COSMOS", "Chain Id": "cosmos:cosmoshub-4", "Asset Recovery Address": "CosmosRecovery" },
-                    { Name: "UNKNOWN", "Chain Id": "unknown", "Asset Recovery Address": "UnknownRecovery" },
-                    { Name: "INCOMPLETE", "Chain Id": "cosmos:other", "Asset Recovery Address": "" },
+                    {
+                        Name: "ETHEREUM",
+                        "Chain Id": "eip155:1",
+                        "Asset Recovery Address": "0x1000000000000000000000000000000000000001",
+                    },
+                    {
+                        Name: "SOLANA",
+                        "Chain Id": "solana:mainnet",
+                        "Asset Recovery Address": "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+                    },
+                    {
+                        Name: "COSMOS",
+                        "Chain Id": "cosmos:cosmoshub-4",
+                        "Asset Recovery Address": "CosmosRecovery",
+                    },
+                    {
+                        Name: "UNKNOWN",
+                        "Chain Id": "unknown",
+                        "Asset Recovery Address": "UnknownRecovery",
+                    },
+                    {
+                        Name: "INCOMPLETE",
+                        "Chain Id": "cosmos:other",
+                        "Asset Recovery Address": "",
+                    },
                 ],
             }),
         ).toStrictEqual({
@@ -413,8 +613,8 @@ describe("normalizeChainDetails", () => {
                     UNKNOWN: "unknown",
                 },
                 assetRecoveryAddress: {
-                    ETHEREUM: "EvmRecovery",
-                    SOLANA: "SolanaRecovery",
+                    ETHEREUM: "0x1000000000000000000000000000000000000001",
+                    SOLANA: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
                     COSMOS: "CosmosRecovery",
                     UNKNOWN: "UnknownRecovery",
                 },
@@ -436,11 +636,17 @@ describe("normalizeChainDetails", () => {
                 },
                 {
                     code: "UNSUPPORTED_SHEET_CHAIN_NAMESPACE",
-                    context: { chainName: "COSMOS", chainId: "cosmos:cosmoshub-4" },
+                    context: {
+                        chainName: "COSMOS",
+                        chainId: "cosmos:cosmoshub-4",
+                    },
                 },
                 {
                     code: "UNSUPPORTED_SHEET_CHAIN_NAMESPACE",
-                    context: { chainName: "UNKNOWN", chainId: "unknown" },
+                    context: {
+                        chainName: "UNKNOWN",
+                        chainId: "unknown",
+                    },
                 },
             ],
         });
@@ -798,12 +1004,18 @@ describe("normalizeChainDetails", () => {
     ])("diagnoses %s while retaining unrelated mappings", (_scenario, sheet, warnings) => {
         expect(normalizeChainDetails(sheet)).toEqual({
             value: {
-                caip2ChainId: { ETHEREUM: "eip155:1", BASE: "eip155:8453" },
+                caip2ChainId: {
+                    ETHEREUM: "eip155:1",
+                    BASE: "eip155:8453",
+                },
                 assetRecoveryAddress: {
                     ETHEREUM: "0x1000000000000000000000000000000000000001",
                     BASE: "0x1000000000000000000000000000000000000003",
                 },
-                name: { "eip155:1": "ETHEREUM", "eip155:8453": "BASE" },
+                name: {
+                    "eip155:1": "ETHEREUM",
+                    "eip155:8453": "BASE",
+                },
             },
             warnings,
         });
@@ -879,9 +1091,18 @@ test("groups active contracts in order with exact addresses and factory scopes",
     expect(result.value).toEqual({
         "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp": {
             accounts: [
-                { accountAddress: "So11111111111111111111111111111111111111112", childContractScope: 2 },
-                { accountAddress: "so11111111111111111111111111111111111111112", childContractScope: 0 },
-                { accountAddress: "So11111111111111111111111111111111111111112", childContractScope: 0 },
+                {
+                    accountAddress: "So11111111111111111111111111111111111111112",
+                    childContractScope: 2,
+                },
+                {
+                    accountAddress: "so11111111111111111111111111111111111111112",
+                    childContractScope: 0,
+                },
+                {
+                    accountAddress: "So11111111111111111111111111111111111111112",
+                    childContractScope: 0,
+                },
             ],
             assetRecoveryAddress: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
         },
@@ -914,6 +1135,16 @@ test("groups active contracts in order with exact addresses and factory scopes",
             context: {
                 chainName: "SOLANA",
                 address: "So11111111111111111111111111111111111111112",
+                firstScope: 2,
+                duplicateScope: 0,
+            },
+        },
+        {
+            code: "DUPLICATE_SHEET_EVM_ACCOUNT",
+            context: {
+                chainName: "ETHEREUM",
+                firstAddress: "0xA000000000000000000000000000000000000001",
+                duplicateAddress: "0xa000000000000000000000000000000000000001",
                 firstScope: 2,
                 duplicateScope: 0,
             },

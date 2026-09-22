@@ -400,7 +400,7 @@ describe.each([
             chains: [
                 {
                     caip2ChainId: "eip155:8453",
-                    assetRecoveryAddress: "recovery",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                     accounts: [
                         ["A", 0n],
                         ["A", 2n],
@@ -420,7 +420,7 @@ describe.each([
                         { accountAddress: "A", childContractScope: "0" },
                         { accountAddress: "A", childContractScope: "2" },
                     ],
-                    assetRecoveryAddress: "recovery",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                 },
             },
             sheetState: {},

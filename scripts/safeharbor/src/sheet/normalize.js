@@ -1,4 +1,4 @@
-import { decodeBase58, encodeBase58, isAddress, isHexString, toBeHex } from "ethers";
+import { decodeBase58, encodeBase58, getAddress, isAddress, isHexString, toBeHex } from "ethers";
 import { DIAGNOSTIC_CODES as $ } from "../diagnostic/index.js";
 import { findDuplicateIndexes } from "../utils/findDuplicateIndexes.js";
 
@@ -10,7 +10,7 @@ const CONTRACT_HEADERS = ["Status", "Chain", "Address", "isFactory"];
 const CHAIN_DETAILS_HEADERS = ["Name", "Chain Id", "Asset Recovery Address"];
 
 export function normalizeContractsInScope({ headers, records }, sheetChainDetails) {
-    assertHeaders(headers, CONTRACT_HEADERS);
+    assertRequiredHeaders(headers, CONTRACT_HEADERS);
     const activeRecords = records.filter((record) => record.Status === STATUS.ACTIVE);
     const accountsByChainName = Object.fromEntries(
         activeRecords.reduce((chains, record) => {
@@ -31,12 +31,13 @@ export function normalizeContractsInScope({ headers, records }, sheetChainDetail
             ...validateFactoryFlags(activeRecords),
             ...validateAccountAddresses(accountsByChainName, sheetChainDetails),
             ...validateUniqueAccounts(accountsByChainName),
+            ...validateEquivalentEvmAccounts(accountsByChainName, sheetChainDetails),
         ],
     };
 }
 
 export function normalizeChainDetails({ headers, records }) {
-    assertHeaders(headers, CHAIN_DETAILS_HEADERS);
+    assertRequiredHeaders(headers, CHAIN_DETAILS_HEADERS);
     const chains = records.filter((record) => getMissingChainFields(record).length === 0);
     const duplicates = analyzeDuplicateChains(chains);
 
@@ -46,6 +47,7 @@ export function normalizeChainDetails({ headers, records }) {
             ...records.flatMap(validateChainMetadataRecord),
             ...validateDuplicateChains(chains, duplicates),
             ...validateSupportedNamespaces(chains),
+            ...validateRecoveryAddresses(chains),
         ],
     };
 }
@@ -171,6 +173,24 @@ function validateSupportedNamespaces(chains) {
         }));
 }
 
+function validateRecoveryAddresses(chains) {
+    return chains.flatMap((chain) => {
+        if (!hasInvalidKnownAddressFormat(chain["Asset Recovery Address"], chain["Chain Id"])) {
+            return [];
+        }
+        return [
+            {
+                code: $.INVALID_SHEET_RECOVERY_ADDRESS,
+                context: {
+                    chainName: chain.Name,
+                    chainId: chain["Chain Id"],
+                    address: chain["Asset Recovery Address"],
+                },
+            },
+        ];
+    });
+}
+
 function isSupportedNamespace(chainId) {
     return chainId.startsWith("eip155:") || chainId.startsWith("solana:");
 }
@@ -199,20 +219,54 @@ function validateKnownChains(sheetState, sheetChainDetails) {
 }
 
 function validateUniqueAccounts(sheetState) {
-    return Object.entries(sheetState).flatMap(([chainName, accounts]) => validateChainAccounts(chainName, accounts));
+    return Object.entries(sheetState).flatMap(([chainName, accounts]) => {
+        const addresses = accounts.map(({ accountAddress }) => accountAddress);
+        return [...findDuplicateIndexes(addresses)].map((index) => ({
+            code: $.DUPLICATE_SHEET_ACCOUNT,
+            context: {
+                chainName,
+                address: addresses[index],
+                firstScope: accounts[addresses.indexOf(addresses[index])].childContractScope,
+                duplicateScope: accounts[index].childContractScope,
+            },
+        }));
+    });
 }
 
-function validateChainAccounts(chainName, accounts) {
-    const addresses = accounts.map(({ accountAddress }) => accountAddress);
-    return [...findDuplicateIndexes(addresses)].map((index) => ({
-        code: $.DUPLICATE_SHEET_ACCOUNT,
-        context: {
-            chainName,
-            address: addresses[index],
-            firstScope: accounts[addresses.indexOf(addresses[index])].childContractScope,
-            duplicateScope: accounts[index].childContractScope,
-        },
-    }));
+function validateEquivalentEvmAccounts(accountsByChainName, sheetChainDetails) {
+    return Object.entries(accountsByChainName).flatMap(([chainName, accounts]) => {
+        if (!sheetChainDetails.caip2ChainId[chainName]?.startsWith("eip155:")) {
+            return [];
+        }
+
+        const firstByCanonicalAddress = new Map();
+        const seenAddresses = new Set();
+        return accounts.flatMap(({ accountAddress, childContractScope }) => {
+            if (!isValidEvmAddress(accountAddress) || seenAddresses.has(accountAddress)) {
+                return [];
+            }
+            seenAddresses.add(accountAddress);
+
+            const canonicalAddress = getAddress(accountAddress);
+            const firstAccount = firstByCanonicalAddress.get(canonicalAddress);
+            if (!firstAccount) {
+                firstByCanonicalAddress.set(canonicalAddress, { accountAddress, childContractScope });
+                return [];
+            }
+            return [
+                {
+                    code: $.DUPLICATE_SHEET_EVM_ACCOUNT,
+                    context: {
+                        chainName,
+                        firstAddress: firstAccount.accountAddress,
+                        duplicateAddress: accountAddress,
+                        firstScope: firstAccount.childContractScope,
+                        duplicateScope: childContractScope,
+                    },
+                },
+            ];
+        });
+    });
 }
 
 function validateAccountAddresses(sheetState, sheetChainDetails) {
@@ -227,7 +281,7 @@ function validateAccountAddresses(sheetState, sheetChainDetails) {
                     },
                 ];
             }
-            if (!chainId || !isSupportedNamespace(chainId) || isValidAccountAddress(accountAddress, chainId)) {
+            if (!chainId || !hasInvalidKnownAddressFormat(accountAddress, chainId)) {
                 return [];
             }
             return [
@@ -240,13 +294,14 @@ function validateAccountAddresses(sheetState, sheetChainDetails) {
     });
 }
 
-function isValidAccountAddress(address, chainId) {
+function hasInvalidKnownAddressFormat(address, chainId) {
     if (chainId.startsWith("eip155:")) {
-        return isValidEvmAddress(address);
+        return !isValidEvmAddress(address);
     }
     if (chainId.startsWith("solana:")) {
-        return isValidSolanaAddress(address);
+        return !isValidSolanaAddress(address);
     }
+    // Unsupported namespaces have their own metadata warning.
     return false;
 }
 
@@ -263,7 +318,7 @@ function isValidSolanaAddress(address) {
     }
 }
 
-function assertHeaders(headers, requiredHeaders) {
+function assertRequiredHeaders(headers, requiredHeaders) {
     const missingHeaders = requiredHeaders.filter((header) => !headers.includes(header));
     if (missingHeaders.length === 0) {
         return;

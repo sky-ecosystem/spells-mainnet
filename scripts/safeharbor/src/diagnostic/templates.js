@@ -14,8 +14,12 @@ export const diagnosticTemplates = {
         "Invalid account address in SafeHarbor Sheet for chain '{chainName}' ({chainId}): {address}",
     [$.DUPLICATE_SHEET_ACCOUNT]:
         "Duplicate account address in Safeharbor Sheet for chain '{chainName}': {address}; first scope={firstScope}, duplicate scope={duplicateScope}",
+    [$.DUPLICATE_SHEET_EVM_ACCOUNT]:
+        "Equivalent EVM account addresses in Safeharbor Sheet for chain '{chainName}': first='{firstAddress}' (scope={firstScope}), duplicate='{duplicateAddress}' (scope={duplicateScope})",
     [$.DUPLICATE_ONCHAIN_ACCOUNT]:
         "Duplicate account address in on-chain state for chain '{chainId}': {address}; first scope={firstScope}, duplicate scope={duplicateScope}",
+    [$.DUPLICATE_ONCHAIN_EVM_ACCOUNT]:
+        "Equivalent EVM account addresses in on-chain state for chain '{chainId}': first='{firstAddress}' (scope={firstScope}), duplicate='{duplicateAddress}' (scope={duplicateScope})",
     [$.UNKNOWN_SHEET_CHAIN]: dedent`
         Unknown chain in SafeHarbor Sheet: name='{chainName}'.
         Add this chain to the 'safe-harbor-asset-recovery' tab before including it in scope.
@@ -24,14 +28,14 @@ export const diagnosticTemplates = {
         Unknown chain in on-chain state: caip2ChainId='{chainId}'.
         Add this chain to the 'safe-harbor-asset-recovery' tab before keeping or removing it.
     `,
-    [$.MISSING_ONCHAIN_RECOVERY_ADDRESS]: "Missing on-chain Asset Recovery Address for existing chain '{chainId}'",
+    [$.INVALID_SHEET_RECOVERY_ADDRESS]:
+        "Invalid Asset Recovery Address in SafeHarbor Sheet for chain '{chainName}' ({chainId}): {address}",
+    [$.INVALID_ONCHAIN_RECOVERY_ADDRESS]: "Invalid on-chain Asset Recovery Address for chain '{chainId}': {address}",
     [$.RECOVERY_ADDRESS_MISMATCH]: dedent`
         Asset Recovery Address mismatch for chain '{chainId}'.
         On-chain: {onChainRecoveryAddress}
         Safeharbor Sheet: {sheetRecoveryAddress}
     `,
-    [$.INVALID_EVM_RECOVERY_ADDRESS]:
-        "Invalid EVM Asset Recovery Address for chain '{chainId}'. On-chain: {onChainRecoveryAddress}; Safeharbor Sheet: {sheetRecoveryAddress}",
     [$.INCOMPLETE_CHAIN_METADATA]:
         "Incomplete chain details in Safeharbor Sheet: name='{chainName}', chainId='{chainId}'; missing {missingFields}",
     [$.DUPLICATE_CHAIN_NAME]:

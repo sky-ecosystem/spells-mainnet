@@ -2,6 +2,62 @@ import { describe, expect, test } from "vitest";
 import { normalizeOnChainState } from "./normalize.js";
 
 describe("normalizeOnChainState", () => {
+    test("warns on malformed recovery addresses without rewriting the on-chain state", () => {
+        expect(
+            normalizeOnChainState({
+                chains: [
+                    {
+                        caip2ChainId: "eip155:1",
+                        assetRecoveryAddress: "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
+                        accounts: [["0x2000000000000000000000000000000000000001", 0n]],
+                    },
+                    {
+                        caip2ChainId: "solana:mainnet",
+                        assetRecoveryAddress: "1",
+                        accounts: [["29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2", 0n]],
+                    },
+                ],
+            }),
+        ).toStrictEqual({
+            value: {
+                "eip155:1": {
+                    accounts: [
+                        {
+                            accountAddress: "0x2000000000000000000000000000000000000001",
+                            childContractScope: 0n,
+                        },
+                    ],
+                    assetRecoveryAddress: "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
+                },
+                "solana:mainnet": {
+                    accounts: [
+                        {
+                            accountAddress: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+                            childContractScope: 0n,
+                        },
+                    ],
+                    assetRecoveryAddress: "1",
+                },
+            },
+            warnings: [
+                {
+                    code: "INVALID_ONCHAIN_RECOVERY_ADDRESS",
+                    context: {
+                        chainId: "eip155:1",
+                        address: "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
+                    },
+                },
+                {
+                    code: "INVALID_ONCHAIN_RECOVERY_ADDRESS",
+                    context: {
+                        chainId: "solana:mainnet",
+                        address: "1",
+                    },
+                },
+            ],
+        });
+    });
+
     test.each([
         {
             scenario: "repeated accounts with identical and conflicting scopes",
@@ -58,7 +114,7 @@ describe("normalizeOnChainState", () => {
             warnings: [],
         },
         {
-            scenario: "distinct case-sensitive EVM account strings",
+            scenario: "equivalent EVM account spellings",
             details: {
                 chains: [
                     {
@@ -71,7 +127,18 @@ describe("normalizeOnChainState", () => {
                     },
                 ],
             },
-            warnings: [],
+            warnings: [
+                {
+                    code: "DUPLICATE_ONCHAIN_EVM_ACCOUNT",
+                    context: {
+                        chainId: "eip155:1",
+                        firstAddress: "0x8ba1f109551bd432803012645ac136ddd64dba72",
+                        duplicateAddress: "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
+                        firstScope: 0n,
+                        duplicateScope: 2n,
+                    },
+                },
+            ],
         },
         {
             scenario: "distinct case-sensitive Solana account strings",
@@ -120,15 +187,27 @@ describe("normalizeOnChainState", () => {
                 "eip155:1": {
                     assetRecoveryAddress: "0x1000000000000000000000000000000000000001",
                     accounts: [
-                        { accountAddress: "A", childContractScope: 0n },
-                        { accountAddress: "A", childContractScope: 2n },
+                        {
+                            accountAddress: "A",
+                            childContractScope: 0n,
+                        },
+                        {
+                            accountAddress: "A",
+                            childContractScope: 2n,
+                        },
                     ],
                 },
                 "unknown:chain": {
                     assetRecoveryAddress: "unknown-recovery",
                     accounts: [
-                        { accountAddress: "B", childContractScope: 0n },
-                        { accountAddress: "B", childContractScope: 2n },
+                        {
+                            accountAddress: "B",
+                            childContractScope: 0n,
+                        },
+                        {
+                            accountAddress: "B",
+                            childContractScope: 2n,
+                        },
                     ],
                 },
             },
@@ -213,7 +292,7 @@ describe("normalizeOnChainState", () => {
                 },
                 {
                     caip2ChainId: "solana:mainnet",
-                    assetRecoveryAddress: "RecoveryCaseSensitive",
+                    assetRecoveryAddress: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
                     accounts: [
                         ["AccountUpperCase", 2n],
                         ["accountUpperCase", 0n],
@@ -250,7 +329,7 @@ describe("normalizeOnChainState", () => {
                         childContractScope: 0n,
                     },
                 ],
-                assetRecoveryAddress: "RecoveryCaseSensitive",
+                assetRecoveryAddress: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
             },
             "eip155:1": {
                 accounts: [
@@ -276,7 +355,7 @@ describe("normalizeOnChainState", () => {
                 },
                 {
                     caip2ChainId: "solana:mainnet",
-                    assetRecoveryAddress: "RecoveryCaseSensitive",
+                    assetRecoveryAddress: "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
                     accounts: [
                         ["AccountUpperCase", 2n],
                         ["accountUpperCase", 0n],

@@ -1,20 +1,13 @@
-import { DIAGNOSTIC_CODES as $ } from "../diagnostic/index.js";
-import { checkStateConsistency } from "./checkStateConsistency.js";
 import { planUpdates } from "./planUpdates.js";
+import { validateStates } from "./validateStates.js";
 
 export async function reconcile({ getAgreementState, getSheetState, getSheetChainDetails }) {
-    const sheetChainDetailsResult = await loadSource("sheetChainDetails", getSheetChainDetails);
-    const sheetResult = await loadSource("sheetState", () => getSheetState(sheetChainDetailsResult.value));
-    const agreementOnChainResult = await loadSource("agreementOnChainState", () =>
-        getAgreementState(Object.keys(sheetResult.value)),
-    );
-    const warnings = [
-        ...sheetChainDetailsResult.warnings,
-        ...validateKnownOnChainIds(agreementOnChainResult.value, sheetChainDetailsResult.value),
-        ...agreementOnChainResult.warnings,
-        ...sheetResult.warnings,
-        ...checkStateConsistency(agreementOnChainResult.value, sheetResult.value),
-    ];
+    const sheetChainDetailsResult = await loadWithSourceContext("sheetChainDetails", getSheetChainDetails, []);
+    const sheetResult = await loadWithSourceContext("sheetState", getSheetState, [sheetChainDetailsResult.value]);
+    const agreementOnChainResult = await loadWithSourceContext("agreementOnChainState", getAgreementState, [
+        Object.keys(sheetResult.value),
+    ]);
+    const warnings = validateStates({ sheetChainDetailsResult, agreementOnChainResult, sheetResult });
 
     return {
         sheetChainDetails: sheetChainDetailsResult.value,
@@ -25,22 +18,13 @@ export async function reconcile({ getAgreementState, getSheetState, getSheetChai
     };
 }
 
-async function loadSource(source, load) {
+async function loadWithSourceContext(source, load, args) {
     try {
-        return await load();
+        return await load(...args);
     } catch (error) {
         throw Object.assign(new Error(String(error?.message ?? error), { cause: error }), {
             source,
             diagnostic: error?.diagnostic,
         });
     }
-}
-
-function validateKnownOnChainIds(agreementOnChainState, sheetChainDetails) {
-    return Object.keys(agreementOnChainState)
-        .filter((chainId) => !sheetChainDetails.name[chainId])
-        .map((chainId) => ({
-            code: $.UNKNOWN_ONCHAIN_CHAIN,
-            context: { chainId },
-        }));
 }

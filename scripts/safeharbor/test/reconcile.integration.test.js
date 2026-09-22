@@ -289,6 +289,121 @@ test("collects warnings from every stage before planning updates", async () => {
     expect(chainValidatorInstance.isChainValid).toHaveBeenCalledExactlyOnceWith("eip155:8453");
 });
 
+test("blocks changes on invalid source recoveries while retaining an unrelated mismatch", async () => {
+    const result = await reconcileFrom({
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,invalid-sheet-address
+            BASE,eip155:8453,0x1000000000000000000000000000000000000002
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+            ACTIVE,BASE,0x4000000000000000000000000000000000000001,FALSE
+        `,
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress: "invalid-on-chain-address",
+                    accounts: [["0x2000000000000000000000000000000000000001", 0n]],
+                },
+                {
+                    caip2ChainId: "eip155:8453",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000003",
+                    accounts: [["0x4000000000000000000000000000000000000001", 0n]],
+                },
+            ],
+        },
+    });
+
+    expect(result.changes).toStrictEqual([]);
+    expect(result.warnings).toStrictEqual([
+        {
+            code: "INVALID_SHEET_RECOVERY_ADDRESS",
+            context: {
+                chainName: "ETHEREUM",
+                chainId: "eip155:1",
+                address: "invalid-sheet-address",
+            },
+        },
+        {
+            code: "INVALID_ONCHAIN_RECOVERY_ADDRESS",
+            context: {
+                chainId: "eip155:1",
+                address: "invalid-on-chain-address",
+            },
+        },
+        {
+            code: "RECOVERY_ADDRESS_MISMATCH",
+            context: {
+                chainId: "eip155:8453",
+                onChainRecoveryAddress: "0x1000000000000000000000000000000000000003",
+                sheetRecoveryAddress: "0x1000000000000000000000000000000000000002",
+            },
+        },
+    ]);
+});
+
+test("an invalid rejected metadata row does not hide the retained chain's mismatch", async () => {
+    const result = await reconcileFrom({
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+            ETHEREUM,eip155:1,invalid-rejected-address
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+        `,
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress: "0x1000000000000000000000000000000000000002",
+                    accounts: [["0x2000000000000000000000000000000000000001", 0n]],
+                },
+            ],
+        },
+    });
+
+    expect(result.changes).toStrictEqual([]);
+    expect(result.warnings).toStrictEqual([
+        {
+            code: "DUPLICATE_CHAIN_NAME",
+            context: {
+                chainName: "ETHEREUM",
+                firstChainId: "eip155:1",
+                duplicateChainId: "eip155:1",
+            },
+        },
+        {
+            code: "DUPLICATE_CHAIN_ID",
+            context: {
+                chainId: "eip155:1",
+                firstChainName: "ETHEREUM",
+                duplicateChainName: "ETHEREUM",
+            },
+        },
+        {
+            code: "INVALID_SHEET_RECOVERY_ADDRESS",
+            context: {
+                chainName: "ETHEREUM",
+                chainId: "eip155:1",
+                address: "invalid-rejected-address",
+            },
+        },
+        {
+            code: "RECOVERY_ADDRESS_MISMATCH",
+            context: {
+                chainId: "eip155:1",
+                onChainRecoveryAddress: "0x1000000000000000000000000000000000000002",
+                sheetRecoveryAddress: "0x1000000000000000000000000000000000000001",
+            },
+        },
+    ]);
+});
+
 test("blocks chain removal when metadata-only chain uses an unsupported namespace", async () => {
     const result = await reconcileFrom({
         chainCSV: dedent`
@@ -344,4 +459,50 @@ test("preserves intentional chain removal for an empty desired state", async () 
         },
     ]);
     expect(result).not.toHaveProperty("solidityCode");
+});
+
+test("blocks planning for malformed Agreement recovery addresses on retained and removed chains", async () => {
+    const result = await reconcileFrom({
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+            BASE,eip155:8453,0x1000000000000000000000000000000000000002
+        `,
+        contractCSV: dedent`
+            Status,Chain,Address,isFactory
+            ACTIVE,ETHEREUM,0x2000000000000000000000000000000000000001,FALSE
+        `,
+        details: {
+            chains: [
+                {
+                    caip2ChainId: "eip155:1",
+                    assetRecoveryAddress: "invalid-ethereum-address",
+                    accounts: [["0x2000000000000000000000000000000000000001", 0n]],
+                },
+                {
+                    caip2ChainId: "eip155:8453",
+                    assetRecoveryAddress: "invalid-base-address",
+                    accounts: [["0x2000000000000000000000000000000000000002", 0n]],
+                },
+            ],
+        },
+    });
+
+    expect(result.changes).toStrictEqual([]);
+    expect(result.warnings).toStrictEqual([
+        {
+            code: "INVALID_ONCHAIN_RECOVERY_ADDRESS",
+            context: {
+                chainId: "eip155:1",
+                address: "invalid-ethereum-address",
+            },
+        },
+        {
+            code: "INVALID_ONCHAIN_RECOVERY_ADDRESS",
+            context: {
+                chainId: "eip155:8453",
+                address: "invalid-base-address",
+            },
+        },
+    ]);
 });
