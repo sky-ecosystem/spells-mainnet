@@ -3222,12 +3222,12 @@ contract DssSpellTestBase is Config, DssTest {
         if (address(_gem) != address(sky)) {
             assertGe(balance, vestableAmt, _concat(string("TestError/insufficient-transferrable-vest-balance-"), _errSuffix));
         } else {
-            // TODO: Restore 14 days to 20 days after the 2026-09-24 Spell; This value was only temporarily reduced
+            // TODO: Restore 12 days to 20 days after the 2026-09-24 Spell; This value was only temporarily reduced
             //       as the PauseProxy SKY balance does not fully cover the 20-day buffer at the time of crafting the spell. In a
             //       normal market with constant buybacks, the vesting stream would be covered by those but this test intentionally
             //       only checks the case with no buybacks. The change to the test was confirmed with Governance and BA Labs.
-            // Note: SKY streams will operate out of buybacks, check that balance is sufficient for short term (14 days)
-            vm.warp(block.timestamp + 14 days);
+            // Note: SKY streams will operate out of buybacks, check that balance is sufficient for short term (12 days)
+            vm.warp(block.timestamp + 12 days);
 
             uint256 requiredBalance;
             for (uint256 i = 1; i <= vest.ids(); i++) {
@@ -3236,8 +3236,8 @@ contract DssSpellTestBase is Config, DssTest {
                 }
             }
 
-            // TODO: Restore 14 days to 20 days after the 2026-09-24 Spell
-            assertGe(_gem.balanceOf(pauseProxy), requiredBalance, _concat(string("TestError/insufficient-transferrable-vest-balance-for-14-days-"), _errSuffix));
+            // TODO: Restore 12 days to 20 days after the 2026-09-24 Spell
+            assertGe(_gem.balanceOf(pauseProxy), requiredBalance, _concat(string("TestError/insufficient-transferrable-vest-balance-for-12-days-"), _errSuffix));
         }
     }
 
