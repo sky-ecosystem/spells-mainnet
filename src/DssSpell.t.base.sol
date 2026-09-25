@@ -943,6 +943,22 @@ contract DssSpellTestBase is Config, DssTest {
             expectedRate_ - yearlyYield_ : yearlyYield_ - expectedRate_;
     }
 
+    function _getUnmaterializedFees(bytes32 ilk, uint256 maxDrawableArt) internal withSnapshot() returns (uint256) {
+        // Simulate the accrual of fees by setting the Art to the maximum drawable debt, then calling drip().
+        stdstore
+            .target(address(vat))
+            .sig("ilks(bytes32)")
+            .with_key(ilk)
+            .depth(0) // Art is the first value returned by vat.ilks().
+            .checked_write(maxDrawableArt);
+
+        uint256 debtBefore = vat.debt();
+        jug.drip(ilk);
+        uint256 debtAfter = vat.debt();
+
+        return debtAfter - debtBefore;
+    }
+
     function _castPreviousSpell() internal {
         address[] memory prevSpells = spellValues.previous_spells;
 
@@ -1292,12 +1308,13 @@ contract DssSpellTestBase is Config, DssTest {
     function _checkCollateralValues(SystemValues storage values) internal {
         // Using an array to work around stack depth limitations.
         // sums[0] : sum of all lines
-        // sums[1] : sum over ilks of (line - Art * rate)--i.e. debt that could be drawn at any time
-        uint256[] memory sums = new uint256[](2);
+        // sums[1] : sum of debt that can be drawn at integer Art precision
+        // sums[2] : accrued stability fees not yet materialized in vat.debt() after all drawable debt is drawn
+        uint256[] memory sums = new uint256[](3);
         bytes32[] memory ilks = reg.list();
         for(uint256 i = 0; i < ilks.length; i++) {
             bytes32 ilk = ilks[i];
-            (uint256 duty,)  = jug.ilks(ilk);
+            (uint256 duty,) = jug.ilks(ilk);
 
             {
             if (!values.collaterals[ilk].SP_enabled) {
@@ -1342,9 +1359,10 @@ contract DssSpellTestBase is Config, DssTest {
             uint256 Art;
             uint256 rate;
             (Art, rate,, line, dust) = vat.ilks(ilk);
-            if (Art * rate < line) {
-                sums[1] += line - Art * rate;
-            }
+            // Assume all currently drawable debt is drawn before fees are materialized.
+            uint256 maxDrawableArt = Art * rate < line ? line / rate : Art;
+            sums[1] += (maxDrawableArt - Art) * rate;
+            sums[2] += _getUnmaterializedFees(ilk, maxDrawableArt);
             }
             sums[0] += line;
             (uint256 aL_line, uint256 aL_gap, uint256 aL_ttl,,) = autoLine.ilks(ilk);
@@ -1488,9 +1506,8 @@ contract DssSpellTestBase is Config, DssTest {
                 }
             }
         }
-        // Require that debt + (debt that could be drawn) does not exceed Line.
-        // TODO: consider a buffer for fee accrual
-        assertTrue(vat.debt() + sums[1] <= vat.Line(), "TestError/vat-Line-1");
+        // Require that debt + (debt that could be drawn) + unmaterialized fees does not exceed Line.
+        assertLe(vat.debt() + sums[1] + sums[2], vat.Line(), "TestError/vat-Line-1");
 
         (,,, uint256 stusdsIlkLine,) = vat.ilks(stusds.ilk());
         uint256 stusdsAvailableLineIncrease = rateSetter.maxLine() - stusdsIlkLine;
