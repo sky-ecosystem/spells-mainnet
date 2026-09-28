@@ -2,6 +2,14 @@ name: Tests
 
 on: [push, pull_request]
 
+permissions:
+  contents: read
+  attestations: read
+
+env:
+  FOUNDRY_RELEASE: v1.7.1
+  FOUNDRY_IGNORE_AGE: "0"
+
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -11,12 +19,18 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
+      - name: Add Foundry to PATH
+        run: echo "${HOME}/.foundry/bin" >> "${GITHUB_PATH}"
 
-      - name: Show Forge version
-        run: |
-          forge --version
+      - name: Install Foundry
+        run: make install-foundry release="${FOUNDRY_RELEASE}" ignore-age="${FOUNDRY_IGNORE_AGE}"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Verify Foundry
+        run: make verify-foundry release="${FOUNDRY_RELEASE}" ignore-age="${FOUNDRY_IGNORE_AGE}"
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Run Forge tests
         run: |
