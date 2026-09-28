@@ -9,7 +9,6 @@
     "generate": "node . generate",
     "verify": "node . verify",
     "inspect": "node . inspect",
-    "test-spell": "node . testSpell",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
