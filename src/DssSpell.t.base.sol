@@ -1731,8 +1731,6 @@ contract DssSpellTestBase is Config, DssTest {
         assertEq(dog.wards(address(clipper))    , 1);
         assertEq(clipper.wards(address(dog))    , 1);
         assertEq(clipper.wards(address(end))    , 1);
-        // TODO: Uncomment after 2025-08-21
-        // assertEq(clipper.wards(address(clipMom)), 1);
         assertEq(clipper.wards(address(esm)), 1);
 
         try pip.bud(address(spotter)) returns (uint256 bud) {
@@ -1884,7 +1882,7 @@ contract DssSpellTestBase is Config, DssTest {
             assertEq(ClipAbstract(p.clip).vow(),             address(vow),         "checkLockstakeIlkIntegration/invalid-clip-vow");
             assertEq(ClipAbstract(p.clip).calc(),            p.calc,               "checkLockstakeIlkIntegration/invalid-clip-calc");
             assertEq(LockstakeClipperLike(p.clip).engine(),  p.engine,             "checkLockstakeIlkIntegration/invalid-clip-engine");
-            // TODO after 2025-05-15: enable liquidations
+            // Note: update the value if lockstake liquidataions are enabled
             assertEq(LockstakeClipperLike(p.clip).stopped(), 3,                    "checkLockstakeIlkIntegration/invalid-clip-stopped");
             assertEq(osmMom.osms(p.ilk),                     underlyingPip,        "checkLockstakeIlkIntegration/invalid-osmMom-pip");
             (address pip,) = spotter.ilks(p.ilk);
@@ -1921,7 +1919,7 @@ contract DssSpellTestBase is Config, DssTest {
             assertEq(WardsAbstract(p.engine).wards(p.clip),               1, "checkLockstakeIlkIntegration/missing-auth-engine-clip");
             assertEq(WardsAbstract(p.clip).wards(address(dog)),           1, "checkLockstakeIlkIntegration/missing-auth-clip-dog");
             assertEq(WardsAbstract(p.clip).wards(address(end)),           1, "checkLockstakeIlkIntegration/missing-auth-clip-end");
-            // TODO after 2025-05-15: rely clipMom and update error message
+            // Note: clipMom is not relied when liquidations are disabled
             assertEq(WardsAbstract(p.clip).wards(address(clipMom)),       0, "checkLockstakeIlkIntegration/unexpected-auth-clip-clipMom");
         }
         // Check required OSM buds
@@ -3235,7 +3233,6 @@ contract DssSpellTestBase is Config, DssTest {
 
         uint256 balance = _gem.balanceOf(pauseProxy);
 
-        // TODO: Change after 2025-08-21
         if (address(_gem) != address(sky)) {
             assertGe(balance, vestableAmt, _concat(string("TestError/insufficient-transferrable-vest-balance-"), _errSuffix));
         } else {
@@ -4450,7 +4447,7 @@ contract DssSpellTestBase is Config, DssTest {
         revert("_findAccountInChain/account-not-found");
     }
 
-    function _testAutoLineExecAfterEverySetIlkCall() public { // add the `skipped` modifier to skip
+    function _testAutoLineExecAfterEverySetIlkCall() public {
         vm.recordLogs();
 
         _vote(address(spell));
