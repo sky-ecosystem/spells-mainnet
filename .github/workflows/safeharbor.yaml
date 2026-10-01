@@ -1,0 +1,40 @@
+name: SafeHarbor Tests
+
+on:
+  push:
+    paths:
+      - ".github/workflows/safeharbor.yaml"
+      - "Makefile"
+      - "scripts/safeharbor/**"
+  pull_request:
+    paths:
+      - ".github/workflows/safeharbor.yaml"
+      - "Makefile"
+      - "scripts/safeharbor/**"
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: "24"
+
+      - name: Install dependencies
+        run: npm ci --prefix scripts/safeharbor
+
+      - name: Run SafeHarbor tests
+        run: npm test --prefix scripts/safeharbor -- --run --reporter=verbose
+
+      - name: Lint SafeHarbor
+        run: npm run lint --prefix scripts/safeharbor
+
+      - name: Check SafeHarbor formatting
+        run: npm run format:check --prefix scripts/safeharbor
