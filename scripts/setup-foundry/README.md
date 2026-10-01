@@ -104,13 +104,14 @@ Display the built-in command reference without performing environment or network
 
 ## CI installation
 
-CI environments are expected to be clean, with no previous Foundry installation. The setup tool requires an authenticated GitHub CLI, and subsequent steps must resolve the installed binaries from `PATH`. Define the pinned release and age-waiver setting at workflow level:
+CI environments are expected to be clean, with no previous Foundry installation. The setup tool requires an authenticated GitHub CLI, and subsequent steps must resolve the installed binaries from `PATH`. Define the pinned release and age-waiver setting only in `.github/foundry-ci.env`:
 
-```yaml
-env:
-  FOUNDRY_RELEASE: vMAJOR.MINOR.PATCH
-  FOUNDRY_IGNORE_AGE: "0"
+```text
+FOUNDRY_RELEASE=vMAJOR.MINOR.PATCH
+FOUNDRY_IGNORE_AGE=0
 ```
+
+Both CI workflows validate `.github/foundry-ci.env` and write its two values to `GITHUB_ENV` before installing Foundry. The `setup-foundry.yaml` workflow then tests the setup scripts and installs and verifies that release on Linux and macOS. It runs for changes to the pin file, setup workflow, `Makefile`, or `scripts/setup-foundry/`.
 
 Expose the workflow token as `GH_TOKEN` and add the installation directory to `GITHUB_PATH` before installing:
 
@@ -129,7 +130,7 @@ Expose the workflow token as `GH_TOKEN` and add the installation directory to `G
     GH_TOKEN: ${{ github.token }}
 ```
 
-Keep `FOUNDRY_IGNORE_AGE` set to `"0"` to enforce the 14-day cooling period. Set it to `"1"` only when the pinned release has an approved cooling-period waiver. Any other value fails before the setup script runs.
+Keep `FOUNDRY_IGNORE_AGE` set to `0` to enforce the 14-day cooling period. Set it to `1` only when the pinned release has an approved cooling-period waiver. Any other value fails before the setup script runs.
 
 ## Developer machine setup
 
