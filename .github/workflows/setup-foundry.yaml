@@ -32,10 +32,10 @@ jobs:
       - name: Load Foundry settings
         run: |
           settings=.github/foundry-ci.env
-          [ "$(wc -l < "$settings")" -eq 2 ]
+          [ "$(awk 'END { print NR }' "$settings")" -eq 2 ]
           grep -Exq 'FOUNDRY_RELEASE=v[0-9]+\.[0-9]+\.[0-9]+' "$settings"
           grep -Exq 'FOUNDRY_IGNORE_AGE=[01]' "$settings"
-          cat "$settings" >> "$GITHUB_ENV"
+          printf '%s\n' "$(cat "$settings")" >> "$GITHUB_ENV"
 
       - name: Test Setup Foundry
         run: make test-setup-foundry
