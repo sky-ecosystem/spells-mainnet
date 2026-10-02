@@ -29,5 +29,5 @@ arb-cost              :; ./scripts/get-arb-relay-cost.sh $(spell)
 rates                 :; ./scripts/rates.sh $(pct)
 safeharbor-generate   :; @npm --silent ci --prefix scripts/safeharbor && npm run --prefix scripts/safeharbor --silent generate
 safeharbor-inspect    :; @npm --silent ci --prefix scripts/safeharbor && npm run --prefix scripts/safeharbor --silent inspect
-safeharbor-test-spell :; @npm --silent ci --prefix scripts/safeharbor && ./scripts/safeharbor/anvil.sh "$(block)"
+safeharbor-test-spell :; @npm --silent ci --prefix scripts/safeharbor && ./scripts/safeharbor/verify-on-local-fork.sh "$(block)"
 safeharbor-verify     :; @npm --silent ci --prefix scripts/safeharbor && npm run --prefix scripts/safeharbor --silent verify

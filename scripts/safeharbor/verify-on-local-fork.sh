@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+# Deploy, schedule, and cast the current DssSpell on a local Mainnet fork, then verify
+# that resulting SafeHarbor state matches the configured Sheet.
 set -euo pipefail
 
 FORK_BLOCK_NUMBER="${1:-}"
