@@ -241,5 +241,8 @@ contract Wallets {
 
         // SBEBEAM
         addr["MCD_SBEBEAM_BUD"]                = 0x869294B42B80f99CF3Bdac0F44abddAd6cD41330;
+
+        // STUSDS Keeper
+        addr["STUSDS_KEEPER_BUD"]              = 0x0000000000000000000000000000000000000001;
     }
 }

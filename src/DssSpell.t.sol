@@ -40,6 +40,19 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
+interface ValueRegistryLike {
+    struct KeyValue {
+        bytes32 key;
+        int256  value;
+    }
+
+    function buds(address usr) external view returns (uint256);
+    function count() external view returns (uint256);
+    function getValue(bytes32 _key) external view returns (int256);
+    function setValues(KeyValue[] calldata _items) external;
+    function removeValues(bytes32[] calldata _keys) external;
+}
+
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -238,13 +251,9 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
-        string[5] memory addedKeys = [
-            "PAS_STATE",
-            "PAS_CONFIGURATOR",
-            "PAS_TIMELOCK",
-            "PAS_MOM",
-            "REWARDS_OWNER_LSSKY_USDS"
+    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+        string[1] memory addedKeys = [
+            "STUSDS_VALUE_REGISTRY"
         ];
 
         for(uint256 i = 0; i < addedKeys.length; i++) {
@@ -1336,7 +1345,7 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
+    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
         PrimeAgentSpell[3] memory primeAgentSpells = [
             PrimeAgentSpell({
                 // Insert Prime Agent StarGuards Chainlog key
@@ -1352,9 +1361,9 @@ contract DssSpellTest is DssSpellTestBase {
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "GROVE_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0xFB1DEBB9CD8eD442103092C6aCd9ACC231224CFb,
+                addr: 0x262E8baA6bFbECDD8d483d13C37c1BA7b4a861A5,
                 // Insert Prime Agent spell codehash
-                codehash: 0x0106daf3bc397e10d8ee0b19996928b7a046d1f31bd31dba04c5cc2b2ea84fa6,
+                codehash: 0xb67edac3b73c41231aaa73bb69dcf7731ac1830d6af66b80be930513dc7de0b4,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             }),
@@ -1362,9 +1371,9 @@ contract DssSpellTest is DssSpellTestBase {
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "OSERO_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0xA061628c7f7bD95f571fd41f645746cC0d22f812,
+                addr: 0x0ABdd6cbb1802Ce980FE4b628a682c70727978D2,
                 // Insert Prime Agent spell codehash
-                codehash: 0x0c01396cee9cf147f0e4e5a715bf14326a81cd0e11c31d96c963d47bba52f4d8,
+                codehash: 0xf80be0f506aab4e137a867a1c289f34254e845ecadbb92b33104660c6349a7fd,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             })
@@ -1478,4 +1487,55 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
+
+    function testStUsdsKeeperBudKissed() public {
+        ValueRegistryLike registry = ValueRegistryLike(addr.addr("STUSDS_VALUE_REGISTRY"));
+        address           bud      = wallets.addr("STUSDS_KEEPER_BUD");
+
+        assertEq(registry.buds(bud), 0, "testStUsdsKeeperBudKissed/bud-already-kissed");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        assertEq(registry.buds(bud), 1, "testStUsdsKeeperBudKissed/bud-not-kissed");
+    }
+
+    function testStUsdsKeeperBudE2E() public {
+        ValueRegistryLike registry = ValueRegistryLike(addr.addr("STUSDS_VALUE_REGISTRY"));
+        address           bud      = wallets.addr("STUSDS_KEEPER_BUD");
+
+        bytes32 key = "TEST_KEY";
+        int256 value = 1;
+
+        ValueRegistryLike.KeyValue[] memory values = new ValueRegistryLike.KeyValue[](1);
+        values[0] = ValueRegistryLike.KeyValue({ key: key, value: value });
+
+        bytes32[] memory keys = new bytes32[](1);
+        keys[0] = key;
+
+        // Note: the bud is not able to set values before the spell
+        vm.prank(bud);
+        vm.expectRevert("ValueRegistry/not-bud");
+        registry.setValues(values);
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        uint256 countBefore = registry.count();
+
+        vm.prank(bud);
+        registry.setValues(values);
+
+        assertEq(registry.getValue(key), value,  "testStUsdsKeeperBudE2E/unexpected-value");
+        assertEq(registry.count(),       countBefore + 1, "testStUsdsKeeperBudE2E/unexpected-count-after-set");
+
+        vm.prank(bud);
+        registry.removeValues(keys);
+
+        assertEq(registry.count(), countBefore, "testStUsdsKeeperBudE2E/unexpected-count-after-remove");
+        vm.expectRevert("ValueRegistry/invalid-key");
+        registry.getValue(key);
+    }
 }
