@@ -59,6 +59,16 @@ npm run --silent inspect > inspect.json && jq . inspect.json
 3. Simulate the exact spell against the Agreement.
 4. Point `ETH_RPC_URL` at the simulated post-state and run `verify`. Require exit `0`: no changes and no warnings.
 
+Test the local spell on an Anvil fork, then verify the resulting SafeHarbor state:
+
+```bash
+make safeharbor-test-spell
+make safeharbor-test-spell block=<block-number>
+ANVIL_PORT=<port> make safeharbor-test-spell
+```
+
+`ETH_RPC_URL` must point to Ethereum mainnet. The block number is optional and defaults to the latest state. `ANVIL_PORT` defaults to `8545`.
+
 ## Initial Agreement setup
 
 Initial setup is separate from the script. Deploy the Agreement through its public factory, configure its scope from the approved Sheet, transfer ownership to the PauseProxy, and adopt it through the registry in a governance spell.
