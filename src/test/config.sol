@@ -209,13 +209,14 @@ contract Config {
         afterSpell.stusds_rate_setter_maxCap   = 1_000_000_000; // USDS units
         afterSpell.stusds_rate_setter_minStr   = 2_00;          // Minimum allowed rate in bps
         afterSpell.stusds_rate_setter_maxStr   = 50_00;         // Maximum allowed rate in bps
-        afterSpell.stusds_rate_setter_strStep  = 15_00;         // Maximum allowed rate change per update (bps)
+        afterSpell.stusds_rate_setter_strStep  = 5_00;          // Maximum allowed rate change per update (bps)
         afterSpell.stusds_rate_setter_minDuty  = 2_10;          // Minimum allowed rate in bps
         afterSpell.stusds_rate_setter_maxDuty  = 50_00;         // Maximum allowed rate in bps
-        afterSpell.stusds_rate_setter_dutyStep = 15_00;         // Maximum allowed rate change per update (bps)
+        afterSpell.stusds_rate_setter_dutyStep = 5_00;          // Maximum allowed rate change per update (bps)
 
-        address[] memory buds = new address[](1);
+        address[] memory buds = new address[](2);
         buds[0] = 0xBB865F94B8A92E57f79fCc89Dfd4dcf0D3fDEA16;
+        buds[1] = 0x068F9c8F33E13c18B852877A5D8Ec61504971376;
         afterSpell.stusds_rate_setter_buds = buds; // Array of address
 
         //

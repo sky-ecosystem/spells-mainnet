@@ -40,19 +40,6 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
-interface ValueRegistryLike {
-    struct KeyValue {
-        bytes32 key;
-        int256  value;
-    }
-
-    function buds(address usr) external view returns (uint256);
-    function count() external view returns (uint256);
-    function getValue(bytes32 _key) external view returns (int256);
-    function setValues(KeyValue[] calldata _items) external;
-    function removeValues(bytes32[] calldata _keys) external;
-}
-
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -1487,54 +1474,32 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
-    function testStUsdsKeeperBudKissed() public {
-        ValueRegistryLike registry = ValueRegistryLike(addr.addr("STUSDS_VALUE_REGISTRY"));
-        address           bud      = wallets.addr("STUSDS_KEEPER_BUD");
+    function testStUsdsKeeperBudIntegration() public {
+        address bud  = wallets.addr("STUSDS_KEEPER_BUD");
+        uint256 line = rateSetter.maxLine();
+        uint256 cap  = rateSetter.maxCap();
 
-        assertEq(registry.buds(bud), 0, "testStUsdsKeeperBudKissed/bud-already-kissed");
+        uint256 oldStrBps  = ConvLike(spbeam.conv()).rtob(stusds.str());
+        (uint256 dutyRay,) = jug.ilks(stusds.ilk());
+        uint256 oldDutyBps = ConvLike(spbeam.conv()).rtob(dutyRay);
+
+        // Note: the bud is not able to set rates before the spell
+        vm.prank(bud);
+        vm.expectRevert("StUsdsRateSetter/not-facilitator");
+        rateSetter.set(oldStrBps, oldDutyBps, line, cap);
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        assertEq(registry.buds(bud), 1, "testStUsdsKeeperBudKissed/bud-not-kissed");
-    }
-
-    function testStUsdsKeeperBudE2E() public {
-        ValueRegistryLike registry = ValueRegistryLike(addr.addr("STUSDS_VALUE_REGISTRY"));
-        address           bud      = wallets.addr("STUSDS_KEEPER_BUD");
-
-        bytes32 key = "TEST_KEY";
-        int256 value = 1;
-
-        ValueRegistryLike.KeyValue[] memory values = new ValueRegistryLike.KeyValue[](1);
-        values[0] = ValueRegistryLike.KeyValue({ key: key, value: value });
-
-        bytes32[] memory keys = new bytes32[](1);
-        keys[0] = key;
-
-        // Note: the bud is not able to set values before the spell
-        vm.prank(bud);
-        vm.expectRevert("ValueRegistry/not-bud");
-        registry.setValues(values);
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        uint256 countBefore = registry.count();
+        (,, uint16 strStep)  = rateSetter.strCfg();
+        (,, uint16 dutyStep) = rateSetter.dutyCfg();
 
         vm.prank(bud);
-        registry.setValues(values);
+        rateSetter.set(oldStrBps + strStep, oldDutyBps + dutyStep, line, cap);
 
-        assertEq(registry.getValue(key), value,  "testStUsdsKeeperBudE2E/unexpected-value");
-        assertEq(registry.count(),       countBefore + 1, "testStUsdsKeeperBudE2E/unexpected-count-after-set");
-
-        vm.prank(bud);
-        registry.removeValues(keys);
-
-        assertEq(registry.count(), countBefore, "testStUsdsKeeperBudE2E/unexpected-count-after-remove");
-        vm.expectRevert("ValueRegistry/invalid-key");
-        registry.getValue(key);
+        (uint256 newDutyRay,) = jug.ilks(stusds.ilk());
+        assertEq(ConvLike(spbeam.conv()).rtob(stusds.str()), oldStrBps + strStep,   "testStUsdsKeeperBudIntegration/str-not-updated");
+        assertEq(ConvLike(spbeam.conv()).rtob(newDutyRay),   oldDutyBps + dutyStep, "testStUsdsKeeperBudIntegration/duty-not-updated");
     }
 }

@@ -136,10 +136,10 @@ contract DssSpellAction is DssAction {
         DssExecLib.setChangelogVersion("1.20.21");
 
         // Decrease stepStrBps (StUsdsRateSetter.strCfg.step) by 1,000 bps from 1,500 bps to 500 bps.
-        DssExecLib.setContract(STUSDS_RATE_SETTER, 'STR', 'step', 500);
+        DssExecLib.setValue(STUSDS_RATE_SETTER, "STR", "step", 500);
 
-        // Decrease stepDutyBps (StUsdsRateSetter.dutyCfg.step) by 1,000 bpsfrom 1,500 bps to 500 bps.
-        DssExecLib.setContract(STUSDS_RATE_SETTER, 'LSEV2-SKY-A', 'step', 500);
+        // Decrease stepDutyBps (StUsdsRateSetter.dutyCfg.step) by 1,000 bps from 1,500 bps to 500 bps.
+        DssExecLib.setValue(STUSDS_RATE_SETTER, "LSEV2-SKY-A", "step", 500);
 
         // ---------- Monthly Settlement Cycle for September 2026 ----------
         // Forum: TODO
