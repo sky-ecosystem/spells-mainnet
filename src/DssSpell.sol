@@ -136,9 +136,13 @@ contract DssSpellAction is DssAction {
         DssExecLib.setChangelogVersion("1.20.21");
 
         // Decrease stepStrBps (StUsdsRateSetter.strCfg.step) by 1,000 bps from 1,500 bps to 500 bps.
+        // Forum: https://forum.skyeco.com/t/stusds-beam-rate-setter-configuration/27161/99
+        // Atlas: https://sky-atlas.io/#91152a4b-6f97-4b8a-831a-0f85c16a78ab
         DssExecLib.setValue(STUSDS_RATE_SETTER, "STR", "step", 500);
 
         // Decrease stepDutyBps (StUsdsRateSetter.dutyCfg.step) by 1,000 bps from 1,500 bps to 500 bps.
+        // Forum: https://forum.skyeco.com/t/stusds-beam-rate-setter-configuration/27161/99
+        // Atlas: https://sky-atlas.io/#91152a4b-6f97-4b8a-831a-0f85c16a78ab
         DssExecLib.setValue(STUSDS_RATE_SETTER, "LSEV2-SKY-A", "step", 500);
 
         // ---------- Monthly Settlement Cycle for September 2026 ----------
@@ -176,33 +180,33 @@ contract DssSpellAction is DssAction {
         _transferUsds(OSERO_SUBPROXY, 27_661 * WAD);
 
         // ---------- Treasury Management Function ----------
-        // Forum: TODO
-        // Atlas: TODO
+        // Forum: https://forum.skyeco.com/t/treasury-management-function-tmf-configurations/28153/8
+        // Atlas: https://sky-atlas.io/#f67a5780-11d5-4014-8254-795080c77133
 
-        // Send TBD USDS from the surplus buffer to the Core Council Buffer (0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364)
-        // _transferUsds(0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364, 0 * WAD);
+        // Send 2,927,190 USDS from the surplus buffer to the Core Council Buffer (0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364)
+        _transferUsds(CORE_COUNCIL_BUDGET_MULTISIG, 2_927_190 * WAD);
 
-        // Burn TBD SKY tokens from the PauseProxy Balance
-        // SkyLike(SKY).burn(address(this), 0 ether);
+        // Burn 7,372,288 SKY tokens from the PauseProxy Balance
+        SkyLike(SKY).burn(address(this), 7_372_288 * WAD);
 
         // Update LSSKY->SKY Farm vest by calling `TreasuryFundedFarmingInit.updateFarmVest()` with params:
-        // TreasuryFundedFarmingInit.updateFarmVest(FarmingUpdateVestParams({
-        //     // dist: 0x675671A8756dDb69F7254AFB030865388Ef699Ee
-        //     dist: REWARDS_DIST_LSSKY_SKY,
-        //     // vestTot: TBD SKY
-        //     vestTot: 0 * WAD,
-        //     // vestBgn: block.timestamp
-        //     vestBgn: block.timestamp,
-        //     // vestTau: 90 days
-        //     vestTau: 90 days
-        // }));
+        TreasuryFundedFarmingInit.updateFarmVest(FarmingUpdateVestParams({
+            // dist: 0x675671A8756dDb69F7254AFB030865388Ef699Ee
+            dist: REWARDS_DIST_LSSKY_SKY,
+            // vestTot: 99,525,882 SKY
+            vestTot: 99_525_882 * WAD,
+            // vestBgn: block.timestamp
+            vestBgn: block.timestamp,
+            // vestTau: 90 days
+            vestTau: 90 days
+        }));
 
-        // Decrease splitter.hop by TBD seconds from TBD seconds to TBD seconds
-        // DssExecLib.setValue(MCD_SPLIT, "hop", 0);
+        // Increase splitter.hop by 189 seconds from 2,504 seconds to 2,693 seconds
+        DssExecLib.setValue(MCD_SPLIT, "hop", 2_693);
 
-        // Decrease rewardsDuration in REWARDS_LSSKY_USDS by TBD seconds from TBD seconds to TBD seconds
+        // Increase rewardsDuration in REWARDS_LSSKY_USDS by 189 seconds from 2,504 seconds to 2,693 seconds
         // Note: REWARDS_LSSKY_USDS ownership was transferred to REWARDS_OWNER_LSSKY_USDS in the 2026-08-13 spell, so this has to be routed through the FarmOwner
-        // FarmOwnerLike(REWARDS_OWNER_LSSKY_USDS).setRewardsDuration(0);
+        FarmOwnerLike(REWARDS_OWNER_LSSKY_USDS).setRewardsDuration(2_693);
 
         // ---------- ALLOCATOR-GROVE-A DC-IAM Parameter Adjustment ----------
         // Forum: https://forum.skyeco.com/t/october-8-2026-proposed-changes-to-grove-for-upcoming-spell/28255/7

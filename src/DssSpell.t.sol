@@ -650,16 +650,16 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public skipped { // add the `skipped` modifier to skip
+    function testVestSky() public { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
-        uint256 NOV_15_2026_14_02_23_UTC = 1794751343;
+        uint256 DEC_12_2026_12_42_11_UTC = 1797079331;
 
         uint256 spellCastTime = _getSpellCastTime();
 
         // Build expected new stream
         NewVestStream[] memory newStreams = new NewVestStream[](1);
         newStreams[0] = NewVestStream({
-            id:  17,
+            id:  18,
             usr: addr.addr("REWARDS_DIST_LSSKY_SKY"),
             bgn: spellCastTime,
             clf: spellCastTime,
@@ -667,15 +667,15 @@ contract DssSpellTest is DssSpellTestBase {
             tau: 90 days,
             mgr: address(0),
             res: 1,
-            tot: 143_208_393 * WAD,
+            tot: 99_525_882 * WAD,
             rxd: 0 // Amount already claimed
         });
 
         // For each yanked stream, provide Stream object and initialize the array with the current number of yanked streams
         YankedVestStream[] memory yankedStreams = new YankedVestStream[](1);
         yankedStreams[0] = YankedVestStream({
-            id:  16,
-            fin: NOV_15_2026_14_02_23_UTC,
+            id:  17,
+            fin: DEC_12_2026_12_42_11_UTC,
             end: spellCastTime
         });
 
@@ -769,9 +769,9 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestedRewardsDist() public skipped { // add the `skipped` modifier to skip
-        uint256 expectedVestIdBefore = 16;
-        uint256 expectedVestIdAfter = 17;
+    function testVestedRewardsDist() public { // add the `skipped` modifier to skip
+        uint256 expectedVestIdBefore = 17;
+        uint256 expectedVestIdAfter = 18;
 
         address rewardsDist = addr.addr("REWARDS_DIST_LSSKY_SKY");
         address stakingRewards = addr.addr("REWARDS_LSSKY_SKY");
@@ -820,27 +820,28 @@ contract DssSpellTest is DssSpellTestBase {
     function testPayments() public { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
-        bool ignoreTotalSupplyMkrSky = false;
+        bool ignoreTotalSupplyMkrSky = true;
 
         // For each payment, create a Payee object with:
         //    the address of the transferred token,
         //    the destination address,
         //    the amount to be paid
         // Initialize the array with the number of payees
-        Payee[6] memory payees = [
-            Payee(address(usds), addr.addr("SPARK_SUBPROXY"),   4_218_121 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("GROVE_SUBPROXY"),   1_148_408 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("KEEL_SUBPROXY"),       31_472 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("OBEX_SUBPROXY"),      480_680 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("SKYBASE_SUBPROXY"),   320_926 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("OSERO_SUBPROXY"),      27_661 ether)  // Note: ether is only a keyword helper
+        Payee[7] memory payees = [
+            Payee(address(usds), addr.addr("SPARK_SUBPROXY"),                 4_218_121 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("GROVE_SUBPROXY"),                 1_148_408 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("KEEL_SUBPROXY"),                     31_472 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("OBEX_SUBPROXY"),                    480_680 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("SKYBASE_SUBPROXY"),                 320_926 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("OSERO_SUBPROXY"),                    27_661 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG"), 2_927_190 ether)  // Note: ether is only a keyword helper
         ];
 
         // Fill the total values from exec sheet
         PaymentAmounts memory expectedTotalPayments = PaymentAmounts({
             dai:           0  ether, // Note: ether is only a keyword helper
             mkr:           0  ether, // Note: ether is only a keyword helper
-            usds:  6_227_268  ether, // Note: ether is only a keyword helper
+            usds:  9_154_458  ether, // Note: ether is only a keyword helper
             sky:           0  ether  // Note: ether is only a keyword helper
         });
 
@@ -1501,5 +1502,48 @@ contract DssSpellTest is DssSpellTestBase {
         (uint256 newDutyRay,) = jug.ilks(stusds.ilk());
         assertEq(ConvLike(spbeam.conv()).rtob(stusds.str()), oldStrBps + strStep,   "testStUsdsKeeperBudIntegration/str-not-updated");
         assertEq(ConvLike(spbeam.conv()).rtob(newDutyRay),   oldDutyBps + dutyStep, "testStUsdsKeeperBudIntegration/duty-not-updated");
+    }
+
+    function testBurnSky() public {
+        uint256 skyTotalSupplyBefore     = sky.totalSupply();
+        uint256 skyTreasuryBalanceBefore = sky.balanceOf(address(pauseProxy));
+
+        // Note: `updateFarmVest` distributes the accrued amount of the previous LSSKY->SKY vest
+        // out of the treasury (the vest czar) before yanking it.
+        VestedRewardsDistributionLike dist = VestedRewardsDistributionLike(addr.addr("REWARDS_DIST_LSSKY_SKY"));
+        VestAbstract vestSky      = VestAbstract(dist.dssVest());
+        uint256 prevVestId        = dist.vestId();
+        uint256 prevVestRxdBefore = vestSky.rxd(prevVestId);
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        uint256 distributed = vestSky.rxd(prevVestId) - prevVestRxdBefore;
+
+        assertEq(
+            sky.totalSupply(),
+            skyTotalSupplyBefore - 7_372_288 ether,
+            "TestError/invalid-total-supply"
+        );
+        assertEq(
+            sky.balanceOf(address(pauseProxy)),
+            skyTreasuryBalanceBefore - 7_372_288 ether - distributed,
+            "TestError/invalid-treasury-balance"
+        );
+    }
+
+    function testSplitHopAndFarmRewardsDuration() public {
+        StakingRewardsLike farm = StakingRewardsLike(addr.addr("REWARDS_LSSKY_USDS"));
+
+        assertEq(split.hop(),            2_504, "TestError/split-hop-before");
+        assertEq(farm.rewardsDuration(), 2_504, "TestError/rewards-duration-before");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        assertEq(split.hop(),            2_693, "TestError/split-hop-after");
+        assertEq(farm.rewardsDuration(), 2_693, "TestError/rewards-duration-after");
     }
 }
