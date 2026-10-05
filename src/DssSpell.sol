@@ -120,9 +120,8 @@ contract DssSpellAction is DssAction {
     address internal constant OSERO_SPELL      = 0x0ABdd6cbb1802Ce980FE4b628a682c70727978D2;
     bytes32 internal constant OSERO_SPELL_HASH = 0xf80be0f506aab4e137a867a1c289f34254e845ecadbb92b33104660c6349a7fd;
 
-
     function actions() public override {
-        // ---------- stUSDS Keeper Launch - Pending Technical Scope ----------
+        // ---------- stUSDS Keeper Launch ----------
         // Forum: https://forum.skyeco.com/t/stusds-keeper-launch/28282
         // Atlas: https://sky-atlas.io/#bddf50ca-02ef-4991-abb0-53e09831ee6f
 
@@ -219,8 +218,8 @@ contract DssSpellAction is DssAction {
             _amount: 1_500 * MILLION,
             // Increase the Target Available Debt (gap) by 125 million USDS from 25 million USDS to 150 million USDS
             _gap: 150 * MILLION,
-            // Leave the Ceiling Increase Cooldown (ttl) unchanged at 43,200 seconds (12 hours)
-            _ttl: 43_200 seconds
+            // Increase the Ceiling Increase Cooldown (ttl) by 43,200 seconds from 43,200 seconds to 86,400 seconds (24 hours)
+            _ttl: 86_400 seconds
         });
 
         // Note: Apply the updated ALLOCATOR-GROVE-A AutoLine configuration immediately
@@ -232,7 +231,6 @@ contract DssSpellAction is DssAction {
         // ---------- Spark Proxy Spell ----------
         // Forum: https://forum.skyeco.com/t/october-8-2026-proposed-changes-to-spark-for-upcoming-spell/28265
         // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0xff837d7434b33bc2d74a133e5c2acbcdf2ff17e6b76005621cfd43794f0d85cb
-        // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0xf0bb6c2fd1786746d00ae0a58d6ae63b3c35157079989cbbcabc820ef3a8d35e
         // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0x93fd7352008805e27da235e51c02e7c987ff5d0ee3feccd3cd157e09a2e9adfe
         // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0x4680fb4b5717156b6e53f858ab6a267190deab0d51380b5fb9d27910e09d4e74
         // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0x84f74256a6f0e41078483b5c7ce8dad4b885f5bc656a5bcaccb84f36d74e536c

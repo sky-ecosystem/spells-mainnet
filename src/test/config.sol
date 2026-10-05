@@ -1242,7 +1242,7 @@ contract Config {
             um:           UpdateMethod.AUTOLINE,
             aL_line:      1_500_000_000,
             aL_gap:       150_000_000,
-            aL_ttl:       43_200,
+            aL_ttl:       86_400,
             line:         0,
             dust:         0,
             pct:          0,
