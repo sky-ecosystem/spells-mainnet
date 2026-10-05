@@ -25,7 +25,7 @@ import { DssAutoLineAbstract } from "dss-interfaces/dss/DssAutoLineAbstract.sol"
 // Copied from https://github.com/sky-ecosystem/endgame-toolkit/blob/4f238f9b23298190150d49482bad56c00f0af825/script/dependencies/treasury-funded-farms/TreasuryFundedFarmingInit.sol
 import { TreasuryFundedFarmingInit, FarmingUpdateVestParams } from "./dependencies/endgame-toolkit/treasury-funded-farms/TreasuryFundedFarmingInit.sol";
 
-interface ValueRegistryLike {
+interface StUsdsRateSetterLike {
     function kiss(address usr) external;
 }
 
@@ -82,6 +82,7 @@ contract DssSpellAction is DssAction {
     address internal immutable MCD_JUG                  = DssExecLib.jug();
     address internal immutable MCD_VOW                  = DssExecLib.vow();
     address internal immutable MCD_IAM_AUTO_LINE        = DssExecLib.autoLine();
+    address internal immutable STUSDS_RATE_SETTER       = DssExecLib.getChangelogAddress("STUSDS_RATE_SETTER");
     address internal constant  STUSDS_VALUE_REGISTRY    = 0xcDb55A799A9B9eAe22Ed0E13037bb6D2E3f1d080;
     address internal immutable ALLOCATOR_SPARK_A_VAULT  = DssExecLib.getChangelogAddress("ALLOCATOR_SPARK_A_VAULT");
     address internal immutable SPARK_SUBPROXY           = DssExecLib.getChangelogAddress("SPARK_SUBPROXY");
@@ -104,7 +105,7 @@ contract DssSpellAction is DssAction {
     address internal immutable DAI_USDS                 = DssExecLib.getChangelogAddress("DAI_USDS");
 
     // ---------- Wallets ----------
-    address internal constant STUSDS_KEEPER_BUD            = 0x0000000000000000000000000000000000000001; // TODO: replace with the final deployed address
+    address internal constant STUSDS_KEEPER_BUD            = 0x068F9c8F33E13c18B852877A5D8Ec61504971376;
     address internal constant CORE_COUNCIL_BUDGET_MULTISIG = 0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364;
 
     // ---------- Spark Spell ----------
@@ -125,14 +126,20 @@ contract DssSpellAction is DssAction {
         // Forum: https://forum.skyeco.com/t/stusds-keeper-launch/28282
         // Atlas: https://sky-atlas.io/#bddf50ca-02ef-4991-abb0-53e09831ee6f
 
-        // TODO
-        ValueRegistryLike(STUSDS_VALUE_REGISTRY).kiss(STUSDS_KEEPER_BUD);
+        // Kiss 0x068F9c8F33E13c18B852877A5D8Ec61504971376 on the STUSDS_RATE_SETTER
+        StUsdsRateSetterLike(STUSDS_RATE_SETTER).kiss(STUSDS_KEEPER_BUD);
 
-        // TODO
+        // Add 0xcDb55A799A9B9eAe22Ed0E13037bb6D2E3f1d080 as STUSDS_VALUE_REGISTRY to the Chainlog
         DssExecLib.setChangelogAddress("STUSDS_VALUE_REGISTRY", STUSDS_VALUE_REGISTRY);
 
         // Note: bump chainlog version
         DssExecLib.setChangelogVersion("1.20.21");
+
+        // Decrease stepStrBps (StUsdsRateSetter.strCfg.step) by 1,000 bps from 1,500 bps to 500 bps.
+        DssExecLib.setContract(STUSDS_RATE_SETTER, 'STR', 'step', 500);
+
+        // Decrease stepDutyBps (StUsdsRateSetter.dutyCfg.step) by 1,000 bpsfrom 1,500 bps to 500 bps.
+        DssExecLib.setContract(STUSDS_RATE_SETTER, 'LSEV2-SKY-A', 'step', 500);
 
         // ---------- Monthly Settlement Cycle for September 2026 ----------
         // Forum: TODO
