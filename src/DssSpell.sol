@@ -122,7 +122,7 @@ contract DssSpellAction is DssAction {
 
     function actions() public override {
         // ---------- stUSDS Keeper Launch - Pending Technical Scope ----------
-        // Forum: TODO
+        // Forum: https://forum.skyeco.com/t/stusds-keeper-launch/28282
         // Atlas: https://sky-atlas.io/#bddf50ca-02ef-4991-abb0-53e09831ee6f
 
         // TODO
@@ -138,35 +138,35 @@ contract DssSpellAction is DssAction {
         // Forum: TODO
         // Atlas: TODO
 
-        // Mint TBD USDS debt in ALLOCATOR-SPARK-A and transfer the amount to the surplus buffer.
-        // _takeAllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 0 * WAD);
+        // Mint 11,627,438 USDS debt in ALLOCATOR-SPARK-A and transfer the amount to the surplus buffer.
+        _takeAllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 11_627_438 * WAD);
 
-        // Send TBD USDS from the surplus buffer to the SPARK_SUBPROXY
-        // _transferUsds(SPARK_SUBPROXY, 937_436 * WAD);
+        // Send 4,218,121 USDS from the surplus buffer to the SPARK_SUBPROXY
+        _transferUsds(SPARK_SUBPROXY, 4_218_121 * WAD);
 
-        // Mint TBD USDS debt in ALLOCATOR-BLOOM-A and transfer the amount to the surplus buffer.
-        // _takeAllocatorPayment(ALLOCATOR_BLOOM_A_VAULT, 0 * WAD);
+        // Mint 6,806,996 USDS debt in ALLOCATOR-BLOOM-A and transfer the amount to the surplus buffer.
+        _takeAllocatorPayment(ALLOCATOR_BLOOM_A_VAULT, 6_806_996 * WAD);
 
-        // Send TBD USDS from the surplus buffer to the GROVE_SUBPROXY
-        // _transferUsds(GROVE_SUBPROXY, 0 * WAD);
+        // Send 1,148,408 USDS from the surplus buffer to the GROVE_SUBPROXY
+        _transferUsds(GROVE_SUBPROXY, 1_148_408 * WAD);
 
-        // Send TBD USDS from the surplus buffer to the KEEL_SUBPROXY
-        // _transferUsds(KEEL_SUBPROXY, 0 * WAD);
+        // Send 31,472 USDS from the surplus buffer to the KEEL_SUBPROXY
+        _transferUsds(KEEL_SUBPROXY, 31_472 * WAD);
 
-        // Mint TBD USDS debt in ALLOCATOR-OBEX-A and transfer the amount to the surplus buffer.
-        // _takeAllocatorPayment(ALLOCATOR_OBEX_A_VAULT, 0 * WAD);
+        // Mint 1,643,358 USDS debt in ALLOCATOR-OBEX-A and transfer the amount to the surplus buffer.
+        _takeAllocatorPayment(ALLOCATOR_OBEX_A_VAULT, 1_643_358 * WAD);
 
-        // Send TBD USDS from the surplus buffer to the OBEX_SUBPROXY
-        // _transferUsds(OBEX_SUBPROXY, 0 * WAD);
+        // Send 480,680 USDS from the surplus buffer to the OBEX_SUBPROXY
+        _transferUsds(OBEX_SUBPROXY, 480_680 * WAD);
 
-        // Send TBD USDS from the surplus buffer to the SKYBASE_SUBPROXY
-        // _transferUsds(SKYBASE_SUBPROXY, 0 * WAD);
+        // Send 320,926 USDS from the surplus buffer to the SKYBASE_SUBPROXY
+        _transferUsds(SKYBASE_SUBPROXY, 320_926 * WAD);
 
-        // Mint TBD USDS debt in ALLOCATOR-PRYSM-A and transfer the amount to the surplus buffer
-        // _takeAllocatorPayment(ALLOCATOR_PRYSM_A_VAULT, 0 * WAD);
+        // Mint 76,824 USDS debt in ALLOCATOR-PRYSM-A and transfer the amount to the surplus buffer
+        _takeAllocatorPayment(ALLOCATOR_PRYSM_A_VAULT, 76_824 * WAD);
 
-        // Send TBD USDS from the surplus buffer to the OSERO_SUBPROXY
-        // _transferUsds(OSERO_SUBPROXY, 0 * WAD);
+        // Send 27,661 USDS from the surplus buffer to the OSERO_SUBPROXY
+        _transferUsds(OSERO_SUBPROXY, 27_661 * WAD);
 
         // ---------- Treasury Management Function ----------
         // Forum: TODO
@@ -199,6 +199,7 @@ contract DssSpellAction is DssAction {
 
         // ---------- ALLOCATOR-GROVE-A DC-IAM Parameter Adjustment ----------
         // Forum: https://forum.skyeco.com/t/october-8-2026-proposed-changes-to-grove-for-upcoming-spell/28255/7
+        // Atlas: https://sky-atlas.io/#41a1ae38-4f5c-468f-b6ba-47e16ecc5aec
 
         // Note: Action written inline with the new parameters for ALLOCATOR-GROVE-A
         DssExecLib.setIlkAutoLineParameters({
