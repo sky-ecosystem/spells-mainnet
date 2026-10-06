@@ -146,8 +146,8 @@ contract DssSpellAction is DssAction {
         DssExecLib.setValue(STUSDS_RATE_SETTER, "LSEV2-SKY-A", "step", 500);
 
         // ---------- Monthly Settlement Cycle for September 2026 ----------
-        // Forum: TODO
-        // Atlas: TODO
+        // Forum: https://forum.skyeco.com/t/msc-13-settlement-summary-september-2026/28274
+        // Atlas: https://sky-atlas.io/#6f8d5065-d6ff-4add-9a28-eadeffa7ed1a
 
         // Mint 11,627,438 USDS debt in ALLOCATOR-SPARK-A and transfer the amount to the surplus buffer.
         _takeAllocatorPayment(ALLOCATOR_SPARK_A_VAULT, 11_627_438 * WAD);
@@ -215,11 +215,15 @@ contract DssSpellAction is DssAction {
         // Note: Action written inline with the new parameters for ALLOCATOR-GROVE-A
         DssExecLib.setIlkAutoLineParameters({
             _ilk: "ALLOCATOR-GROVE-A",
+
             // Increase the Maximum Debt Ceiling (line) by 1 billion USDS from 500 million USDS to 1.5 billion USDS
             _amount: 1_500 * MILLION,
+
             // Increase the Target Available Debt (gap) by 125 million USDS from 25 million USDS to 150 million USDS
             _gap: 150 * MILLION,
+
             // Increase the Ceiling Increase Cooldown (ttl) by 43,200 seconds from 43,200 seconds to 86,400 seconds (24 hours)
+            // Forum: https://forum.skyeco.com/t/october-8-2026-proposed-changes-to-grove-for-upcoming-spell/28255/8
             _ttl: 86_400 seconds
         });
 
