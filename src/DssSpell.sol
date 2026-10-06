@@ -109,8 +109,8 @@ contract DssSpellAction is DssAction {
     address internal constant CORE_COUNCIL_BUDGET_MULTISIG = 0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364;
 
     // ---------- Spark Spell ----------
-    address internal constant SPARK_SPELL      = 0xdE40689816DA168b0A56f8F22CBD7FfCFA403E6B; // TODO: replace with the final deployed address
-    bytes32 internal constant SPARK_SPELL_HASH = 0xf5148b6a9fccbde7f225f4f098c28a112c065205a6bc321418154d41aa384bda; // TODO: replace with the final deployed address
+    address internal constant SPARK_SPELL      = 0x796eE21eb57C8BE71be7F75770f534D249bC555b;
+    bytes32 internal constant SPARK_SPELL_HASH = 0x06af8f55b18ae1bb19a13b9cd3531a164a53da94db01586499d9d2a22009cddb;
 
     // ---------- Grove Spell ----------
     address internal constant GROVE_SPELL      = 0x262E8baA6bFbECDD8d483d13C37c1BA7b4a861A5;
@@ -237,7 +237,7 @@ contract DssSpellAction is DssAction {
         // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0xeaab1672f63e49d6075eefbede7cab3fac3db3bba3c2f486eee7bb492d82ff3e
         // Atlas: https://sky-atlas.io/#ea73f176-0b94-4e93-b1ee-ca498ac5a6c6
 
-        // Whitelist Spark spell with address TBD and codehash TBD in SPARK_STARGUARD, direct execution: No
+        // Whitelist Spark spell with address 0x796eE21eb57C8BE71be7F75770f534D249bC555b and codehash 0x06af8f55b18ae1bb19a13b9cd3531a164a53da94db01586499d9d2a22009cddb in SPARK_STARGUARD, direct execution: No
         StarGuardLike(SPARK_STARGUARD).plot(SPARK_SPELL, SPARK_SPELL_HASH);
 
         // ---------- Grove Proxy Spell ----------

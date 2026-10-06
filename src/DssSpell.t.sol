@@ -1338,9 +1338,9 @@ contract DssSpellTest is DssSpellTestBase {
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "SPARK_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0xdE40689816DA168b0A56f8F22CBD7FfCFA403E6B,
+                addr: 0x796eE21eb57C8BE71be7F75770f534D249bC555b,
                 // Insert Prime Agent spell codehash
-                codehash: 0xf5148b6a9fccbde7f225f4f098c28a112c065205a6bc321418154d41aa384bda,
+                codehash: 0x06af8f55b18ae1bb19a13b9cd3531a164a53da94db01586499d9d2a22009cddb,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             }),
