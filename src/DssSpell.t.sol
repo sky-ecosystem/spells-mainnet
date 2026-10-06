@@ -1476,13 +1476,14 @@ contract DssSpellTest is DssSpellTestBase {
     // SPELL-SPECIFIC TESTS GO BELOW
 
     function testStUsdsKeeperBudIntegration() public {
-        address bud  = wallets.addr("STUSDS_KEEPER_BUD");
-        uint256 line = rateSetter.maxLine();
-        uint256 cap  = rateSetter.maxCap();
+        address bud = wallets.addr("STUSDS_KEEPER_BUD");
 
         uint256 oldStrBps  = ConvLike(spbeam.conv()).rtob(stusds.str());
         (uint256 dutyRay,) = jug.ilks(stusds.ilk());
         uint256 oldDutyBps = ConvLike(spbeam.conv()).rtob(dutyRay);
+
+        uint256 line = stusds.line() == rateSetter.maxLine() ? rateSetter.maxLine() - 1 : rateSetter.maxLine();
+        uint256 cap  = stusds.cap()  == rateSetter.maxCap()  ? rateSetter.maxCap()  - 1 : rateSetter.maxCap();
 
         // Note: the bud is not able to set rates before the spell
         vm.prank(bud);
@@ -1493,15 +1494,20 @@ contract DssSpellTest is DssSpellTestBase {
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        (,, uint16 strStep)  = rateSetter.strCfg();
-        (,, uint16 dutyStep) = rateSetter.dutyCfg();
+        (, uint16 strMax,  uint16 strStep)  = rateSetter.strCfg();
+        (, uint16 dutyMax, uint16 dutyStep) = rateSetter.dutyCfg();
+
+        uint256 newStrBps  = oldStrBps  + strStep  > strMax  ? oldStrBps  - strStep  : oldStrBps  + strStep;
+        uint256 newDutyBps = oldDutyBps + dutyStep > dutyMax ? oldDutyBps - dutyStep : oldDutyBps + dutyStep;
 
         vm.prank(bud);
-        rateSetter.set(oldStrBps + strStep, oldDutyBps + dutyStep, line, cap);
+        rateSetter.set(newStrBps, newDutyBps, line, cap);
 
         (uint256 newDutyRay,) = jug.ilks(stusds.ilk());
-        assertEq(ConvLike(spbeam.conv()).rtob(stusds.str()), oldStrBps + strStep,   "testStUsdsKeeperBudIntegration/str-not-updated");
-        assertEq(ConvLike(spbeam.conv()).rtob(newDutyRay),   oldDutyBps + dutyStep, "testStUsdsKeeperBudIntegration/duty-not-updated");
+        assertEq(ConvLike(spbeam.conv()).rtob(stusds.str()), newStrBps,  "testStUsdsKeeperBudIntegration/str-not-updated");
+        assertEq(ConvLike(spbeam.conv()).rtob(newDutyRay),   newDutyBps, "testStUsdsKeeperBudIntegration/duty-not-updated");
+        assertEq(stusds.line(), line, "testStUsdsKeeperBudIntegration/line-not-updated");
+        assertEq(stusds.cap(),  cap,  "testStUsdsKeeperBudIntegration/cap-not-updated");
     }
 
     function testBurnSky() public {
