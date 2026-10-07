@@ -3239,8 +3239,8 @@ contract DssSpellTestBase is Config, DssTest {
         if (address(_gem) != address(sky)) {
             assertGe(balance, vestableAmt, _concat(string("TestError/insufficient-transferrable-vest-balance-"), _errSuffix));
         } else {
-            // TODO: Reduce this the buffer days to 10 days after monitoring for the PauseProxy SKY balance by techops.
-            // Until then, the buffer can be adjusted correctly per spell, but it should be not less than 10 days.
+            // TODO: Reduce the buffer to 10 days once TechOps monitoring of the PauseProxy SKY balance is in place.
+            // Until then, the buffer can be adjusted per spell as needed, but it should not be less than 10 days.
             // Note: SKY streams will operate out of buybacks, check that balance is sufficient for short term (11 days)
             vm.warp(block.timestamp + 11 days);
 
