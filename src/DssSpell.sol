@@ -103,7 +103,7 @@ contract DssSpellAction is DssAction {
     address internal immutable OSERO_STARGUARD          = DssExecLib.getChangelogAddress("OSERO_STARGUARD");
     address internal immutable DAI                      = DssExecLib.dai();
     address internal immutable DAI_USDS                 = DssExecLib.getChangelogAddress("DAI_USDS");
-    address internal immutable SAFE_HARBOR_AGREEMENT      = DssExecLib.getChangelogAddress("SAFE_HARBOR_AGREEMENT");
+    address internal immutable SAFE_HARBOR_AGREEMENT    = DssExecLib.getChangelogAddress("SAFE_HARBOR_AGREEMENT");
 
     // ---------- Wallets ----------
     address internal constant STUSDS_KEEPER_BUD            = 0x068F9c8F33E13c18B852877A5D8Ec61504971376;
