@@ -124,6 +124,14 @@ contract DssSpellTest is DssSpellTestBase {
         _testChainlogValues();
     }
 
+    function testSafeHarborOwnership() public {
+        _testSafeHarborOwnership();
+    }
+
+    function testSafeHarborUpdateSelectors() public {
+        _testSafeHarborUpdateSelectors();
+    }
+
     function testSplitter() public {
         _testSplitter();
     }
