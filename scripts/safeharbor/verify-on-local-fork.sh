@@ -93,11 +93,10 @@ fi
 anvil_args=(
     --fork-url "$ETH_RPC_URL"
     --chain-id 1
-    --hardfork cancun
+    --hardfork osaka
     --host 127.0.0.1
     --port "$ANVIL_PORT"
     --ipc "$ANVIL_IPC"
-    --gas-limit 1000000000
 )
 
 if [[ -n "$FORK_BLOCK_NUMBER" ]]; then
@@ -200,7 +199,6 @@ cast send \
     --rpc-url "$LOCAL_RPC_URL" \
     --unlocked \
     --from "$ANVIL_SENDER" \
-    --gas-limit 100000000 \
     "$spell_address" \
     "schedule()" >/dev/null
 
@@ -221,7 +219,6 @@ cast send \
     --rpc-url "$LOCAL_RPC_URL" \
     --unlocked \
     --from "$ANVIL_SENDER" \
-    --gas-limit 900000000 \
     "$spell_address" \
     "cast()" >/dev/null
 
