@@ -31,6 +31,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Load Foundry settings
+        shell: bash
         run: |
           settings=.github/foundry-ci.env
           [ "$(awk 'END { print NR }' "$settings")" -eq 2 ]

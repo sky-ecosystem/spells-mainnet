@@ -106,7 +106,7 @@ Display the built-in command reference without performing environment or network
 
 CI environments are expected to be clean, with no previous Foundry installation. The setup tool requires an authenticated GitHub CLI, and subsequent steps must resolve the installed binaries from `PATH`. Define the pinned release and age-waiver setting only in `.github/foundry-ci.env`:
 
-```text
+```dotenv
 FOUNDRY_RELEASE=vMAJOR.MINOR.PATCH
 FOUNDRY_IGNORE_AGE=0
 ```
