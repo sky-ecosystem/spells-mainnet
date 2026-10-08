@@ -74,6 +74,54 @@ ANVIL_PORT=<port> make safeharbor-test-spell
 
 `ETH_RPC_URL` must point to Ethereum mainnet. The block number is optional and defaults to the latest state. `ANVIL_PORT` defaults to `8545`.
 
+### Spell helper
+
+When a spell contains SafeHarbor updates, use the following interface and helper. The helper restricts execution to the four operations produced by the generator:
+
+```solidity
+interface SafeHarborAgreementLike {
+    struct Account {
+        string accountAddress;
+        uint8 childContractScope;
+    }
+
+    struct Chain {
+        string assetRecoveryAddress;
+        Account[] accounts;
+        string caip2ChainId;
+    }
+
+    function addAccounts(string calldata caip2ChainId, Account[] calldata accounts) external;
+    function addChains(Chain[] calldata chains) external;
+    function removeAccounts(string calldata caip2ChainId, string[] calldata accountAddresses) external;
+    function removeChains(string[] calldata caip2ChainIds) external;
+}
+
+function _updateSafeHarbor(bytes[] memory calldatas) internal {
+    for (uint256 i; i < calldatas.length; i++) {
+        bytes memory data = calldatas[i];
+        require(data.length >= 4, "updateSafeHarbor/invalid-calldata");
+
+        bytes4 selector;
+        assembly {
+            selector := mload(add(data, 0x20))
+        }
+        require(
+            selector == SafeHarborAgreementLike.addAccounts.selector ||
+                selector == SafeHarborAgreementLike.addChains.selector ||
+                selector == SafeHarborAgreementLike.removeAccounts.selector ||
+                selector == SafeHarborAgreementLike.removeChains.selector,
+            "updateSafeHarbor/unsupported-function"
+        );
+
+        (bool success,) = SAFE_HARBOR_AGREEMENT.call(data);
+        require(success, "updateSafeHarbor/safe-harbor-update-failed");
+    }
+}
+```
+
+The runtime check is the enforcement boundary. The base spell tests independently require the registered Agreement to remain owned by `MCD_PAUSE_PROXY` and inspect update calls to the Agreement registered before the spell. Agreement adoption uses `adoptSafeHarbor` and requires spell-specific coverage. Supporting another Agreement update operation requires an explicit change to both selector allowlists.
+
 ## Initial Agreement setup
 
 Initial setup is separate from the script. Deploy the Agreement through its public factory, configure its scope from the approved Sheet, transfer ownership to the PauseProxy, and adopt it through the registry in a governance spell.

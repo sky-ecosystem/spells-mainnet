@@ -20,7 +20,7 @@ import "dss-interfaces/Interfaces.sol";
 import {ScriptTools} from "dss-test/DssTest.sol";
 import {DssTest, GodMode} from "dss-test/DssTest.sol";
 import {stdStorage, StdStorage} from "forge-std/Test.sol";
-import {Vm} from "forge-std/Vm.sol";
+import {Vm, VmSafe} from "forge-std/Vm.sol";
 
 import "./test/rates.sol";
 import "./test/addresses_mainnet.sol";
@@ -626,6 +626,25 @@ interface ArbL1GovernanceRelayLike {
 interface ArbL2GovernanceRelayLike {
     function l1GovernanceRelay() external view returns (address);
     function relay(address target, bytes calldata targetData) external;
+}
+
+interface SafeHarborAgreementLike {
+    struct Account {
+        string accountAddress;
+        uint8 childContractScope;
+    }
+
+    struct Chain {
+        string assetRecoveryAddress;
+        Account[] accounts;
+        string caip2ChainId;
+    }
+
+    function addAccounts(string calldata caip2ChainId, Account[] calldata accounts) external;
+    function addChains(Chain[] calldata chains) external;
+    function owner() external view returns (address);
+    function removeAccounts(string calldata caip2ChainId, string[] calldata accountAddresses) external;
+    function removeChains(string[] calldata caip2ChainIds) external;
 }
 
 contract DssSpellTestBase is Config, DssTest {
@@ -3378,6 +3397,62 @@ contract DssSpellTestBase is Config, DssTest {
         assertEq(pip, pipNew,     _concat("TestError/pip-is-not-the-same-for-", ilk));
         assertTrue(tau == tauNew, _concat("TestError/tau-is-not-the-same-for-", ilk));
         assertTrue(toc == tocNew, _concat("TestError/toc-is-not-the-same-for", ilk));
+    }
+
+    function _testSafeHarborOwnership() internal {
+        address expectedOwner = chainLog.getAddress("MCD_PAUSE_PROXY");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        address agreement = chainLog.getAddress("SAFE_HARBOR_AGREEMENT");
+        assertEq(
+            SafeHarborAgreementLike(agreement).owner(),
+            expectedOwner,
+            "TestError/safe-harbor-agreement-invalid-owner"
+        );
+    }
+
+    function _testSafeHarborUpdateSelectors() internal {
+        address agreement = chainLog.getAddress("SAFE_HARBOR_AGREEMENT");
+
+        _vote(address(spell));
+        vm.startStateDiffRecording();
+        _scheduleWaitAndCast(address(spell));
+        Vm.AccountAccess[] memory accesses = vm.stopAndReturnStateDiff();
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        uint256 agreementCalls;
+
+        for (uint256 i; i < accesses.length; i++) {
+            if (accesses[i].kind != VmSafe.AccountAccessKind.Call || accesses[i].account != agreement) {
+                continue;
+            }
+
+            agreementCalls++;
+            bytes memory data = accesses[i].data;
+            assertGe(data.length, 4, "TestError/safe-harbor-invalid-calldata");
+            if (data.length < 4) {
+                continue;
+            }
+
+            bytes4 selector;
+            assembly {
+                selector := mload(add(data, 0x20))
+            }
+            assertTrue(
+                selector == SafeHarborAgreementLike.addAccounts.selector ||
+                    selector == SafeHarborAgreementLike.addChains.selector ||
+                    selector == SafeHarborAgreementLike.removeAccounts.selector ||
+                    selector == SafeHarborAgreementLike.removeChains.selector,
+                "TestError/safe-harbor-unsupported-selector"
+            );
+        }
+
+        if (agreementCalls == 0) {
+            vm.skip(true, "No SafeHarbor updates");
+        }
     }
 
     function _testGeneral() internal {
