@@ -1,5 +1,6 @@
 import { parse } from "csv-parse/sync";
 import { DIAGNOSTIC_CODES as $ } from "../diagnostic/index.js";
+import { hasUnsafeControlCharacter } from "../utils/controlCharacters.js";
 import { findDuplicateIndexes } from "../utils/findDuplicateIndexes.js";
 
 export async function downloadAndParse(url) {
@@ -18,6 +19,7 @@ export async function downloadAndParse(url) {
     let headers = [];
     const records = parse(await response.text(), {
         columns: (columns) => {
+            assertNoUnsafeHeaderCharacters(columns);
             assertUniqueHeaders(columns);
             headers = columns;
             return columns;
@@ -25,7 +27,35 @@ export async function downloadAndParse(url) {
         skip_empty_lines: true,
         trim: true,
     });
+    assertNoUnsafeCellCharacters(records);
     return { headers, records };
+}
+
+function assertNoUnsafeHeaderCharacters(headers) {
+    const header = headers.find((value) => hasUnsafeControlCharacter(value));
+    if (!header) {
+        return;
+    }
+    const diagnostic = {
+        code: $.INVALID_SHEET_HEADER_CONTROL_CHARACTER,
+        context: { header },
+    };
+    throw Object.assign(new Error(diagnostic.code), { diagnostic });
+}
+
+function assertNoUnsafeCellCharacters(records) {
+    for (const record of records) {
+        for (const [header, value] of Object.entries(record)) {
+            if (!hasUnsafeControlCharacter(value)) {
+                continue;
+            }
+            const diagnostic = {
+                code: $.INVALID_SHEET_CELL_CONTROL_CHARACTER,
+                context: { header, value },
+            };
+            throw Object.assign(new Error(diagnostic.code), { diagnostic });
+        }
+    }
 }
 
 function assertUniqueHeaders(headers) {

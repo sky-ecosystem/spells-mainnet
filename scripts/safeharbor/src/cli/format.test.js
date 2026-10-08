@@ -1,6 +1,19 @@
 import { expect, test } from "vitest";
 import { dedent } from "../utils/dedent.js";
-import { formatOperationalError } from "./format.js";
+import { formatCliMessage, formatOperationalError } from "./format.js";
+
+test("escapes terminal controls in CLI messages while preserving newlines", () => {
+    expect(formatCliMessage("⚠️", "bad\u001b[2K\rhidden\nnext\u202e")).toBe(
+        "⚠️ bad\\x1b[2K\\rhidden\n       next\\u202e",
+    );
+});
+
+test("escapes terminal controls in operational errors", () => {
+    expect(formatCliMessage("❌", formatOperationalError(new Error("bad\u001b[8m")))).toBe(dedent`
+        ❌ Failed to execute command:
+               bad\\x1b[8m
+    `);
+});
 
 test.each([
     { scenario: "missing", code: undefined },

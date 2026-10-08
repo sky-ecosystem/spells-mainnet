@@ -163,6 +163,21 @@ test.each([
     },
     {
         diagnostic: {
+            code: "INVALID_SHEET_HEADER_CONTROL_CHARACTER",
+            context: { header: "Addr\u001b[2Kess" },
+        },
+        message: 'Control character in SafeHarbor Sheet CSV header: "Addr\\u001b[2Kess"',
+    },
+    {
+        diagnostic: {
+            code: "INVALID_SHEET_CELL_CONTROL_CHARACTER",
+            context: { header: "Address", value: "0xnot-valid\u001b[2Kforged" },
+        },
+        message:
+            "Control character in SafeHarbor Sheet CSV cell: column='Address', value=\"0xnot-valid\\u001b[2Kforged\"",
+    },
+    {
+        diagnostic: {
             code: "INCOMPLETE_CHAIN_METADATA",
             context: {
                 chainName: "BASE",
