@@ -59,6 +59,21 @@ npm run --silent inspect > inspect.json && jq . inspect.json
 3. Simulate the exact spell against the Agreement.
 4. Point `ETH_RPC_URL` at the simulated post-state and run `verify`. Require exit `0`: no changes and no warnings.
 
+Test the local spell on an Anvil fork, then verify the resulting SafeHarbor state choosing one of the following commands:
+
+```bash
+# Latest mainnet state, default port (8545)
+make safeharbor-test-spell
+
+# Specific mainnet block, default port (8545)
+make safeharbor-test-spell block=<block-number>
+
+# Latest mainnet state, custom port
+ANVIL_PORT=<port> make safeharbor-test-spell
+```
+
+`ETH_RPC_URL` must point to Ethereum mainnet. The block number is optional and defaults to the latest state. `ANVIL_PORT` defaults to `8545`.
+
 ### Spell helper
 
 When a spell contains SafeHarbor updates, use the following interface and helper. The helper restricts execution to the four operations produced by the generator:
