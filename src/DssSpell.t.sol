@@ -92,6 +92,14 @@ contract DssSpellTest is DssSpellTestBase {
         _testChainlogValues();
     }
 
+    function testSafeHarborOwnership() public {
+        _testSafeHarborOwnership();
+    }
+
+    function testSafeHarborUpdateSelectors() public {
+        _testSafeHarborUpdateSelectors();
+    }
+
     function testSplitter() public {
         _testSplitter();
     }
@@ -1398,90 +1406,6 @@ contract DssSpellTest is DssSpellTestBase {
             address subProxy = initializedStarGuards[i].subProxy;
 
             _testStarGuardInitialization(starGuard, subProxy);
-        }
-    }
-
-    struct ChainUpdates {
-        string caip2ChainId;
-        SafeHarborAgreementLike.Account[] addedAccounts;
-    }
-
-    function testUpdateSafeHarborAddedAccounts() public { // add the `skipped` modifier to skip
-        SafeHarborAgreementLike agreement = SafeHarborAgreementLike(addr.addr("SAFE_HARBOR_AGREEMENT"));
-
-        ChainUpdates[2] memory chainUpdates;
-
-        // Build array of accounts to be added to Safe Harbor Agreement on eip155:1
-        SafeHarborAgreementLike.Account[] memory addedAccountsEthereum = new SafeHarborAgreementLike.Account[](1);
-        addedAccountsEthereum[0] = SafeHarborAgreementLike.Account({ accountAddress: "0xcDb55A799A9B9eAe22Ed0E13037bb6D2E3f1d080", ChildContractScope: 0 });
-
-        // Configure chain updates for eip155:1 with added accounts
-        chainUpdates[0] = ChainUpdates({
-            caip2ChainId: "eip155:1",
-            addedAccounts: addedAccountsEthereum
-        });
-
-        // Build array of accounts to be added to Safe Harbor Agreement on eip155:42161
-        SafeHarborAgreementLike.Account[] memory addedAccountsArbitrum = new SafeHarborAgreementLike.Account[](7);
-        addedAccountsArbitrum[0] = SafeHarborAgreementLike.Account({ accountAddress: "0x11CFefeA67B18de9046a6250555D438854fFEEDa", ChildContractScope: 0 });
-        addedAccountsArbitrum[1] = SafeHarborAgreementLike.Account({ accountAddress: "0xd11Dc57F3eF23bb7b3142588a461F68460a7C474", ChildContractScope: 0 });
-        addedAccountsArbitrum[2] = SafeHarborAgreementLike.Account({ accountAddress: "0x66d3653e66F7edb973549CFA3b46F22298B8f983", ChildContractScope: 0 });
-        addedAccountsArbitrum[3] = SafeHarborAgreementLike.Account({ accountAddress: "0xeCCA0D296Cb133081d41E9772B60D57F5fd2798E", ChildContractScope: 0 });
-        addedAccountsArbitrum[4] = SafeHarborAgreementLike.Account({ accountAddress: "0x86036CE5d2f792367C0AA43164e688d13c5A60A8", ChildContractScope: 0 });
-        addedAccountsArbitrum[5] = SafeHarborAgreementLike.Account({ accountAddress: "0x3968a022D955Bbb7927cc011A48601B65a33F346", ChildContractScope: 2 });
-        addedAccountsArbitrum[6] = SafeHarborAgreementLike.Account({ accountAddress: "0xCBA0C0a2a0B6Bb11233ec4EA85C5bFfea33e724d", ChildContractScope: 2 });
-
-        // Configure chain updates for eip155:42161 with added accounts
-        chainUpdates[1] = ChainUpdates({
-            caip2ChainId: "eip155:42161",
-            addedAccounts: addedAccountsArbitrum
-        });
-
-        uint256[] memory previousAccountCounts = new uint256[](chainUpdates.length);
-
-        // Check that added accounts are not present before spell execution
-        for (uint256 i = 0; i < chainUpdates.length; i++) {
-            SafeHarborAgreementLike.AgreementDetails memory details = agreement.getDetails();
-            SafeHarborAgreementLike.Chain memory chain = _findChain(details, chainUpdates[i].caip2ChainId);
-            previousAccountCounts[i] = chain.accounts.length;
-
-            for (uint256 j = 0; j < chainUpdates[i].addedAccounts.length; j++) {
-                assertFalse(
-                    _accountExistsInChain(chain, chainUpdates[i].addedAccounts[j].accountAddress),
-                    string.concat("testUpdateSafeHarborAddedAccounts/account-already-present-before-spell-execution-", chainUpdates[i].addedAccounts[j].accountAddress)
-                );
-            }
-        }
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        // Check that added accounts are present after spell execution
-        for (uint256 i = 0; i < chainUpdates.length; i++) {
-            SafeHarborAgreementLike.AgreementDetails memory details = agreement.getDetails();
-            SafeHarborAgreementLike.Chain memory chain = _findChain(details, chainUpdates[i].caip2ChainId);
-
-            assertEq(
-                chain.accounts.length,
-                previousAccountCounts[i] + chainUpdates[i].addedAccounts.length,
-                "testUpdateSafeHarborAddedAccounts/unexpected-account-count"
-            );
-
-            for (uint256 j = 0; j < chainUpdates[i].addedAccounts.length; j++) {
-                assertTrue(
-                    _accountExistsInChain(chain, chainUpdates[i].addedAccounts[j].accountAddress),
-                    string.concat("testUpdateSafeHarborAddedAccounts/safe-harbor-account-not-found-after-spell-execution-", chainUpdates[i].addedAccounts[j].accountAddress)
-                );
-
-                // Verify the account has the correct ChildContractScope
-                SafeHarborAgreementLike.Account memory account = _findAccountInChain(chain, chainUpdates[i].addedAccounts[j].accountAddress);
-                assertEq(
-                    account.ChildContractScope,
-                    chainUpdates[i].addedAccounts[j].ChildContractScope,
-                    string.concat("testUpdateSafeHarborAddedAccounts/incorrect-scope-for-account-", chainUpdates[i].addedAccounts[j].accountAddress)
-                );
-            }
         }
     }
 
