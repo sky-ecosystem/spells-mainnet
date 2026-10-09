@@ -9,6 +9,29 @@ test("detects control characters relevant to Sheet input", () => {
     expect(hasUnsafeControlCharacter("bidi\u202econtrol")).toBe(true);
     expect(hasUnsafeControlCharacter("emoji grapheme 👨‍👩‍👧‍👦")).toBe(false);
     expect(hasUnsafeControlCharacter("emoji grapheme with escape 👨‍\u001b[2K👩")).toBe(true);
+
+    // Check exact ranges from the spec
+    for (const [first, last] of [
+        // Unicode C0 Controls: https://www.unicode.org/charts/PDF/U0000.pdf
+        [0x00, 0x1f],
+        // Unicode DEL + C1 Controls: https://www.unicode.org/charts/PDF/U0080.pdf
+        [0x7f, 0x9f],
+        // Unicode bidirectional format controls: https://www.unicode.org/charts/PDF/U2000.pdf
+        [0x202a, 0x202e],
+        // Unicode line separators: https://www.unicode.org/charts/PDF/U2000.pdf
+        [0x2028, 0x2029],
+        // Unicode bidirectional isolates: https://www.unicode.org/charts/PDF/U2060.pdf
+        [0x2066, 0x2069],
+    ]) {
+        for (let codePoint = first; codePoint <= last; codePoint++) {
+            expect(hasUnsafeControlCharacter(`x${String.fromCodePoint(codePoint)}y`)).toBe(true);
+        }
+    }
+
+    // Check edge cases
+    for (const codePoint of [0x20, 0x7e, 0xa0, 0x202f, 0x2065, 0x206a]) {
+        expect(hasUnsafeControlCharacter(`x${String.fromCodePoint(codePoint)}y`)).toBe(false);
+    }
 });
 
 test("escapes terminal controls while preserving line feeds", () => {

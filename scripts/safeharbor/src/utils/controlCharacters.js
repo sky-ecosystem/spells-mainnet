@@ -56,6 +56,9 @@ function isUnsafeControlCharacter(character, { allowLineFeed }) {
         (codePoint >= 0x7f && codePoint <= 0x9f) ||
         // Bidirectional formatting controls can make Sheet/review text visually misleading.
         (codePoint >= 0x202a && codePoint <= 0x202e) ||
+        // JSON.stringify preserves these raw, but JavaScript treats them as line separators.
+        codePoint === 0x2028 ||
+        codePoint === 0x2029 ||
         (codePoint >= 0x2066 && codePoint <= 0x2069)
     );
 }
