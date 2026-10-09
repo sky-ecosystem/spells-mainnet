@@ -20,7 +20,7 @@ import "dss-interfaces/Interfaces.sol";
 import {ScriptTools} from "dss-test/DssTest.sol";
 import {DssTest, GodMode} from "dss-test/DssTest.sol";
 import {stdStorage, StdStorage} from "forge-std/Test.sol";
-import {Vm, VmSafe} from "forge-std/Vm.sol";
+import {Vm} from "forge-std/Vm.sol";
 
 import "./test/rates.sol";
 import "./test/addresses_mainnet.sol";
@@ -631,7 +631,24 @@ interface ArbL2GovernanceRelayLike {
 interface SafeHarborAgreementLike {
     struct Account {
         string accountAddress;
-        uint8 childContractScope;
+        uint8 ChildContractScope;
+    }
+
+    struct AgreementDetails {
+        string protocolName;
+        Contact[] contactDetails;
+        Chain[] chains;
+        BountyTerms bountyTerms;
+        string agreementURI;
+    }
+
+    struct BountyTerms {
+        uint256 bountyPercentage;
+        uint256 bountyCapUSD;
+        bool retainable;
+        uint8 identity;
+        string diligenceRequirements;
+        uint256 aggregateBountyCapUSD;
     }
 
     struct Chain {
@@ -640,12 +657,14 @@ interface SafeHarborAgreementLike {
         string caip2ChainId;
     }
 
-    function addAccounts(string calldata caip2ChainId, Account[] calldata accounts) external;
-    function addChains(Chain[] calldata chains) external;
-    function owner() external view returns (address);
-    function removeAccounts(string calldata caip2ChainId, string[] calldata accountAddresses) external;
-    function removeChains(string[] calldata caip2ChainIds) external;
+    struct Contact {
+        string name;
+        string contact;
+    }
+
+    function getDetails() external view returns (AgreementDetails memory _details);
 }
+
 
 contract DssSpellTestBase is Config, DssTest {
     using stdStorage for StdStorage;
@@ -3396,62 +3415,6 @@ contract DssSpellTestBase is Config, DssTest {
         assertTrue(toc == tocNew, _concat("TestError/toc-is-not-the-same-for", ilk));
     }
 
-    function _testSafeHarborOwnership() internal {
-        address expectedOwner = chainLog.getAddress("MCD_PAUSE_PROXY");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        address agreement = chainLog.getAddress("SAFE_HARBOR_AGREEMENT");
-        assertEq(
-            SafeHarborAgreementLike(agreement).owner(),
-            expectedOwner,
-            "TestError/safe-harbor-agreement-invalid-owner"
-        );
-    }
-
-    function _testSafeHarborUpdateSelectors() internal {
-        address agreement = chainLog.getAddress("SAFE_HARBOR_AGREEMENT");
-
-        _vote(address(spell));
-        vm.startStateDiffRecording();
-        _scheduleWaitAndCast(address(spell));
-        Vm.AccountAccess[] memory accesses = vm.stopAndReturnStateDiff();
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        uint256 agreementCalls;
-
-        for (uint256 i; i < accesses.length; i++) {
-            if (accesses[i].kind != VmSafe.AccountAccessKind.Call || accesses[i].account != agreement) {
-                continue;
-            }
-
-            agreementCalls++;
-            bytes memory data = accesses[i].data;
-            assertGe(data.length, 4, "TestError/safe-harbor-invalid-calldata");
-            if (data.length < 4) {
-                continue;
-            }
-
-            bytes4 selector;
-            assembly {
-                selector := mload(add(data, 0x20))
-            }
-            assertTrue(
-                selector == SafeHarborAgreementLike.addAccounts.selector ||
-                    selector == SafeHarborAgreementLike.addChains.selector ||
-                    selector == SafeHarborAgreementLike.removeAccounts.selector ||
-                    selector == SafeHarborAgreementLike.removeChains.selector,
-                "TestError/safe-harbor-unsupported-selector"
-            );
-        }
-
-        if (agreementCalls == 0) {
-            vm.skip(true, "No SafeHarbor updates");
-        }
-    }
-
     function _testGeneral() internal {
         string memory description = new DssSpell().description();
         assertTrue(bytes(description).length > 0, "TestError/spell-description-length");
@@ -4451,6 +4414,37 @@ contract DssSpellTestBase is Config, DssTest {
         }
 
         vm.revertToStateAndDelete(beforeCast);
+    }
+
+    function _compareStrings(string memory a, string memory b) internal pure returns (bool) {
+        return keccak256(abi.encodePacked(a)) == keccak256(abi.encodePacked(b));
+    }
+
+    function _findChain(SafeHarborAgreementLike.AgreementDetails memory details, string memory caip2ChainId) internal pure returns (SafeHarborAgreementLike.Chain memory) {
+        for (uint256 i = 0; i < details.chains.length; i++) {
+            if (_compareStrings(details.chains[i].caip2ChainId, caip2ChainId)) {
+                return details.chains[i];
+            }
+        }
+        revert("_findChain/chain-not-found");
+    }
+
+    function _accountExistsInChain(SafeHarborAgreementLike.Chain memory chain, string memory accountAddress) internal pure returns (bool) {
+        for (uint256 i = 0; i < chain.accounts.length; i++) {
+            if (_compareStrings(chain.accounts[i].accountAddress, accountAddress)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function _findAccountInChain(SafeHarborAgreementLike.Chain memory chain, string memory accountAddress) internal pure returns (SafeHarborAgreementLike.Account memory) {
+        for (uint256 i = 0; i < chain.accounts.length; i++) {
+            if (_compareStrings(chain.accounts[i].accountAddress, accountAddress)) {
+                return chain.accounts[i];
+            }
+        }
+        revert("_findAccountInChain/account-not-found");
     }
 
     function _testAutoLineExecAfterEverySetIlkCall() public { // add the `skipped` modifier to skip
