@@ -1,3 +1,4 @@
+import { escapeTerminalControlCharacters } from "../utils/controlCharacters.js";
 import { formatList } from "../utils/formatList.js";
 import { DIAGNOSTIC_CODES as $ } from "./codes.js";
 import { diagnosticTemplates } from "./templates.js";
@@ -31,10 +32,7 @@ const formatContext = {
 };
 
 function formatVisibleString(value) {
-    return JSON.stringify(value).replace(
-        /[\u0085\u2028\u2029\u202a-\u202e\u2066-\u2069]/g,
-        (character) => `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`,
-    );
+    return escapeTerminalControlCharacters(JSON.stringify(value));
 }
 
 function renderTemplate(template, values) {
