@@ -6,7 +6,7 @@ See the [SafeHarbor project](https://github.com/security-alliance/safe-harbor) a
 
 ## Usage
 
-Use Node.js 24. From `scripts/safeharbor`, install dependencies:
+Use the active LTS version of Node.js. From `scripts/safeharbor`, install dependencies:
 
 ```bash
 npm ci
