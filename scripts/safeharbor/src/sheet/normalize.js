@@ -6,8 +6,8 @@ const STATUS = Object.freeze({
     ACTIVE: "ACTIVE",
     DISABLED: "DISABLED",
 });
-const CONTRACT_HEADERS = ["Status", "Chain", "Address", "isFactory"];
-const CHAIN_DETAILS_HEADERS = ["Name", "Chain Id", "Asset Recovery Address"];
+export const CONTRACT_HEADERS = ["Status", "Chain", "Address", "isFactory"];
+export const CHAIN_DETAILS_HEADERS = ["Name", "Chain Id", "Asset Recovery Address"];
 
 export function normalizeContractsInScope({ headers, records }, sheetChainDetails) {
     assertRequiredHeaders(headers, CONTRACT_HEADERS);

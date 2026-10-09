@@ -2,6 +2,7 @@ import { parse } from "csv-parse/sync";
 import { DIAGNOSTIC_CODES as $ } from "../diagnostic/index.js";
 import { hasUnsafeControlCharacter } from "../utils/controlCharacters.js";
 import { findDuplicateIndexes } from "../utils/findDuplicateIndexes.js";
+import { CHAIN_DETAILS_HEADERS, CONTRACT_HEADERS } from "./normalize.js";
 
 export async function downloadAndParse(url) {
     const response = await fetch(url);
@@ -46,7 +47,8 @@ function assertNoUnsafeHeaderCharacters(headers) {
 function assertNoUnsafeCellCharacters(records) {
     for (const record of records) {
         for (const [header, value] of Object.entries(record)) {
-            if (!hasUnsafeControlCharacter(value)) {
+            const isKnownHeader = CONTRACT_HEADERS.includes(header) || CHAIN_DETAILS_HEADERS.includes(header);
+            if (!isKnownHeader || !hasUnsafeControlCharacter(value)) {
                 continue;
             }
             const diagnostic = {
