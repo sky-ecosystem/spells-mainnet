@@ -238,6 +238,19 @@ test_git_failure() {
     assert_contains "$(< "$fixture/stderr")" "Fixture Git failure"
 }
 
+test_without_exported_functions() {
+    add_submodule nested
+    export SAFEHARBOR_REAL_GIT="$(command -v git)"
+    # Some system shells discard Bash's function-export environment variables.
+    write_file "$fixture" git-without-functions.sh 'git() {
+    env -u "BASH_FUNC_safeharbor_check_worktree%%" \
+        -u "BASH_FUNC_safeharbor_check_worktree()" -u safeharbor_check_worktree \
+        "$SAFEHARBOR_REAL_GIT" "$@"
+}'
+    export BASH_ENV="$fixture/git-without-functions.sh"
+    expect_guard_passed
+}
+
 if [[ $# -gt 0 ]]; then
     if [[ "$1" != --case ]]; then
         printf 'Run this harness without arguments\n' >&2
@@ -257,6 +270,7 @@ if [[ $# -gt 0 ]]; then
             expect_rejected "Cannot determine Git HEAD" "$fixture/empty"
             ;;
         git_failure) test_git_failure "$2" "$3" "$4" ;;
+        without_exported_functions) test_without_exported_functions ;;
         *) printf 'Unknown test case: %s\n' "$1" >&2; exit 1 ;;
     esac
     exit 0
@@ -304,6 +318,7 @@ run_test "fails closed when inspecting root status fails" git_failure root "stat
 run_test "fails closed when inspecting submodule revisions fails" git_failure root "submodule status --recursive" "Cannot inspect recursive Git submodules"
 run_test "fails closed when inspecting nested index fails" git_failure nested "ls-files -v" "Cannot inspect Git index"
 run_test "fails closed when inspecting nested status fails" git_failure nested "status --porcelain=v1" "Cannot inspect Git worktree"
+run_test "allows recursive checks when exported Bash functions are discarded" without_exported_functions
 
 printf '\n%s passed; %s failed\n' "$PASS" "$FAIL"
 [[ "$FAIL" -eq 0 ]]

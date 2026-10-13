@@ -127,10 +127,11 @@ while IFS= read -r submodule_entry; do
     esac
 done <<<"$submodule_status"
 
-# foreach uses the system shell; explicitly use Bash for the exported helper.
-export -f safeharbor_check_worktree
+# foreach's system shell can discard exported Bash functions; pass the trusted definition as data.
+SAFEHARBOR_WORKTREE_CHECK="$(declare -f safeharbor_check_worktree)"
+export SAFEHARBOR_WORKTREE_CHECK
 if ! git -c core.fsmonitor=false -C "$repo_root" submodule foreach --quiet --recursive \
-    "bash -c 'safeharbor_check_worktree \"\$PWD\"'"; then
+    'bash -c "$SAFEHARBOR_WORKTREE_CHECK; safeharbor_check_worktree \"\$PWD\""'; then
     echo "Submodule checkout verification failed" >&2
     exit 1
 fi
