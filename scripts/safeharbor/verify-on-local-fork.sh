@@ -29,6 +29,37 @@ is_tcp_port_open() {
     (: <>"/dev/tcp/127.0.0.1/$1") 2>/dev/null
 }
 
+safeharbor_check_worktree() {
+    local git_root="$1" index_entries index_entry worktree_status
+    local LC_ALL=C
+
+    if ! index_entries="$(git -c core.fsmonitor=false -C "$git_root" ls-files -v)"; then
+        echo "Cannot inspect Git index in $git_root" >&2
+        return 1
+    fi
+    # These flags can hide tracked changes from git status.
+    while IFS= read -r index_entry; do
+        case "${index_entry:0:1}" in
+            [a-z]|S)
+                printf 'SafeHarbor preflight cannot use assume-unchanged or skip-worktree flags (%s).\n%s\nClear these index flags and review local changes before rerunning.\n' \
+                    "$git_root" "$index_entry" >&2
+                return 1
+                ;;
+        esac
+    done <<<"$index_entries"
+
+    if ! worktree_status="$(git -c core.fsmonitor=false -C "$git_root" status --porcelain=v1 --untracked-files=all --ignore-submodules=none)"; then
+        echo "Cannot inspect Git worktree in $git_root" >&2
+        return 1
+    fi
+    if [[ -n "$worktree_status" ]]; then
+        printf 'SafeHarbor preflight requires a clean checkout (%s).\n%s\nCommit or stash intended edits and move non-ignored untracked files before rerunning.\n' \
+            "$git_root" "$worktree_status" >&2
+        return 1
+    fi
+    return 0
+}
+
 cleanup() {
     local status=$?
     trap - EXIT INT TERM
@@ -73,6 +104,38 @@ for command in anvil cast forge git jq npm; do
     }
 done
 
+if ! repo_root="$(git -c core.fsmonitor=false rev-parse --show-toplevel)"; then
+    echo "Cannot determine Git repository for SafeHarbor preflight" >&2
+    exit 1
+fi
+if ! commit_sha="$(git -c core.fsmonitor=false -C "$repo_root" rev-parse --verify HEAD)"; then
+    echo "Cannot determine Git HEAD for SafeHarbor preflight" >&2
+    exit 1
+fi
+
+safeharbor_check_worktree "$repo_root"
+if ! submodule_status="$(git -c core.fsmonitor=false -C "$repo_root" submodule status --recursive)"; then
+    echo "Cannot inspect recursive Git submodules" >&2
+    exit 1
+fi
+while IFS= read -r submodule_entry; do
+    case "${submodule_entry:0:1}" in
+        -|+|U)
+            printf 'Submodules must be initialized and match their recorded revisions.\n%s\nReview submodule checkouts before rerunning SafeHarbor preflight.\n' "$submodule_entry" >&2
+            exit 1
+            ;;
+    esac
+done <<<"$submodule_status"
+
+# foreach uses the system shell; explicitly use Bash for the exported helper.
+export -f safeharbor_check_worktree
+if ! git -c core.fsmonitor=false -C "$repo_root" submodule foreach --quiet --recursive \
+    "bash -c 'safeharbor_check_worktree \"\$PWD\"'"; then
+    echo "Submodule checkout verification failed" >&2
+    exit 1
+fi
+cd "$repo_root"
+
 if [[ -z "${ETH_RPC_URL:-}" ]]; then
     echo "Please set ETH_RPC_URL to a Mainnet RPC URL" >&2
     exit 1
@@ -82,8 +145,6 @@ if [[ "$(cast chain-id --rpc-url "$ETH_RPC_URL")" != "1" ]]; then
     echo "ETH_RPC_URL must point to Ethereum Mainnet" >&2
     exit 1
 fi
-
-commit_sha="$(git rev-parse HEAD)"
 
 if is_tcp_port_open "$ANVIL_PORT"; then
     echo "Port $ANVIL_PORT is already in use" >&2
