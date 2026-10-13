@@ -16,12 +16,13 @@ test("detects control characters relevant to Sheet input", () => {
         [0x00, 0x1f],
         // Unicode DEL + C1 Controls: https://www.unicode.org/charts/PDF/U0080.pdf
         [0x7f, 0x9f],
-        // Unicode bidirectional format controls: https://www.unicode.org/charts/PDF/U2000.pdf
+        // Unicode bidirectional format controls: https://www.unicode.org/Public/UCD/latest/ucd/PropList.txt
+        [0x61c, 0x61c],
+        [0x200e, 0x200f],
         [0x202a, 0x202e],
+        [0x2066, 0x2069],
         // Unicode line separators: https://www.unicode.org/charts/PDF/U2000.pdf
         [0x2028, 0x2029],
-        // Unicode bidirectional isolates: https://www.unicode.org/charts/PDF/U2060.pdf
-        [0x2066, 0x2069],
     ]) {
         for (let codePoint = first; codePoint <= last; codePoint++) {
             expect(hasUnsafeControlCharacter(`x${String.fromCodePoint(codePoint)}y`)).toBe(true);

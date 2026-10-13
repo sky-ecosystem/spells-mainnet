@@ -55,10 +55,13 @@ function isUnsafeControlCharacter(character, { allowLineFeed }) {
         (codePoint >= 0x00 && codePoint <= 0x1f) ||
         (codePoint >= 0x7f && codePoint <= 0x9f) ||
         // Bidirectional formatting controls can make Sheet/review text visually misleading.
+        // https://www.unicode.org/Public/UCD/latest/ucd/PropList.txt
+        codePoint === 0x61c ||
+        (codePoint >= 0x200e && codePoint <= 0x200f) ||
         (codePoint >= 0x202a && codePoint <= 0x202e) ||
+        (codePoint >= 0x2066 && codePoint <= 0x2069) ||
         // JSON.stringify preserves these raw, but JavaScript treats them as line separators.
         codePoint === 0x2028 ||
-        codePoint === 0x2029 ||
-        (codePoint >= 0x2066 && codePoint <= 0x2069)
+        codePoint === 0x2029
     );
 }
