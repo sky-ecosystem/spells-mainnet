@@ -74,7 +74,7 @@ ANVIL_PORT=<port> make safeharbor-test-spell
 
 `ETH_RPC_URL` must point to Ethereum mainnet. The block number is optional and defaults to the latest state. `ANVIL_PORT` defaults to `8545`.
 
-The preflight requires the entire checkout to match `HEAD`, with no staged or unstaged changes or non-ignored untracked files. All recursive submodules must be initialized, clean, and checked out at their recorded revisions. It also rejects `assume-unchanged` and `skip-worktree` index flags, which can hide local changes. Ignored files such as `.env`, installed dependencies, and build outputs are allowed. Checkout validation fails with exit code `1` before any RPC calls or Anvil startup; the script does not modify the checkout to resolve failures.
+The preflight rejects Git-reported staged, unstaged, and non-ignored untracked changes in `src/`, `scripts/safeharbor/`, `lib/`, `Makefile`, `foundry.toml`, `remappings.txt`, and `.gitmodules`. Recursive submodules must be initialized and checked out at their recorded revisions. Unrelated local files and ignored files such as `.env`, installed dependencies, and build outputs are allowed. Checkout validation fails with exit code `1` before any RPC calls or Anvil startup.
 
 ## Initial Agreement setup
 
@@ -88,7 +88,6 @@ From `scripts/safeharbor`:
 
 ```bash
 npm test -- --run
-bash test/verify-on-local-fork.test.sh
 npm run lint
 npm run format:check
 ```
