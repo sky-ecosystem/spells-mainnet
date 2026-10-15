@@ -238,7 +238,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
         string[1] memory addedKeys = [
             "STUSDS_VALUE_REGISTRY"
         ];
@@ -650,7 +650,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public { // add the `skipped` modifier to skip
+    function testVestSky() public skipped { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
         uint256 DEC_12_2026_12_42_11_UTC = 1797079331;
 
@@ -769,7 +769,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestedRewardsDist() public { // add the `skipped` modifier to skip
+    function testVestedRewardsDist() public skipped { // add the `skipped` modifier to skip
         uint256 expectedVestIdBefore = 17;
         uint256 expectedVestIdAfter = 18;
 
@@ -817,7 +817,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public { // add the `skipped` modifier to skip
+    function testPayments() public skipped { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -1278,7 +1278,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 
-    function testMonthlySettlementCycleInflows() public { // add the `skipped` modifier to skip
+    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
         AllocatorPayment[] memory payments = new AllocatorPayment[](4);
         payments[0] = AllocatorPayment(addr.addr("ALLOCATOR_SPARK_A_VAULT"), 11_627_438 * WAD);
         payments[1] = AllocatorPayment(addr.addr("ALLOCATOR_BLOOM_A_VAULT"),  6_806_996 * WAD);
@@ -1332,7 +1332,7 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
+    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
         PrimeAgentSpell[3] memory primeAgentSpells = [
             PrimeAgentSpell({
                 // Insert Prime Agent StarGuards Chainlog key
@@ -1406,7 +1406,7 @@ contract DssSpellTest is DssSpellTestBase {
         SafeHarborAgreementLike.Account[] addedAccounts;
     }
 
-    function testUpdateSafeHarborAddedAccounts() public { // add the `skipped` modifier to skip
+    function testUpdateSafeHarborAddedAccounts() public skipped { // add the `skipped` modifier to skip
         SafeHarborAgreementLike agreement = SafeHarborAgreementLike(addr.addr("SAFE_HARBOR_AGREEMENT"));
 
         ChainUpdates[2] memory chainUpdates;
@@ -1486,82 +1486,4 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
-
-    function testStUsdsKeeperBudIntegration() public {
-        address bud = wallets.addr("STUSDS_KEEPER_BUD");
-
-        uint256 oldStrBps  = ConvLike(spbeam.conv()).rtob(stusds.str());
-        (uint256 dutyRay,) = jug.ilks(stusds.ilk());
-        uint256 oldDutyBps = ConvLike(spbeam.conv()).rtob(dutyRay);
-
-        uint256 line = stusds.line() == rateSetter.maxLine() ? rateSetter.maxLine() - 1 : rateSetter.maxLine();
-        uint256 cap  = stusds.cap()  == rateSetter.maxCap()  ? rateSetter.maxCap()  - 1 : rateSetter.maxCap();
-
-        // Note: the bud is not able to set rates before the spell
-        vm.prank(bud);
-        vm.expectRevert("StUsdsRateSetter/not-facilitator");
-        rateSetter.set(oldStrBps, oldDutyBps, line, cap);
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        (, uint16 strMax,  uint16 strStep)  = rateSetter.strCfg();
-        (, uint16 dutyMax, uint16 dutyStep) = rateSetter.dutyCfg();
-
-        uint256 newStrBps  = oldStrBps  + strStep  > strMax  ? oldStrBps  - strStep  : oldStrBps  + strStep;
-        uint256 newDutyBps = oldDutyBps + dutyStep > dutyMax ? oldDutyBps - dutyStep : oldDutyBps + dutyStep;
-
-        vm.prank(bud);
-        rateSetter.set(newStrBps, newDutyBps, line, cap);
-
-        (uint256 newDutyRay,) = jug.ilks(stusds.ilk());
-        assertEq(ConvLike(spbeam.conv()).rtob(stusds.str()), newStrBps,  "testStUsdsKeeperBudIntegration/str-not-updated");
-        assertEq(ConvLike(spbeam.conv()).rtob(newDutyRay),   newDutyBps, "testStUsdsKeeperBudIntegration/duty-not-updated");
-        assertEq(stusds.line(), line, "testStUsdsKeeperBudIntegration/line-not-updated");
-        assertEq(stusds.cap(),  cap,  "testStUsdsKeeperBudIntegration/cap-not-updated");
-    }
-
-    function testBurnSky() public {
-        uint256 skyTotalSupplyBefore     = sky.totalSupply();
-        uint256 skyTreasuryBalanceBefore = sky.balanceOf(address(pauseProxy));
-
-        // Note: `updateFarmVest` distributes the accrued amount of the previous LSSKY->SKY vest
-        // out of the treasury (the vest czar) before yanking it.
-        VestedRewardsDistributionLike dist = VestedRewardsDistributionLike(addr.addr("REWARDS_DIST_LSSKY_SKY"));
-        VestAbstract vestSky      = VestAbstract(dist.dssVest());
-        uint256 prevVestId        = dist.vestId();
-        uint256 prevVestRxdBefore = vestSky.rxd(prevVestId);
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        uint256 distributed = vestSky.rxd(prevVestId) - prevVestRxdBefore;
-
-        assertEq(
-            sky.totalSupply(),
-            skyTotalSupplyBefore - 7_372_288 ether,
-            "TestError/invalid-total-supply"
-        );
-        assertEq(
-            sky.balanceOf(address(pauseProxy)),
-            skyTreasuryBalanceBefore - 7_372_288 ether - distributed,
-            "TestError/invalid-treasury-balance"
-        );
-    }
-
-    function testSplitHopAndFarmRewardsDuration() public {
-        StakingRewardsLike farm = StakingRewardsLike(addr.addr("REWARDS_LSSKY_USDS"));
-
-        assertEq(split.hop(),            2_504, "TestError/split-hop-before");
-        assertEq(farm.rewardsDuration(), 2_504, "TestError/rewards-duration-before");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        assertEq(split.hop(),            2_693, "TestError/split-hop-after");
-        assertEq(farm.rewardsDuration(), 2_693, "TestError/rewards-duration-after");
-    }
 }
