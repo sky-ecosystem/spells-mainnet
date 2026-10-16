@@ -141,8 +141,28 @@ test("blocks generation for an invalid Sheet account address", async () => {
     expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
 });
 
-test.each(["generate", "inspect"])("%s reports a line terminator in an allowlisted Sheet chain ID", async (command) => {
-    const chainId = "eip155:1\nrevert(); //";
+test("escapes rejected Sheet controls before printing operational error", async () => {
+    mockSources({
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: [
+            "Status,Chain,Address,isFactory",
+            'ACTIVE,ETHEREUM,"0xnot-valid\u001b[2Kbytes[] memory calldatas = new bytes[](1);",FALSE',
+        ].join("\n"),
+        details: { chains: [] },
+    });
+
+    expect(await runCli("generate")).toBe(1);
+    expect(stderr.mock.calls[0][0]).toContain("\\u001b[2K");
+    expect(stderr.mock.calls[0][0]).not.toContain("\u001b[2K");
+    expect(stdout).not.toHaveBeenCalled();
+    expect(warnings).not.toHaveBeenCalled();
+    expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
+});
+
+test.each(["generate", "inspect"])("%s rejects a line terminator in Sheet CSV", async (command) => {
     mockSources({
         chainCSV: dedent`
             Name,Chain Id,Asset Recovery Address
@@ -156,29 +176,11 @@ test.each(["generate", "inspect"])("%s reports a line terminator in an allowlist
         details: { chains: [] },
     });
 
-    expect(await runCli(command)).toBe(command === "generate" ? 2 : 0);
-    expect(chainValidatorInstance.isChainValid).toHaveBeenCalledExactlyOnceWith(chainId);
-    expect(warnings.mock.calls[0]).toEqual([
-        "⚠️ Line terminator in SafeHarbor Sheet Chain Id for 'ETHEREUM': \"eip155:1\\nrevert(); //\"",
-    ]);
-    if (command === "generate") {
-        expect(stdout).not.toHaveBeenCalled();
-        expect(warnings.mock.calls[1]).toEqual(["❌ Payload generation blocked: 1 validation warning(s)."]);
-    } else {
-        expect(JSON.parse(stdout.mock.calls[0][0])).toMatchObject({
-            changes: [],
-            warnings: [
-                {
-                    code: "SHEET_CHAIN_ID_LINE_TERMINATOR",
-                    context: {
-                        chainName: "ETHEREUM",
-                        chainId,
-                    },
-                },
-            ],
-        });
-    }
-    expect(stderr).not.toHaveBeenCalled();
+    expect(await runCli(command)).toBe(1);
+    expect(chainValidatorInstance.isChainValid).not.toHaveBeenCalled();
+    expect(stderr.mock.calls[0][0]).toContain('value="eip155:1\\nrevert(); //"');
+    expect(warnings).not.toHaveBeenCalled();
+    expect(stdout).not.toHaveBeenCalled();
     expect(encodeSpy).not.toHaveBeenCalled();
     expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
 });

@@ -45,6 +45,9 @@ export const diagnosticTemplates = {
         "Duplicate chain ID found in Safeharbor Sheet: chainId='{chainId}', first='{firstChainName}', duplicate='{duplicateChainName}'",
     [$.MISSING_SHEET_HEADERS]: "Missing required CSV headers: {missingHeaders}",
     [$.DUPLICATE_SHEET_HEADERS]: "Duplicate CSV headers: {duplicateHeaders}",
+    [$.INVALID_SHEET_HEADER_CONTROL_CHARACTER]: "Control character in SafeHarbor Sheet CSV header: {header}",
+    [$.INVALID_SHEET_CELL_CONTROL_CHARACTER]:
+        "Control character in SafeHarbor Sheet CSV cell: column='{header}', value={value}",
     [$.COMMAND_REQUIRED]: dedent`
         Error: Command is required
         Available commands: generate, inspect, verify
