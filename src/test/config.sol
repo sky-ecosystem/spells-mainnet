@@ -145,9 +145,9 @@ contract Config {
         // Values for spell-specific parameters
         //
         spellValues = SpellValues({
-            deployed_spell:         address(0xF01b594aF26fC8A8ae1e24DCaF904ECB6Fd1BaDC), // populate with deployed spell if deployed
-            deployed_spell_created: 1790264207,          // use `make deploy-info tx=<deployment-tx>` to obtain the timestamp
-            deployed_spell_block:   26048249,          // use `make deploy-info tx=<deployment-tx>` to obtain the block number
+            deployed_spell:         address(0x4bdD1Cc8540E4c43ee210a6ff0EE96ad0Bba297A), // populate with deployed spell if deployed
+            deployed_spell_created: 1791465335,          // use `make deploy-info tx=<deployment-tx>` to obtain the timestamp
+            deployed_spell_block:   26147917,          // use `make deploy-info tx=<deployment-tx>` to obtain the block number
             previous_spells:        prevSpells, // older spells to ensure are executed first
             office_hours_enabled:   true,       // true if officehours is expected to be enabled in the spell
             expiration_threshold:   30 days     // Amount of time before spell expires
@@ -191,7 +191,7 @@ contract Config {
         afterSpell.vest_spk_cap           = 2_502_500_000 * WAD / 730 days;                 // In WAD SPK per second
         afterSpell.vest_grove_cap         = (110 * 2_450_000_000 * WAD) / (100 * 730 days); // In WAD GROVE per second
         afterSpell.ilk_count              = 35;                                             // Num expected in system
-        afterSpell.chainlog_version       = "1.20.20";                                      // String expected in system
+        afterSpell.chainlog_version       = "1.20.21";                                      // String expected in system
 
         afterSpell.SP_tau       = 57_600 seconds;                             // In seconds
         afterSpell.SP_bud       = 0xe1c6f81D0c3CD570A77813b81AA064c5fff80309; // Address of SPBEAM Bud
@@ -209,13 +209,14 @@ contract Config {
         afterSpell.stusds_rate_setter_maxCap   = 1_000_000_000; // USDS units
         afterSpell.stusds_rate_setter_minStr   = 2_00;          // Minimum allowed rate in bps
         afterSpell.stusds_rate_setter_maxStr   = 50_00;         // Maximum allowed rate in bps
-        afterSpell.stusds_rate_setter_strStep  = 15_00;         // Maximum allowed rate change per update (bps)
+        afterSpell.stusds_rate_setter_strStep  = 5_00;          // Maximum allowed rate change per update (bps)
         afterSpell.stusds_rate_setter_minDuty  = 2_10;          // Minimum allowed rate in bps
         afterSpell.stusds_rate_setter_maxDuty  = 50_00;         // Maximum allowed rate in bps
-        afterSpell.stusds_rate_setter_dutyStep = 15_00;         // Maximum allowed rate change per update (bps)
+        afterSpell.stusds_rate_setter_dutyStep = 5_00;          // Maximum allowed rate change per update (bps)
 
-        address[] memory buds = new address[](1);
+        address[] memory buds = new address[](2);
         buds[0] = 0xBB865F94B8A92E57f79fCc89Dfd4dcf0D3fDEA16;
+        buds[1] = 0x068F9c8F33E13c18B852877A5D8Ec61504971376;
         afterSpell.stusds_rate_setter_buds = buds; // Array of address
 
         //
@@ -1239,9 +1240,9 @@ contract Config {
         });
         afterSpell.collaterals["ALLOCATOR-GROVE-A"] = CollateralValues({
             um:           UpdateMethod.AUTOLINE,
-            aL_line:      500_000_000,
-            aL_gap:       25_000_000,
-            aL_ttl:       43_200,
+            aL_line:      1_500_000_000,
+            aL_gap:       150_000_000,
+            aL_ttl:       86_400,
             line:         0,
             dust:         0,
             pct:          0,

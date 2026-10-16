@@ -40,38 +40,6 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
-interface PASBeamStateLike {
-    function rateLimits(address) external view returns (uint256);
-    function controllers(address) external view returns (uint256);
-    function cBeams(address) external view returns (uint256);
-    function rateLimitsCBeams(address, address) external view returns (uint256);
-    function controllersCBeams(address, address) external view returns (uint256);
-    function hop(address) external view returns (uint256);
-    function maxChange(address) external view returns (uint256);
-    function getHop(address) external view returns (uint256);
-    function getMaxChange(address) external view returns (uint256);
-}
-
-interface PASConfiguratorLike {
-    function zzz(address, bytes32) external view returns (uint256);
-    function setRateLimit(address, bytes32, uint256, uint256) external;
-}
-
-interface AccessControlLike {
-    function hasRole(bytes32, address) external view returns (bool);
-}
-
-interface RateLimitsLike {
-    struct RateLimitData {
-        uint256 maxAmount;
-        uint256 slope;
-        uint256 lastAmount;
-        uint256 lastUpdated;
-    }
-
-    function getRateLimitData(bytes32) external view returns (RateLimitData memory);
-}
-
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -278,13 +246,9 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
-        string[5] memory addedKeys = [
-            "PAS_STATE",
-            "PAS_CONFIGURATOR",
-            "PAS_TIMELOCK",
-            "PAS_MOM",
-            "REWARDS_OWNER_LSSKY_USDS"
+    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+        string[1] memory addedKeys = [
+            "STUSDS_VALUE_REGISTRY"
         ];
 
         for(uint256 i = 0; i < addedKeys.length; i++) {
@@ -694,16 +658,16 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public skipped { // add the `skipped` modifier to skip
+    function testVestSky() public { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
-        uint256 NOV_15_2026_14_02_23_UTC = 1794751343;
+        uint256 DEC_12_2026_12_42_11_UTC = 1797079331;
 
         uint256 spellCastTime = _getSpellCastTime();
 
         // Build expected new stream
         NewVestStream[] memory newStreams = new NewVestStream[](1);
         newStreams[0] = NewVestStream({
-            id:  17,
+            id:  18,
             usr: addr.addr("REWARDS_DIST_LSSKY_SKY"),
             bgn: spellCastTime,
             clf: spellCastTime,
@@ -711,15 +675,15 @@ contract DssSpellTest is DssSpellTestBase {
             tau: 90 days,
             mgr: address(0),
             res: 1,
-            tot: 143_208_393 * WAD,
+            tot: 99_525_882 * WAD,
             rxd: 0 // Amount already claimed
         });
 
         // For each yanked stream, provide Stream object and initialize the array with the current number of yanked streams
         YankedVestStream[] memory yankedStreams = new YankedVestStream[](1);
         yankedStreams[0] = YankedVestStream({
-            id:  16,
-            fin: NOV_15_2026_14_02_23_UTC,
+            id:  17,
+            fin: DEC_12_2026_12_42_11_UTC,
             end: spellCastTime
         });
 
@@ -813,9 +777,9 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestedRewardsDist() public skipped { // add the `skipped` modifier to skip
-        uint256 expectedVestIdBefore = 16;
-        uint256 expectedVestIdAfter = 17;
+    function testVestedRewardsDist() public { // add the `skipped` modifier to skip
+        uint256 expectedVestIdBefore = 17;
+        uint256 expectedVestIdAfter = 18;
 
         address rewardsDist = addr.addr("REWARDS_DIST_LSSKY_SKY");
         address stakingRewards = addr.addr("REWARDS_LSSKY_SKY");
@@ -861,7 +825,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public skipped { // add the `skipped` modifier to skip
+    function testPayments() public { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -872,20 +836,20 @@ contract DssSpellTest is DssSpellTestBase {
         //    the amount to be paid
         // Initialize the array with the number of payees
         Payee[7] memory payees = [
-            Payee(address(usds), addr.addr("SPARK_SUBPROXY"),                  937_436 ether),   // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("GROVE_SUBPROXY"),                  1_342_064 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("KEEL_SUBPROXY"),                   31_776 ether),    // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("OBEX_SUBPROXY"),                   458_340 ether),   // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("SKYBASE_SUBPROXY"),                101_204 ether),   // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("OSERO_SUBPROXY"),                  30_156 ether),    // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG"), 3_149_060 ether)  // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("SPARK_SUBPROXY"),                 4_218_121 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("GROVE_SUBPROXY"),                 1_148_408 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("KEEL_SUBPROXY"),                     31_472 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("OBEX_SUBPROXY"),                    480_680 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("SKYBASE_SUBPROXY"),                 320_926 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("OSERO_SUBPROXY"),                    27_661 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG"), 2_927_190 ether)  // Note: ether is only a keyword helper
         ];
 
         // Fill the total values from exec sheet
         PaymentAmounts memory expectedTotalPayments = PaymentAmounts({
             dai:           0  ether, // Note: ether is only a keyword helper
             mkr:           0  ether, // Note: ether is only a keyword helper
-            usds:  6_050_036  ether, // Note: ether is only a keyword helper
+            usds:  9_154_458  ether, // Note: ether is only a keyword helper
             sky:           0  ether  // Note: ether is only a keyword helper
         });
 
@@ -1279,7 +1243,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(Art, 0, "GUSD-A Art is not 0");
     }
 
-    function testDaoResolutions() public view { // replace `view` with the `skipped` modifier to skip
+    function testDaoResolutions() public skipped { // replace `view` with the `skipped` modifier to skip
         // For each resolution, add IPFS hash as item to the resolutions array
         // Initialize the array with the number of resolutions
         string[1] memory resolutions = [
@@ -1322,13 +1286,13 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 
-    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
+    function testMonthlySettlementCycleInflows() public { // add the `skipped` modifier to skip
         AllocatorPayment[] memory payments = new AllocatorPayment[](4);
-        payments[0] = AllocatorPayment(addr.addr("ALLOCATOR_SPARK_A_VAULT"), 6_357_912 * WAD);
-        payments[1] = AllocatorPayment(addr.addr("ALLOCATOR_BLOOM_A_VAULT"), 9_574_714 * WAD);
-        payments[2] = AllocatorPayment(addr.addr("ALLOCATOR_OBEX_A_VAULT"),  1_631_729 * WAD);
-        payments[3] = AllocatorPayment(addr.addr("ALLOCATOR_PRYSM_A_VAULT"), 7_006 * WAD);
-        uint256 expectedTotalAmount = 17_571_361 * WAD;
+        payments[0] = AllocatorPayment(addr.addr("ALLOCATOR_SPARK_A_VAULT"), 11_627_438 * WAD);
+        payments[1] = AllocatorPayment(addr.addr("ALLOCATOR_BLOOM_A_VAULT"),  6_806_996 * WAD);
+        payments[2] = AllocatorPayment(addr.addr("ALLOCATOR_OBEX_A_VAULT"),   1_643_358 * WAD);
+        payments[3] = AllocatorPayment(addr.addr("ALLOCATOR_PRYSM_A_VAULT"),     76_824 * WAD);
+        uint256 expectedTotalAmount = 20_154_616 * WAD;
 
         MscIlkValues[] memory expectedValues = new MscIlkValues[](payments.length);
         uint256 totalDtab = 0;
@@ -1382,9 +1346,9 @@ contract DssSpellTest is DssSpellTestBase {
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "SPARK_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0xdE40689816DA168b0A56f8F22CBD7FfCFA403E6B,
+                addr: 0x796eE21eb57C8BE71be7F75770f534D249bC555b,
                 // Insert Prime Agent spell codehash
-                codehash: 0xf5148b6a9fccbde7f225f4f098c28a112c065205a6bc321418154d41aa384bda,
+                codehash: 0x06af8f55b18ae1bb19a13b9cd3531a164a53da94db01586499d9d2a22009cddb,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             }),
@@ -1392,9 +1356,9 @@ contract DssSpellTest is DssSpellTestBase {
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "GROVE_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0xFB1DEBB9CD8eD442103092C6aCd9ACC231224CFb,
+                addr: 0x262E8baA6bFbECDD8d483d13C37c1BA7b4a861A5,
                 // Insert Prime Agent spell codehash
-                codehash: 0x0106daf3bc397e10d8ee0b19996928b7a046d1f31bd31dba04c5cc2b2ea84fa6,
+                codehash: 0xb67edac3b73c41231aaa73bb69dcf7731ac1830d6af66b80be930513dc7de0b4,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             }),
@@ -1402,9 +1366,9 @@ contract DssSpellTest is DssSpellTestBase {
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "OSERO_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0xA061628c7f7bD95f571fd41f645746cC0d22f812,
+                addr: 0x0ABdd6cbb1802Ce980FE4b628a682c70727978D2,
                 // Insert Prime Agent spell codehash
-                codehash: 0x0c01396cee9cf147f0e4e5a715bf14326a81cd0e11c31d96c963d47bba52f4d8,
+                codehash: 0xf80be0f506aab4e137a867a1c289f34254e845ecadbb92b33104660c6349a7fd,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             })
@@ -1447,108 +1411,81 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
-    function testOseroCBeamActivation() public {
-        PASBeamStateLike beamState       = PASBeamStateLike(addr.addr("PAS_STATE"));
-        address          oseroRateLimits = addr.addr("OSERO_RATE_LIMITS");
-        address          oseroController = addr.addr("OSERO_CONTROLLER");
-        address          oseroCBeam      = wallets.addr("OSERO_PAS_CBEAM");
+    function testStUsdsKeeperBudIntegration() public {
+        address bud = wallets.addr("STUSDS_KEEPER_BUD");
 
-        // Check state before spell
-        assertEq(beamState.cBeams(oseroCBeam), 0, "testOseroCBeamActivation/cbeam-already-added");
-        assertEq(beamState.rateLimits(oseroRateLimits), 0, "testOseroCBeamActivation/rate-limits-already-added");
-        assertEq(beamState.controllers(oseroController), 0, "testOseroCBeamActivation/controller-already-added");
-        assertEq(beamState.rateLimitsCBeams(oseroRateLimits, oseroCBeam), 0, "testOseroCBeamActivation/rate-limits-pairing-already-set");
-        assertEq(beamState.controllersCBeams(oseroController, oseroCBeam), 0, "testOseroCBeamActivation/controller-pairing-already-set");
+        uint256 oldStrBps  = ConvLike(spbeam.conv()).rtob(stusds.str());
+        (uint256 dutyRay,) = jug.ilks(stusds.ilk());
+        uint256 oldDutyBps = ConvLike(spbeam.conv()).rtob(dutyRay);
 
-        // Execute spell
+        uint256 line = stusds.line() == rateSetter.maxLine() ? rateSetter.maxLine() - 1 : rateSetter.maxLine();
+        uint256 cap  = stusds.cap()  == rateSetter.maxCap()  ? rateSetter.maxCap()  - 1 : rateSetter.maxCap();
+
+        // Note: the bud is not able to set rates before the spell
+        vm.prank(bud);
+        vm.expectRevert("StUsdsRateSetter/not-facilitator");
+        rateSetter.set(oldStrBps, oldDutyBps, line, cap);
+
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        // Check state after spell
-        assertEq(beamState.cBeams(oseroCBeam), 1, "testOseroCBeamActivation/cbeam-not-added");
-        assertEq(beamState.rateLimits(oseroRateLimits), 1, "testOseroCBeamActivation/rate-limits-not-added");
-        assertEq(beamState.controllers(oseroController), 1, "testOseroCBeamActivation/controller-not-added");
-        assertEq(beamState.rateLimitsCBeams(oseroRateLimits, oseroCBeam), 1, "testOseroCBeamActivation/rate-limits-pairing-not-set");
-        assertEq(beamState.controllersCBeams(oseroController, oseroCBeam), 1, "testOseroCBeamActivation/controller-pairing-not-set");
+        (, uint16 strMax,  uint16 strStep)  = rateSetter.strCfg();
+        (, uint16 dutyMax, uint16 dutyStep) = rateSetter.dutyCfg();
 
-        // Check that the Osero rate limits keep the general PAS parameters
-        assertEq(beamState.hop(oseroRateLimits), 0, "testOseroCBeamActivation/hop-override-set");
-        assertEq(beamState.maxChange(oseroRateLimits), 0, "testOseroCBeamActivation/max-change-override-set");
-        assertEq(beamState.getHop(oseroRateLimits), 16 hours, "testOseroCBeamActivation/invalid-effective-hop");
-        assertEq(beamState.getMaxChange(oseroRateLimits), 120 * WAD / 100, "testOseroCBeamActivation/invalid-effective-max-change");
+        uint256 newStrBps  = oldStrBps  + strStep  > strMax  ? oldStrBps  - strStep  : oldStrBps  + strStep;
+        uint256 newDutyBps = oldDutyBps + dutyStep > dutyMax ? oldDutyBps - dutyStep : oldDutyBps + dutyStep;
+
+        vm.prank(bud);
+        rateSetter.set(newStrBps, newDutyBps, line, cap);
+
+        (uint256 newDutyRay,) = jug.ilks(stusds.ilk());
+        assertEq(ConvLike(spbeam.conv()).rtob(stusds.str()), newStrBps,  "testStUsdsKeeperBudIntegration/str-not-updated");
+        assertEq(ConvLike(spbeam.conv()).rtob(newDutyRay),   newDutyBps, "testStUsdsKeeperBudIntegration/duty-not-updated");
+        assertEq(stusds.line(), line, "testStUsdsKeeperBudIntegration/line-not-updated");
+        assertEq(stusds.cap(),  cap,  "testStUsdsKeeperBudIntegration/cap-not-updated");
     }
 
-    function testOseroCBeamIntegration() public {
-        PASConfiguratorLike configurator    = PASConfiguratorLike(addr.addr("PAS_CONFIGURATOR"));
-        address             oseroRateLimits = addr.addr("OSERO_RATE_LIMITS");
+    function testBurnSky() public {
+        uint256 skyTotalSupplyBefore     = sky.totalSupply();
+        uint256 skyTreasuryBalanceBefore = sky.balanceOf(address(pauseProxy));
 
-        // Check PAS authorization in Osero
-        {
-            AccessControlLike accessControls   = AccessControlLike(addr.addr("OSERO_ACCESS_CONTROLS"));
-            AccessControlLike rateLimits       = AccessControlLike(oseroRateLimits);
-            StarGuardLike     starGuard        = StarGuardLike(addr.addr("OSERO_STARGUARD"));
-            address           oseroSubProxy    = addr.addr("OSERO_SUBPROXY");
-            bytes32           defaultAdminRole = bytes32(0);
+        // Note: `updateFarmVest` distributes the accrued amount of the previous LSSKY->SKY vest
+        // out of the treasury (the vest czar) before yanking it.
+        VestedRewardsDistributionLike dist = VestedRewardsDistributionLike(addr.addr("REWARDS_DIST_LSSKY_SKY"));
+        VestAbstract vestSky      = VestAbstract(dist.dssVest());
+        uint256 prevVestId        = dist.vestId();
+        uint256 prevVestRxdBefore = vestSky.rxd(prevVestId);
 
-            assertTrue(accessControls.hasRole(defaultAdminRole, oseroSubProxy), "testOseroCBeamIntegration/subproxy-not-access-controls-admin-before-spell");
-            assertTrue(rateLimits.hasRole(defaultAdminRole, oseroSubProxy), "testOseroCBeamIntegration/subproxy-not-rate-limits-admin-before-spell");
-            assertFalse(accessControls.hasRole(defaultAdminRole, address(configurator)), "testOseroCBeamIntegration/access-controls-role-set-before-spell");
-            assertFalse(rateLimits.hasRole(defaultAdminRole, address(configurator)), "testOseroCBeamIntegration/rate-limits-role-set-before-spell");
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
 
-            _vote(address(spell));
-            _scheduleWaitAndCast(address(spell));
-            assertTrue(spell.done(), "TestError/spell-not-done");
+        uint256 distributed = vestSky.rxd(prevVestId) - prevVestRxdBefore;
 
-            assertFalse(accessControls.hasRole(defaultAdminRole, address(configurator)), "testOseroCBeamIntegration/access-controls-role-set-by-core-spell");
-            assertFalse(rateLimits.hasRole(defaultAdminRole, address(configurator)), "testOseroCBeamIntegration/rate-limits-role-set-by-core-spell");
+        assertEq(
+            sky.totalSupply(),
+            skyTotalSupplyBefore - 7_372_288 ether,
+            "TestError/invalid-total-supply"
+        );
+        assertEq(
+            sky.balanceOf(address(pauseProxy)),
+            skyTreasuryBalanceBefore - 7_372_288 ether - distributed,
+            "TestError/invalid-treasury-balance"
+        );
+    }
 
-            // The Osero spell plotted by the core spell grants the Configurator both admin roles
-            (, , uint256 deadline) = starGuard.spellData();
-            while (!starGuard.prob()) {
-                assertLe(block.timestamp, deadline, "testOseroCBeamIntegration/osero-spell-not-executable-before-deadline");
-                skip(1 hours);
-            }
-            starGuard.exec();
+    function testSplitHopAndFarmRewardsDuration() public {
+        StakingRewardsLike farm = StakingRewardsLike(addr.addr("REWARDS_LSSKY_USDS"));
 
-            assertTrue(accessControls.hasRole(defaultAdminRole, address(configurator)), "testOseroCBeamIntegration/access-controls-role-not-set");
-            assertTrue(rateLimits.hasRole(defaultAdminRole, address(configurator)), "testOseroCBeamIntegration/rate-limits-role-not-set");
-            assertTrue(accessControls.hasRole(defaultAdminRole, oseroSubProxy), "testOseroCBeamIntegration/subproxy-lost-access-controls-role");
-            assertTrue(rateLimits.hasRole(defaultAdminRole, oseroSubProxy), "testOseroCBeamIntegration/subproxy-lost-rate-limits-role");
-        }
+        assertEq(split.hop(),            2_504, "TestError/split-hop-before");
+        assertEq(farm.rewardsDuration(), 2_504, "TestError/rewards-duration-before");
 
-        // Check cBEAM happy path
-        {
-            bytes32 limitUsdsMint = keccak256("LIMIT_USDS_MINT");
-            address oseroCBeam    = wallets.addr("OSERO_PAS_CBEAM");
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
 
-            RateLimitsLike rateLimits = RateLimitsLike(oseroRateLimits);
-            RateLimitsLike.RateLimitData memory beforeData = rateLimits.getRateLimitData(limitUsdsMint);
-            uint256 newMaxAmount = beforeData.maxAmount * 110 / 100;
-            uint256 newSlope     = beforeData.slope * 110 / 100;
-
-            assertGt(beforeData.maxAmount, 0, "testOseroCBeamIntegration/rate-limit-max-is-zero");
-            assertLt(beforeData.maxAmount, type(uint256).max, "testOseroCBeamIntegration/rate-limit-max-is-unlimited");
-            assertGt(beforeData.slope, 0, "testOseroCBeamIntegration/rate-limit-slope-is-zero");
-            assertEq(configurator.zzz(oseroRateLimits, limitUsdsMint), 0, "testOseroCBeamIntegration/cooldown-set-before-call");
-
-            vm.expectRevert("Configurator/not-authorized-ratelimits-cBeam");
-            configurator.setRateLimit(oseroRateLimits, limitUsdsMint, newMaxAmount, newSlope);
-
-            vm.prank(oseroCBeam);
-            configurator.setRateLimit(oseroRateLimits, limitUsdsMint, newMaxAmount, newSlope);
-
-            RateLimitsLike.RateLimitData memory afterIncrease = rateLimits.getRateLimitData(limitUsdsMint);
-            assertEq(afterIncrease.maxAmount, newMaxAmount, "testOseroCBeamIntegration/rate-limit-max-not-increased");
-            assertEq(afterIncrease.slope, newSlope, "testOseroCBeamIntegration/rate-limit-slope-not-increased");
-            assertEq(configurator.zzz(oseroRateLimits, limitUsdsMint), block.timestamp, "testOseroCBeamIntegration/cooldown-not-updated");
-
-            vm.prank(oseroCBeam);
-            configurator.setRateLimit(oseroRateLimits, limitUsdsMint, beforeData.maxAmount, beforeData.slope);
-
-            RateLimitsLike.RateLimitData memory afterDecrease = rateLimits.getRateLimitData(limitUsdsMint);
-            assertEq(afterDecrease.maxAmount, beforeData.maxAmount, "testOseroCBeamIntegration/rate-limit-max-not-restored");
-            assertEq(afterDecrease.slope, beforeData.slope, "testOseroCBeamIntegration/rate-limit-slope-not-restored");
-        }
+        assertEq(split.hop(),            2_693, "TestError/split-hop-after");
+        assertEq(farm.rewardsDuration(), 2_693, "TestError/rewards-duration-after");
     }
 }

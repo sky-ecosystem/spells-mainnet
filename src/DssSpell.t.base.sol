@@ -1712,8 +1712,6 @@ contract DssSpellTestBase is Config, DssTest {
         assertEq(dog.wards(address(clipper))    , 1);
         assertEq(clipper.wards(address(dog))    , 1);
         assertEq(clipper.wards(address(end))    , 1);
-        // TODO: Uncomment after 2025-08-21
-        // assertEq(clipper.wards(address(clipMom)), 1);
         assertEq(clipper.wards(address(esm)), 1);
 
         try pip.bud(address(spotter)) returns (uint256 bud) {
@@ -1865,7 +1863,7 @@ contract DssSpellTestBase is Config, DssTest {
             assertEq(ClipAbstract(p.clip).vow(),             address(vow),         "checkLockstakeIlkIntegration/invalid-clip-vow");
             assertEq(ClipAbstract(p.clip).calc(),            p.calc,               "checkLockstakeIlkIntegration/invalid-clip-calc");
             assertEq(LockstakeClipperLike(p.clip).engine(),  p.engine,             "checkLockstakeIlkIntegration/invalid-clip-engine");
-            // TODO after 2025-05-15: enable liquidations
+            // Note: update the value if lockstake liquidataions are enabled
             assertEq(LockstakeClipperLike(p.clip).stopped(), 3,                    "checkLockstakeIlkIntegration/invalid-clip-stopped");
             assertEq(osmMom.osms(p.ilk),                     underlyingPip,        "checkLockstakeIlkIntegration/invalid-osmMom-pip");
             (address pip,) = spotter.ilks(p.ilk);
@@ -1902,7 +1900,7 @@ contract DssSpellTestBase is Config, DssTest {
             assertEq(WardsAbstract(p.engine).wards(p.clip),               1, "checkLockstakeIlkIntegration/missing-auth-engine-clip");
             assertEq(WardsAbstract(p.clip).wards(address(dog)),           1, "checkLockstakeIlkIntegration/missing-auth-clip-dog");
             assertEq(WardsAbstract(p.clip).wards(address(end)),           1, "checkLockstakeIlkIntegration/missing-auth-clip-end");
-            // TODO after 2025-05-15: rely clipMom and update error message
+            // Note: clipMom is not relied when liquidations are disabled
             assertEq(WardsAbstract(p.clip).wards(address(clipMom)),       0, "checkLockstakeIlkIntegration/unexpected-auth-clip-clipMom");
         }
         // Check required OSM buds
@@ -3216,16 +3214,13 @@ contract DssSpellTestBase is Config, DssTest {
 
         uint256 balance = _gem.balanceOf(pauseProxy);
 
-        // TODO: Change after 2025-08-21
         if (address(_gem) != address(sky)) {
             assertGe(balance, vestableAmt, _concat(string("TestError/insufficient-transferrable-vest-balance-"), _errSuffix));
         } else {
-            // TODO: Restore 12 days to 20 days after the 2026-09-24 Spell; This value was only temporarily reduced
-            //       as the PauseProxy SKY balance does not fully cover the 20-day buffer at the time of crafting the spell. In a
-            //       normal market with constant buybacks, the vesting stream would be covered by those but this test intentionally
-            //       only checks the case with no buybacks. The change to the test was confirmed with Governance and BA Labs.
-            // Note: SKY streams will operate out of buybacks, check that balance is sufficient for short term (12 days)
-            vm.warp(block.timestamp + 12 days);
+            // TODO: Reduce the buffer to 10 days once TechOps monitoring of the PauseProxy SKY balance is in place.
+            // Until then, the buffer can be adjusted per spell as needed, but it should not be less than 10 days.
+            // Note: SKY streams will operate out of buybacks, check that balance is sufficient for short term (11 days)
+            vm.warp(block.timestamp + 11 days);
 
             uint256 requiredBalance;
             for (uint256 i = 1; i <= vest.ids(); i++) {
@@ -3234,8 +3229,7 @@ contract DssSpellTestBase is Config, DssTest {
                 }
             }
 
-            // TODO: Restore 12 days to 20 days after the 2026-09-24 Spell
-            assertGe(_gem.balanceOf(pauseProxy), requiredBalance, _concat(string("TestError/insufficient-transferrable-vest-balance-for-12-days-"), _errSuffix));
+            assertGe(_gem.balanceOf(pauseProxy), requiredBalance, _concat(string("TestError/insufficient-transferrable-vest-balance-for-11-days-"), _errSuffix));
         }
     }
 
@@ -4456,7 +4450,7 @@ contract DssSpellTestBase is Config, DssTest {
         vm.revertToStateAndDelete(beforeCast);
     }
 
-    function _testAutoLineExecAfterEverySetIlkCall() public { // add the `skipped` modifier to skip
+    function _testAutoLineExecAfterEverySetIlkCall() public {
         vm.recordLogs();
 
         _vote(address(spell));

@@ -651,5 +651,6 @@ contract Addresses {
         addr["OSERO_ACCESS_CONTROLS"]            = 0x791D2a017532CfAD881c446e6bF93BbC3c0778b2;
         addr["OSERO_RATE_LIMITS"]                = 0xE9a78f34fe497e2186f81B8c014cd93B308BC62a;
         addr["OSERO_CONTROLLER"]                 = 0x24169Afb34fAe4D4356BC54Bd80319131e35ca38;
+        addr["STUSDS_VALUE_REGISTRY"]            = 0xcDb55A799A9B9eAe22Ed0E13037bb6D2E3f1d080;
     }
 }
