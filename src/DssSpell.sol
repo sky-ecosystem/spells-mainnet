@@ -19,6 +19,10 @@ pragma solidity 0.8.16;
 import { DssExec } from "dss-exec-lib/DssExec.sol";
 import { DssAction, DssExecLib } from "dss-exec-lib/DssAction.sol";
 
+interface BeamStateLike {
+    function addInitRateLimits(bytes32 key, address rateLimits_, uint256 maxAmount, uint256 slope) external;
+}
+
 contract DssSpellAction is DssAction {
     // Provides a descriptive tag for bot consumption
     // This should be modified weekly to provide a summary of the actions
@@ -42,12 +46,25 @@ contract DssSpellAction is DssAction {
     //
     // uint256 internal constant X_PCT_RATE = ;
 
+    // ---------- Contracts ----------
+    address internal immutable PAS_STATE = DssExecLib.getChangelogAddress("PAS_STATE");
+
+    // ---------- Osero ----------
+    address internal constant OSERO_RATE_LIMITS = 0xE9a78f34fe497e2186f81B8c014cd93B308BC62a;
+
     function actions() public override {
         // ----- Add Initial Rate Limits for Osero -----
         // Forum: https://forum.skyeco.com/t/october-22-2026-proposed-changes-to-osero-for-upcoming-spell/28297
         // Atlas: https://sky-atlas.io/#cb293144-de0c-4bd8-9971-d96327b38ae9
 
         // Call PAS_STATE.addInitRateLimits(0xfc26a91cf7b79b531d45dcc431ee59e4f2504f51cb33e2b67960808a104c92ef, 0xE9a78f34fe497e2186f81B8c014cd93B308BC62a, 5000000000000, 7523148)
+
+        BeamStateLike(PAS_STATE).addInitRateLimits({
+            key: 0xfc26a91cf7b79b531d45dcc431ee59e4f2504f51cb33e2b67960808a104c92ef,
+            rateLimits_: OSERO_RATE_LIMITS,
+            maxAmount: 5_000_000_000_000,
+            slope: 7_523_148
+        });
 
         // ----- Spark Proxy Spell -----
         // Forum: https://forum.skyeco.com/t/october-22-2026-proposed-changes-to-spark-for-upcoming-spell/28298

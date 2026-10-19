@@ -40,6 +40,26 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
+interface BeamStateTestLike {
+    function initRateLimits(bytes32 key, address rateLimits_) external view returns (uint256 maxAmount, uint256 slope);
+
+    function getInitRateLimits(bytes32 key, address rateLimits_)
+        external
+        view
+        returns (uint256 maxAmount, uint256 slope);
+}
+
+interface RateLimitsTestLike {
+    struct RateLimitData {
+        uint256 maxAmount;
+        uint256 slope;
+        uint256 lastAmount;
+        uint256 lastUpdated;
+    }
+
+    function getRateLimitData(bytes32 key) external view returns (RateLimitData memory);
+}
+
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -1410,4 +1430,71 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
+    function testOseroInitialRateLimits() public {
+        bytes32 key = 0xfc26a91cf7b79b531d45dcc431ee59e4f2504f51cb33e2b67960808a104c92ef;
+
+        address rateLimitsAddress = addr.addr("OSERO_RATE_LIMITS");
+        BeamStateTestLike beamState = BeamStateTestLike(addr.addr("PAS_STATE"));
+        RateLimitsTestLike rateLimits = RateLimitsTestLike(rateLimitsAddress);
+
+        // Validate no specific initial rate limit is currently registered
+        {
+            (uint256 initialMaxAmountBefore, uint256 initialSlopeBefore) =
+                beamState.initRateLimits(key, rateLimitsAddress);
+
+            assertEq(initialMaxAmountBefore, 0, "TestError/osero-initial-max-amount-non-zero");
+            assertEq(initialSlopeBefore, 0, "TestError/osero-initial-slope-non-zero");
+        }
+
+        // Validate no general fallback is registered for the key
+        {
+            (uint256 generalMaxAmountBefore, uint256 generalSlopeBefore) = beamState.initRateLimits(key, address(0));
+
+            assertEq(generalMaxAmountBefore, 0, "TestError/osero-general-max-amount-already-set");
+            assertEq(generalSlopeBefore, 0, "TestError/osero-general-slope-already-set");
+        }
+
+        RateLimitsTestLike.RateLimitData memory activeBefore = rateLimits.getRateLimitData(key);
+
+        // Validate expected active Osero configuration before the Core spell
+        assertEq(activeBefore.maxAmount, 5_000_000_000_000, "TestError/osero-unexpected-max-amount");
+        assertEq(activeBefore.slope, 0, "TestError/osero-unexpected-slope");
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // Validate exact initial rate limit is registered
+        {
+            (uint256 initialMaxAmountAfter, uint256 initialSlopeAfter) =
+                beamState.initRateLimits(key, rateLimitsAddress);
+
+            assertEq(initialMaxAmountAfter, 5_000_000_000_000, "TestError/osero-invalid-max-amount-after-spell");
+            assertEq(initialSlopeAfter, 7_523_148, "TestError/osero-invalid-slope-after");
+        }
+
+        // Validate the effective getter returns the registered values
+        {
+            (uint256 effectiveMaxAmount, uint256 effectiveSlope) = beamState.getInitRateLimits(key, rateLimitsAddress);
+
+            assertEq(effectiveMaxAmount, 5_000_000_000_000, "TestError/osero-invalid-effective-max-amount");
+            assertEq(effectiveSlope, 7_523_148, "TestError/osero-invalid-effective-slope");
+        }
+
+        // Validate spell registered no global fallback
+        {
+            (uint256 generalMaxAmountAfter, uint256 generalSlopeAfter) = beamState.initRateLimits(key, address(0));
+
+            assertEq(generalMaxAmountAfter, 0, "TestError/osero-general-max-amount-updated");
+            assertEq(generalSlopeAfter, 0, "TestError/osero-general-slope-updated");
+        }
+
+        // Validate the active rate limit isn't modified by the initial values
+        RateLimitsTestLike.RateLimitData memory activeAfter = rateLimits.getRateLimitData(key);
+
+        assertEq(activeAfter.maxAmount, activeBefore.maxAmount, "TestError/osero-active-max-amount-updated");
+        assertEq(activeAfter.slope, activeBefore.slope, "TestError/osero-active-slope-updated");
+        assertEq(activeAfter.lastAmount, activeBefore.lastAmount, "TestError/osero-last-amount-updated");
+        assertEq(activeAfter.lastUpdated, activeBefore.lastUpdated, "TestError/osero-last-updated-updated");
+    }
 }
