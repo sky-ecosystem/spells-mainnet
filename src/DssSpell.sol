@@ -43,6 +43,34 @@ contract DssSpellAction is DssAction {
     // uint256 internal constant X_PCT_RATE = ;
 
     function actions() public override {
+        // ----- Add Initial Rate Limits for Osero -----
+        // Forum: https://forum.skyeco.com/t/october-22-2026-proposed-changes-to-osero-for-upcoming-spell/28297
+        // Atlas: https://sky-atlas.io/#cb293144-de0c-4bd8-9971-d96327b38ae9
+
+        // Call PAS_STATE.addInitRateLimits(0xfc26a91cf7b79b531d45dcc431ee59e4f2504f51cb33e2b67960808a104c92ef, 0xE9a78f34fe497e2186f81B8c014cd93B308BC62a, 5000000000000, 7523148)
+
+        // ----- Spark Proxy Spell -----
+        // Forum: https://forum.skyeco.com/t/october-22-2026-proposed-changes-to-spark-for-upcoming-spell/28298
+        // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0x47341f1ff9453d3f3c6b088ebe1137c17a14536dde08aed2581019ca7ccef2f8
+        // Atlas: https://sky-atlas.io/#6029a425-ad81-46c5-866d-94e2ff663873
+        // Poll: https://vote.sky.money/polling/QmQBiM5W
+        // Atlas: https://sky-atlas.io/#dfa483c7-5adb-480e-9f82-c97cf4d0f74e
+        // Atlas: https://sky-atlas.io/#ea73f176-0b94-4e93-b1ee-ca498ac5a6c6
+
+        // Whitelist Spark spell with address 0x78E4439ae74447992b111A73556a188229D34C37 and codehash 0x08c335ce1b2ad471186a566f08889631b3268cc74dc478b07e3c77f71c312166 in SPARK_STARGUARD, direct execution: No
+
+        // ----- Grove Proxy Spell -----
+        // Forum: https://forum.skyeco.com/t/october-22-2026-proposed-changes-to-grove-for-upcoming-spell/28296
+        // Poll: https://vote.sky.money/polling/QmQBiM5W
+        // Poll: https://snapshot.box/#/s:grovefinance.eth/proposal/0x7659f7a429ab635b7c41796c80f2f730008fe3dd2beb603f7ced05b7ac9cada8
+
+        // Whitelist Grove spell with address 0xf9449D21ef687eE55233B9EDC3d7DDA87C7562a7 and codehash 0x7c9f6ed4604e78848e7b368736b8ae59f2209c6687977128a8302fafe1d6526c in GROVE_STARGUARD, direct execution: No
+
+        // ----- Pattern Proxy Spell -----
+        // Forum: https://forum.skyeco.com/t/technical-scope-for-the-october-22-2026-pattern-prime-spell/28295
+        // Poll: https://vote.sky.money/polling/QmQBiM5W
+
+        // Whitelist Pattern spell with address 0xb38EB4a6f0Ae439a454EED67877f5aC7e66A7652 and codehash 0x2b3da408f1feea10a958fd5678dfe409d54500e8f1dfc2d0fe22c6b49b41b10c in PATTERN_STARGUARD, direct execution: No
     }
 }
 
