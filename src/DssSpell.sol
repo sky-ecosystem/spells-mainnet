@@ -23,6 +23,10 @@ interface BeamStateLike {
     function addInitRateLimits(bytes32 key, address rateLimits_, uint256 maxAmount, uint256 slope) external;
 }
 
+interface StarGuardLike {
+    function plot(address addr_, bytes32 tag_) external;
+}
+
 contract DssSpellAction is DssAction {
     // Provides a descriptive tag for bot consumption
     // This should be modified weekly to provide a summary of the actions
@@ -48,9 +52,14 @@ contract DssSpellAction is DssAction {
 
     // ---------- Contracts ----------
     address internal immutable PAS_STATE = DssExecLib.getChangelogAddress("PAS_STATE");
+    address internal immutable SPARK_STARGUARD = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
 
     // ---------- Osero ----------
     address internal constant OSERO_RATE_LIMITS = 0xE9a78f34fe497e2186f81B8c014cd93B308BC62a;
+
+    // ---------- Spark Spell ----------
+    address internal constant SPARK_SPELL = 0x78E4439ae74447992b111A73556a188229D34C37;
+    bytes32 internal constant SPARK_SPELL_HASH = 0x08c335ce1b2ad471186a566f08889631b3268cc74dc478b07e3c77f71c312166;
 
     function actions() public override {
         // ----- Add Initial Rate Limits for Osero -----
@@ -69,12 +78,14 @@ contract DssSpellAction is DssAction {
         // ----- Spark Proxy Spell -----
         // Forum: https://forum.skyeco.com/t/october-22-2026-proposed-changes-to-spark-for-upcoming-spell/28298
         // Poll: https://snapshot.box/#/s:sparkfi.eth/proposal/0x47341f1ff9453d3f3c6b088ebe1137c17a14536dde08aed2581019ca7ccef2f8
-        // Atlas: https://sky-atlas.io/#6029a425-ad81-46c5-866d-94e2ff663873
         // Poll: https://vote.sky.money/polling/QmQBiM5W
+        // Atlas: https://sky-atlas.io/#6029a425-ad81-46c5-866d-94e2ff663873
         // Atlas: https://sky-atlas.io/#dfa483c7-5adb-480e-9f82-c97cf4d0f74e
         // Atlas: https://sky-atlas.io/#ea73f176-0b94-4e93-b1ee-ca498ac5a6c6
 
         // Whitelist Spark spell with address 0x78E4439ae74447992b111A73556a188229D34C37 and codehash 0x08c335ce1b2ad471186a566f08889631b3268cc74dc478b07e3c77f71c312166 in SPARK_STARGUARD, direct execution: No
+
+        StarGuardLike(SPARK_STARGUARD).plot(SPARK_SPELL, SPARK_SPELL_HASH);
 
         // ----- Grove Proxy Spell -----
         // Forum: https://forum.skyeco.com/t/october-22-2026-proposed-changes-to-grove-for-upcoming-spell/28296

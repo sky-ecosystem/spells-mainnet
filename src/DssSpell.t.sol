@@ -1360,35 +1360,15 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
-        PrimeAgentSpell[3] memory primeAgentSpells = [
+    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
+        PrimeAgentSpell[1] memory primeAgentSpells = [
             PrimeAgentSpell({
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "SPARK_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0x796eE21eb57C8BE71be7F75770f534D249bC555b,
+                addr: 0x78E4439ae74447992b111A73556a188229D34C37,
                 // Insert Prime Agent spell codehash
-                codehash: 0x06af8f55b18ae1bb19a13b9cd3531a164a53da94db01586499d9d2a22009cddb,
-                // Set to true if the Prime Agent spell is executed directly from core spell
-                directExecutionEnabled: false
-            }),
-            PrimeAgentSpell({
-                // Insert Prime Agent StarGuards Chainlog key
-                starGuardKey: "GROVE_STARGUARD",
-                // Insert Prime Agent spell address
-                addr: 0x262E8baA6bFbECDD8d483d13C37c1BA7b4a861A5,
-                // Insert Prime Agent spell codehash
-                codehash: 0xb67edac3b73c41231aaa73bb69dcf7731ac1830d6af66b80be930513dc7de0b4,
-                // Set to true if the Prime Agent spell is executed directly from core spell
-                directExecutionEnabled: false
-            }),
-            PrimeAgentSpell({
-                // Insert Prime Agent StarGuards Chainlog key
-                starGuardKey: "OSERO_STARGUARD",
-                // Insert Prime Agent spell address
-                addr: 0x0ABdd6cbb1802Ce980FE4b628a682c70727978D2,
-                // Insert Prime Agent spell codehash
-                codehash: 0xf80be0f506aab4e137a867a1c289f34254e845ecadbb92b33104660c6349a7fd,
+                codehash: 0x08c335ce1b2ad471186a566f08889631b3268cc74dc478b07e3c77f71c312166,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             })
