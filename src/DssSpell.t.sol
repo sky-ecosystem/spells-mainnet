@@ -40,30 +40,6 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
-interface BeamStateLike {
-    function initRateLimits(bytes32 key, address rateLimits_) external view returns (uint256 maxAmount, uint256 slope);
-
-    function getInitRateLimits(bytes32 key, address rateLimits_)
-        external
-        view
-        returns (uint256 maxAmount, uint256 slope);
-}
-
-interface RateLimitsLike {
-    struct RateLimitData {
-        uint256 maxAmount;
-        uint256 slope;
-        uint256 lastAmount;
-        uint256 lastUpdated;
-    }
-
-    function getRateLimitData(bytes32 key) external view returns (RateLimitData memory);
-}
-
-interface PASConfiguratorLike {
-    function setRateLimit(address rateLimits, bytes32 key, uint256 maxAmount, uint256 slope) external;
-}
-
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -1494,31 +1470,87 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testOseroCBeamRateLimitUpdate() public {
-        bytes32 key = 0xfc26a91cf7b79b531d45dcc431ee59e4f2504f51cb33e2b67960808a104c92ef;
+    struct OseroDepositTestState {
+        bytes32 key;
+        address rateLimitsAddress;
+        address usdc;
+        address vault;
+        address almProxy;
+        uint256 maxAmount;
+        uint256 slope;
+        uint256 depositAmount;
+        uint256 usdcBalanceBefore;
+        uint256 sharesBalanceBefore;
+        uint256 rateLimitBefore;
+        uint256 minSharesOut;
+    }
 
-        address rateLimitsAddress = addr.addr("OSERO_RATE_LIMITS");
-        address oseroCBeam = wallets.addr("OSERO_PAS_CBEAM");
-        PASConfiguratorLike configurator = PASConfiguratorLike(addr.addr("PAS_CONFIGURATOR"));
-        RateLimitsLike rateLimits = RateLimitsLike(rateLimitsAddress);
+    function testOseroInitialRateLimitE2E() public {
+        OseroDepositTestState memory state;
 
-        // Validate target slope can't be set before the initial values are registered
-        vm.startPrank(oseroCBeam);
-        vm.expectRevert("Configurator/exceeds-max-slope");
-        configurator.setRateLimit(rateLimitsAddress, key, 5_000_000_000_000, 7_523_148);
-        vm.stopPrank();
+        state.key = 0xfc26a91cf7b79b531d45dcc431ee59e4f2504f51cb33e2b67960808a104c92ef;
+        state.rateLimitsAddress = addr.addr("OSERO_RATE_LIMITS");
+        state.maxAmount = 5_000_000_000_000;
+        state.slope = 7_523_148;
 
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
+        _testPASInitialRateLimitUpdate(
+            state.key,
+            state.rateLimitsAddress,
+            wallets.addr("OSERO_PAS_CBEAM"),
+            state.maxAmount,
+            state.slope
+        );
 
-        // Validate Osero cBEAM can apply the registered initial values
-        vm.prank(oseroCBeam);
-        configurator.setRateLimit(rateLimitsAddress, key, 5_000_000_000_000, 7_523_148);
+        state.usdc = addr.addr("USDC");
+        state.vault = addr.addr("OGUSDCP_VAULT");
+        state.almProxy = addr.addr("OSERO_ALM_PROXY");
+        state.depositAmount = 1_000e6;
 
-        RateLimitsLike.RateLimitData memory activeAfter = rateLimits.getRateLimitData(key);
+        state.usdcBalanceBefore = GemAbstract(state.usdc).balanceOf(state.almProxy);
+        state.sharesBalanceBefore = ERC4626Like(state.vault).balanceOf(state.almProxy);
 
-        assertEq(activeAfter.maxAmount, 5_000_000_000_000, "TestError/osero-invalid-max-amount-after-cbeam-update");
-        assertEq(activeAfter.slope, 7_523_148, "TestError/osero-invalid-slope-after-cbeam-update");
+        deal(state.usdc, state.almProxy, state.usdcBalanceBefore + state.depositAmount);
+
+        // cBEAM update preserves the current zero capacity, so we need to allow it to recharge
+        skip(_divup(state.depositAmount, state.slope));
+
+        state.rateLimitBefore = RateLimitsLike(state.rateLimitsAddress).getCurrentRateLimit(state.key);
+        assertGe(
+            state.rateLimitBefore,
+            state.depositAmount,
+            "TestError/osero-insufficient-recharge-rate-limit"
+        );
+
+        state.minSharesOut = ERC4626Like(state.vault).previewDeposit(state.depositAmount) * 999 / 1000;
+
+        uint256 shares = abi.decode(
+            _callAdministeredAgentAsActor(
+                addr.addr("OSERO_ADMINISTERED_AGENT"),
+                wallets.addr("OSERO_OPERATOR"),
+                addr.addr("OSERO_CONTROLLER"),
+                abi.encodeCall(
+                    ERC4626ControllerLike.erc4626_deposit,
+                    (state.vault, state.depositAmount, state.minSharesOut)
+                )
+            ),
+            (uint256)
+        );
+
+        assertGe(shares, state.minSharesOut, "TestError/osero-deposit-insufficient-shares");
+        assertEq(
+            ERC4626Like(state.vault).balanceOf(state.almProxy),
+            state.sharesBalanceBefore + shares,
+            "TestError/osero-deposit-invalid-share-balance"
+        );
+        assertEq(
+            GemAbstract(state.usdc).balanceOf(state.almProxy),
+            state.usdcBalanceBefore,
+            "TestError/osero-deposit-invalid-asset-balance"
+        );
+        assertEq(
+            RateLimitsLike(state.rateLimitsAddress).getCurrentRateLimit(state.key),
+            state.rateLimitBefore - state.depositAmount,
+            "TestError/osero-deposit-invalid-rate-limit"
+        );
     }
 }
