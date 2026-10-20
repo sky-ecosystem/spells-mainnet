@@ -1495,10 +1495,19 @@ contract DssSpellTest is DssSpellTestBase {
 
         assertEq(state.slope, uint256(650_000e6) / 1 days, "TestError/osero-invalid-slope-calculation");
 
+        address oseroCBeam = wallets.addr("OSERO_PAS_CBEAM");
+        PASConfiguratorLike configurator = PASConfiguratorLike(addr.addr("PAS_CONFIGURATOR"));
+
+        // Validate target values can't be applied before registration
+        vm.startPrank(oseroCBeam);
+        vm.expectRevert("Configurator/exceeds-max-slope");
+        configurator.setRateLimit(state.rateLimitsAddress, state.key, state.maxAmount, state.slope);
+        vm.stopPrank();
+
         _testPASInitialRateLimitUpdate(
             state.key,
             state.rateLimitsAddress,
-            wallets.addr("OSERO_PAS_CBEAM"),
+            oseroCBeam,
             state.maxAmount,
             state.slope
         );

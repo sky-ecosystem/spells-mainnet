@@ -4497,11 +4497,6 @@ contract DssSpellTestBase is Config, DssTest {
     ) internal {
         PASConfiguratorLike configurator = PASConfiguratorLike(addr.addr("PAS_CONFIGURATOR"));
 
-        // Validate target values can't be applied before registration
-        vm.startPrank(cBeam);
-        vm.expectRevert("Configurator/exceeds-max-slope");
-        configurator.setRateLimit(rateLimitsAddress, key, maxAmount, slope);
-        vm.stopPrank();
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/pas-initial-rate-limit-spell-not-done");
