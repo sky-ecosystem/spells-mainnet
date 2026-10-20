@@ -1522,7 +1522,7 @@ contract DssSpellTest is DssSpellTestBase {
 
         deal(state.usdc, state.almProxy, state.usdcBalanceBefore + state.depositAmount);
 
-        // cBEAM update preserves the current zero capacity, so we need to allow it to recharge
+        // cBEAM update doesn't reset the current capacity, so skip time to recharge it
         skip(_divup(state.depositAmount, state.slope));
 
         state.rateLimitBefore = RateLimitsLike(state.rateLimitsAddress).getCurrentRateLimit(state.key);
