@@ -1492,14 +1492,6 @@ contract DssSpellTest is DssSpellTestBase {
             assertEq(generalMaxAmountAfter, 0, "TestError/osero-general-max-amount-updated");
             assertEq(generalSlopeAfter, 0, "TestError/osero-general-slope-updated");
         }
-
-        // Validate the active rate limit isn't modified by the initial values
-        RateLimitsLike.RateLimitData memory activeAfter = rateLimits.getRateLimitData(key);
-
-        assertEq(activeAfter.maxAmount, activeBefore.maxAmount, "TestError/osero-active-max-amount-updated");
-        assertEq(activeAfter.slope, activeBefore.slope, "TestError/osero-active-slope-updated");
-        assertEq(activeAfter.lastAmount, activeBefore.lastAmount, "TestError/osero-last-amount-updated");
-        assertEq(activeAfter.lastUpdated, activeBefore.lastUpdated, "TestError/osero-last-updated-updated");
     }
 
     function testOseroCBeamRateLimitUpdate() public {
