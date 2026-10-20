@@ -60,6 +60,10 @@ interface RateLimitsTestLike {
     function getRateLimitData(bytes32 key) external view returns (RateLimitData memory);
 }
 
+interface PASConfiguratorTestLike {
+    function setRateLimit(address rateLimits, bytes32 key, uint256 maxAmount, uint256 slope) external;
+}
+
 contract DssSpellTest is DssSpellTestBase {
     using stdStorage for StdStorage;
 
@@ -1496,5 +1500,33 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(activeAfter.slope, activeBefore.slope, "TestError/osero-active-slope-updated");
         assertEq(activeAfter.lastAmount, activeBefore.lastAmount, "TestError/osero-last-amount-updated");
         assertEq(activeAfter.lastUpdated, activeBefore.lastUpdated, "TestError/osero-last-updated-updated");
+    }
+
+    function testOseroCBeamRateLimitUpdate() public {
+        bytes32 key = 0xfc26a91cf7b79b531d45dcc431ee59e4f2504f51cb33e2b67960808a104c92ef;
+
+        address rateLimitsAddress = addr.addr("OSERO_RATE_LIMITS");
+        address oseroCBeam = wallets.addr("OSERO_PAS_CBEAM");
+        PASConfiguratorTestLike configurator = PASConfiguratorTestLike(addr.addr("PAS_CONFIGURATOR"));
+        RateLimitsTestLike rateLimits = RateLimitsTestLike(rateLimitsAddress);
+
+        // Validate target slope can't be set before the initial values are registered
+        vm.startPrank(oseroCBeam);
+        vm.expectRevert("Configurator/exceeds-max-slope");
+        configurator.setRateLimit(rateLimitsAddress, key, 5_000_000_000_000, 7_523_148);
+        vm.stopPrank();
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // Validate Osero cBEAM can apply the registered initial values
+        vm.prank(oseroCBeam);
+        configurator.setRateLimit(rateLimitsAddress, key, 5_000_000_000_000, 7_523_148);
+
+        RateLimitsTestLike.RateLimitData memory activeAfter = rateLimits.getRateLimitData(key);
+
+        assertEq(activeAfter.maxAmount, 5_000_000_000_000, "TestError/osero-invalid-max-amount-after-cbeam-update");
+        assertEq(activeAfter.slope, 7_523_148, "TestError/osero-invalid-slope-after-cbeam-update");
     }
 }
