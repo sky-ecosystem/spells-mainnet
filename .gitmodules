@@ -3,4 +3,4 @@
 	url = https://github.com/sky-ecosystem/dss-exec-lib
 [submodule "lib/dss-test"]
 	path = lib/dss-test
-	url = https://github.com/makerdao/dss-test
+	url = https://github.com/sky-ecosystem/dss-test
