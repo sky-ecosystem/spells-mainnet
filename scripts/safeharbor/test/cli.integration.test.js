@@ -162,6 +162,30 @@ test("escapes rejected Sheet controls before printing operational error", async 
     expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
 });
 
+test("escapes controls in a CSV parser error before cell validation", async () => {
+    // The mocked Sheet CSV has valid headers but a raw ESC after a closing quote;
+    // csv-parse throws before the parsed-cell control check can run.
+    mockSources({
+        chainCSV: dedent`
+            Name,Chain Id,Asset Recovery Address
+            ETHEREUM,eip155:1,0x1000000000000000000000000000000000000001
+        `,
+        contractCSV: ["Status,Chain,Address,isFactory", 'ACTIVE,ETHEREUM,"abc"\u001b[2K,FALSE'].join("\n"),
+        details: { chains: [] },
+    });
+
+    expect(await runCli("generate")).toBe(1);
+    expect(stderr).toHaveBeenCalledExactlyOnceWith(
+        expect.stringContaining('Invalid Closing Quote: got "\\x1b" at line 2'),
+    );
+    expect(stderr.mock.calls[0][0]).toContain("Code: CSV_INVALID_CLOSING_QUOTE");
+    expect(stderr.mock.calls[0][0]).not.toContain("\u001b");
+    expect(stdout).not.toHaveBeenCalled();
+    expect(warnings).not.toHaveBeenCalled();
+    expect(encodeSpy).not.toHaveBeenCalled();
+    expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
+});
+
 test.each(["generate", "inspect"])("%s rejects a line terminator in Sheet CSV", async (command) => {
     mockSources({
         chainCSV: dedent`
