@@ -77,7 +77,6 @@ contract DssSpellAction is DssAction {
         // Atlas: https://sky-atlas.io/#cb293144-de0c-4bd8-9971-d96327b38ae9
 
         // Call PAS_STATE.addInitRateLimits(0xfc26a91cf7b79b531d45dcc431ee59e4f2504f51cb33e2b67960808a104c92ef, 0xE9a78f34fe497e2186f81B8c014cd93B308BC62a, 5000000000000, 7523148)
-
         BeamStateLike(PAS_STATE).addInitRateLimits({
             key: 0xfc26a91cf7b79b531d45dcc431ee59e4f2504f51cb33e2b67960808a104c92ef,
             rateLimits_: OSERO_RATE_LIMITS,
@@ -94,7 +93,6 @@ contract DssSpellAction is DssAction {
         // Atlas: https://sky-atlas.io/#ea73f176-0b94-4e93-b1ee-ca498ac5a6c6
 
         // Whitelist Spark spell with address 0x78E4439ae74447992b111A73556a188229D34C37 and codehash 0x08c335ce1b2ad471186a566f08889631b3268cc74dc478b07e3c77f71c312166 in SPARK_STARGUARD, direct execution: No
-
         StarGuardLike(SPARK_STARGUARD).plot(SPARK_SPELL, SPARK_SPELL_HASH);
 
         // ----- Grove Proxy Spell -----
@@ -103,7 +101,6 @@ contract DssSpellAction is DssAction {
         // Poll: https://snapshot.box/#/s:grovefinance.eth/proposal/0x7659f7a429ab635b7c41796c80f2f730008fe3dd2beb603f7ced05b7ac9cada8
 
         // Whitelist Grove spell with address 0xf9449D21ef687eE55233B9EDC3d7DDA87C7562a7 and codehash 0x7c9f6ed4604e78848e7b368736b8ae59f2209c6687977128a8302fafe1d6526c in GROVE_STARGUARD, direct execution: No
-
         StarGuardLike(GROVE_STARGUARD).plot(GROVE_SPELL, GROVE_SPELL_HASH);
 
         // ----- Pattern Proxy Spell -----
@@ -111,7 +108,6 @@ contract DssSpellAction is DssAction {
         // Poll: https://vote.sky.money/polling/QmQBiM5W
 
         // Whitelist Pattern spell with address 0xb38EB4a6f0Ae439a454EED67877f5aC7e66A7652 and codehash 0x2b3da408f1feea10a958fd5678dfe409d54500e8f1dfc2d0fe22c6b49b41b10c in PATTERN_STARGUARD, direct execution: No
-
         StarGuardLike(PATTERN_STARGUARD).plot(PATTERN_SPELL, PATTERN_SPELL_HASH);
     }
 }
