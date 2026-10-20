@@ -40,7 +40,7 @@ interface LineMomLike {
     function wipe(bytes32 ilk) external returns (uint256);
 }
 
-interface BeamStateTestLike {
+interface BeamStateLike {
     function initRateLimits(bytes32 key, address rateLimits_) external view returns (uint256 maxAmount, uint256 slope);
 
     function getInitRateLimits(bytes32 key, address rateLimits_)
@@ -49,7 +49,7 @@ interface BeamStateTestLike {
         returns (uint256 maxAmount, uint256 slope);
 }
 
-interface RateLimitsTestLike {
+interface RateLimitsLike {
     struct RateLimitData {
         uint256 maxAmount;
         uint256 slope;
@@ -60,7 +60,7 @@ interface RateLimitsTestLike {
     function getRateLimitData(bytes32 key) external view returns (RateLimitData memory);
 }
 
-interface PASConfiguratorTestLike {
+interface PASConfiguratorLike {
     function setRateLimit(address rateLimits, bytes32 key, uint256 maxAmount, uint256 slope) external;
 }
 
@@ -1438,8 +1438,8 @@ contract DssSpellTest is DssSpellTestBase {
         bytes32 key = 0xfc26a91cf7b79b531d45dcc431ee59e4f2504f51cb33e2b67960808a104c92ef;
 
         address rateLimitsAddress = addr.addr("OSERO_RATE_LIMITS");
-        BeamStateTestLike beamState = BeamStateTestLike(addr.addr("PAS_STATE"));
-        RateLimitsTestLike rateLimits = RateLimitsTestLike(rateLimitsAddress);
+        BeamStateLike beamState = BeamStateLike(addr.addr("PAS_STATE"));
+        RateLimitsLike rateLimits = RateLimitsLike(rateLimitsAddress);
 
         // Validate no specific initial rate limit is currently registered
         {
@@ -1458,7 +1458,7 @@ contract DssSpellTest is DssSpellTestBase {
             assertEq(generalSlopeBefore, 0, "TestError/osero-general-slope-already-set");
         }
 
-        RateLimitsTestLike.RateLimitData memory activeBefore = rateLimits.getRateLimitData(key);
+        RateLimitsLike.RateLimitData memory activeBefore = rateLimits.getRateLimitData(key);
 
         // Validate expected active Osero configuration before the Core spell
         assertEq(activeBefore.maxAmount, 5_000_000_000_000, "TestError/osero-unexpected-max-amount");
@@ -1494,7 +1494,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
 
         // Validate the active rate limit isn't modified by the initial values
-        RateLimitsTestLike.RateLimitData memory activeAfter = rateLimits.getRateLimitData(key);
+        RateLimitsLike.RateLimitData memory activeAfter = rateLimits.getRateLimitData(key);
 
         assertEq(activeAfter.maxAmount, activeBefore.maxAmount, "TestError/osero-active-max-amount-updated");
         assertEq(activeAfter.slope, activeBefore.slope, "TestError/osero-active-slope-updated");
@@ -1507,8 +1507,8 @@ contract DssSpellTest is DssSpellTestBase {
 
         address rateLimitsAddress = addr.addr("OSERO_RATE_LIMITS");
         address oseroCBeam = wallets.addr("OSERO_PAS_CBEAM");
-        PASConfiguratorTestLike configurator = PASConfiguratorTestLike(addr.addr("PAS_CONFIGURATOR"));
-        RateLimitsTestLike rateLimits = RateLimitsTestLike(rateLimitsAddress);
+        PASConfiguratorLike configurator = PASConfiguratorLike(addr.addr("PAS_CONFIGURATOR"));
+        RateLimitsLike rateLimits = RateLimitsLike(rateLimitsAddress);
 
         // Validate target slope can't be set before the initial values are registered
         vm.startPrank(oseroCBeam);
@@ -1524,7 +1524,7 @@ contract DssSpellTest is DssSpellTestBase {
         vm.prank(oseroCBeam);
         configurator.setRateLimit(rateLimitsAddress, key, 5_000_000_000_000, 7_523_148);
 
-        RateLimitsTestLike.RateLimitData memory activeAfter = rateLimits.getRateLimitData(key);
+        RateLimitsLike.RateLimitData memory activeAfter = rateLimits.getRateLimitData(key);
 
         assertEq(activeAfter.maxAmount, 5_000_000_000_000, "TestError/osero-invalid-max-amount-after-cbeam-update");
         assertEq(activeAfter.slope, 7_523_148, "TestError/osero-invalid-slope-after-cbeam-update");
