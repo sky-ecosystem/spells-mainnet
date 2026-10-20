@@ -81,7 +81,7 @@ contract DssSpellAction is DssAction {
             key: 0xfc26a91cf7b79b531d45dcc431ee59e4f2504f51cb33e2b67960808a104c92ef,
             rateLimits_: OSERO_RATE_LIMITS,
             maxAmount: 5_000_000_000_000, // Note: 5_000_000 USDC (6 decimals)
-            slope: 7_523_148
+            slope: 7_523_148 // Note: 650_000 USDC (6 decimals) / 1 days (86_400 seconds)
         });
 
         // ----- Spark Proxy Spell -----

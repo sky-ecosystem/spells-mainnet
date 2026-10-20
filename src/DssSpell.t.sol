@@ -1493,6 +1493,8 @@ contract DssSpellTest is DssSpellTestBase {
         state.maxAmount = 5_000_000_000_000;
         state.slope = 7_523_148;
 
+        assertEq(state.slope, uint256(650_000e6) / 1 days, "TestError/osero-invalid-slope-calculation");
+
         _testPASInitialRateLimitUpdate(
             state.key,
             state.rateLimitsAddress,
