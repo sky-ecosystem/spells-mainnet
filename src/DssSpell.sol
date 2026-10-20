@@ -51,24 +51,24 @@ contract DssSpellAction is DssAction {
     // uint256 internal constant X_PCT_RATE = ;
 
     // ---------- Contracts ----------
-    address internal immutable PAS_STATE = DssExecLib.getChangelogAddress("PAS_STATE");
-    address internal immutable SPARK_STARGUARD = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
-    address internal immutable GROVE_STARGUARD = DssExecLib.getChangelogAddress("GROVE_STARGUARD");
+    address internal immutable PAS_STATE         = DssExecLib.getChangelogAddress("PAS_STATE");
+    address internal immutable SPARK_STARGUARD   = DssExecLib.getChangelogAddress("SPARK_STARGUARD");
+    address internal immutable GROVE_STARGUARD   = DssExecLib.getChangelogAddress("GROVE_STARGUARD");
     address internal immutable PATTERN_STARGUARD = DssExecLib.getChangelogAddress("PATTERN_STARGUARD");
 
     // ---------- Osero ----------
-    address internal constant OSERO_RATE_LIMITS = 0xE9a78f34fe497e2186f81B8c014cd93B308BC62a;
+    address internal constant OSERO_RATE_LIMITS  = 0xE9a78f34fe497e2186f81B8c014cd93B308BC62a;
 
     // ---------- Spark Spell ----------
-    address internal constant SPARK_SPELL = 0x78E4439ae74447992b111A73556a188229D34C37;
-    bytes32 internal constant SPARK_SPELL_HASH = 0x08c335ce1b2ad471186a566f08889631b3268cc74dc478b07e3c77f71c312166;
+    address internal constant SPARK_SPELL        = 0x78E4439ae74447992b111A73556a188229D34C37;
+    bytes32 internal constant SPARK_SPELL_HASH   = 0x08c335ce1b2ad471186a566f08889631b3268cc74dc478b07e3c77f71c312166;
 
     // ---------- Grove Spell ----------
-    address internal constant GROVE_SPELL = 0xf9449D21ef687eE55233B9EDC3d7DDA87C7562a7;
-    bytes32 internal constant GROVE_SPELL_HASH = 0x7c9f6ed4604e78848e7b368736b8ae59f2209c6687977128a8302fafe1d6526c;
+    address internal constant GROVE_SPELL        = 0xf9449D21ef687eE55233B9EDC3d7DDA87C7562a7;
+    bytes32 internal constant GROVE_SPELL_HASH   = 0x7c9f6ed4604e78848e7b368736b8ae59f2209c6687977128a8302fafe1d6526c;
 
     // ---------- Pattern Spell ----------
-    address internal constant PATTERN_SPELL = 0xb38EB4a6f0Ae439a454EED67877f5aC7e66A7652;
+    address internal constant PATTERN_SPELL      = 0xb38EB4a6f0Ae439a454EED67877f5aC7e66A7652;
     bytes32 internal constant PATTERN_SPELL_HASH = 0x2b3da408f1feea10a958fd5678dfe409d54500e8f1dfc2d0fe22c6b49b41b10c;
 
     function actions() public override {
