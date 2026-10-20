@@ -1470,7 +1470,7 @@ contract DssSpellTest is DssSpellTestBase {
                 beamState.initRateLimits(key, rateLimitsAddress);
 
             assertEq(initialMaxAmountAfter, 5_000_000_000_000, "TestError/osero-invalid-max-amount-after-spell");
-            assertEq(initialSlopeAfter, 7_523_148, "TestError/osero-invalid-slope-after");
+            assertEq(initialSlopeAfter, 7_523_148, "TestError/osero-invalid-slope-after-spell");
         }
 
         // Validate the effective getter returns the registered values
