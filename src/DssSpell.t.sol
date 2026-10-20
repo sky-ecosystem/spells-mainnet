@@ -1504,7 +1504,7 @@ contract DssSpellTest is DssSpellTestBase {
         configurator.setRateLimit(state.rateLimitsAddress, state.key, state.maxAmount, state.slope);
         vm.stopPrank();
 
-        _testPASInitialRateLimitUpdate(
+        _testPASInitRateLimitUpdate(
             state.key,
             state.rateLimitsAddress,
             oseroCBeam,

@@ -4489,7 +4489,7 @@ contract DssSpellTestBase is Config, DssTest {
         vm.revertToStateAndDelete(beforeCast);
     }
 
-    function _testPASInitialRateLimitUpdate(
+    function _testPASInitRateLimitUpdate(
         bytes32 key,
         address rateLimitsAddress,
         address cBeam,
