@@ -65,6 +65,7 @@ interface BeamStateLike {
         bytes32 key,
         address rateLimits
     ) external view returns (uint256 maxAmount, uint256 slope);
+    function getMaxChange(address rateLimits) external view returns (uint256);
 }
 
 interface RateLimitsLike {
@@ -4508,6 +4509,28 @@ contract DssSpellTestBase is Config, DssTest {
 
             assertEq(registeredMaxAmount, maxAmount, "TestError/pas-initial-rate-limit-invalid-registered-max-amount");
             assertEq(registeredSlope, slope, "TestError/pas-initial-rate-limit-invalid-registered-slope");
+        }
+
+        // Validate cBEAM can't apply values above the allowed bounds
+        {
+            BeamStateLike beamState = BeamStateLike(addr.addr("PAS_STATE"));
+            RateLimitsLike.RateLimitData memory current = RateLimitsLike(rateLimitsAddress).getRateLimitData(key);
+            uint256 maxChange = beamState.getMaxChange(rateLimitsAddress);
+
+            uint256 maxAllowedAmount = current.maxAmount * maxChange / WAD;
+            if (maxAmount > maxAllowedAmount) maxAllowedAmount = maxAmount;
+            if (current.maxAmount > maxAllowedAmount) maxAllowedAmount = current.maxAmount;
+
+            uint256 maxAllowedSlope = current.slope * maxChange / WAD;
+            if (slope > maxAllowedSlope) maxAllowedSlope = slope;
+            if (current.slope > maxAllowedSlope) maxAllowedSlope = current.slope;
+
+            vm.startPrank(cBeam);
+            vm.expectRevert("Configurator/exceeds-max-slope");
+            configurator.setRateLimit(rateLimitsAddress, key, maxAmount, maxAllowedSlope + 1);
+            vm.expectRevert("Configurator/exceeds-max-amount");
+            configurator.setRateLimit(rateLimitsAddress, key, maxAllowedAmount + 1, slope);
+            vm.stopPrank();
         }
 
         // Validate cBEAM can apply registered values
