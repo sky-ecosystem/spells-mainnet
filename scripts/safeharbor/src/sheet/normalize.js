@@ -33,7 +33,6 @@ export function normalizeContractsInScope({ headers, records }, sheetChainDetail
             ...validateAccountAddresses(accountsByChainName, sheetChainDetails),
             ...validateUniqueAccounts(accountsByChainName),
             ...validateEquivalentEvmAccounts(accountsByChainName, sheetChainDetails),
-            ...validateChainIdLineTerminators(value, sheetChainDetails),
         ],
     };
 }
@@ -52,18 +51,6 @@ export function normalizeChainDetails({ headers, records }) {
             ...validateRecoveryAddresses(chains),
         ],
     };
-}
-
-function validateChainIdLineTerminators(sheetState, sheetChainDetails) {
-    return Object.keys(sheetState)
-        .filter((chainId) => /[\n\v\f\r\u0085\u2028\u2029]/.test(chainId))
-        .map((chainId) => ({
-            code: $.SHEET_CHAIN_ID_LINE_TERMINATOR,
-            context: {
-                chainName: sheetChainDetails.name[chainId],
-                chainId,
-            },
-        }));
 }
 
 function validateStatuses(records) {
