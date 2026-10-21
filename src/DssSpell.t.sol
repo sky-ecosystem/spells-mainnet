@@ -146,8 +146,9 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(addr.addr("MCD_CLIP_PSM_GUSD_A"), reg.xlip(_ilk));
         assertEq(addr.addr("PIP_GUSD"), reg.pip(_ilk));
         assertEq(addr.addr("MCD_PSM_GUSD_A"), chainLog.getAddress("MCD_PSM_GUSD_A"));
-        // NOTE: Integration check disabled because GUSD implementation 0x483A1E7F16F46266400f1bAF7abdF445c8D140A2 is
-        // not allowlisted in MCD_JOIN_PSM_GUSD_A, causing both join and exit to revert.
+        // TODO: Revisit after Governance decides whether to fully offboard MCD_PSM_GUSD_A. If retained, re-enable
+        // this check once MCD_JOIN_PSM_GUSD_A supports the active GUSD implementation. The current implementation
+        // 0x483A1E7F16F46266400f1bAF7abdF445c8D140A2 is not allowlisted, causing both join and exit to revert.
         // _checkPsmIlkIntegration(
         //     _ilk,
         //     GemJoinAbstract(addr.addr("MCD_JOIN_PSM_GUSD_A")),
