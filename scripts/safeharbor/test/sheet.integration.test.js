@@ -201,6 +201,24 @@ describe("contracts CSV headers", () => {
 });
 
 describe("chain metadata CSV headers", () => {
+    test.each(["\n", "\v", "\f", "\r", "\u0085", "\u2028", "\u2029"])(
+        "rejects chain IDs containing %j before normalization",
+        async (separator) => {
+            fetch.mockResolvedValue(
+                csvResponse(
+                    `Name,Chain Id,Asset Recovery Address\nETHEREUM,"eip155:1${separator}",0x1000000000000000000000000000000000000001\n`,
+                ),
+            );
+
+            await expect(getSheetChainDetails()).rejects.toMatchObject({
+                diagnostic: {
+                    code: "INVALID_SHEET_CELL_CONTROL_CHARACTER",
+                    context: { header: "Chain Id", value: `eip155:1${separator}` },
+                },
+            });
+        },
+    );
+
     test("rejects control characters in metadata cells", async () => {
         fetch.mockResolvedValue(
             csvResponse(dedent`

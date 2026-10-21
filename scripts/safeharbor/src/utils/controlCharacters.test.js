@@ -4,6 +4,8 @@ import { escapeTerminalControlCharacters, hasUnsafeControlCharacter } from "./co
 test("detects control characters relevant to Sheet input", () => {
     expect(hasUnsafeControlCharacter("safe text")).toBe(false);
     expect(hasUnsafeControlCharacter("line\nbreak")).toBe(true);
+    expect(hasUnsafeControlCharacter("line\nbreak", { allowLineFeed: true })).toBe(false);
+    expect(hasUnsafeControlCharacter("line\nbreak\u001b", { allowLineFeed: true })).toBe(true);
     expect(hasUnsafeControlCharacter("ansi\u001b[2K")).toBe(true);
     expect(hasUnsafeControlCharacter("c1-csi\u009b2K")).toBe(true);
     expect(hasUnsafeControlCharacter("bidi\u202econtrol")).toBe(true);

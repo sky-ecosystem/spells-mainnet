@@ -162,6 +162,26 @@ test("escapes rejected Sheet controls before printing operational error", async 
     expect(provider.destroy).toHaveBeenCalledExactlyOnceWith();
 });
 
+test.each([
+    ["line separator", "\u2028", "\\u2028"],
+    ["bidi control", "\u202e", "\\u202e"],
+])("escapes rejected %s after JSON quoting", async (_name, character, escaped) => {
+    mockSources({
+        chainCSV: [
+            "Name,Chain Id,Asset Recovery Address",
+            `ETHEREUM,"eip155:1${character}",0x1000000000000000000000000000000000000001`,
+        ].join("\n"),
+        contractCSV: "Status,Chain,Address,isFactory\n",
+        details: { chains: [] },
+    });
+
+    expect(await runCli("generate")).toBe(1);
+    expect(stderr.mock.calls[0][0]).toContain(`value="eip155:1${escaped}"`);
+    expect(stderr.mock.calls[0][0]).not.toContain(character);
+    expect(stdout).not.toHaveBeenCalled();
+    expect(encodeSpy).not.toHaveBeenCalled();
+});
+
 test("escapes controls in a CSV parser error before cell validation", async () => {
     // The mocked Sheet CSV has valid headers but a raw ESC after a closing quote;
     // csv-parse throws before the parsed-cell control check can run.
