@@ -1453,6 +1453,21 @@ contract DssSpellTest is DssSpellTestBase {
             assertEq(initialSlopeAfter, 7_523_148, "TestError/osero-invalid-slope-after-spell");
         }
 
+        // Validate cBEAM can't set slope above the registered initial value before next round
+        {
+            PASConfiguratorLike configurator = PASConfiguratorLike(addr.addr("PAS_CONFIGURATOR"));
+
+            vm.startPrank(wallets.addr("OSERO_PAS_CBEAM"));
+            vm.expectRevert("Configurator/exceeds-max-slope");
+            configurator.setRateLimit(
+                rateLimitsAddress,
+                key,
+                5_000_000_000_000,
+                7_523_148 + 1
+            );
+            vm.stopPrank();
+        }
+
         // Validate the effective getter returns the registered values
         {
             (uint256 effectiveMaxAmount, uint256 effectiveSlope) = beamState.getInitRateLimits(key, rateLimitsAddress);

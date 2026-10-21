@@ -4502,19 +4502,11 @@ contract DssSpellTestBase is Config, DssTest {
         assertTrue(spell.done(), "TestError/pas-initial-rate-limit-spell-not-done");
 
         // Validate registered values after spell execution
-        {
-            (uint256 registeredMaxAmount, uint256 registeredSlope) =
-                BeamStateLike(addr.addr("PAS_STATE")).getInitRateLimits(key, rateLimitsAddress);
+        (uint256 registeredMaxAmount, uint256 registeredSlope) =
+            BeamStateLike(addr.addr("PAS_STATE")).getInitRateLimits(key, rateLimitsAddress);
 
-            assertEq(registeredMaxAmount, maxAmount, "TestError/pas-initial-rate-limit-invalid-registered-max-amount");
-            assertEq(registeredSlope, slope, "TestError/pas-initial-rate-limit-invalid-registered-slope");
-        }
-
-        // Validate cBEAM can't set slope above the registered initial value before next round
-        vm.startPrank(cBeam);
-        vm.expectRevert("Configurator/exceeds-max-slope");
-        configurator.setRateLimit(rateLimitsAddress, key, maxAmount, slope + 1);
-        vm.stopPrank();
+        assertEq(registeredMaxAmount, maxAmount, "TestError/pas-initial-rate-limit-invalid-registered-max-amount");
+        assertEq(registeredSlope, slope, "TestError/pas-initial-rate-limit-invalid-registered-slope");
 
         // Validate cBEAM can apply registered values
         vm.prank(cBeam);
