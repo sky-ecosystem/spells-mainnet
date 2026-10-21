@@ -4531,13 +4531,13 @@ contract DssSpellTestBase is Config, DssTest {
         address actor,
         address target,
         bytes memory data
-    ) internal returns (bytes memory result) {
+    ) internal returns (uint256 result) {
         AdministeredAgentLike agent = AdministeredAgentLike(administeredAgent);
 
         assertTrue(agent.getIsActor(actor), "TestError/administered-agent-actor-not-authorized");
 
         vm.prank(actor);
-        result = agent.call(target, data);
+        result = abi.decode(agent.call(target, data), (uint256));
     }
 
     function _testAutoLineExecAfterEverySetIlkCall() public {

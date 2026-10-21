@@ -1534,17 +1534,14 @@ contract DssSpellTest is DssSpellTestBase {
 
         state.minSharesOut = ERC4626Like(state.vault).previewDeposit(state.depositAmount) * 999 / 1000;
 
-        uint256 shares = abi.decode(
-            _callAdministeredAgentAsActor(
-                addr.addr("OSERO_ADMINISTERED_AGENT"),
-                wallets.addr("OSERO_OPERATOR"),
-                addr.addr("OSERO_CONTROLLER"),
-                abi.encodeCall(
-                    ERC4626ControllerLike.erc4626_deposit,
-                    (state.vault, state.depositAmount, state.minSharesOut)
-                )
-            ),
-            (uint256)
+        uint256 shares = _callAdministeredAgentAsActor(
+            addr.addr("OSERO_ADMINISTERED_AGENT"),
+            wallets.addr("OSERO_OPERATOR"),
+            addr.addr("OSERO_CONTROLLER"),
+            abi.encodeCall(
+                ERC4626ControllerLike.erc4626_deposit,
+                (state.vault, state.depositAmount, state.minSharesOut)
+            )
         );
 
         assertGe(shares, state.minSharesOut, "TestError/osero-deposit-insufficient-shares");
