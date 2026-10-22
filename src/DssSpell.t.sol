@@ -146,15 +146,18 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(addr.addr("MCD_CLIP_PSM_GUSD_A"), reg.xlip(_ilk));
         assertEq(addr.addr("PIP_GUSD"), reg.pip(_ilk));
         assertEq(addr.addr("MCD_PSM_GUSD_A"), chainLog.getAddress("MCD_PSM_GUSD_A"));
-        _checkPsmIlkIntegration(
-            _ilk,
-            GemJoinAbstract(addr.addr("MCD_JOIN_PSM_GUSD_A")),
-            ClipAbstract(addr.addr("MCD_CLIP_PSM_GUSD_A")),
-            addr.addr("PIP_GUSD"),
-            PsmAbstract(addr.addr("MCD_PSM_GUSD_A")),
-            0,  // tin
-            0    // tout
-        );
+        // TODO: Revisit after Governance decides whether to fully offboard MCD_PSM_GUSD_A. If retained, re-enable
+        // this check once MCD_JOIN_PSM_GUSD_A supports the active GUSD implementation. The current implementation
+        // 0x483A1E7F16F46266400f1bAF7abdF445c8D140A2 is not allowlisted, causing both join and exit to revert.
+        // _checkPsmIlkIntegration(
+        //     _ilk,
+        //     GemJoinAbstract(addr.addr("MCD_JOIN_PSM_GUSD_A")),
+        //     ClipAbstract(addr.addr("MCD_CLIP_PSM_GUSD_A")),
+        //     addr.addr("PIP_GUSD"),
+        //     PsmAbstract(addr.addr("MCD_PSM_GUSD_A")),
+        //     0,  // tin
+        //     0    // tout
+        // );
 
         // USDP
         _ilk = "PSM-PAX-A";
@@ -1346,9 +1349,9 @@ contract DssSpellTest is DssSpellTestBase {
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "SPARK_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0x796eE21eb57C8BE71be7F75770f534D249bC555b,
+                addr: 0x78E4439ae74447992b111A73556a188229D34C37,
                 // Insert Prime Agent spell codehash
-                codehash: 0x06af8f55b18ae1bb19a13b9cd3531a164a53da94db01586499d9d2a22009cddb,
+                codehash: 0x08c335ce1b2ad471186a566f08889631b3268cc74dc478b07e3c77f71c312166,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             }),
@@ -1356,19 +1359,19 @@ contract DssSpellTest is DssSpellTestBase {
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "GROVE_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0x262E8baA6bFbECDD8d483d13C37c1BA7b4a861A5,
+                addr: 0xf9449D21ef687eE55233B9EDC3d7DDA87C7562a7,
                 // Insert Prime Agent spell codehash
-                codehash: 0xb67edac3b73c41231aaa73bb69dcf7731ac1830d6af66b80be930513dc7de0b4,
+                codehash: 0x7c9f6ed4604e78848e7b368736b8ae59f2209c6687977128a8302fafe1d6526c,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             }),
             PrimeAgentSpell({
                 // Insert Prime Agent StarGuards Chainlog key
-                starGuardKey: "OSERO_STARGUARD",
+                starGuardKey: "PATTERN_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0x0ABdd6cbb1802Ce980FE4b628a682c70727978D2,
+                addr: 0xb38EB4a6f0Ae439a454EED67877f5aC7e66A7652,
                 // Insert Prime Agent spell codehash
-                codehash: 0xf80be0f506aab4e137a867a1c289f34254e845ecadbb92b33104660c6349a7fd,
+                codehash: 0x2b3da408f1feea10a958fd5678dfe409d54500e8f1dfc2d0fe22c6b49b41b10c,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             })
