@@ -27,5 +27,9 @@ contract ArbitrumAddresses {
         addr["L2_TOKEN_BRIDGE_SPELL"]           = 0x3D4357c3944F7A5b6a0B5b67B36588BA45D3f49D;
         addr["L2_ROUTER"]                       = 0x5288c571Fd7aD117beA99bF60FE0846C4E84F933;
         addr["L2_GOV_RELAY"]                    = 0x10E6593CDda8c58a1d0f14C5164B376352a55f2F;
+        addr["L2_PAS_STATE"]                    = 0x11CFefeA67B18de9046a6250555D438854fFEEDa;
+        addr["L2_PAS_CONFIGURATOR"]             = 0xd11Dc57F3eF23bb7b3142588a461F68460a7C474;
+        addr["L2_PAS_TIMELOCK"]                 = 0x66d3653e66F7edb973549CFA3b46F22298B8f983;
+        addr["L2_PAU_BEACON"]                   = 0x86036CE5d2f792367C0AA43164e688d13c5A60A8;
     }
 }
