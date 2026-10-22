@@ -146,15 +146,18 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(addr.addr("MCD_CLIP_PSM_GUSD_A"), reg.xlip(_ilk));
         assertEq(addr.addr("PIP_GUSD"), reg.pip(_ilk));
         assertEq(addr.addr("MCD_PSM_GUSD_A"), chainLog.getAddress("MCD_PSM_GUSD_A"));
-        _checkPsmIlkIntegration(
-            _ilk,
-            GemJoinAbstract(addr.addr("MCD_JOIN_PSM_GUSD_A")),
-            ClipAbstract(addr.addr("MCD_CLIP_PSM_GUSD_A")),
-            addr.addr("PIP_GUSD"),
-            PsmAbstract(addr.addr("MCD_PSM_GUSD_A")),
-            0,  // tin
-            0    // tout
-        );
+        // TODO: Revisit after Governance decides whether to fully offboard MCD_PSM_GUSD_A. If retained, re-enable
+        // this check once MCD_JOIN_PSM_GUSD_A supports the active GUSD implementation. The current implementation
+        // 0x483A1E7F16F46266400f1bAF7abdF445c8D140A2 is not allowlisted, causing both join and exit to revert.
+        // _checkPsmIlkIntegration(
+        //     _ilk,
+        //     GemJoinAbstract(addr.addr("MCD_JOIN_PSM_GUSD_A")),
+        //     ClipAbstract(addr.addr("MCD_CLIP_PSM_GUSD_A")),
+        //     addr.addr("PIP_GUSD"),
+        //     PsmAbstract(addr.addr("MCD_PSM_GUSD_A")),
+        //     0,  // tin
+        //     0    // tout
+        // );
 
         // USDP
         _ilk = "PSM-PAX-A";
@@ -246,7 +249,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
         string[1] memory addedKeys = [
             "STUSDS_VALUE_REGISTRY"
         ];
@@ -658,7 +661,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public { // add the `skipped` modifier to skip
+    function testVestSky() public skipped { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
         uint256 DEC_12_2026_12_42_11_UTC = 1797079331;
 
@@ -777,7 +780,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestedRewardsDist() public { // add the `skipped` modifier to skip
+    function testVestedRewardsDist() public skipped { // add the `skipped` modifier to skip
         uint256 expectedVestIdBefore = 17;
         uint256 expectedVestIdAfter = 18;
 
@@ -825,7 +828,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public { // add the `skipped` modifier to skip
+    function testPayments() public skipped { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -1286,7 +1289,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 
-    function testMonthlySettlementCycleInflows() public { // add the `skipped` modifier to skip
+    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
         AllocatorPayment[] memory payments = new AllocatorPayment[](4);
         payments[0] = AllocatorPayment(addr.addr("ALLOCATOR_SPARK_A_VAULT"), 11_627_438 * WAD);
         payments[1] = AllocatorPayment(addr.addr("ALLOCATOR_BLOOM_A_VAULT"),  6_806_996 * WAD);
@@ -1346,9 +1349,9 @@ contract DssSpellTest is DssSpellTestBase {
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "SPARK_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0x796eE21eb57C8BE71be7F75770f534D249bC555b,
+                addr: 0x78E4439ae74447992b111A73556a188229D34C37,
                 // Insert Prime Agent spell codehash
-                codehash: 0x06af8f55b18ae1bb19a13b9cd3531a164a53da94db01586499d9d2a22009cddb,
+                codehash: 0x08c335ce1b2ad471186a566f08889631b3268cc74dc478b07e3c77f71c312166,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             }),
@@ -1356,19 +1359,19 @@ contract DssSpellTest is DssSpellTestBase {
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "GROVE_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0x262E8baA6bFbECDD8d483d13C37c1BA7b4a861A5,
+                addr: 0xf9449D21ef687eE55233B9EDC3d7DDA87C7562a7,
                 // Insert Prime Agent spell codehash
-                codehash: 0xb67edac3b73c41231aaa73bb69dcf7731ac1830d6af66b80be930513dc7de0b4,
+                codehash: 0x7c9f6ed4604e78848e7b368736b8ae59f2209c6687977128a8302fafe1d6526c,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             }),
             PrimeAgentSpell({
                 // Insert Prime Agent StarGuards Chainlog key
-                starGuardKey: "OSERO_STARGUARD",
+                starGuardKey: "PATTERN_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0x0ABdd6cbb1802Ce980FE4b628a682c70727978D2,
+                addr: 0xb38EB4a6f0Ae439a454EED67877f5aC7e66A7652,
                 // Insert Prime Agent spell codehash
-                codehash: 0xf80be0f506aab4e137a867a1c289f34254e845ecadbb92b33104660c6349a7fd,
+                codehash: 0x2b3da408f1feea10a958fd5678dfe409d54500e8f1dfc2d0fe22c6b49b41b10c,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             })
@@ -1410,82 +1413,170 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
+    function testOseroInitialRateLimits() public {
+        bytes32 key = 0xfc26a91cf7b79b531d45dcc431ee59e4f2504f51cb33e2b67960808a104c92ef;
 
-    function testStUsdsKeeperBudIntegration() public {
-        address bud = wallets.addr("STUSDS_KEEPER_BUD");
+        address rateLimitsAddress = addr.addr("OSERO_RATE_LIMITS");
+        BeamStateLike beamState = BeamStateLike(addr.addr("PAS_STATE"));
+        RateLimitsLike rateLimits = RateLimitsLike(rateLimitsAddress);
 
-        uint256 oldStrBps  = ConvLike(spbeam.conv()).rtob(stusds.str());
-        (uint256 dutyRay,) = jug.ilks(stusds.ilk());
-        uint256 oldDutyBps = ConvLike(spbeam.conv()).rtob(dutyRay);
+        // Validate no specific initial rate limit is currently registered
+        {
+            (uint256 initialMaxAmountBefore, uint256 initialSlopeBefore) =
+                beamState.initRateLimits(key, rateLimitsAddress);
 
-        uint256 line = stusds.line() == rateSetter.maxLine() ? rateSetter.maxLine() - 1 : rateSetter.maxLine();
-        uint256 cap  = stusds.cap()  == rateSetter.maxCap()  ? rateSetter.maxCap()  - 1 : rateSetter.maxCap();
+            assertEq(initialMaxAmountBefore, 0, "TestError/osero-initial-max-amount-non-zero");
+            assertEq(initialSlopeBefore, 0, "TestError/osero-initial-slope-non-zero");
+        }
 
-        // Note: the bud is not able to set rates before the spell
-        vm.prank(bud);
-        vm.expectRevert("StUsdsRateSetter/not-facilitator");
-        rateSetter.set(oldStrBps, oldDutyBps, line, cap);
+        // Validate no general fallback is registered for the key
+        {
+            (uint256 generalMaxAmountBefore, uint256 generalSlopeBefore) = beamState.initRateLimits(key, address(0));
+
+            assertEq(generalMaxAmountBefore, 0, "TestError/osero-general-max-amount-already-set");
+            assertEq(generalSlopeBefore, 0, "TestError/osero-general-slope-already-set");
+        }
+
+        RateLimitsLike.RateLimitData memory activeBefore = rateLimits.getRateLimitData(key);
+
+        // Validate expected active Osero configuration before the Core spell
+        assertEq(activeBefore.maxAmount, 5_000_000_000_000, "TestError/osero-unexpected-max-amount");
+        assertEq(activeBefore.slope, 0, "TestError/osero-unexpected-slope");
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        (, uint16 strMax,  uint16 strStep)  = rateSetter.strCfg();
-        (, uint16 dutyMax, uint16 dutyStep) = rateSetter.dutyCfg();
+        // Validate exact initial rate limit is registered
+        {
+            (uint256 initialMaxAmountAfter, uint256 initialSlopeAfter) =
+                beamState.initRateLimits(key, rateLimitsAddress);
 
-        uint256 newStrBps  = oldStrBps  + strStep  > strMax  ? oldStrBps  - strStep  : oldStrBps  + strStep;
-        uint256 newDutyBps = oldDutyBps + dutyStep > dutyMax ? oldDutyBps - dutyStep : oldDutyBps + dutyStep;
+            assertEq(initialMaxAmountAfter, 5_000_000_000_000, "TestError/osero-invalid-max-amount-after-spell");
+            assertEq(initialSlopeAfter, 7_523_148, "TestError/osero-invalid-slope-after-spell");
+        }
 
-        vm.prank(bud);
-        rateSetter.set(newStrBps, newDutyBps, line, cap);
+        // Validate cBEAM can't set slope above the registered initial value before next round
+        {
+            PASConfiguratorLike configurator = PASConfiguratorLike(addr.addr("PAS_CONFIGURATOR"));
 
-        (uint256 newDutyRay,) = jug.ilks(stusds.ilk());
-        assertEq(ConvLike(spbeam.conv()).rtob(stusds.str()), newStrBps,  "testStUsdsKeeperBudIntegration/str-not-updated");
-        assertEq(ConvLike(spbeam.conv()).rtob(newDutyRay),   newDutyBps, "testStUsdsKeeperBudIntegration/duty-not-updated");
-        assertEq(stusds.line(), line, "testStUsdsKeeperBudIntegration/line-not-updated");
-        assertEq(stusds.cap(),  cap,  "testStUsdsKeeperBudIntegration/cap-not-updated");
+            vm.startPrank(wallets.addr("OSERO_PAS_CBEAM"));
+            vm.expectRevert("Configurator/exceeds-max-slope");
+            configurator.setRateLimit(
+                rateLimitsAddress,
+                key,
+                5_000_000_000_000,
+                7_523_148 + 1
+            );
+            vm.stopPrank();
+        }
+
+        // Validate the effective getter returns the registered values
+        {
+            (uint256 effectiveMaxAmount, uint256 effectiveSlope) = beamState.getInitRateLimits(key, rateLimitsAddress);
+
+            assertEq(effectiveMaxAmount, 5_000_000_000_000, "TestError/osero-invalid-effective-max-amount");
+            assertEq(effectiveSlope, 7_523_148, "TestError/osero-invalid-effective-slope");
+        }
+
+        // Validate spell registered no global fallback
+        {
+            (uint256 generalMaxAmountAfter, uint256 generalSlopeAfter) = beamState.initRateLimits(key, address(0));
+
+            assertEq(generalMaxAmountAfter, 0, "TestError/osero-general-max-amount-updated");
+            assertEq(generalSlopeAfter, 0, "TestError/osero-general-slope-updated");
+        }
     }
 
-    function testBurnSky() public {
-        uint256 skyTotalSupplyBefore     = sky.totalSupply();
-        uint256 skyTreasuryBalanceBefore = sky.balanceOf(address(pauseProxy));
-
-        // Note: `updateFarmVest` distributes the accrued amount of the previous LSSKY->SKY vest
-        // out of the treasury (the vest czar) before yanking it.
-        VestedRewardsDistributionLike dist = VestedRewardsDistributionLike(addr.addr("REWARDS_DIST_LSSKY_SKY"));
-        VestAbstract vestSky      = VestAbstract(dist.dssVest());
-        uint256 prevVestId        = dist.vestId();
-        uint256 prevVestRxdBefore = vestSky.rxd(prevVestId);
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        uint256 distributed = vestSky.rxd(prevVestId) - prevVestRxdBefore;
-
-        assertEq(
-            sky.totalSupply(),
-            skyTotalSupplyBefore - 7_372_288 ether,
-            "TestError/invalid-total-supply"
-        );
-        assertEq(
-            sky.balanceOf(address(pauseProxy)),
-            skyTreasuryBalanceBefore - 7_372_288 ether - distributed,
-            "TestError/invalid-treasury-balance"
-        );
+    struct OseroDepositTestState {
+        bytes32 key;
+        address rateLimitsAddress;
+        address usdc;
+        address vault;
+        address almProxy;
+        uint256 maxAmount;
+        uint256 slope;
+        uint256 depositAmount;
+        uint256 usdcBalanceBefore;
+        uint256 sharesBalanceBefore;
+        uint256 rateLimitBefore;
+        uint256 minSharesOut;
     }
 
-    function testSplitHopAndFarmRewardsDuration() public {
-        StakingRewardsLike farm = StakingRewardsLike(addr.addr("REWARDS_LSSKY_USDS"));
+    function testOseroInitialRateLimitE2E() public {
+        OseroDepositTestState memory state;
 
-        assertEq(split.hop(),            2_504, "TestError/split-hop-before");
-        assertEq(farm.rewardsDuration(), 2_504, "TestError/rewards-duration-before");
+        state.key = 0xfc26a91cf7b79b531d45dcc431ee59e4f2504f51cb33e2b67960808a104c92ef;
+        state.rateLimitsAddress = addr.addr("OSERO_RATE_LIMITS");
+        state.maxAmount = 5_000_000_000_000;
+        state.slope = 7_523_148;
 
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
+        assertEq(state.slope, uint256(650_000e6) / 1 days, "TestError/osero-invalid-slope-calculation");
 
-        assertEq(split.hop(),            2_693, "TestError/split-hop-after");
-        assertEq(farm.rewardsDuration(), 2_693, "TestError/rewards-duration-after");
+        address oseroCBeam = wallets.addr("OSERO_PAS_CBEAM");
+        PASConfiguratorLike configurator = PASConfiguratorLike(addr.addr("PAS_CONFIGURATOR"));
+
+        // Validate target values can't be applied before registration
+        vm.startPrank(oseroCBeam);
+        vm.expectRevert("Configurator/exceeds-max-slope");
+        configurator.setRateLimit(state.rateLimitsAddress, state.key, state.maxAmount, state.slope);
+        vm.stopPrank();
+
+        _testPASInitRateLimitUpdate(
+            state.key,
+            state.rateLimitsAddress,
+            oseroCBeam,
+            state.maxAmount,
+            state.slope
+        );
+
+        state.usdc = addr.addr("USDC");
+        state.vault = addr.addr("OGUSDCP_VAULT");
+        state.almProxy = addr.addr("OSERO_ALM_PROXY");
+        state.depositAmount = 1_000e6;
+
+        state.usdcBalanceBefore = GemAbstract(state.usdc).balanceOf(state.almProxy);
+        state.sharesBalanceBefore = ERC4626Like(state.vault).balanceOf(state.almProxy);
+
+        deal(state.usdc, state.almProxy, state.usdcBalanceBefore + state.depositAmount);
+
+        // cBEAM update doesn't reset the current capacity, so skip time to recharge it
+        skip(_divup(state.depositAmount, state.slope));
+
+        state.rateLimitBefore = RateLimitsLike(state.rateLimitsAddress).getCurrentRateLimit(state.key);
+        assertGe(
+            state.rateLimitBefore,
+            state.depositAmount,
+            "TestError/osero-insufficient-recharge-rate-limit"
+        );
+
+        state.minSharesOut = ERC4626Like(state.vault).previewDeposit(state.depositAmount) * 999 / 1000;
+
+        uint256 shares = _callAdministeredAgentAsActor(
+            addr.addr("OSERO_ADMINISTERED_AGENT"),
+            wallets.addr("OSERO_OPERATOR"),
+            addr.addr("OSERO_CONTROLLER"),
+            abi.encodeCall(
+                ERC4626ControllerLike.erc4626_deposit,
+                (state.vault, state.depositAmount, state.minSharesOut)
+            )
+        );
+
+        assertGe(shares, state.minSharesOut, "TestError/osero-deposit-insufficient-shares");
+        assertEq(
+            ERC4626Like(state.vault).balanceOf(state.almProxy),
+            state.sharesBalanceBefore + shares,
+            "TestError/osero-deposit-invalid-share-balance"
+        );
+        assertEq(
+            GemAbstract(state.usdc).balanceOf(state.almProxy),
+            state.usdcBalanceBefore,
+            "TestError/osero-deposit-invalid-asset-balance"
+        );
+        assertEq(
+            RateLimitsLike(state.rateLimitsAddress).getCurrentRateLimit(state.key),
+            state.rateLimitBefore - state.depositAmount,
+            "TestError/osero-deposit-invalid-rate-limit"
+        );
     }
 }
