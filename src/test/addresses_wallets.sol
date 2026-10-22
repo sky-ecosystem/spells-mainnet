@@ -244,5 +244,8 @@ contract Wallets {
 
         // STUSDS Keeper
         addr["STUSDS_KEEPER_BUD"]              = 0x068F9c8F33E13c18B852877A5D8Ec61504971376;
+
+        // Osero
+        addr["OSERO_OPERATOR"]                 = 0x29c5A20A49A0D522A3714af97C517a908946b6A8;
     }
 }

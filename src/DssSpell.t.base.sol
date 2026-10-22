@@ -54,6 +54,35 @@ struct ParamChange {
     uint256 bps; // New rate value in bps
 }
 
+interface AdministeredAgentLike {
+    function call(address target, bytes memory data) external payable returns (bytes memory result);
+    function getIsActor(address account) external view returns (bool);
+}
+
+interface BeamStateLike {
+    function initRateLimits(bytes32 key, address rateLimits_) external view returns (uint256 maxAmount, uint256 slope);
+    function getInitRateLimits(
+        bytes32 key,
+        address rateLimits
+    ) external view returns (uint256 maxAmount, uint256 slope);
+}
+
+interface RateLimitsLike {
+    struct RateLimitData {
+        uint256 maxAmount;
+        uint256 slope;
+        uint256 lastAmount;
+        uint256 lastUpdated;
+    }
+
+    function getCurrentRateLimit(bytes32 key) external view returns (uint256);
+    function getRateLimitData(bytes32 key) external view returns (RateLimitData memory);
+}
+
+interface PASConfiguratorLike {
+    function setRateLimit(address rateLimits, bytes32 key, uint256 maxAmount, uint256 slope) external;
+}
+
 interface DirectDepositLike is GemJoinAbstract {
     function file(bytes32, uint256) external;
     function exec() external;
@@ -645,6 +674,15 @@ interface SafeHarborAgreementLike {
     function owner() external view returns (address);
     function removeAccounts(string calldata caip2ChainId, string[] calldata accountAddresses) external;
     function removeChains(string[] calldata caip2ChainIds) external;
+}
+
+interface ERC4626Like {
+    function balanceOf(address account) external view returns (uint256);
+    function previewDeposit(uint256 assets) external view returns (uint256 shares);
+}
+
+interface ERC4626ControllerLike {
+    function erc4626_deposit(address vault, uint256 amount, uint256 minSharesOut) external returns (uint256 shares);
 }
 
 contract DssSpellTestBase is Config, DssTest {
@@ -4448,6 +4486,50 @@ contract DssSpellTestBase is Config, DssTest {
         }
 
         vm.revertToStateAndDelete(beforeCast);
+    }
+
+    function _testPASInitRateLimitUpdate(
+        bytes32 key,
+        address rateLimitsAddress,
+        address cBeam,
+        uint256 maxAmount,
+        uint256 slope
+    ) internal {
+        PASConfiguratorLike configurator = PASConfiguratorLike(addr.addr("PAS_CONFIGURATOR"));
+
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/pas-initial-rate-limit-spell-not-done");
+
+        // Validate registered values after spell execution
+        (uint256 registeredMaxAmount, uint256 registeredSlope) =
+            BeamStateLike(addr.addr("PAS_STATE")).getInitRateLimits(key, rateLimitsAddress);
+
+        assertEq(registeredMaxAmount, maxAmount, "TestError/pas-initial-rate-limit-invalid-registered-max-amount");
+        assertEq(registeredSlope, slope, "TestError/pas-initial-rate-limit-invalid-registered-slope");
+
+        // Validate cBEAM can apply registered values
+        vm.prank(cBeam);
+        configurator.setRateLimit(rateLimitsAddress, key, maxAmount, slope);
+
+        RateLimitsLike.RateLimitData memory active = RateLimitsLike(rateLimitsAddress).getRateLimitData(key);
+
+        assertEq(active.maxAmount, maxAmount, "TestError/pas-initial-rate-limit-invalid-active-max-amount");
+        assertEq(active.slope, slope, "TestError/pas-initial-rate-limit-invalid-active-slope");
+    }
+
+    function _callAdministeredAgentAsActor(
+        address administeredAgent,
+        address actor,
+        address target,
+        bytes memory data
+    ) internal returns (uint256 result) {
+        AdministeredAgentLike agent = AdministeredAgentLike(administeredAgent);
+
+        assertTrue(agent.getIsActor(actor), "TestError/administered-agent-actor-not-authorized");
+
+        vm.prank(actor);
+        result = abi.decode(agent.call(target, data), (uint256));
     }
 
     function _testAutoLineExecAfterEverySetIlkCall() public {
