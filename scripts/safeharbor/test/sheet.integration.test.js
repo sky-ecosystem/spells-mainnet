@@ -74,6 +74,17 @@ test("accepts CSV media type casing, whitespace and parameters", async () => {
 });
 
 describe("contracts CSV headers", () => {
+    test("rejects control characters in headers", async () => {
+        fetch.mockResolvedValue(csvResponse("Status,Chain,Addr\u001b[2Kess,isFactory\n"));
+
+        await expect(getSheetState()).rejects.toMatchObject({
+            diagnostic: {
+                code: "INVALID_SHEET_HEADER_CONTROL_CHARACTER",
+                context: { header: "Addr\u001b[2Kess" },
+            },
+        });
+    });
+
     test("rejects repeated headers before reading any records", async () => {
         fetch.mockResolvedValue(csvResponse("Status,Chain,Address,isFactory,Status\n"));
         await expect(
@@ -168,9 +179,65 @@ describe("contracts CSV headers", () => {
             "https://docs.google.com/spreadsheets/d/1e_KOYOeBGaA5EG3Xqco6lOP_a0zV4Vrm3w5-dqFk00U/export?format=csv&gid=1121763694",
         );
     });
+
+    test("rejects control characters in cells", async () => {
+        fetch.mockResolvedValue(
+            csvResponse(dedent`
+                Status,Chain,Address,isFactory
+                ACTIVE,ETHEREUM,"0xnot-valid\u001b[2Kforged",FALSE
+            `),
+        );
+
+        await expect(getSheetState()).rejects.toMatchObject({
+            diagnostic: {
+                code: "INVALID_SHEET_CELL_CONTROL_CHARACTER",
+                context: {
+                    header: "Address",
+                    value: "0xnot-valid\u001b[2Kforged",
+                },
+            },
+        });
+    });
 });
 
 describe("chain metadata CSV headers", () => {
+    test.each(["\n", "\v", "\f", "\r", "\u0085", "\u2028", "\u2029"])(
+        "rejects chain IDs containing %j before normalization",
+        async (separator) => {
+            fetch.mockResolvedValue(
+                csvResponse(
+                    `Name,Chain Id,Asset Recovery Address\nETHEREUM,"eip155:1${separator}",0x1000000000000000000000000000000000000001\n`,
+                ),
+            );
+
+            await expect(getSheetChainDetails()).rejects.toMatchObject({
+                diagnostic: {
+                    code: "INVALID_SHEET_CELL_CONTROL_CHARACTER",
+                    context: { header: "Chain Id", value: `eip155:1${separator}` },
+                },
+            });
+        },
+    );
+
+    test("rejects control characters in metadata cells", async () => {
+        fetch.mockResolvedValue(
+            csvResponse(dedent`
+                Name,Chain Id,Asset Recovery Address
+                ETHEREUM,"eip155:1\u001b[2K",0x1000000000000000000000000000000000000001
+            `),
+        );
+
+        await expect(getSheetChainDetails()).rejects.toMatchObject({
+            diagnostic: {
+                code: "INVALID_SHEET_CELL_CONTROL_CHARACTER",
+                context: {
+                    header: "Chain Id",
+                    value: "eip155:1\u001b[2K",
+                },
+            },
+        });
+    });
+
     test("rejects repeated metadata headers", async () => {
         fetch.mockResolvedValue(
             csvResponse(dedent`

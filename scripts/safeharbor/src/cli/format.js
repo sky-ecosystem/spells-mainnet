@@ -1,7 +1,8 @@
 import { formatDiagnostic } from "../diagnostic/index.js";
+import { escapeTerminalControlCharacters } from "../utils/controlCharacters.js";
 
 export function formatCliMessage(icon, message) {
-    return `${icon} ${message.replaceAll("\n", "\n       ")}`;
+    return `${icon} ${escapeTerminalControlCharacters(message).replaceAll("\n", "\n       ")}`;
 }
 
 export function formatOperationalError(error) {

@@ -3,7 +3,6 @@ import { DIAGNOSTIC_CODES as $ } from "./codes.js";
 
 export const diagnosticTemplates = {
     [$.INVALID_CHAIN_ID]: "Chain ID '{chainId}' is not accepted by the Agreement's configured chain validator",
-    [$.SHEET_CHAIN_ID_LINE_TERMINATOR]: "Line terminator in SafeHarbor Sheet Chain Id for '{chainName}': {chainId}",
     [$.INVALID_SHEET_STATUS]:
         "Unrecognized status in SafeHarbor Sheet for chain '{chainName}', account '{address}': '{status}'; expected ACTIVE or DISABLED",
     [$.INVALID_SHEET_FACTORY_FLAG]:
@@ -45,6 +44,9 @@ export const diagnosticTemplates = {
         "Duplicate chain ID found in Safeharbor Sheet: chainId='{chainId}', first='{firstChainName}', duplicate='{duplicateChainName}'",
     [$.MISSING_SHEET_HEADERS]: "Missing required CSV headers: {missingHeaders}",
     [$.DUPLICATE_SHEET_HEADERS]: "Duplicate CSV headers: {duplicateHeaders}",
+    [$.INVALID_SHEET_HEADER_CONTROL_CHARACTER]: "Control character in SafeHarbor Sheet CSV header: {header}",
+    [$.INVALID_SHEET_CELL_CONTROL_CHARACTER]:
+        "Control character in SafeHarbor Sheet CSV cell: column='{header}', value={value}",
     [$.COMMAND_REQUIRED]: dedent`
         Error: Command is required
         Available commands: generate, inspect, verify
