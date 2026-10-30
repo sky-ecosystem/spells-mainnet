@@ -190,8 +190,8 @@ contract Config {
         afterSpell.vest_sky_mint_cap      = 176_000_000 * WAD / 182 days;                   // In WAD SKY per second
         afterSpell.vest_spk_cap           = 2_502_500_000 * WAD / 730 days;                 // In WAD SPK per second
         afterSpell.vest_grove_cap         = (110 * 2_450_000_000 * WAD) / (100 * 730 days); // In WAD GROVE per second
-        afterSpell.ilk_count              = 35;                                             // Num expected in system
-        afterSpell.chainlog_version       = "1.20.21";                                      // String expected in system
+        afterSpell.ilk_count              = 33;                                             // Num expected in system
+        afterSpell.chainlog_version       = "1.20.22";                                      // String expected in system
 
         afterSpell.SP_tau       = 57_600 seconds;                             // In seconds
         afterSpell.SP_bud       = 0xe1c6f81D0c3CD570A77813b81AA064c5fff80309; // Address of SPBEAM Bud
@@ -629,35 +629,6 @@ contract Config {
             SP_step:      0,
             offboarding:  false
         });
-        afterSpell.collaterals["PSM-PAX-A"] = CollateralValues({
-            um:           UpdateMethod.MANUAL,
-            aL_line:      0,
-            aL_gap:       0,
-            aL_ttl:       0,
-            line:         0,
-            dust:         0,
-            pct:          0,
-            mat:          10000,
-            liqType:      "clip",
-            liqOn:        false,
-            chop:         1300,
-            dog_hole:     0,
-            clip_buf:     10500,
-            clip_tail:    220 minutes,
-            clip_cusp:    9000,
-            clip_chip:    10,
-            clip_tip:     300,
-            clipper_mom:  0,
-            cm_tolerance: 9500,
-            calc_tau:     0,
-            calc_step:    120,
-            calc_cut:     9990,
-            SP_enabled:   false,
-            SP_min:       0,
-            SP_max:       0,
-            SP_step:      0,
-            offboarding:  true
-        });
         afterSpell.collaterals["GUNIV3DAIUSDC1-A"] = CollateralValues({
             um:           UpdateMethod.MANUAL,
             aL_line:      0,
@@ -826,35 +797,6 @@ contract Config {
             calc_tau:     0,
             calc_step:    0,
             calc_cut:     0,
-            SP_enabled:   false,
-            SP_min:       0,
-            SP_max:       0,
-            SP_step:      0,
-            offboarding:  false
-        });
-        afterSpell.collaterals["PSM-GUSD-A"] = CollateralValues({
-            um:           UpdateMethod.MANUAL,
-            aL_line:      0,
-            aL_gap:       0,
-            aL_ttl:       0,
-            line:         0,
-            dust:         0,
-            pct:          0,
-            mat:          10000,
-            liqType:      "clip",
-            liqOn:        false,
-            chop:         1300,
-            dog_hole:     0,
-            clip_buf:     10500,
-            clip_tail:    220 minutes,
-            clip_cusp:    9000,
-            clip_chip:    10,
-            clip_tip:     300,
-            clipper_mom:  0,
-            cm_tolerance: 9500,
-            calc_tau:     0,
-            calc_step:    120,
-            calc_cut:     9990,
             SP_enabled:   false,
             SP_min:       0,
             SP_max:       0,

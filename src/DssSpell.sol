@@ -19,6 +19,14 @@ pragma solidity 0.8.16;
 import { DssExec } from "dss-exec-lib/DssExec.sol";
 import { DssAction, DssExecLib } from "dss-exec-lib/DssAction.sol";
 import { DssAutoLineAbstract } from "dss-interfaces/dss/DssAutoLineAbstract.sol";
+import { VatAbstract } from "dss-interfaces/dss/VatAbstract.sol";
+import { IlkRegistryAbstract } from "dss-interfaces/dss/IlkRegistryAbstract.sol";
+import { GemJoinAbstract } from "dss-interfaces/dss/GemJoinAbstract.sol";
+import { ChainlogAbstract } from "dss-interfaces/dss/ChainlogAbstract.sol";
+
+interface LineMomLike {
+    function delIlk(bytes32 ilk) external;
+}
 
 interface SubProxyMethodsLike {
     function transfer(address token, address to, uint256 amount) external;
@@ -61,6 +69,18 @@ contract DssSpellAction is DssAction {
     uint256 internal constant WAD     = 10 ** 18;
 
     // ---------- Contracts ----------
+    address internal immutable ILK_REGISTRY          = DssExecLib.reg();
+    address internal immutable LINE_MOM              = DssExecLib.getChangelogAddress("LINE_MOM");
+    address internal immutable MCD_VAT               = DssExecLib.vat();
+    address internal immutable MCD_VOW               = DssExecLib.vow();
+    address internal immutable MCD_DOG               = DssExecLib.dog();
+    address internal immutable CHANGELOG             = DssExecLib.LOG;
+    address internal immutable MCD_PSM_GUSD_A        = DssExecLib.getChangelogAddress("MCD_PSM_GUSD_A");
+    address internal immutable MCD_JOIN_PSM_GUSD_A   = DssExecLib.getChangelogAddress("MCD_JOIN_PSM_GUSD_A");
+    address internal immutable MCD_CLIP_PSM_GUSD_A   = DssExecLib.getChangelogAddress("MCD_CLIP_PSM_GUSD_A");
+    address internal immutable MCD_PSM_PAX_A         = DssExecLib.getChangelogAddress("MCD_PSM_PAX_A");
+    address internal immutable MCD_JOIN_PSM_PAX_A    = DssExecLib.getChangelogAddress("MCD_JOIN_PSM_PAX_A");
+    address internal immutable MCD_CLIP_PSM_PAX_A    = DssExecLib.getChangelogAddress("MCD_CLIP_PSM_PAX_A");
     address internal immutable MCD_IAM_AUTO_LINE     = DssExecLib.autoLine();
     address internal immutable USDS                  = DssExecLib.getChangelogAddress("USDS");
     address internal immutable SKYBASE_SUBPROXY      = DssExecLib.getChangelogAddress("SKYBASE_SUBPROXY");
@@ -84,10 +104,63 @@ contract DssSpellAction is DssAction {
         // ----- Finalize GUSD and USDP PSM Offboarding -----
 
         // Finalize PSM-GUSD-A Offboarding
-        // TODO
+        _offboardPsm({
+            ilk:  "PSM-GUSD-A",
+            psm:  MCD_PSM_GUSD_A,
+            join: MCD_JOIN_PSM_GUSD_A,
+            clip: MCD_CLIP_PSM_GUSD_A
+        });
+
+        // Note: Removing PSM-GUSD-A related addresses from chainlog
+
+        // Note: Remove MCD_PSM_GUSD_A from the chainlog
+        ChainlogAbstract(CHANGELOG).removeAddress("MCD_PSM_GUSD_A");
+
+        // Note: Remove MCD_JOIN_PSM_GUSD_A from the chainlog
+        ChainlogAbstract(CHANGELOG).removeAddress("MCD_JOIN_PSM_GUSD_A");
+
+        // Note: Remove MCD_CLIP_PSM_GUSD_A from the chainlog
+        ChainlogAbstract(CHANGELOG).removeAddress("MCD_CLIP_PSM_GUSD_A");
+
+        // Note: Remove MCD_CLIP_CALC_PSM_GUSD_A from the chainlog
+        ChainlogAbstract(CHANGELOG).removeAddress("MCD_CLIP_CALC_PSM_GUSD_A");
+
+        // Note: Remove MCD_PSM_GUSD_A_JAR from the chainlog
+        ChainlogAbstract(CHANGELOG).removeAddress("MCD_PSM_GUSD_A_JAR");
+
+        // Note: Remove MCD_PSM_GUSD_A_INPUT_CONDUIT_JAR from the chainlog
+        ChainlogAbstract(CHANGELOG).removeAddress("MCD_PSM_GUSD_A_INPUT_CONDUIT_JAR");
 
         // Finalize PSM-PAX-A Offboarding
-        // TODO
+        _offboardPsm({
+            ilk:  "PSM-PAX-A",
+            psm:  MCD_PSM_PAX_A,
+            join: MCD_JOIN_PSM_PAX_A,
+            clip: MCD_CLIP_PSM_PAX_A
+        });
+
+        // Note: Removing PSM-PAX-A related addresses from chainlog
+
+        // Note: Remove MCD_PSM_PAX_A from the chainlog
+        ChainlogAbstract(CHANGELOG).removeAddress("MCD_PSM_PAX_A");
+
+        // Note: Remove MCD_JOIN_PSM_PAX_A from the chainlog
+        ChainlogAbstract(CHANGELOG).removeAddress("MCD_JOIN_PSM_PAX_A");
+
+        // Note: Remove MCD_CLIP_PSM_PAX_A from the chainlog
+        ChainlogAbstract(CHANGELOG).removeAddress("MCD_CLIP_PSM_PAX_A");
+
+        // Note: Remove MCD_CLIP_CALC_PSM_PAX_A from the chainlog
+        ChainlogAbstract(CHANGELOG).removeAddress("MCD_CLIP_CALC_PSM_PAX_A");
+
+        // Note: Remove MCD_PSM_PAX_A_JAR from the chainlog
+        ChainlogAbstract(CHANGELOG).removeAddress("MCD_PSM_PAX_A_JAR");
+
+        // Note: Remove MCD_PSM_PAX_A_INPUT_CONDUIT_JAR from the chainlog
+        ChainlogAbstract(CHANGELOG).removeAddress("MCD_PSM_PAX_A_INPUT_CONDUIT_JAR");
+
+        // Note: Bump the chainlog version from 1.20.21 to 1.20.22
+        DssExecLib.setChangelogVersion("1.20.22");
 
         // ----- Use SUBPROXY_METHODS To Transfer USDS From SKYBASE_SUBPROXY to Skybase Foundation -----
         // Forum: https://forum.skyeco.com/t/november-5-2026-skybase-foundation-grant-900-000-usds-subproxy-transfer/28359
@@ -146,6 +219,34 @@ contract DssSpellAction is DssAction {
 
         // Whitelist Grove spell with address 0xb7fdd2f1efE69EC2145A914bCEB23D48de4Bb74D and codehash 0x205f19d44421f601f530310481a88bbd037f1d114e82e9cd5d82ccf828b45ee3 in GROVE_STARGUARD, direct execution: No
         StarGuardLike(GROVE_STARGUARD).plot(GROVE_SPELL, GROVE_SPELL_HASH);
+    }
+
+    /// @notice Wraps the operations required to finish the offboarding of a PSM ilk.
+    /// @dev Writes off the remaining debt of the PSM urn and removes the ilk from the system.
+    /// @param ilk The ilk to offboard
+    /// @param psm The address of the PSM
+    /// @param join The address of the ilk join
+    /// @param clip The address of the ilk clipper
+    function _offboardPsm(bytes32 ilk, address psm, address join, address clip) internal {
+        // Write off the remaining debt
+        (uint256 ink, uint256 art) = VatAbstract(MCD_VAT).urns(ilk, psm);
+        VatAbstract(MCD_VAT).grab(ilk, psm, address(this), MCD_VOW, -int256(ink), -int256(art));
+
+        // Remove ilk from ILK_REGISTRY
+        IlkRegistryAbstract(ILK_REGISTRY).removeAuth(ilk);
+
+        // Remove ilk from LINE_MOM
+        LineMomLike(LINE_MOM).delIlk(ilk);
+
+        // Cage the join
+        GemJoinAbstract(join).cage();
+
+        // Revoke the join authorization on MCD_VAT
+        DssExecLib.deauthorize(MCD_VAT, join);
+
+        // Revoke the Clipper authorization on MCD_VAT and MCD_DOG
+        DssExecLib.deauthorize(MCD_VAT, clip);
+        DssExecLib.deauthorize(MCD_DOG, clip);
     }
 
     /// @notice Wraps the operations required to update the Safe Harbor agreement.
