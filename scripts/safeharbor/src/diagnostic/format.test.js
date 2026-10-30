@@ -41,18 +41,6 @@ test("inserts placeholder-like and replacement-pattern text literally", () => {
     );
 });
 
-test("shows line terminators visibly in a Sheet chain ID diagnostic", () => {
-    expect(
-        formatDiagnostic({
-            code: "SHEET_CHAIN_ID_LINE_TERMINATOR",
-            context: {
-                chainName: "ETHEREUM",
-                chainId: "eip155:1\nrevert(); //\u2028hidden",
-            },
-        }),
-    ).toBe("Line terminator in SafeHarbor Sheet Chain Id for 'ETHEREUM': \"eip155:1\\nrevert(); //\\u2028hidden\"");
-});
-
 test.each([
     {
         diagnostic: {
@@ -160,6 +148,21 @@ test.each([
             context: { duplicateHeaders: ["Status", "Address"] },
         },
         message: "Duplicate CSV headers: Status, Address",
+    },
+    {
+        diagnostic: {
+            code: "INVALID_SHEET_HEADER_CONTROL_CHARACTER",
+            context: { header: "Addr\u001b[2Kess" },
+        },
+        message: 'Control character in SafeHarbor Sheet CSV header: "Addr\\u001b[2Kess"',
+    },
+    {
+        diagnostic: {
+            code: "INVALID_SHEET_CELL_CONTROL_CHARACTER",
+            context: { header: "Address", value: "0xnot-valid\u001b[2Kforged" },
+        },
+        message:
+            "Control character in SafeHarbor Sheet CSV cell: column='Address', value=\"0xnot-valid\\u001b[2Kforged\"",
     },
     {
         diagnostic: {

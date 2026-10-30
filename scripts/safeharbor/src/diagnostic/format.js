@@ -10,11 +10,11 @@ export function formatDiagnostic({ code, context = {} }) {
 }
 
 const formatContext = {
-    [$.SHEET_CHAIN_ID_LINE_TERMINATOR]: ({ chainId }) => ({
-        chainId: JSON.stringify(chainId).replace(
-            /[\u0085\u2028\u2029]/g,
-            (character) => `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`,
-        ),
+    [$.INVALID_SHEET_HEADER_CONTROL_CHARACTER]: ({ header }) => ({
+        header: JSON.stringify(header),
+    }),
+    [$.INVALID_SHEET_CELL_CONTROL_CHARACTER]: ({ value }) => ({
+        value: JSON.stringify(value),
     }),
     [$.DUPLICATE_SHEET_HEADERS]: (context) => ({
         duplicateHeaders: formatList(context.duplicateHeaders),
