@@ -12,7 +12,7 @@ optimizer = false
 optimizer_runs = 200
 via_ir = false
 libraries = [
-    "./lib/dss-exec-lib/src/DssExecLib.sol:DssExecLib:0x8De6DDbCd5053d32292AAA0D2105A32d108484a6"
+    "./lib/dss-exec-lib/src/DssExecLib.sol:DssExecLib:0x99933a7b2982Ea2ad3d7e9027Cd034197aA562C2"
 ]
 
 block_gas_limit = 1000000000000000000
