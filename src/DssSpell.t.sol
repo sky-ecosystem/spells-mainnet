@@ -1343,15 +1343,15 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
-        PrimeAgentSpell[3] memory primeAgentSpells = [
+    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
+        PrimeAgentSpell[2] memory primeAgentSpells = [
             PrimeAgentSpell({
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "SPARK_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0x78E4439ae74447992b111A73556a188229D34C37,
+                addr: 0x9C3991A36aE899c7b267208bad2cC1237BE36F5b,
                 // Insert Prime Agent spell codehash
-                codehash: 0x08c335ce1b2ad471186a566f08889631b3268cc74dc478b07e3c77f71c312166,
+                codehash: 0x084497cc546ef29a5597591d820a3342a0b7687bcbd6fed504830f915a4422d9,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             }),
@@ -1359,19 +1359,9 @@ contract DssSpellTest is DssSpellTestBase {
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "GROVE_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0xf9449D21ef687eE55233B9EDC3d7DDA87C7562a7,
+                addr: 0xb7fdd2f1efE69EC2145A914bCEB23D48de4Bb74D,
                 // Insert Prime Agent spell codehash
-                codehash: 0x7c9f6ed4604e78848e7b368736b8ae59f2209c6687977128a8302fafe1d6526c,
-                // Set to true if the Prime Agent spell is executed directly from core spell
-                directExecutionEnabled: false
-            }),
-            PrimeAgentSpell({
-                // Insert Prime Agent StarGuards Chainlog key
-                starGuardKey: "PATTERN_STARGUARD",
-                // Insert Prime Agent spell address
-                addr: 0xb38EB4a6f0Ae439a454EED67877f5aC7e66A7652,
-                // Insert Prime Agent spell codehash
-                codehash: 0x2b3da408f1feea10a958fd5678dfe409d54500e8f1dfc2d0fe22c6b49b41b10c,
+                codehash: 0x205f19d44421f601f530310481a88bbd037f1d114e82e9cd5d82ccf828b45ee3,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             })
@@ -1413,4 +1403,33 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
+
+    function testTransferUSDSFromSkybaseSubProxy() public {
+        address skybaseSubProxy   = addr.addr("SKYBASE_SUBPROXY");
+        address skybaseFoundation = wallets.addr("SKYBASE_FOUNDATION");
+        uint256 transferAmount    = 900_000 * WAD;
+
+        // Check source balance
+        assertGe(usds.balanceOf(skybaseSubProxy), transferAmount, "testTransferUSDSFromSkybaseSubProxy/insufficient-subproxy-usds-balance");
+
+        uint256 subProxyUsdsBefore      = usds.balanceOf(skybaseSubProxy);
+        uint256 skybaseFoundationBefore = usds.balanceOf(skybaseFoundation);
+
+        // Execute spell
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        // Check balance changes
+        assertEq(
+            usds.balanceOf(skybaseSubProxy),
+            subProxyUsdsBefore - transferAmount,
+            "testTransferUSDSFromSkybaseSubProxy/subproxy-balance-mismatch"
+        );
+        assertEq(
+            usds.balanceOf(skybaseFoundation),
+            skybaseFoundationBefore + transferAmount,
+            "testTransferUSDSFromSkybaseSubProxy/skybase-foundation-balance-mismatch"
+        );
+    }
 }

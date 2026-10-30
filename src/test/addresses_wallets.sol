@@ -163,6 +163,9 @@ contract Wallets {
         // Fortification Foundation Grant
         addr["FORTIFICATION_FOUNDATION"]     = 0x483413ccCD796Deddee88E4d3e202425d5E891C6;
 
+        // Skybase Foundation Grant
+        addr["SKYBASE_FOUNDATION"]           = 0x58B945c8Ce34BD8cEA3Fc0437626F9F87d58A621;
+
         // Vest Managers
         addr["PULLUP_LABS_VEST_MGR"]         = 0x9B6213D350A4AFbda2361b6572A07C90c22002F1;
 
