@@ -102,6 +102,8 @@ contract DssSpellAction is DssAction {
 
     function actions() public override {
         // ----- Finalize GUSD and USDP PSM Offboarding -----
+        // Forum: https://forum.skyeco.com/t/psm-gusd-a-and-psm-pax-a-housekeeping/28373
+        // Atlas: https://sky-atlas.io/#0d0e2e1a-0502-4ee3-bc9d-8bd8ddde19ec
 
         // Finalize PSM-GUSD-A Offboarding
         _offboardPsm({
