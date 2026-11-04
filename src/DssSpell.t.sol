@@ -1447,6 +1447,10 @@ contract DssSpellTest is DssSpellTestBase {
             assertEq(reg.join(ilk), address(0), _concat("testOffboardPsms/still-in-ilk-registry-", ilk));
             assertEq(lineMom.ilks(ilk), 0, _concat("testOffboardPsms/still-in-line-mom-", ilk));
 
+            // Permissionless re-add to ILK_REGISTRY is not possible
+            vm.expectRevert("IlkRegistry/adapter-not-authorized");
+            reg.add(psms[i].join);
+
             // Join caged and authorizations revoked
             assertEq(GemJoinAbstract(psms[i].join).live(), 0, _concat("testOffboardPsms/join-not-caged-", ilk));
             assertEq(vat.wards(psms[i].join), 0, _concat("testOffboardPsms/join-still-authed-on-vat-", ilk));
