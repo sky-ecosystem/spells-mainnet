@@ -139,41 +139,6 @@ contract DssSpellTest is DssSpellTestBase {
             0,   // tin
             0    // tout
         );
-
-        // GUSD
-        _ilk = "PSM-GUSD-A";
-        assertEq(addr.addr("MCD_JOIN_PSM_GUSD_A"), reg.join(_ilk));
-        assertEq(addr.addr("MCD_CLIP_PSM_GUSD_A"), reg.xlip(_ilk));
-        assertEq(addr.addr("PIP_GUSD"), reg.pip(_ilk));
-        assertEq(addr.addr("MCD_PSM_GUSD_A"), chainLog.getAddress("MCD_PSM_GUSD_A"));
-        // TODO: Revisit after Governance decides whether to fully offboard MCD_PSM_GUSD_A. If retained, re-enable
-        // this check once MCD_JOIN_PSM_GUSD_A supports the active GUSD implementation. The current implementation
-        // 0x483A1E7F16F46266400f1bAF7abdF445c8D140A2 is not allowlisted, causing both join and exit to revert.
-        // _checkPsmIlkIntegration(
-        //     _ilk,
-        //     GemJoinAbstract(addr.addr("MCD_JOIN_PSM_GUSD_A")),
-        //     ClipAbstract(addr.addr("MCD_CLIP_PSM_GUSD_A")),
-        //     addr.addr("PIP_GUSD"),
-        //     PsmAbstract(addr.addr("MCD_PSM_GUSD_A")),
-        //     0,  // tin
-        //     0    // tout
-        // );
-
-        // USDP
-        _ilk = "PSM-PAX-A";
-        assertEq(addr.addr("MCD_JOIN_PSM_PAX_A"), reg.join(_ilk));
-        assertEq(addr.addr("MCD_CLIP_PSM_PAX_A"), reg.xlip(_ilk));
-        assertEq(addr.addr("PIP_PAX"), reg.pip(_ilk));
-        assertEq(addr.addr("MCD_PSM_PAX_A"), chainLog.getAddress("MCD_PSM_PAX_A"));
-        _checkPsmIlkIntegration(
-            _ilk,
-            GemJoinAbstract(addr.addr("MCD_JOIN_PSM_PAX_A")),
-            ClipAbstract(addr.addr("MCD_CLIP_PSM_PAX_A")),
-            addr.addr("PIP_PAX"),
-            PsmAbstract(addr.addr("MCD_PSM_PAX_A")),
-            0,   // tin
-            0    // tout
-        );
     }
 
     // Leave this test always enabled as it acts as a config test
@@ -217,8 +182,21 @@ contract DssSpellTest is DssSpellTestBase {
         //assertEq(OsmAbstract(0xF15993A5C5BE496b8e1c9657Fd2233b579Cd3Bc6).wards(ORACLE_WALLET01), 1);
     }
 
-    function testRemovedChainlogKeys() public skipped { // add the `skipped` modifier to skip
-        string[1] memory removedKeys = ["OWNER_REWARDS_LSSKY_USDS"];
+    function testRemovedChainlogKeys() public { // add the `skipped` modifier to skip
+        string[12] memory removedKeys = [
+            "MCD_PSM_GUSD_A",
+            "MCD_JOIN_PSM_GUSD_A",
+            "MCD_CLIP_PSM_GUSD_A",
+            "MCD_CLIP_CALC_PSM_GUSD_A",
+            "MCD_PSM_GUSD_A_JAR",
+            "MCD_PSM_GUSD_A_INPUT_CONDUIT_JAR",
+            "MCD_PSM_PAX_A",
+            "MCD_JOIN_PSM_PAX_A",
+            "MCD_CLIP_PSM_PAX_A",
+            "MCD_CLIP_CALC_PSM_PAX_A",
+            "MCD_PSM_PAX_A_JAR",
+            "MCD_PSM_PAX_A_INPUT_CONDUIT_JAR"
+        ];
 
         for (uint256 i = 0; i < removedKeys.length; i++) {
             try chainLog.getAddress(_stringToBytes32(removedKeys[i])) {
@@ -1344,14 +1322,14 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
-        PrimeAgentSpell[3] memory primeAgentSpells = [
+        PrimeAgentSpell[2] memory primeAgentSpells = [
             PrimeAgentSpell({
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "SPARK_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0x78E4439ae74447992b111A73556a188229D34C37,
+                addr: 0x9C3991A36aE899c7b267208bad2cC1237BE36F5b,
                 // Insert Prime Agent spell codehash
-                codehash: 0x08c335ce1b2ad471186a566f08889631b3268cc74dc478b07e3c77f71c312166,
+                codehash: 0x084497cc546ef29a5597591d820a3342a0b7687bcbd6fed504830f915a4422d9,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             }),
@@ -1359,19 +1337,9 @@ contract DssSpellTest is DssSpellTestBase {
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "GROVE_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0xf9449D21ef687eE55233B9EDC3d7DDA87C7562a7,
+                addr: 0xb7fdd2f1efE69EC2145A914bCEB23D48de4Bb74D,
                 // Insert Prime Agent spell codehash
-                codehash: 0x7c9f6ed4604e78848e7b368736b8ae59f2209c6687977128a8302fafe1d6526c,
-                // Set to true if the Prime Agent spell is executed directly from core spell
-                directExecutionEnabled: false
-            }),
-            PrimeAgentSpell({
-                // Insert Prime Agent StarGuards Chainlog key
-                starGuardKey: "PATTERN_STARGUARD",
-                // Insert Prime Agent spell address
-                addr: 0xb38EB4a6f0Ae439a454EED67877f5aC7e66A7652,
-                // Insert Prime Agent spell codehash
-                codehash: 0x2b3da408f1feea10a958fd5678dfe409d54500e8f1dfc2d0fe22c6b49b41b10c,
+                codehash: 0x205f19d44421f601f530310481a88bbd037f1d114e82e9cd5d82ccf828b45ee3,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             })
@@ -1413,170 +1381,111 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
-    function testOseroInitialRateLimits() public {
-        bytes32 key = 0xfc26a91cf7b79b531d45dcc431ee59e4f2504f51cb33e2b67960808a104c92ef;
 
-        address rateLimitsAddress = addr.addr("OSERO_RATE_LIMITS");
-        BeamStateLike beamState = BeamStateLike(addr.addr("PAS_STATE"));
-        RateLimitsLike rateLimits = RateLimitsLike(rateLimitsAddress);
+    struct OffboardedPsm {
+        bytes32 ilk;
+        address psm;
+        address join;
+        address clip;
+    }
 
-        // Validate no specific initial rate limit is currently registered
-        {
-            (uint256 initialMaxAmountBefore, uint256 initialSlopeBefore) =
-                beamState.initRateLimits(key, rateLimitsAddress);
+    function testOffboardPsms() public {
+        OffboardedPsm[2] memory psms = [
+            OffboardedPsm({
+                ilk:  "PSM-GUSD-A",
+                psm:  addr.addr("MCD_PSM_GUSD_A"),
+                join: addr.addr("MCD_JOIN_PSM_GUSD_A"),
+                clip: addr.addr("MCD_CLIP_PSM_GUSD_A")
+            }),
+            OffboardedPsm({
+                ilk:  "PSM-PAX-A",
+                psm:  addr.addr("MCD_PSM_PAX_A"),
+                join: addr.addr("MCD_JOIN_PSM_PAX_A"),
+                clip: addr.addr("MCD_CLIP_PSM_PAX_A")
+            })
+        ];
+        LineMomLike lineMom = LineMomLike(addr.addr("LINE_MOM"));
 
-            assertEq(initialMaxAmountBefore, 0, "TestError/osero-initial-max-amount-non-zero");
-            assertEq(initialSlopeBefore, 0, "TestError/osero-initial-slope-non-zero");
+        uint256[] memory inks       = new uint256[](psms.length);
+        uint256[] memory gemsBefore = new uint256[](psms.length);
+        uint256 expectedSinIncrease;
+        for (uint256 i = 0; i < psms.length; i++) {
+            (uint256 ink, uint256 art) = vat.urns(psms[i].ilk, psms[i].psm);
+            (uint256 Art, uint256 rate,,,) = vat.ilks(psms[i].ilk);
+            assertGt(ink, 0, _concat("testOffboardPsms/no-collateral-before-", psms[i].ilk));
+            assertGt(art, 0, _concat("testOffboardPsms/no-debt-before-", psms[i].ilk));
+            assertEq(Art, art, _concat("testOffboardPsms/psm-urn-not-only-debt-", psms[i].ilk));
+            assertEq(lineMom.ilks(psms[i].ilk), 1, _concat("testOffboardPsms/not-in-line-mom-before-", psms[i].ilk));
+            assertEq(reg.join(psms[i].ilk), psms[i].join, _concat("testOffboardPsms/not-in-ilk-registry-before-", psms[i].ilk));
+            assertEq(GemJoinAbstract(psms[i].join).live(), 1, _concat("testOffboardPsms/join-not-live-before-", psms[i].ilk));
+            assertEq(vat.wards(psms[i].join), 1, _concat("testOffboardPsms/join-not-authed-on-vat-before-", psms[i].ilk));
+            assertEq(vat.wards(psms[i].clip), 1, _concat("testOffboardPsms/clip-not-authed-on-vat-before-", psms[i].ilk));
+            assertEq(dog.wards(psms[i].clip), 1, _concat("testOffboardPsms/clip-not-authed-on-dog-before-", psms[i].ilk));
+
+            inks[i]              = ink;
+            gemsBefore[i]        = vat.gem(psms[i].ilk, pauseProxy);
+            expectedSinIncrease += art * rate;
         }
-
-        // Validate no general fallback is registered for the key
-        {
-            (uint256 generalMaxAmountBefore, uint256 generalSlopeBefore) = beamState.initRateLimits(key, address(0));
-
-            assertEq(generalMaxAmountBefore, 0, "TestError/osero-general-max-amount-already-set");
-            assertEq(generalSlopeBefore, 0, "TestError/osero-general-slope-already-set");
-        }
-
-        RateLimitsLike.RateLimitData memory activeBefore = rateLimits.getRateLimitData(key);
-
-        // Validate expected active Osero configuration before the Core spell
-        assertEq(activeBefore.maxAmount, 5_000_000_000_000, "TestError/osero-unexpected-max-amount");
-        assertEq(activeBefore.slope, 0, "TestError/osero-unexpected-slope");
+        uint256 sinBefore = vat.sin(address(vow));
 
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        // Validate exact initial rate limit is registered
-        {
-            (uint256 initialMaxAmountAfter, uint256 initialSlopeAfter) =
-                beamState.initRateLimits(key, rateLimitsAddress);
+        for (uint256 i = 0; i < psms.length; i++) {
+            bytes32 ilk = psms[i].ilk;
 
-            assertEq(initialMaxAmountAfter, 5_000_000_000_000, "TestError/osero-invalid-max-amount-after-spell");
-            assertEq(initialSlopeAfter, 7_523_148, "TestError/osero-invalid-slope-after-spell");
+            // Debt written off
+            (uint256 ink, uint256 art) = vat.urns(ilk, psms[i].psm);
+            (uint256 Art,,,,) = vat.ilks(ilk);
+            assertEq(ink, 0, _concat("testOffboardPsms/ink-not-zero-", ilk));
+            assertEq(art, 0, _concat("testOffboardPsms/art-not-zero-", ilk));
+            assertEq(Art, 0, _concat("testOffboardPsms/Art-not-zero-", ilk));
+            assertEq(vat.gem(ilk, pauseProxy), gemsBefore[i] + inks[i], _concat("testOffboardPsms/gem-not-grabbed-", ilk));
+
+            // Removed from ILK_REGISTRY and LINE_MOM
+            assertEq(reg.join(ilk), address(0), _concat("testOffboardPsms/still-in-ilk-registry-", ilk));
+            assertEq(lineMom.ilks(ilk), 0, _concat("testOffboardPsms/still-in-line-mom-", ilk));
+
+            // Permissionless re-add to ILK_REGISTRY is not possible
+            vm.expectRevert("IlkRegistry/adapter-not-authorized");
+            reg.add(psms[i].join);
+
+            // Join caged and authorizations revoked
+            assertEq(GemJoinAbstract(psms[i].join).live(), 0, _concat("testOffboardPsms/join-not-caged-", ilk));
+            assertEq(vat.wards(psms[i].join), 0, _concat("testOffboardPsms/join-still-authed-on-vat-", ilk));
+            assertEq(vat.wards(psms[i].clip), 0, _concat("testOffboardPsms/clip-still-authed-on-vat-", ilk));
+            assertEq(dog.wards(psms[i].clip), 0, _concat("testOffboardPsms/clip-still-authed-on-dog-", ilk));
         }
-
-        // Validate cBEAM can't set slope above the registered initial value before next round
-        {
-            PASConfiguratorLike configurator = PASConfiguratorLike(addr.addr("PAS_CONFIGURATOR"));
-
-            vm.startPrank(wallets.addr("OSERO_PAS_CBEAM"));
-            vm.expectRevert("Configurator/exceeds-max-slope");
-            configurator.setRateLimit(
-                rateLimitsAddress,
-                key,
-                5_000_000_000_000,
-                7_523_148 + 1
-            );
-            vm.stopPrank();
-        }
-
-        // Validate the effective getter returns the registered values
-        {
-            (uint256 effectiveMaxAmount, uint256 effectiveSlope) = beamState.getInitRateLimits(key, rateLimitsAddress);
-
-            assertEq(effectiveMaxAmount, 5_000_000_000_000, "TestError/osero-invalid-effective-max-amount");
-            assertEq(effectiveSlope, 7_523_148, "TestError/osero-invalid-effective-slope");
-        }
-
-        // Validate spell registered no global fallback
-        {
-            (uint256 generalMaxAmountAfter, uint256 generalSlopeAfter) = beamState.initRateLimits(key, address(0));
-
-            assertEq(generalMaxAmountAfter, 0, "TestError/osero-general-max-amount-updated");
-            assertEq(generalSlopeAfter, 0, "TestError/osero-general-slope-updated");
-        }
+        assertEq(vat.sin(address(vow)), sinBefore + expectedSinIncrease, "testOffboardPsms/invalid-vow-sin");
     }
 
-    struct OseroDepositTestState {
-        bytes32 key;
-        address rateLimitsAddress;
-        address usdc;
-        address vault;
-        address almProxy;
-        uint256 maxAmount;
-        uint256 slope;
-        uint256 depositAmount;
-        uint256 usdcBalanceBefore;
-        uint256 sharesBalanceBefore;
-        uint256 rateLimitBefore;
-        uint256 minSharesOut;
-    }
+    function testTransferUSDSFromSkybaseSubProxy() public {
+        address skybaseSubProxy   = addr.addr("SKYBASE_SUBPROXY");
+        address skybaseFoundation = wallets.addr("SKYBASE_FOUNDATION");
+        uint256 transferAmount    = 900_000 * WAD;
 
-    function testOseroInitialRateLimitE2E() public {
-        OseroDepositTestState memory state;
+        // Check source balance
+        assertGe(usds.balanceOf(skybaseSubProxy), transferAmount, "testTransferUSDSFromSkybaseSubProxy/insufficient-subproxy-usds-balance");
 
-        state.key = 0xfc26a91cf7b79b531d45dcc431ee59e4f2504f51cb33e2b67960808a104c92ef;
-        state.rateLimitsAddress = addr.addr("OSERO_RATE_LIMITS");
-        state.maxAmount = 5_000_000_000_000;
-        state.slope = 7_523_148;
+        uint256 subProxyUsdsBefore      = usds.balanceOf(skybaseSubProxy);
+        uint256 skybaseFoundationBefore = usds.balanceOf(skybaseFoundation);
 
-        assertEq(state.slope, uint256(650_000e6) / 1 days, "TestError/osero-invalid-slope-calculation");
+        // Execute spell
+        _vote(address(spell));
+        _scheduleWaitAndCast(address(spell));
+        assertTrue(spell.done(), "TestError/spell-not-done");
 
-        address oseroCBeam = wallets.addr("OSERO_PAS_CBEAM");
-        PASConfiguratorLike configurator = PASConfiguratorLike(addr.addr("PAS_CONFIGURATOR"));
-
-        // Validate target values can't be applied before registration
-        vm.startPrank(oseroCBeam);
-        vm.expectRevert("Configurator/exceeds-max-slope");
-        configurator.setRateLimit(state.rateLimitsAddress, state.key, state.maxAmount, state.slope);
-        vm.stopPrank();
-
-        _testPASInitRateLimitUpdate(
-            state.key,
-            state.rateLimitsAddress,
-            oseroCBeam,
-            state.maxAmount,
-            state.slope
-        );
-
-        state.usdc = addr.addr("USDC");
-        state.vault = addr.addr("OGUSDCP_VAULT");
-        state.almProxy = addr.addr("OSERO_ALM_PROXY");
-        state.depositAmount = 1_000e6;
-
-        state.usdcBalanceBefore = GemAbstract(state.usdc).balanceOf(state.almProxy);
-        state.sharesBalanceBefore = ERC4626Like(state.vault).balanceOf(state.almProxy);
-
-        deal(state.usdc, state.almProxy, state.usdcBalanceBefore + state.depositAmount);
-
-        // cBEAM update doesn't reset the current capacity, so skip time to recharge it
-        skip(_divup(state.depositAmount, state.slope));
-
-        state.rateLimitBefore = RateLimitsLike(state.rateLimitsAddress).getCurrentRateLimit(state.key);
-        assertGe(
-            state.rateLimitBefore,
-            state.depositAmount,
-            "TestError/osero-insufficient-recharge-rate-limit"
-        );
-
-        state.minSharesOut = ERC4626Like(state.vault).previewDeposit(state.depositAmount) * 999 / 1000;
-
-        uint256 shares = _callAdministeredAgentAsActor(
-            addr.addr("OSERO_ADMINISTERED_AGENT"),
-            wallets.addr("OSERO_OPERATOR"),
-            addr.addr("OSERO_CONTROLLER"),
-            abi.encodeCall(
-                ERC4626ControllerLike.erc4626_deposit,
-                (state.vault, state.depositAmount, state.minSharesOut)
-            )
-        );
-
-        assertGe(shares, state.minSharesOut, "TestError/osero-deposit-insufficient-shares");
+        // Check balance changes
         assertEq(
-            ERC4626Like(state.vault).balanceOf(state.almProxy),
-            state.sharesBalanceBefore + shares,
-            "TestError/osero-deposit-invalid-share-balance"
+            usds.balanceOf(skybaseSubProxy),
+            subProxyUsdsBefore - transferAmount,
+            "testTransferUSDSFromSkybaseSubProxy/subproxy-balance-mismatch"
         );
         assertEq(
-            GemAbstract(state.usdc).balanceOf(state.almProxy),
-            state.usdcBalanceBefore,
-            "TestError/osero-deposit-invalid-asset-balance"
-        );
-        assertEq(
-            RateLimitsLike(state.rateLimitsAddress).getCurrentRateLimit(state.key),
-            state.rateLimitBefore - state.depositAmount,
-            "TestError/osero-deposit-invalid-rate-limit"
+            usds.balanceOf(skybaseFoundation),
+            skybaseFoundationBefore + transferAmount,
+            "testTransferUSDSFromSkybaseSubProxy/skybase-foundation-balance-mismatch"
         );
     }
 }
