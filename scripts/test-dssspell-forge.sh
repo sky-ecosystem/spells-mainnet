@@ -18,12 +18,12 @@ done
 
 export FOUNDRY_ROOT_CHAINID=1
 
-TEST_ARGS=''
+TEST_ARGS='-vv'
 
 if [[ -n "$MATCH" ]]; then
-    TEST_ARGS="${TEST_ARGS} -vvv --match-test ${MATCH}"
+    TEST_ARGS="-vvv --match-test ${MATCH}"
 elif [[ -n "$NO_MATCH" ]]; then
-    TEST_ARGS="${TEST_ARGS} -vvv --no-match-test ${NO_MATCH}"
+    TEST_ARGS="-vvv --no-match-test ${NO_MATCH}"
 fi
 
 if [[ -n "$BLOCK" ]]; then
