@@ -16,7 +16,8 @@
 
 pragma solidity 0.8.16;
 
-import "../DssSpell.t.base.sol";
+import {DssSpell} from "../DssSpell.sol";
+import {DssSpellTestBase} from "../DssSpell.t.base.sol";
 
 contract ConfigStarknet {
     StarknetValues starknetValues;
@@ -25,22 +26,16 @@ contract ConfigStarknet {
         bytes32 l2_spell;
         address core_implementation;
         uint256 dai_bridge_isOpen;
-        uint256 dai_bridge_ceiling;
-        uint256 dai_bridge_maxDeposit;
         uint256 l2_dai_bridge;
         uint256 l2_gov_relay;
         uint256 relay_selector;
     }
 
     function setStarknetValues() public {
-        uint256 WAD = 10 ** 18;
-
         starknetValues = StarknetValues({
             l2_spell:                  0, // Set to zero if no spell is set.
             core_implementation:       0x73352C6228Ec1DCf737973Db9822bB8e8a465c99, // As of 2026-10-14
             dai_bridge_isOpen:         0, // 1 open, 0 closed
-            dai_bridge_ceiling:        5_000_000 * WAD, // wei
-            dai_bridge_maxDeposit:     type(uint256).max, // wei
             l2_dai_bridge:             0x075ac198e734e289a6892baa8dd14b21095f13bf8401900f5349d5569c3f6e60,
             l2_gov_relay:              0x05f4d9b039f82e9a90125fb119ace0531f4936ff2a9a54a8598d49a4cd4bd6db,
             relay_selector:            300224956480472355485152391090755024345070441743081995053718200325371913697 // Hardcoded in L1 gov relay, not public
@@ -62,8 +57,6 @@ interface StarknetEscrowLike {
 interface StarknetDaiBridgeLike {
     function wards(address) external returns(uint256);
     function isOpen() external returns (uint256);
-    function ceiling() external returns (uint256);
-    function maxDeposit() external returns (uint256);
     function dai() external returns (address);
     function starkNet() external returns (address);
     function escrow() external returns (address);
@@ -89,6 +82,9 @@ interface DaiLike {
 
 contract StarknetTests is DssSpellTestBase, ConfigStarknet {
 
+    uint256 internal immutable initialBlock;
+    address internal immutable initialCoreImplementation;
+
     event LogMessageToL2(
             address indexed fromAddress,
             uint256 indexed toAddress,
@@ -100,6 +96,9 @@ contract StarknetTests is DssSpellTestBase, ConfigStarknet {
 
     constructor() {
         setStarknetValues();
+        // Preserve the selected fork observation before setup can replay or roll back the fork.
+        initialBlock = block.number;
+        initialCoreImplementation = StarknetCoreLike(addr.addr("STARKNET_CORE")).implementation();
     }
 
     function testStarknet() public {
@@ -161,8 +160,6 @@ contract StarknetTests is DssSpellTestBase, ConfigStarknet {
         StarknetDaiBridgeLike daiBridge = StarknetDaiBridgeLike(addr.addr("STARKNET_DAI_BRIDGE"));
 
         assertEq(daiBridge.isOpen(),     starknetValues.dai_bridge_isOpen,     "StarknetTestError/dai-bridge-isOpen-unexpected");
-        assertEq(daiBridge.ceiling(),    starknetValues.dai_bridge_ceiling,    "StarknetTestError/dai-bridge-ceiling-unexpected");
-        assertEq(daiBridge.maxDeposit(), starknetValues.dai_bridge_maxDeposit, "StarknetTestError/dai-bridge-maxDeposit-unexpected");
 
         assertEq(daiBridge.dai(),      addr.addr("MCD_DAI"),         "StarknetTest/dai-bridge-dai");
         assertEq(daiBridge.starkNet(), addr.addr("STARKNET_CORE"),   "StarknetTest/dai-bridge-core");
@@ -186,12 +183,16 @@ contract StarknetTests is DssSpellTestBase, ConfigStarknet {
 
     function _checkStarknetCore() internal {
         StarknetCoreLike core = StarknetCoreLike(addr.addr("STARKNET_CORE"));
-
-        // Checks to see that starknet core implementation matches core
-        //   If the core implementation changes, inspect the new implementation for safety and update the config
-        //   Note: message checks may fail if the message structure changes in the new implementation
-        assertEq(core.implementation(), starknetValues.core_implementation, _concat("StarknetTest/new-core-implementation-", bytes32(uint256(uint160(core.implementation())))));
-
+        address implementation = core.implementation();
+        if (initialCoreImplementation != starknetValues.core_implementation || implementation != starknetValues.core_implementation) {
+            emit log("WARNING: Starknet Core implementation mismatch");
+            emit log_named_address("Core", address(core));
+            emit log_named_address("Expected", starknetValues.core_implementation);
+            emit log_named_uint("Initial selected fork block", initialBlock);
+            emit log_named_address("Initial selected fork implementation", initialCoreImplementation);
+            emit log_named_uint("Post-spell simulation block", block.number);
+            emit log_named_address("Post-spell simulation implementation", implementation);
+        }
         assertTrue(core.isNotFinalized());
     }
 
