@@ -139,41 +139,6 @@ contract DssSpellTest is DssSpellTestBase {
             0,   // tin
             0    // tout
         );
-
-        // GUSD
-        _ilk = "PSM-GUSD-A";
-        assertEq(addr.addr("MCD_JOIN_PSM_GUSD_A"), reg.join(_ilk));
-        assertEq(addr.addr("MCD_CLIP_PSM_GUSD_A"), reg.xlip(_ilk));
-        assertEq(addr.addr("PIP_GUSD"), reg.pip(_ilk));
-        assertEq(addr.addr("MCD_PSM_GUSD_A"), chainLog.getAddress("MCD_PSM_GUSD_A"));
-        // TODO: Revisit after Governance decides whether to fully offboard MCD_PSM_GUSD_A. If retained, re-enable
-        // this check once MCD_JOIN_PSM_GUSD_A supports the active GUSD implementation. The current implementation
-        // 0x483A1E7F16F46266400f1bAF7abdF445c8D140A2 is not allowlisted, causing both join and exit to revert.
-        // _checkPsmIlkIntegration(
-        //     _ilk,
-        //     GemJoinAbstract(addr.addr("MCD_JOIN_PSM_GUSD_A")),
-        //     ClipAbstract(addr.addr("MCD_CLIP_PSM_GUSD_A")),
-        //     addr.addr("PIP_GUSD"),
-        //     PsmAbstract(addr.addr("MCD_PSM_GUSD_A")),
-        //     0,  // tin
-        //     0    // tout
-        // );
-
-        // USDP
-        _ilk = "PSM-PAX-A";
-        assertEq(addr.addr("MCD_JOIN_PSM_PAX_A"), reg.join(_ilk));
-        assertEq(addr.addr("MCD_CLIP_PSM_PAX_A"), reg.xlip(_ilk));
-        assertEq(addr.addr("PIP_PAX"), reg.pip(_ilk));
-        assertEq(addr.addr("MCD_PSM_PAX_A"), chainLog.getAddress("MCD_PSM_PAX_A"));
-        _checkPsmIlkIntegration(
-            _ilk,
-            GemJoinAbstract(addr.addr("MCD_JOIN_PSM_PAX_A")),
-            ClipAbstract(addr.addr("MCD_CLIP_PSM_PAX_A")),
-            addr.addr("PIP_PAX"),
-            PsmAbstract(addr.addr("MCD_PSM_PAX_A")),
-            0,   // tin
-            0    // tout
-        );
     }
 
     // Leave this test always enabled as it acts as a config test
@@ -217,8 +182,21 @@ contract DssSpellTest is DssSpellTestBase {
         //assertEq(OsmAbstract(0xF15993A5C5BE496b8e1c9657Fd2233b579Cd3Bc6).wards(ORACLE_WALLET01), 1);
     }
 
-    function testRemovedChainlogKeys() public skipped { // add the `skipped` modifier to skip
-        string[1] memory removedKeys = ["OWNER_REWARDS_LSSKY_USDS"];
+    function testRemovedChainlogKeys() public { // add the `skipped` modifier to skip
+        string[12] memory removedKeys = [
+            "MCD_PSM_GUSD_A",
+            "MCD_JOIN_PSM_GUSD_A",
+            "MCD_CLIP_PSM_GUSD_A",
+            "MCD_CLIP_CALC_PSM_GUSD_A",
+            "MCD_PSM_GUSD_A_JAR",
+            "MCD_PSM_GUSD_A_INPUT_CONDUIT_JAR",
+            "MCD_PSM_PAX_A",
+            "MCD_JOIN_PSM_PAX_A",
+            "MCD_CLIP_PSM_PAX_A",
+            "MCD_CLIP_CALC_PSM_PAX_A",
+            "MCD_PSM_PAX_A_JAR",
+            "MCD_PSM_PAX_A_INPUT_CONDUIT_JAR"
+        ];
 
         for (uint256 i = 0; i < removedKeys.length; i++) {
             try chainLog.getAddress(_stringToBytes32(removedKeys[i])) {
@@ -1344,14 +1322,14 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
-        PrimeAgentSpell[3] memory primeAgentSpells = [
+        PrimeAgentSpell[2] memory primeAgentSpells = [
             PrimeAgentSpell({
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "SPARK_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0x78E4439ae74447992b111A73556a188229D34C37,
+                addr: 0x9C3991A36aE899c7b267208bad2cC1237BE36F5b,
                 // Insert Prime Agent spell codehash
-                codehash: 0x08c335ce1b2ad471186a566f08889631b3268cc74dc478b07e3c77f71c312166,
+                codehash: 0x084497cc546ef29a5597591d820a3342a0b7687bcbd6fed504830f915a4422d9,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             }),
@@ -1359,19 +1337,9 @@ contract DssSpellTest is DssSpellTestBase {
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "GROVE_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0xf9449D21ef687eE55233B9EDC3d7DDA87C7562a7,
+                addr: 0xb7fdd2f1efE69EC2145A914bCEB23D48de4Bb74D,
                 // Insert Prime Agent spell codehash
-                codehash: 0x7c9f6ed4604e78848e7b368736b8ae59f2209c6687977128a8302fafe1d6526c,
-                // Set to true if the Prime Agent spell is executed directly from core spell
-                directExecutionEnabled: false
-            }),
-            PrimeAgentSpell({
-                // Insert Prime Agent StarGuards Chainlog key
-                starGuardKey: "PATTERN_STARGUARD",
-                // Insert Prime Agent spell address
-                addr: 0xb38EB4a6f0Ae439a454EED67877f5aC7e66A7652,
-                // Insert Prime Agent spell codehash
-                codehash: 0x2b3da408f1feea10a958fd5678dfe409d54500e8f1dfc2d0fe22c6b49b41b10c,
+                codehash: 0x205f19d44421f601f530310481a88bbd037f1d114e82e9cd5d82ccf828b45ee3,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             })
