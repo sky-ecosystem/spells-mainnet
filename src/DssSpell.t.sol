@@ -182,7 +182,7 @@ contract DssSpellTest is DssSpellTestBase {
         //assertEq(OsmAbstract(0xF15993A5C5BE496b8e1c9657Fd2233b579Cd3Bc6).wards(ORACLE_WALLET01), 1);
     }
 
-    function testRemovedChainlogKeys() public { // add the `skipped` modifier to skip
+    function testRemovedChainlogKeys() public skipped { // add the `skipped` modifier to skip
         string[12] memory removedKeys = [
             "MCD_PSM_GUSD_A",
             "MCD_JOIN_PSM_GUSD_A",
@@ -1321,7 +1321,7 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
+    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
         PrimeAgentSpell[2] memory primeAgentSpells = [
             PrimeAgentSpell({
                 // Insert Prime Agent StarGuards Chainlog key
@@ -1381,111 +1381,4 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     // SPELL-SPECIFIC TESTS GO BELOW
-
-    struct OffboardedPsm {
-        bytes32 ilk;
-        address psm;
-        address join;
-        address clip;
-    }
-
-    function testOffboardPsms() public {
-        OffboardedPsm[2] memory psms = [
-            OffboardedPsm({
-                ilk:  "PSM-GUSD-A",
-                psm:  addr.addr("MCD_PSM_GUSD_A"),
-                join: addr.addr("MCD_JOIN_PSM_GUSD_A"),
-                clip: addr.addr("MCD_CLIP_PSM_GUSD_A")
-            }),
-            OffboardedPsm({
-                ilk:  "PSM-PAX-A",
-                psm:  addr.addr("MCD_PSM_PAX_A"),
-                join: addr.addr("MCD_JOIN_PSM_PAX_A"),
-                clip: addr.addr("MCD_CLIP_PSM_PAX_A")
-            })
-        ];
-        LineMomLike lineMom = LineMomLike(addr.addr("LINE_MOM"));
-
-        uint256[] memory inks       = new uint256[](psms.length);
-        uint256[] memory gemsBefore = new uint256[](psms.length);
-        uint256 expectedSinIncrease;
-        for (uint256 i = 0; i < psms.length; i++) {
-            (uint256 ink, uint256 art) = vat.urns(psms[i].ilk, psms[i].psm);
-            (uint256 Art, uint256 rate,,,) = vat.ilks(psms[i].ilk);
-            assertGt(ink, 0, _concat("testOffboardPsms/no-collateral-before-", psms[i].ilk));
-            assertGt(art, 0, _concat("testOffboardPsms/no-debt-before-", psms[i].ilk));
-            assertEq(Art, art, _concat("testOffboardPsms/psm-urn-not-only-debt-", psms[i].ilk));
-            assertEq(lineMom.ilks(psms[i].ilk), 1, _concat("testOffboardPsms/not-in-line-mom-before-", psms[i].ilk));
-            assertEq(reg.join(psms[i].ilk), psms[i].join, _concat("testOffboardPsms/not-in-ilk-registry-before-", psms[i].ilk));
-            assertEq(GemJoinAbstract(psms[i].join).live(), 1, _concat("testOffboardPsms/join-not-live-before-", psms[i].ilk));
-            assertEq(vat.wards(psms[i].join), 1, _concat("testOffboardPsms/join-not-authed-on-vat-before-", psms[i].ilk));
-            assertEq(vat.wards(psms[i].clip), 1, _concat("testOffboardPsms/clip-not-authed-on-vat-before-", psms[i].ilk));
-            assertEq(dog.wards(psms[i].clip), 1, _concat("testOffboardPsms/clip-not-authed-on-dog-before-", psms[i].ilk));
-
-            inks[i]              = ink;
-            gemsBefore[i]        = vat.gem(psms[i].ilk, pauseProxy);
-            expectedSinIncrease += art * rate;
-        }
-        uint256 sinBefore = vat.sin(address(vow));
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        for (uint256 i = 0; i < psms.length; i++) {
-            bytes32 ilk = psms[i].ilk;
-
-            // Debt written off
-            (uint256 ink, uint256 art) = vat.urns(ilk, psms[i].psm);
-            (uint256 Art,,,,) = vat.ilks(ilk);
-            assertEq(ink, 0, _concat("testOffboardPsms/ink-not-zero-", ilk));
-            assertEq(art, 0, _concat("testOffboardPsms/art-not-zero-", ilk));
-            assertEq(Art, 0, _concat("testOffboardPsms/Art-not-zero-", ilk));
-            assertEq(vat.gem(ilk, pauseProxy), gemsBefore[i] + inks[i], _concat("testOffboardPsms/gem-not-grabbed-", ilk));
-
-            // Removed from ILK_REGISTRY and LINE_MOM
-            assertEq(reg.join(ilk), address(0), _concat("testOffboardPsms/still-in-ilk-registry-", ilk));
-            assertEq(lineMom.ilks(ilk), 0, _concat("testOffboardPsms/still-in-line-mom-", ilk));
-
-            // Permissionless re-add to ILK_REGISTRY is not possible
-            vm.expectRevert("IlkRegistry/adapter-not-authorized");
-            reg.add(psms[i].join);
-
-            // Join caged and authorizations revoked
-            assertEq(GemJoinAbstract(psms[i].join).live(), 0, _concat("testOffboardPsms/join-not-caged-", ilk));
-            assertEq(vat.wards(psms[i].join), 0, _concat("testOffboardPsms/join-still-authed-on-vat-", ilk));
-            assertEq(vat.wards(psms[i].clip), 0, _concat("testOffboardPsms/clip-still-authed-on-vat-", ilk));
-            assertEq(dog.wards(psms[i].clip), 0, _concat("testOffboardPsms/clip-still-authed-on-dog-", ilk));
-        }
-        assertEq(vat.sin(address(vow)), sinBefore + expectedSinIncrease, "testOffboardPsms/invalid-vow-sin");
-    }
-
-    function testTransferUSDSFromSkybaseSubProxy() public {
-        address skybaseSubProxy   = addr.addr("SKYBASE_SUBPROXY");
-        address skybaseFoundation = wallets.addr("SKYBASE_FOUNDATION");
-        uint256 transferAmount    = 900_000 * WAD;
-
-        // Check source balance
-        assertGe(usds.balanceOf(skybaseSubProxy), transferAmount, "testTransferUSDSFromSkybaseSubProxy/insufficient-subproxy-usds-balance");
-
-        uint256 subProxyUsdsBefore      = usds.balanceOf(skybaseSubProxy);
-        uint256 skybaseFoundationBefore = usds.balanceOf(skybaseFoundation);
-
-        // Execute spell
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        // Check balance changes
-        assertEq(
-            usds.balanceOf(skybaseSubProxy),
-            subProxyUsdsBefore - transferAmount,
-            "testTransferUSDSFromSkybaseSubProxy/subproxy-balance-mismatch"
-        );
-        assertEq(
-            usds.balanceOf(skybaseFoundation),
-            skybaseFoundationBefore + transferAmount,
-            "testTransferUSDSFromSkybaseSubProxy/skybase-foundation-balance-mismatch"
-        );
-    }
 }
