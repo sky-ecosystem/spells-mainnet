@@ -33,6 +33,16 @@ interface BeamStateLike {
     function addInitControllerActions(bytes memory data, address controller) external returns (bytes32 key);
 }
 
+interface L2GovRelayLike {
+    function l1GovernanceRelay() external view returns (address);
+    function messenger() external view returns (address);
+    function relay(address target, bytes calldata targetData) external;
+}
+
+interface L2MessengerLike {
+    function xDomainMessageSender() external view returns (address);
+}
+
 interface L2MulticallSpellLike {
     struct Call {
         address target;
@@ -50,12 +60,20 @@ contract L2Spell20261119_base is Script {
     address internal constant BASE_OSERO_CBEAM       = 0x42D1038017E466b413aa44Ae798E30FB80b2E180;
     address internal constant BASE_OSERO_RATE_LIMITS = 0xd9E629588c48722E4c1bfcfb17829FecAf73839f;
     address internal constant BASE_OSERO_CONTROLLER  = 0x96F18963c1B1Dd83bB4D14119cF2C4b94F86d6a9;
+    address internal constant BASE_L2_GOV_RELAY      = 0xdD0BCc201C9E47c6F6eE68E4dB05b652Bb6aC255;
+    address internal constant BASE_L2MULTICALLSPELL  = 0x682048513247076Fb5dB4762121BdB136182e4A9;
+
+    uint256 internal mainnetFork;
+    uint256 internal baseFork;
 
     function setUp() public {
-        vm.createSelectFork("mainnet");
+        mainnetFork = vm.createFork("mainnet");
+        baseFork    = vm.createFork(getChain("base").rpcUrl);
     }
 
-    function run() external view {
+    function _generateCalldata() internal returns (bytes memory callData) {
+        vm.selectFork(mainnetFork);
+
         // Fetch required addresses
         address PAU_BEACON = DssExecLib.getChangelogAddress("PAU_BEACON");
 
@@ -90,9 +108,43 @@ contract L2Spell20261119_base is Script {
         console.logBytes(calls[5].data);
 
         // Generate final calldata to pass to BASE_GOV_RELAY.relay
-        bytes memory callData = abi.encodeCall(L2MulticallSpellLike.execute, (calls, block.timestamp + 7 days));
+        callData = abi.encodeCall(L2MulticallSpellLike.execute, (calls, block.timestamp + 7 days));
         console.log("Final calldata to relay:");
         console.logBytes(callData);
+    }
+
+    function _estimateGasOnBase(bytes memory callData) internal {
+        vm.selectFork(baseFork);
+
+        require(BASE_L2MULTICALLSPELL.code.length > 0, "L2MulticallSpell/not-deployed-on-base");
+
+        address l1GovRelay = L2GovRelayLike(BASE_L2_GOV_RELAY).l1GovernanceRelay();
+        address messenger  = L2GovRelayLike(BASE_L2_GOV_RELAY).messenger();
+
+        // Emulate the L1 -> L2 message since L2GovRelay only accepts calls from the messenger
+        vm.mockCall(messenger, abi.encodeCall(L2MessengerLike.xDomainMessageSender, ()), abi.encode(l1GovRelay));
+
+        bytes memory relayData = abi.encodeCall(L2GovRelayLike.relay, (BASE_L2MULTICALLSPELL, callData));
+
+        vm.prank(messenger);
+        uint256 gasBefore = gasleft();
+        (bool success, bytes memory ret) = BASE_L2_GOV_RELAY.call(relayData);
+        uint256 gasUsed = gasBefore - gasleft();
+
+        vm.clearMockedCalls();
+
+        if (!success) {
+            console.log("L2GovRelay.relay reverted on Base:");
+            console.logBytes(ret);
+            revert("L2MulticallSpell/execution-failed-on-base");
+        }
+
+        console.log("Suggested _minGasLimit (minimum + 30%):");
+        console.log(gasUsed * 13 / 10);
+    }
+
+    function run() external {
+        _estimateGasOnBase(_generateCalldata());
     }
 
 }
