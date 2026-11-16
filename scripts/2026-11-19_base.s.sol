@@ -88,23 +88,23 @@ contract L2Spell20261119_base is Script {
         console.logBytes(calls[0].data);
 
         calls[1] = L2MulticallSpellLike.Call(BASE_PAS_STATE, abi.encodeCall(BeamStateLike.addCBeam, (BASE_OSERO_CBEAM)));
-        console.log("Beacon.addCBeam calldata:");
+        console.log("BeamState.addCBeam calldata:");
         console.logBytes(calls[1].data);
 
         calls[2] = L2MulticallSpellLike.Call(BASE_PAS_STATE, abi.encodeCall(BeamStateLike.addRateLimits, (BASE_OSERO_RATE_LIMITS)));
-        console.log("Beacon.addRateLimits calldata:");
+        console.log("BeamState.addRateLimits calldata:");
         console.logBytes(calls[2].data);
 
         calls[3] = L2MulticallSpellLike.Call(BASE_PAS_STATE, abi.encodeCall(BeamStateLike.setCBeamForRateLimits, (BASE_OSERO_RATE_LIMITS, BASE_OSERO_CBEAM)));
-        console.log("Beacon.setCBeamForRateLimits calldata:");
+        console.log("BeamState.setCBeamForRateLimits calldata:");
         console.logBytes(calls[3].data);
 
         calls[4] = L2MulticallSpellLike.Call(BASE_PAS_STATE, abi.encodeCall(BeamStateLike.addController, (BASE_OSERO_CONTROLLER)));
-        console.log("Beacon.addController calldata:");
+        console.log("BeamState.addController calldata:");
         console.logBytes(calls[4].data);
 
         calls[5] = L2MulticallSpellLike.Call(BASE_PAS_STATE, abi.encodeCall(BeamStateLike.setCBeamForController, (BASE_OSERO_CONTROLLER, BASE_OSERO_CBEAM)));
-        console.log("Beacon.setCBeamForController calldata:");
+        console.log("BeamState.setCBeamForController calldata:");
         console.logBytes(calls[5].data);
 
         // Generate final calldata to pass to BASE_GOV_RELAY.relay
