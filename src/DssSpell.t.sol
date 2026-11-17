@@ -122,23 +122,7 @@ contract DssSpellTest is DssSpellTestBase {
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        bytes32 _ilk;
-
-        // USDC
-        _ilk = "PSM-USDC-A";
-        assertEq(addr.addr("MCD_JOIN_PSM_USDC_A"), reg.join(_ilk));
-        assertEq(addr.addr("MCD_CLIP_PSM_USDC_A"), reg.xlip(_ilk));
-        assertEq(addr.addr("PIP_USDC"), reg.pip(_ilk));
-        assertEq(addr.addr("MCD_PSM_USDC_A"), chainLog.getAddress("MCD_PSM_USDC_A"));
-        _checkPsmIlkIntegration(
-            _ilk,
-            GemJoinAbstract(addr.addr("MCD_JOIN_PSM_USDC_A")),
-            ClipAbstract(addr.addr("MCD_CLIP_PSM_USDC_A")),
-            addr.addr("PIP_USDC"),
-            PsmAbstract(addr.addr("MCD_PSM_USDC_A")),
-            0,   // tin
-            0    // tout
-        );
+        // No legacy PSMs remain in the ilk registry.
     }
 
     // Leave this test always enabled as it acts as a config test
@@ -182,20 +166,12 @@ contract DssSpellTest is DssSpellTestBase {
         //assertEq(OsmAbstract(0xF15993A5C5BE496b8e1c9657Fd2233b579Cd3Bc6).wards(ORACLE_WALLET01), 1);
     }
 
-    function testRemovedChainlogKeys() public skipped { // add the `skipped` modifier to skip
-        string[12] memory removedKeys = [
-            "MCD_PSM_GUSD_A",
-            "MCD_JOIN_PSM_GUSD_A",
-            "MCD_CLIP_PSM_GUSD_A",
-            "MCD_CLIP_CALC_PSM_GUSD_A",
-            "MCD_PSM_GUSD_A_JAR",
-            "MCD_PSM_GUSD_A_INPUT_CONDUIT_JAR",
-            "MCD_PSM_PAX_A",
-            "MCD_JOIN_PSM_PAX_A",
-            "MCD_CLIP_PSM_PAX_A",
-            "MCD_CLIP_CALC_PSM_PAX_A",
-            "MCD_PSM_PAX_A_JAR",
-            "MCD_PSM_PAX_A_INPUT_CONDUIT_JAR"
+    function testRemovedChainlogKeys() public { // add the `skipped` modifier to skip
+        string[4] memory removedKeys = [
+            "MCD_PSM_USDC_A",
+            "MCD_JOIN_PSM_USDC_A",
+            "MCD_CLIP_PSM_USDC_A",
+            "MCD_CLIP_CALC_PSM_USDC_A"
         ];
 
         for (uint256 i = 0; i < removedKeys.length; i++) {
@@ -227,9 +203,10 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
-        string[1] memory addedKeys = [
-            "STUSDS_VALUE_REGISTRY"
+    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+        string[2] memory addedKeys = [
+            "TEST_HALO_SUBPROXY",
+            "TEST_HALO_STARGUARD"
         ];
 
         for(uint256 i = 0; i < addedKeys.length; i++) {
@@ -639,16 +616,16 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public skipped { // add the `skipped` modifier to skip
+    function testVestSky() public { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
-        uint256 DEC_12_2026_12_42_11_UTC = 1797079331;
+        uint256 JAN_10_2027_14_01_47_UTC = 1799589707;
 
         uint256 spellCastTime = _getSpellCastTime();
 
         // Build expected new stream
         NewVestStream[] memory newStreams = new NewVestStream[](1);
         newStreams[0] = NewVestStream({
-            id:  18,
+            id:  19,
             usr: addr.addr("REWARDS_DIST_LSSKY_SKY"),
             bgn: spellCastTime,
             clf: spellCastTime,
@@ -656,15 +633,15 @@ contract DssSpellTest is DssSpellTestBase {
             tau: 90 days,
             mgr: address(0),
             res: 1,
-            tot: 99_525_882 * WAD,
+            tot: 104_897_852 * WAD,
             rxd: 0 // Amount already claimed
         });
 
         // For each yanked stream, provide Stream object and initialize the array with the current number of yanked streams
         YankedVestStream[] memory yankedStreams = new YankedVestStream[](1);
         yankedStreams[0] = YankedVestStream({
-            id:  17,
-            fin: DEC_12_2026_12_42_11_UTC,
+            id:  18,
+            fin: JAN_10_2027_14_01_47_UTC,
             end: spellCastTime
         });
 
@@ -758,9 +735,9 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestedRewardsDist() public skipped { // add the `skipped` modifier to skip
-        uint256 expectedVestIdBefore = 17;
-        uint256 expectedVestIdAfter = 18;
+    function testVestedRewardsDist() public { // add the `skipped` modifier to skip
+        uint256 expectedVestIdBefore = 18;
+        uint256 expectedVestIdAfter = 19;
 
         address rewardsDist = addr.addr("REWARDS_DIST_LSSKY_SKY");
         address stakingRewards = addr.addr("REWARDS_LSSKY_SKY");
@@ -806,7 +783,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public skipped { // add the `skipped` modifier to skip
+    function testPayments() public { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -816,21 +793,22 @@ contract DssSpellTest is DssSpellTestBase {
         //    the destination address,
         //    the amount to be paid
         // Initialize the array with the number of payees
-        Payee[7] memory payees = [
-            Payee(address(usds), addr.addr("SPARK_SUBPROXY"),                 4_218_121 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("GROVE_SUBPROXY"),                 1_148_408 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("KEEL_SUBPROXY"),                     31_472 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("OBEX_SUBPROXY"),                    480_680 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("SKYBASE_SUBPROXY"),                 320_926 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), addr.addr("OSERO_SUBPROXY"),                    27_661 ether), // Note: ether is only a keyword helper
-            Payee(address(usds), wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG"), 2_927_190 ether)  // Note: ether is only a keyword helper
+        Payee[8] memory payees = [
+            Payee(address(usds), addr.addr("SPARK_SUBPROXY"),                 4_188_099 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("GROVE_SUBPROXY"),                 2_170_826 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("KEEL_SUBPROXY"),                     34_034 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("OBEX_SUBPROXY"),                    205_907 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("SKYBASE_SUBPROXY"),                 145_439 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), addr.addr("OSERO_SUBPROXY"),                    42_396 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("DEMAND_SIDE_BUFFER_MULTISIG"),  1_000_000 ether), // Note: ether is only a keyword helper
+            Payee(address(usds), wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG"), 3_720_082 ether)  // Note: ether is only a keyword helper
         ];
 
         // Fill the total values from exec sheet
         PaymentAmounts memory expectedTotalPayments = PaymentAmounts({
             dai:           0  ether, // Note: ether is only a keyword helper
             mkr:           0  ether, // Note: ether is only a keyword helper
-            usds:  9_154_458  ether, // Note: ether is only a keyword helper
+            usds: 11_506_783  ether, // Note: ether is only a keyword helper
             sky:           0  ether  // Note: ether is only a keyword helper
         });
 
@@ -1002,8 +980,9 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testBaseGovRelay() public skipped { // add the `skipped` modifier to skip
-        _setupL2Domains();
+    function testBaseGovRelay() public { // add the `skipped` modifier to skip
+        _setupRootDomain();
+        baseDomain = new OptimismDomain(config, getRelativeChain("base"), rootDomain);
         _testOpL2GovernanceRelay(
             "base",
             baseDomain,
@@ -1267,13 +1246,13 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 
-    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
+    function testMonthlySettlementCycleInflows() public { // add the `skipped` modifier to skip
         AllocatorPayment[] memory payments = new AllocatorPayment[](4);
-        payments[0] = AllocatorPayment(addr.addr("ALLOCATOR_SPARK_A_VAULT"), 11_627_438 * WAD);
-        payments[1] = AllocatorPayment(addr.addr("ALLOCATOR_BLOOM_A_VAULT"),  6_806_996 * WAD);
-        payments[2] = AllocatorPayment(addr.addr("ALLOCATOR_OBEX_A_VAULT"),   1_643_358 * WAD);
-        payments[3] = AllocatorPayment(addr.addr("ALLOCATOR_PRYSM_A_VAULT"),     76_824 * WAD);
-        uint256 expectedTotalAmount = 20_154_616 * WAD;
+        payments[0] = AllocatorPayment(addr.addr("ALLOCATOR_SPARK_A_VAULT"), 14_048_690 * WAD);
+        payments[1] = AllocatorPayment(addr.addr("ALLOCATOR_BLOOM_A_VAULT"),  8_866_792 * WAD);
+        payments[2] = AllocatorPayment(addr.addr("ALLOCATOR_OBEX_A_VAULT"),   1_463_217 * WAD);
+        payments[3] = AllocatorPayment(addr.addr("ALLOCATOR_PRYSM_A_VAULT"),     15_812 * WAD);
+        uint256 expectedTotalAmount = 24_394_511 * WAD;
 
         MscIlkValues[] memory expectedValues = new MscIlkValues[](payments.length);
         uint256 totalDtab = 0;
@@ -1321,15 +1300,15 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
-        PrimeAgentSpell[2] memory primeAgentSpells = [
+    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
+        PrimeAgentSpell[3] memory primeAgentSpells = [
             PrimeAgentSpell({
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "SPARK_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0x9C3991A36aE899c7b267208bad2cC1237BE36F5b,
+                addr: 0x0703EBA65Ff30c245f739087B4c5280e9e4dBD50,
                 // Insert Prime Agent spell codehash
-                codehash: 0x084497cc546ef29a5597591d820a3342a0b7687bcbd6fed504830f915a4422d9,
+                codehash: 0x0a88e3ab7468f13e69d3e49699ccd8463dedc9609ea097e23c19e6106810e6c8,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             }),
@@ -1337,9 +1316,19 @@ contract DssSpellTest is DssSpellTestBase {
                 // Insert Prime Agent StarGuards Chainlog key
                 starGuardKey: "GROVE_STARGUARD",
                 // Insert Prime Agent spell address
-                addr: 0xb7fdd2f1efE69EC2145A914bCEB23D48de4Bb74D,
+                addr: 0x1a74cC68A37f24367914fAc1915cC604CB3D72AF,
                 // Insert Prime Agent spell codehash
-                codehash: 0x205f19d44421f601f530310481a88bbd037f1d114e82e9cd5d82ccf828b45ee3,
+                codehash: 0x45f2833db32128803bd3ce7dc8fa9837a38db7791cacd99ac1c90598d0a70bc9,
+                // Set to true if the Prime Agent spell is executed directly from core spell
+                directExecutionEnabled: false
+            }),
+            PrimeAgentSpell({
+                // Insert Prime Agent StarGuards Chainlog key
+                starGuardKey: "OSERO_STARGUARD",
+                // Insert Prime Agent spell address
+                addr: 0xC1989b5c81eA2bC4A6Abda0e73e3E3C48D500d05,
+                // Insert Prime Agent spell codehash
+                codehash: 0xd99ef190c8ebdfbe3ddd67e84a2d63243b0f354e4841928a8bc6869a4055d77b,
                 // Set to true if the Prime Agent spell is executed directly from core spell
                 directExecutionEnabled: false
             })
@@ -1360,15 +1349,11 @@ contract DssSpellTest is DssSpellTestBase {
         address subProxy;
     }
 
-    function testStarGuardInitialization() public skipped { // add the `skipped` modifier to skip
-        StarguardValues[2] memory initializedStarGuards = [
+    function testStarGuardInitialization() public { // add the `skipped` modifier to skip
+        StarguardValues[1] memory initializedStarGuards = [
             StarguardValues({
-                starGuard: addr.addr("OZONE_STARGUARD"), // Insert StarGuard address
-                subProxy: addr.addr("OZONE_SUBPROXY")    // Insert SubProxy address
-            }),
-            StarguardValues({
-                starGuard: addr.addr("AMATSU_STARGUARD"),
-                subProxy: addr.addr("AMATSU_SUBPROXY")
+                starGuard: addr.addr("TEST_HALO_STARGUARD"), // Insert StarGuard address
+                subProxy: addr.addr("TEST_HALO_SUBPROXY")    // Insert SubProxy address
             })
         ];
 
