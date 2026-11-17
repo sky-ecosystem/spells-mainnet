@@ -287,7 +287,8 @@ contract DssSpellAction is DssAction {
         // Set WSTETH-B Debt Ceiling to 0
         globalLineReduction += _zeroIlkDebtCeiling("WSTETH-B");
 
-        // Note: reduce the global debt ceiling by the sum of the five pre-change ilk debt ceilings.
+        // TODO: Remove when Governance Facilitators confirm the global debt ceiling calculation and fee buffer before deployment.
+        // Note: Reduce only unused capacity, retaining room for the five ilks' existing debt as recorded in the Vat.
         DssExecLib.setValue(MCD_VAT, "Line", VatAbstract(MCD_VAT).Line() - globalLineReduction);
 
         // ---------- Finalize Legacy USDC PSM Offboarding ----------
@@ -471,9 +472,11 @@ contract DssSpellAction is DssAction {
     // Note: This helper reduces runtime bytecode size to avoid enabling compiler optimization for the spell.
     /// @notice Sets an ilk's debt ceiling to zero.
     /// @param ilk The ilk to update.
-    /// @return line The previous debt ceiling in RAD.
-    function _zeroIlkDebtCeiling(bytes32 ilk) internal returns (uint256 line) {
-        (,,, line,) = VatAbstract(MCD_VAT).ilks(ilk);
+    /// @return reduction The unused debt ceiling capacity in RAD.
+    function _zeroIlkDebtCeiling(bytes32 ilk) internal returns (uint256 reduction) {
+        (uint256 Art, uint256 rate,, uint256 line,) = VatAbstract(MCD_VAT).ilks(ilk);
+        uint256 debt = Art * rate;
+        reduction = line > debt ? line - debt : 0;
         DssExecLib.setIlkDebtCeiling(ilk, 0);
     }
 
