@@ -98,8 +98,8 @@ interface L2MulticallSpellLike {
 contract DssSpellAction is DssAction {
     // Provides a descriptive tag for bot consumption
     // This should be modified weekly to provide a summary of the actions
-    // Hash: cast keccak -- "$(wget 'TODO' -q -O - 2>/dev/null)"
-    string public constant override description = "2026-11-19 MakerDAO Executive Spell | Hash: TODO";
+    // Hash: cast keccak -- "$(wget 'https://raw.githubusercontent.com/sky-ecosystem/executive-votes/e4d7f7119a67520e87e4fe6e6b410779f758a8c2/2026/executive-vote-2026-11-19-msc-psm-offboard-launch-test-halo-launch-osero-base-dpau.md' -q -O - 2>/dev/null)"
+    string public constant override description = "2026-11-19 MakerDAO Executive Spell | Hash: 0x727d79f7e41b4bf954ee7b7915e8148bff245247fedd337a6b1bda7f9484573b";
 
     // Set office hours according to the summary
     function officeHours() public pure override returns (bool) {
