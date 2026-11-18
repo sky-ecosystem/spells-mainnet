@@ -295,8 +295,8 @@ contract DssSpellAction is DssAction {
         // Forum: https://forum.skyeco.com/t/psm-usdc-a-housekeeping/28417
         // Atlas: https://sky-atlas.io/#0d0e2e1a-0502-4ee3-bc9d-8bd8ddde19ec
 
-        // Note: Attempt recovery before revoking the Join's authorization on the Vat.
         // Send rescued USDC to the CC Buffer at 0x210CFcF53d1f9648C1c4dcaEE677f0Cb06914364
+        // Note: Attempt recovery before revoking the Join's authorization on the Vat.
         _tryRecoverUsdc({
             ilk:       "PSM-USDC-A",
             join:      MCD_JOIN_PSM_USDC_A,
@@ -477,6 +477,8 @@ contract DssSpellAction is DssAction {
     /// @param ilk The ilk to update.
     /// @return reduction The unused debt ceiling capacity in RAD.
     function _zeroIlkDebtCeiling(bytes32 ilk) internal returns (uint256 reduction) {
+        // Note: Accrue stability fees before calculating the unused debt ceiling capacity.
+        JugAbstract(MCD_JUG).drip(ilk);
         // Note: Read the current debt and ceiling before zeroing the ceiling.
         (uint256 Art, uint256 rate,, uint256 line,) = VatAbstract(MCD_VAT).ilks(ilk);
         // Note: Art (WAD) multiplied by rate (RAY) gives the recorded debt in RAD.

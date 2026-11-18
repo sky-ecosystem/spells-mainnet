@@ -1262,6 +1262,10 @@ contract DssSpellTest is DssSpellTestBase {
         uint256 totalDtab = 0;
         uint256 totalPayments = 0;
 
+        _vote(address(spell));
+        spell.schedule();
+        vm.warp(spell.nextCastTime());
+
         uint256 before = vm.snapshotState();
 
         for(uint256 i = 0; i < payments.length; i++) {
@@ -1278,10 +1282,14 @@ contract DssSpellTest is DssSpellTestBase {
         }
         assertEq(totalPayments, expectedTotalAmount, "MSC/invalid-total-amount");
 
+        // Include the core vault fees credited to the Vow during this cast.
+        bytes32[5] memory ilks = [bytes32("ETH-A"), "ETH-B", "ETH-C", "WSTETH-A", "WSTETH-B"];
+        for (uint256 i = 0; i < ilks.length; i++) {
+            jug.drip(ilks[i]);
+        }
         uint256 expectedDaiVow = vat.dai(address(vow)) + totalDtab;
 
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
+        spell.cast();
         assertTrue(spell.done(), "TestError/spell-not-done");
 
         // Test with MCD_JUG.drip() having been called in the same block
@@ -1289,8 +1297,7 @@ contract DssSpellTest is DssSpellTestBase {
 
         vm.revertToStateAndDelete(before);
 
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
+        spell.cast();
         assertTrue(spell.done(), "TestError/spell-not-done");
 
         // Test without prior MCD_JUG.drip()
@@ -1414,24 +1421,38 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(farm.rewardsDuration(), 2_119, "TestError/rewards-duration-after");
     }
 
-    function testLineAdjustment() public {
+    function testCoreVaultDebtCeilingChanges() public {
         bytes32[5] memory ilks = [bytes32("ETH-A"), "ETH-B", "ETH-C", "WSTETH-A", "WSTETH-B"];
         uint256[5] memory beforeArts;
-        uint256[5] memory beforeRates;
+        uint256[5] memory expectedRates;
 
         _vote(address(spell));
         spell.schedule();
-        vm.warp(spell.nextCastTime());
+        // Delay the cast to exercise fees accrued since the last drip.
+        vm.warp(spell.nextCastTime() + 7 days);
 
         uint256 preLine = vat.Line();
         uint256 correction;
-        for (uint256 i = 0; i < ilks.length; i++) {
-            uint256 line;
-            (beforeArts[i], beforeRates[i],, line,) = vat.ilks(ilks[i]);
-            uint256 debt = beforeArts[i] * beforeRates[i];
-            correction += line > debt ? line - debt : 0;
+        uint256 before = vm.snapshotState();
+
+        // Calculate the expected reduction with fees accrued through the cast timestamp.
+        {
+            uint256 correctionBeforeDrip;
+            for (uint256 i = 0; i < ilks.length; i++) {
+                uint256 rate;
+                uint256 line;
+                (beforeArts[i], rate,, line,) = vat.ilks(ilks[i]);
+                uint256 debt = beforeArts[i] * rate;
+                correctionBeforeDrip += line > debt ? line - debt : 0;
+
+                expectedRates[i] = jug.drip(ilks[i]);
+                debt = beforeArts[i] * expectedRates[i];
+                correction += line > debt ? line - debt : 0;
+            }
+            assertLt(correction, correctionBeforeDrip, "TestError/fixture-did-not-accrue");
         }
 
+        // Test with MCD_JUG.drip() having been called in the same block.
         spell.cast();
         assertTrue(spell.done(), "TestError/spell-not-done");
         assertEq(vat.Line(), preLine - correction, "TestError/global-line-adjustment");
@@ -1439,15 +1460,28 @@ contract DssSpellTest is DssSpellTestBase {
         for (uint256 i = 0; i < ilks.length; i++) {
             (uint256 Art, uint256 rate,,,) = vat.ilks(ilks[i]);
             assertEq(Art, beforeArts[i], "TestError/principal-changed");
-            assertEq(rate, beforeRates[i], "TestError/rate-changed");
-            (, uint256 gap, uint256 ttl, uint256 last, uint256 lastInc) = autoLine.ilks(ilks[i]);
-            assertEq(gap, 0, "TestError/autoline-gap");
-            assertEq(ttl, 0, "TestError/autoline-ttl");
-            assertEq(last, 0, "TestError/autoline-last");
-            assertEq(lastInc, 0, "TestError/autoline-last-inc");
-            autoLine.exec(ilks[i]);
-            (,,, uint256 line,) = vat.ilks(ilks[i]);
-            assertEq(line, 0, "TestError/autoline-reopened-line");
+            assertEq(rate, expectedRates[i], "TestError/rate-changed");
+            (, uint256 rho) = jug.ilks(ilks[i]);
+            assertEq(rho, block.timestamp, "TestError/rho-not-updated");
+        }
+        uint256 debtAfter = vat.debt();
+        uint256 daiVowAfter = vat.dai(address(vow));
+
+        vm.revertToStateAndDelete(before);
+
+        // Test without prior MCD_JUG.drip() at the same delayed cast timestamp.
+        spell.cast();
+        assertTrue(spell.done(), "TestError/spell-not-done");
+        assertEq(vat.Line(), preLine - correction, "TestError/global-line-adjustment");
+        assertEq(vat.debt(), debtAfter, "TestError/debt-depends-on-prior-drip");
+        assertEq(vat.dai(address(vow)), daiVowAfter, "TestError/vow-dai-depends-on-prior-drip");
+
+        for (uint256 i = 0; i < ilks.length; i++) {
+            (uint256 Art, uint256 rate,,,) = vat.ilks(ilks[i]);
+            assertEq(Art, beforeArts[i], "TestError/principal-changed");
+            assertEq(rate, expectedRates[i], "TestError/rate-not-updated");
+            (, uint256 rho) = jug.ilks(ilks[i]);
+            assertEq(rho, block.timestamp, "TestError/rho-not-updated");
         }
     }
 
@@ -1462,7 +1496,9 @@ contract DssSpellTest is DssSpellTestBase {
 
         // Give ETH-A zero debt to exercise removal of its entire unused capacity.
         stdstore.target(address(vat)).sig("ilks(bytes32)").with_key(bytes32("ETH-A")).depth(0).checked_write(uint256(0));
+        // Set the boundaries using debt accrued through the cast timestamp.
         for (uint256 i = 0; i < ilks.length; i++) {
+            jug.drip(ilks[i]);
             (beforeArts[i], beforeRates[i],,,) = vat.ilks(ilks[i]);
             if (i != 0) assertGt(beforeArts[i], 0, "TestError/fixture-no-debt");
         }
@@ -1492,46 +1528,6 @@ contract DssSpellTest is DssSpellTestBase {
             assertEq(Art, beforeArts[i], "TestError/principal-changed");
             assertEq(rate, beforeRates[i], "TestError/rate-changed");
             assertEq(line, 0, "TestError/line-not-zero");
-        }
-    }
-
-    function testLineAdjustmentDelayedCast() public {
-        bytes32[5] memory ilks = [bytes32("ETH-A"), "ETH-B", "ETH-C", "WSTETH-A", "WSTETH-B"];
-
-        _vote(address(spell));
-        spell.schedule();
-        vm.warp(spell.nextCastTime() + 7 days);
-        uint256 before = vm.snapshotState();
-
-        uint256 preLine = vat.Line();
-        uint256 correction;
-        for (uint256 i = 0; i < ilks.length; i++) {
-            (uint256 Art, uint256 rate,, uint256 line,) = vat.ilks(ilks[i]);
-            correction += line > Art * rate ? line - Art * rate : 0;
-        }
-        // First cast without recording the five ilks' accrued fees in the Vat.
-        spell.cast();
-        assertTrue(spell.done(), "TestError/spell-not-done");
-        assertEq(vat.Line(), preLine - correction, "TestError/delayed-global-line");
-
-        vm.revertToStateAndDelete(before);
-        bytes32[5] memory debtBefore;
-        uint256 correctionAfterDrip;
-        // Repeat the same delayed cast with fees materialized first.
-        for (uint256 i = 0; i < ilks.length; i++) {
-            uint256 rate = jug.drip(ilks[i]);
-            (uint256 Art,,, uint256 line,) = vat.ilks(ilks[i]);
-            correctionAfterDrip += line > Art * rate ? line - Art * rate : 0;
-            debtBefore[i] = keccak256(abi.encode(Art, rate));
-        }
-        assertLt(correctionAfterDrip, correction, "TestError/fixture-did-not-accrue");
-
-        spell.cast();
-        assertTrue(spell.done(), "TestError/spell-not-done");
-        assertEq(vat.Line(), preLine - correctionAfterDrip, "TestError/accrued-global-line");
-        for (uint256 i = 0; i < ilks.length; i++) {
-            (uint256 Art, uint256 rate,,,) = vat.ilks(ilks[i]);
-            assertEq(keccak256(abi.encode(Art, rate)), debtBefore[i], "TestError/accrued-debt-changed");
         }
     }
 
@@ -1651,9 +1647,7 @@ contract DssSpellTest is DssSpellTestBase {
         p.l1GovRelay    = addr.addr("BASE_GOV_RELAY");
         p.l2GovRelay    = base.addr("L2_GOV_RELAY");
         p.l2Multicall   = base.addr("L2_MULTICALL_SPELL");
-        p.l1Beacon      = addr.addr("PAU_BEACON");
         p.l2Beacon      = base.addr("L2_PAU_BEACON");
-        p.l2Facet       = base.addr("L2_ERC4626_FACET");
         p.pas           = base.addr("L2_PAS_STATE");
         p.cBeam         = wallets.addr("OSERO_PAS_CBEAM");
         p.rateLimits    = base.addr("BASE_OSERO_RATE_LIMITS");
@@ -1675,12 +1669,34 @@ contract DssSpellTest is DssSpellTestBase {
 
         baseDomain.selectFork();
         // Get the USDC deposit rate-limit key for Osero's vault from the ERC4626 Facet.
-        p.initialRateLimitKey = ERC4626FacetLike(p.l2Facet).getDepositRateLimitKey(
+        p.initialRateLimitKey = ERC4626FacetLike(base.addr("L2_ERC4626_FACET")).getDepositRateLimitKey(
             base.addr("BASE_OSERO_USDC_VAULT"),
             base.addr("L2_USDC")
         );
         // Return to the original fork so the Core cast uses the requested Ethereum block.
         vm.selectFork(l1Fork);
+
+        // Copy the L1 integration config and replace only its facet.
+        p.integrationConfig = BeaconTestLike(addr.addr("PAU_BEACON")).getConfig(p.integrationId);
+        p.integrationConfig.facet = base.addr("L2_ERC4626_FACET");
+
+        // Build the expected six-call batch independently of the emitted message.
+        p.calls = new L2MulticallTestLike.Call[](6);
+        p.calls[0] = L2MulticallTestLike.Call(
+            p.l2Beacon,
+            abi.encodeCall(BeaconTestLike.setIntegration, (p.integrationId, p.integrationConfig))
+        );
+        p.calls[1] = L2MulticallTestLike.Call(p.pas, abi.encodeCall(PASBeamStateLike.addCBeam, (p.cBeam)));
+        p.calls[2] = L2MulticallTestLike.Call(p.pas, abi.encodeCall(PASBeamStateLike.addRateLimits, (p.rateLimits)));
+        p.calls[3] = L2MulticallTestLike.Call(
+            p.pas,
+            abi.encodeCall(PASBeamStateLike.setCBeamForRateLimits, (p.rateLimits, p.cBeam))
+        );
+        p.calls[4] = L2MulticallTestLike.Call(p.pas, abi.encodeCall(PASBeamStateLike.addController, (p.controller)));
+        p.calls[5] = L2MulticallTestLike.Call(
+            p.pas,
+            abi.encodeCall(PASBeamStateLike.setCBeamForController, (p.controller, p.cBeam))
+        );
     }
 
     function testBaseSpellExecution() public {

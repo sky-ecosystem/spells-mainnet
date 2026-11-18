@@ -2756,21 +2756,21 @@ contract DssSpellTestBase is Config, DssTest {
         messenger.relayMessage(nonce, sender, target, 0, minGas, data);
     }
 
-    // Test the six-call Beacon/PAS registration through an OP relay.
+    // Test initial Beacon/PAS registration through an OP relay using the supplied calls.
     // Expects the integration and PAS registrations to be absent before the spell.
     struct OpL2BeaconPasParams {
         OptimismDomain domain;
         address l1GovRelay;
         address l2GovRelay;
         address l2Multicall;
-        address l1Beacon;
         address l2Beacon;
-        address l2Facet;
         address pas;
         address cBeam;
         address rateLimits;
         address controller;
         bytes32 integrationId;
+        BeaconTestLike.IntegrationConfig integrationConfig;
+        L2MulticallTestLike.Call[] calls;
         bytes32[] preservedIntegrationIds;
         uint256 deadlineDuration; // Relative to the Core cast.
         uint256 relayDelay;       // Simulated minimum delay between the Core cast and L2 delivery.
@@ -2794,9 +2794,7 @@ contract DssSpellTestBase is Config, DssTest {
     ) {
         assertEq(block.chainid, 1, "OpL2BeaconPas/mainnet-fork");
 
-        // Copy the L1 integration config and replace only its facet.
-        expected = BeaconTestLike(p.l1Beacon).getConfig(p.integrationId);
-        expected.facet = p.l2Facet;
+        expected = p.integrationConfig;
 
         _vote(address(spell));
         spell.schedule();
@@ -2804,34 +2802,16 @@ contract DssSpellTestBase is Config, DssTest {
         uint256 castTime = block.timestamp;
         deadline = castTime + p.deadlineDuration;
 
-        // Build the expected six-call batch independently of the emitted message.
-        {
-            L2MulticallTestLike.Call[] memory calls = new L2MulticallTestLike.Call[](6);
-            calls[0] = L2MulticallTestLike.Call(
-                p.l2Beacon,
-                abi.encodeCall(BeaconTestLike.setIntegration, (p.integrationId, expected))
-            );
-            calls[1] = L2MulticallTestLike.Call(p.pas, abi.encodeCall(PASBeamStateLike.addCBeam, (p.cBeam)));
-            calls[2] = L2MulticallTestLike.Call(p.pas, abi.encodeCall(PASBeamStateLike.addRateLimits, (p.rateLimits)));
-            calls[3] = L2MulticallTestLike.Call(
-                p.pas,
-                abi.encodeCall(PASBeamStateLike.setCBeamForRateLimits, (p.rateLimits, p.cBeam))
-            );
-            calls[4] = L2MulticallTestLike.Call(p.pas, abi.encodeCall(PASBeamStateLike.addController, (p.controller)));
-            calls[5] = L2MulticallTestLike.Call(
-                p.pas,
-                abi.encodeCall(PASBeamStateLike.setCBeamForController, (p.controller, p.cBeam))
-            );
-            vm.expectCall(
-                p.l1GovRelay,
-                abi.encodeCall(OpL1GovernanceRelayLike.relay, (
-                    p.l2Multicall,
-                    abi.encodeCall(L2MulticallTestLike.execute, (calls, deadline)),
-                    p.minGas
-                )),
-                1
-            );
-        }
+        // Check the fixture's expected batch against the actual Core relay call.
+        vm.expectCall(
+            p.l1GovRelay,
+            abi.encodeCall(OpL1GovernanceRelayLike.relay, (
+                p.l2Multicall,
+                abi.encodeCall(L2MulticallTestLike.execute, (p.calls, deadline)),
+                p.minGas
+            )),
+            1
+        );
 
         // Capture the actual message emitted by the Core cast.
         vm.recordLogs();
@@ -2899,10 +2879,10 @@ contract DssSpellTestBase is Config, DssTest {
         ) = _setupOpL2BeaconPas(p);
         assertLt(block.timestamp, deadline);
 
-        // Fail the last PAS call to check atomic rollback of the L2 batch.
-        bytes memory data = abi.encodeCall(PASBeamStateLike.setCBeamForController, (p.controller, p.cBeam));
-        vm.mockCallRevert(p.pas, data, hex"01");
-        vm.expectCall(p.pas, data);
+        // Fail the last supplied call to check atomic rollback of the L2 batch.
+        L2MulticallTestLike.Call memory lastCall = p.calls[p.calls.length - 1];
+        vm.mockCallRevert(lastCall.target, lastCall.data, hex"01");
+        vm.expectCall(lastCall.target, lastCall.data);
         _relayOpL2Message(p.domain, message, p.l1GovRelay, p.minGas);
         _checkBeaconPasState(p, expected, preserved, false);
         vm.clearMockedCalls();
