@@ -24,7 +24,6 @@ import { GemJoinAbstract } from "dss-interfaces/dss/GemJoinAbstract.sol";
 import { IlkRegistryAbstract } from "dss-interfaces/dss/IlkRegistryAbstract.sol";
 import { JugAbstract } from "dss-interfaces/dss/JugAbstract.sol";
 import { VatAbstract } from "dss-interfaces/dss/VatAbstract.sol";
-
 // Copied from https://github.com/sky-ecosystem/endgame-toolkit/blob/4f238f9b23298190150d49482bad56c00f0af825/script/dependencies/treasury-funded-farms/TreasuryFundedFarmingInit.sol
 import { TreasuryFundedFarmingInit, FarmingUpdateVestParams } from "./dependencies/endgame-toolkit/treasury-funded-farms/TreasuryFundedFarmingInit.sol";
 // Copied from https://github.com/sky-ecosystem/star-guard/blob/52239d716a89188b303f137fc43fb9288735ba2e/deploy/StarGuardInit.sol
@@ -58,7 +57,7 @@ interface StarGuardJobLike {
     function add(address starGuard) external;
 }
 
-interface EnumerableIntegrationsLike {
+interface IEnumerableIntegrations {
     struct Config {
         address facet;
         Wire[] wires;
@@ -71,14 +70,14 @@ interface EnumerableIntegrationsLike {
 }
 
 interface BeaconLike {
-    function getConfig(bytes32 id) external view returns (EnumerableIntegrationsLike.Config memory);
-    function setIntegration(bytes32 id, EnumerableIntegrationsLike.Config calldata config) external;
+    function getConfig(bytes32 integrationId) external view returns (IEnumerableIntegrations.Config memory);
+    function setIntegration(bytes32 id, IEnumerableIntegrations.Config calldata config) external;
 }
 
 interface BeamStateLike {
     function addCBeam(address cBeam) external;
-    function addRateLimits(address rateLimits) external;
-    function setCBeamForRateLimits(address rateLimits, address cBeam) external;
+    function addRateLimits(address rateLimits_) external;
+    function setCBeamForRateLimits(address rateLimits_, address cBeam) external;
     function addController(address controller) external;
     function setCBeamForController(address controller, address cBeam) external;
 }
@@ -254,7 +253,9 @@ contract DssSpellAction is DssAction {
 
         // ---------- Adjust Core Vault DC-IAM Parameters ----------
         // Forum: https://forum.skyeco.com/t/core-vaults-parameter-changes-set-dc-iam-line-to-0-on-eth-a-eth-b-eth-c-wsteth-a-and-wsteth-b/28399
+        // Atlas: https://sky-atlas.io/#2107f160-751d-4fea-abc0-f0bef76a30d5
 
+        // Note: Accumulate the unused capacity removed from the five ilks, in RAD.
         uint256 globalLineReduction = 0;
 
         // Remove ETH-A from autoline
@@ -287,7 +288,6 @@ contract DssSpellAction is DssAction {
         // Set WSTETH-B Debt Ceiling to 0
         globalLineReduction += _zeroIlkDebtCeiling("WSTETH-B");
 
-        // TODO: Remove when Governance Facilitators confirm the global debt ceiling calculation and fee buffer before deployment.
         // Note: Reduce only unused capacity, retaining room for the five ilks' existing debt as recorded in the Vat.
         DssExecLib.setValue(MCD_VAT, "Line", VatAbstract(MCD_VAT).Line() - globalLineReduction);
 
@@ -343,7 +343,9 @@ contract DssSpellAction is DssAction {
         L2MulticallSpellLike.Call[] memory calls = new L2MulticallSpellLike.Call[](6);
 
         // Call L2_PAU_BEACON.setIntegration for bytes32("ERC4626_FACET") with facet = 0xC6Fb54348feCdb2790Fa9130D1fc35d6E101C97D and wires copied from Ethereum mainnet PAU_BEACON.getConfig(bytes32("ERC4626_FACET")).wires.
-        EnumerableIntegrationsLike.Config memory config = BeaconLike(PAU_BEACON).getConfig("ERC4626_FACET");
+        // Note: Read the current Ethereum configuration during the Core cast.
+        IEnumerableIntegrations.Config memory config = BeaconLike(PAU_BEACON).getConfig("ERC4626_FACET");
+        // Note: Keep its wires and substitute only the Base facet address.
         config.facet = L2_ERC4626_FACET;
         calls[0] = L2MulticallSpellLike.Call(
             L2_PAU_BEACON,
@@ -388,14 +390,15 @@ contract DssSpellAction is DssAction {
         );
 
         // ---------- Update Safe Harbor Agreement ----------
+        // Atlas: https://sky-atlas.io/#fcd868db-4a91-4ee0-baf5-1ebd40fc651e
 
         // Note: code below is generated via Safe Harbor script, thus the formatting may be different than the usual spell instructions format
         bytes[] memory calldatas = new bytes[](2);
 
-        // Add accounts to eip155:1 chain: 0xF12Be1673758f8fBC275755401774Ec45C80c0F0, 0x5dc7A3700Dc0508f5E127FA23acd83cc2E1D6056
+        // Add accounts to eip155:1 chain: 0xF12Be1673758f8fBC275755401774Ec45C80c0F0 (scope=0), 0x5dc7A3700Dc0508f5E127FA23acd83cc2E1D6056 (scope=0)
         calldatas[0] = hex'46c2b7340000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000086569703135353a310000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002a3078463132426531363733373538663866424332373537353534303137373445633435433830633046300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002a30783564633741333730304463303530386635453132374641323361636438336363324531443630353600000000000000000000000000000000000000000000';
 
-        // Add accounts to eip155:8453 chain: 0xC6Fb54348feCdb2790Fa9130D1fc35d6E101C97D, 0x682048513247076Fb5dB4762121BdB136182e4A9
+        // Add accounts to eip155:8453 chain: 0xC6Fb54348feCdb2790Fa9130D1fc35d6E101C97D (scope=0), 0x682048513247076Fb5dB4762121BdB136182e4A9 (scope=0)
         calldatas[1] = hex'46c2b73400000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000000b6569703135353a383435330000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002a3078433646623534333438666543646232373930466139313330443166633335643645313031433937440000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002a30783638323034383531333234373037364662356442343736323132314264423133363138326534413900000000000000000000000000000000000000000000';
 
         _updateSafeHarbor(calldatas);
@@ -474,9 +477,13 @@ contract DssSpellAction is DssAction {
     /// @param ilk The ilk to update.
     /// @return reduction The unused debt ceiling capacity in RAD.
     function _zeroIlkDebtCeiling(bytes32 ilk) internal returns (uint256 reduction) {
+        // Note: Read the current debt and ceiling before zeroing the ceiling.
         (uint256 Art, uint256 rate,, uint256 line,) = VatAbstract(MCD_VAT).ilks(ilk);
+        // Note: Art (WAD) multiplied by rate (RAY) gives the recorded debt in RAD.
         uint256 debt = Art * rate;
+        // Note: Retain capacity for existing debt, including when it meets or exceeds the ceiling.
         reduction = line > debt ? line - debt : 0;
+        // Note: Zero the individual ceiling without changing the existing debt.
         DssExecLib.setIlkDebtCeiling(ilk, 0);
     }
 
@@ -487,10 +494,14 @@ contract DssSpellAction is DssAction {
     /// @param recipient The USDC recipient
     /// @param amount The USDC amount in six-decimal base units
     function _tryRecoverUsdc(bytes32 ilk, address join, address recipient, uint256 amount) internal {
+        // Note: Convert the six-decimal USDC amount into the Vat's eighteen-decimal gem units.
         int256 gem = int256(amount * USDC_TO_WAD);
+        // Note: Credit the executing proxy so the Join can debit this balance when exiting USDC.
         VatAbstract(MCD_VAT).slip(ilk, address(this), gem);
+        // Note: Attempt to transfer the recovered USDC from the Join to the recipient.
         try GemJoinAbstract(join).exit(recipient, amount) {
         } catch {
+            // Note: Undo only the temporary credit if exit fails, then continue offboarding.
             VatAbstract(MCD_VAT).slip(ilk, address(this), -gem);
         }
     }
@@ -500,19 +511,19 @@ contract DssSpellAction is DssAction {
     /// @param join The address of the ilk join
     /// @param clip The address of the ilk clipper
     function _offboardPsm(bytes32 ilk, address join, address clip) internal {
-        // Remove ilk from ILK_REGISTRY
+        // Note: Remove ilk from ILK_REGISTRY
         IlkRegistryAbstract(ILK_REGISTRY).removeAuth(ilk);
 
-        // Remove ilk from LINE_MOM
+        // Note: Remove ilk from LINE_MOM
         LineMomLike(LINE_MOM).delIlk(ilk);
 
-        // Cage the join
+        // Note: Cage the join
         GemJoinAbstract(join).cage();
 
-        // Revoke the join authorization on MCD_VAT
+        // Note: Revoke the join authorization on MCD_VAT
         DssExecLib.deauthorize(MCD_VAT, join);
 
-        // Revoke the Clipper authorization on MCD_VAT and MCD_DOG
+        // Note: Revoke the Clipper authorization on MCD_VAT and MCD_DOG
         DssExecLib.deauthorize(MCD_VAT, clip);
         DssExecLib.deauthorize(MCD_DOG, clip);
     }

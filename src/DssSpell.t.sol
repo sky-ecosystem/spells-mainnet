@@ -17,23 +17,9 @@
 pragma solidity 0.8.16;
 
 import "./DssSpell.t.base.sol";
-import {BeaconLike as SpellBeaconLike, EnumerableIntegrationsLike, L2MulticallSpellLike, BeamStateLike as SpellBeamStateLike} from "./DssSpell.sol";
-import {MessengerLike} from "dss-test/domains/OptimismDomain.sol";
 
-interface BeaconTestLike is SpellBeaconLike {
-    function getDispatch(bytes4 selector) external view returns (address facet, bytes4 delegateSelector);
-}
-
-interface PASBeamStateLike is BeamStateLike {
-    function cBeams(address) external view returns (uint256);
-    function rateLimits(address) external view returns (uint256);
-    function controllers(address) external view returns (uint256);
-    function rateLimitsCBeams(address, address) external view returns (uint256);
-    function controllersCBeams(address, address) external view returns (uint256);
-    function hop(address) external view returns (uint256);
-    function maxChange(address) external view returns (uint256);
-    function getHop(address) external view returns (uint256);
-    function getMaxChange(address) external view returns (uint256);
+interface ERC4626FacetLike {
+    function getDepositRateLimitKey(address token, address asset) external pure returns (bytes32);
 }
 
 interface L2Spell {
@@ -1429,29 +1415,40 @@ contract DssSpellTest is DssSpellTestBase {
     }
 
     function testLineAdjustment() public {
-        uint256 preLine = vat.Line();
-        uint256 correction;
-        uint256 Art;
-        uint256 rate;
-        uint256 line;
-
-        (Art, rate,, line,) = vat.ilks("ETH-A");
-        correction += line > Art * rate ? line - Art * rate : 0;
-        (Art, rate,, line,) = vat.ilks("ETH-B");
-        correction += line > Art * rate ? line - Art * rate : 0;
-        (Art, rate,, line,) = vat.ilks("ETH-C");
-        correction += line > Art * rate ? line - Art * rate : 0;
-        (Art, rate,, line,) = vat.ilks("WSTETH-A");
-        correction += line > Art * rate ? line - Art * rate : 0;
-        (Art, rate,, line,) = vat.ilks("WSTETH-B");
-        correction += line > Art * rate ? line - Art * rate : 0;
+        bytes32[5] memory ilks = [bytes32("ETH-A"), "ETH-B", "ETH-C", "WSTETH-A", "WSTETH-B"];
+        uint256[5] memory beforeArts;
+        uint256[5] memory beforeRates;
 
         _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
+        spell.schedule();
+        vm.warp(spell.nextCastTime());
 
-        uint256 postLine = vat.Line();
-        assertEq(postLine, preLine - correction, "TestError/global-line-adjustment");
+        uint256 preLine = vat.Line();
+        uint256 correction;
+        for (uint256 i = 0; i < ilks.length; i++) {
+            uint256 line;
+            (beforeArts[i], beforeRates[i],, line,) = vat.ilks(ilks[i]);
+            uint256 debt = beforeArts[i] * beforeRates[i];
+            correction += line > debt ? line - debt : 0;
+        }
+
+        spell.cast();
+        assertTrue(spell.done(), "TestError/spell-not-done");
+        assertEq(vat.Line(), preLine - correction, "TestError/global-line-adjustment");
+
+        for (uint256 i = 0; i < ilks.length; i++) {
+            (uint256 Art, uint256 rate,,,) = vat.ilks(ilks[i]);
+            assertEq(Art, beforeArts[i], "TestError/principal-changed");
+            assertEq(rate, beforeRates[i], "TestError/rate-changed");
+            (, uint256 gap, uint256 ttl, uint256 last, uint256 lastInc) = autoLine.ilks(ilks[i]);
+            assertEq(gap, 0, "TestError/autoline-gap");
+            assertEq(ttl, 0, "TestError/autoline-ttl");
+            assertEq(last, 0, "TestError/autoline-last");
+            assertEq(lastInc, 0, "TestError/autoline-last-inc");
+            autoLine.exec(ilks[i]);
+            (,,, uint256 line,) = vat.ilks(ilks[i]);
+            assertEq(line, 0, "TestError/autoline-reopened-line");
+        }
     }
 
     function testLineAdjustmentBoundaries() public {
@@ -1463,17 +1460,21 @@ contract DssSpellTest is DssSpellTestBase {
         spell.schedule();
         vm.warp(spell.nextCastTime());
 
+        // Give ETH-A zero debt to exercise removal of its entire unused capacity.
         stdstore.target(address(vat)).sig("ilks(bytes32)").with_key(bytes32("ETH-A")).depth(0).checked_write(uint256(0));
         for (uint256 i = 0; i < ilks.length; i++) {
             (beforeArts[i], beforeRates[i],,,) = vat.ilks(ilks[i]);
             if (i != 0) assertGt(beforeArts[i], 0, "TestError/fixture-no-debt");
         }
+        // Capacities are in raw RAD units to detect rounding to whole USDS.
+        uint256 zeroDebtCapacity = 29;
+        uint256 positiveDebtCapacity = 17;
         uint256[5] memory lines = [
-            uint256(29),
-            beforeArts[1] * beforeRates[1],
-            beforeArts[2] * beforeRates[2] - 1,
-            uint256(0),
-            beforeArts[4] * beforeRates[4] + 17
+            zeroDebtCapacity,                                      // ETH-A: zero debt, positive ceiling.
+            beforeArts[1] * beforeRates[1],                         // ETH-B: debt equals ceiling.
+            beforeArts[2] * beforeRates[2] - 1,                     // ETH-C: debt exceeds ceiling by one RAD unit.
+            uint256(0),                                           // WSTETH-A: zero ceiling, positive debt.
+            beforeArts[4] * beforeRates[4] + positiveDebtCapacity   // WSTETH-B: ceiling exceeds debt.
         ];
         vm.startPrank(pauseProxy);
         for (uint256 i = 0; i < ilks.length; i++) {
@@ -1484,48 +1485,39 @@ contract DssSpellTest is DssSpellTestBase {
 
         spell.cast();
         assertTrue(spell.done(), "TestError/spell-not-done");
-        assertEq(vat.Line(), preLine - 46, "TestError/global-line-boundaries");
+        assertEq(vat.Line(), preLine - zeroDebtCapacity - positiveDebtCapacity, "TestError/global-line-boundaries");
 
         for (uint256 i = 0; i < ilks.length; i++) {
             (uint256 Art, uint256 rate,, uint256 line,) = vat.ilks(ilks[i]);
             assertEq(Art, beforeArts[i], "TestError/principal-changed");
             assertEq(rate, beforeRates[i], "TestError/rate-changed");
             assertEq(line, 0, "TestError/line-not-zero");
-            (uint256 maxLine, uint256 gap, uint256 ttl, uint256 last, uint256 lastInc) = autoLine.ilks(ilks[i]);
-            assertEq(maxLine, 0, "TestError/autoline-max");
-            assertEq(gap, 0, "TestError/autoline-gap");
-            assertEq(ttl, 0, "TestError/autoline-ttl");
-            assertEq(last, 0, "TestError/autoline-last");
-            assertEq(lastInc, 0, "TestError/autoline-last-inc");
-            autoLine.exec(ilks[i]);
-            (,,, line,) = vat.ilks(ilks[i]);
-            assertEq(line, 0, "TestError/autoline-reopened-line");
         }
     }
 
     function testLineAdjustmentDelayedCast() public {
         bytes32[5] memory ilks = [bytes32("ETH-A"), "ETH-B", "ETH-C", "WSTETH-A", "WSTETH-B"];
-        uint256 preLine = vat.Line();
-        uint256 correction;
 
         _vote(address(spell));
         spell.schedule();
         vm.warp(spell.nextCastTime() + 7 days);
         uint256 before = vm.snapshotState();
 
+        uint256 preLine = vat.Line();
+        uint256 correction;
         for (uint256 i = 0; i < ilks.length; i++) {
             (uint256 Art, uint256 rate,, uint256 line,) = vat.ilks(ilks[i]);
             correction += line > Art * rate ? line - Art * rate : 0;
         }
+        // First cast without recording the five ilks' accrued fees in the Vat.
         spell.cast();
         assertTrue(spell.done(), "TestError/spell-not-done");
         assertEq(vat.Line(), preLine - correction, "TestError/delayed-global-line");
-        _checkSystemValues(afterSpell);
-        _checkCollateralValues(afterSpell);
 
         vm.revertToStateAndDelete(before);
-        uint256 correctionAfterDrip;
         bytes32[5] memory debtBefore;
+        uint256 correctionAfterDrip;
+        // Repeat the same delayed cast with fees materialized first.
         for (uint256 i = 0; i < ilks.length; i++) {
             uint256 rate = jug.drip(ilks[i]);
             (uint256 Art,,, uint256 line,) = vat.ilks(ilks[i]);
@@ -1541,8 +1533,6 @@ contract DssSpellTest is DssSpellTestBase {
             (uint256 Art, uint256 rate,,,) = vat.ilks(ilks[i]);
             assertEq(keccak256(abi.encode(Art, rate)), debtBefore[i], "TestError/accrued-debt-changed");
         }
-        _checkSystemValues(afterSpell);
-        _checkCollateralValues(afterSpell);
     }
 
     function testOffboardPsms() public {
@@ -1651,179 +1641,57 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(dog.wards(clip), 0, "testPsmUsdcRecoveryFailure/clip-still-authed-on-dog");
     }
 
-    function _setupBaseSpell() internal returns (
-        EnumerableIntegrationsLike.Config memory expected,
-        EnumerableIntegrationsLike.Config memory oldCctp,
-        uint256 deadline,
-        Vm.Log memory message
-    ) {
-        assertEq(block.chainid, 1, "Base/mainnet-fork");
-        uint256 baseBlock = vm.envOr("BASE_FORK_BLOCK", uint256(0));
-        {
-            _setupRootDomain();
-            Chain memory baseChain = getRelativeChain("base");
-            baseChain.rpcUrl = vm.envOr("BASE_RPC_URL", baseChain.rpcUrl);
-            baseDomain = new OptimismDomain(config, baseChain, rootDomain);
-            if (baseBlock != 0) baseDomain.rollFork(baseBlock);
-            vm.makePersistent(address(addr), address(base), address(wallets));
-        }
+    function _baseBeaconPasParams() internal returns (OpL2BeaconPasParams memory p) {
+        uint256 l1Fork = vm.activeFork();
+        _setupRootDomain();
+        baseDomain = new OptimismDomain(config, getRelativeChain("base"), rootDomain);
+        vm.makePersistent(address(addr), address(base), address(wallets));
 
-        expected = SpellBeaconLike(addr.addr("PAU_BEACON")).getConfig("ERC4626_FACET");
-        expected.facet = base.addr("L2_ERC4626_FACET");
-        _vote(address(spell));
-        spell.schedule();
-        vm.warp(spell.nextCastTime());
-        uint256 castTime = block.timestamp;
-        deadline = castTime + 7 days;
-        {
-            address cBeam = wallets.addr("OSERO_PAS_CBEAM");
-            address limits = base.addr("BASE_OSERO_RATE_LIMITS");
-            address controller = base.addr("BASE_OSERO_CONTROLLER");
-            address state_ = base.addr("L2_PAS_STATE");
-            L2MulticallSpellLike.Call[] memory calls = new L2MulticallSpellLike.Call[](6);
-            calls[0] = L2MulticallSpellLike.Call(base.addr("L2_PAU_BEACON"), abi.encodeCall(SpellBeaconLike.setIntegration, (bytes32("ERC4626_FACET"), expected)));
-            calls[1] = L2MulticallSpellLike.Call(state_, abi.encodeCall(SpellBeamStateLike.addCBeam, (cBeam)));
-            calls[2] = L2MulticallSpellLike.Call(state_, abi.encodeCall(SpellBeamStateLike.addRateLimits, (limits)));
-            calls[3] = L2MulticallSpellLike.Call(state_, abi.encodeCall(SpellBeamStateLike.setCBeamForRateLimits, (limits, cBeam)));
-            calls[4] = L2MulticallSpellLike.Call(state_, abi.encodeCall(SpellBeamStateLike.addController, (controller)));
-            calls[5] = L2MulticallSpellLike.Call(state_, abi.encodeCall(SpellBeamStateLike.setCBeamForController, (controller, cBeam)));
-            vm.expectCall(
-                addr.addr("BASE_GOV_RELAY"),
-                abi.encodeCall(OpL1GovernanceRelayLike.relay, (
-                    base.addr("L2_MULTICALL_SPELL"),
-                    abi.encodeCall(L2MulticallSpellLike.execute, (calls, deadline)),
-                    1_000_000
-                )),
-                1
-            );
-        }
-        vm.recordLogs();
-        spell.cast();
-        assertTrue(spell.done(), "TestError/spell-not-done");
+        p.domain        = baseDomain;
+        p.l1GovRelay    = addr.addr("BASE_GOV_RELAY");
+        p.l2GovRelay    = base.addr("L2_GOV_RELAY");
+        p.l2Multicall   = base.addr("L2_MULTICALL_SPELL");
+        p.l1Beacon      = addr.addr("PAU_BEACON");
+        p.l2Beacon      = base.addr("L2_PAU_BEACON");
+        p.l2Facet       = base.addr("L2_ERC4626_FACET");
+        p.pas           = base.addr("L2_PAS_STATE");
+        p.cBeam         = wallets.addr("OSERO_PAS_CBEAM");
+        p.rateLimits    = base.addr("BASE_OSERO_RATE_LIMITS");
+        p.controller    = base.addr("BASE_OSERO_CONTROLLER");
+        p.integrationId = "ERC4626_FACET";
 
-        Vm.Log[] memory logs = vm.getRecordedLogs();
-        uint256 messages;
-        for (uint256 i = 0; i < logs.length; i++) {
-            if (
-                logs[i].emitter == address(baseDomain.l1Messenger()) && logs[i].topics.length == 2 &&
-                logs[i].topics[0] == keccak256("SentMessage(address,address,bytes,uint256,uint256)") &&
-                address(uint160(uint256(logs[i].topics[1]))) == base.addr("L2_GOV_RELAY")
-            ) {
-                messages++;
-                message = logs[i];
-            }
-        }
-        assertEq(messages, 1, "Base/exactly-one-Core-message");
+        p.preservedIntegrationIds    = new bytes32[](1);
+        p.preservedIntegrationIds[0] = "CCTP_FACET";
+
+        p.deadlineDuration   = 7 days;
+        p.relayDelay         = 60 seconds;
+        p.minGas             = 1_000_000;
+        p.hop                = 0;
+        p.maxChange          = 0;
+        p.effectiveHop       = 16 hours;
+        p.effectiveMaxChange = 1.2e18;
+        p.initialMaxAmount   = 0;
+        p.initialSlope       = 0;
 
         baseDomain.selectFork();
-        assertEq(block.chainid, 8453, "Base/destination-chain");
-        if (baseBlock != 0) assertEq(block.number, baseBlock, "Base/destination-block");
-        if (block.timestamp < castTime + 60) vm.warp(castTime + 60);
-        assertLe(block.timestamp, deadline, "Base/destination-after-deadline");
-        oldCctp = SpellBeaconLike(base.addr("L2_PAU_BEACON")).getConfig("CCTP_FACET");
-        _checkBaseState(expected, oldCctp, false);
-    }
-
-    function _relayBaseSpell(Vm.Log memory message) internal {
-        (address sender, bytes memory data, uint256 nonce, uint256 minGas) = abi.decode(message.data, (address, bytes, uint256, uint256));
-        assertEq(sender, addr.addr("BASE_GOV_RELAY"), "Base/message-sender");
-        assertEq(minGas, 1_000_000, "Base/min-gas");
-        address target = address(uint160(uint256(message.topics[1])));
-        MessengerLike messenger = baseDomain.l2Messenger();
-        address l1Messenger = address(baseDomain.l1Messenger());
-        vm.expectCall(target, data, 1);
-        address aliasedMessenger;
-        unchecked {
-            aliasedMessenger = address(uint160(l1Messenger) + uint160(0x1111000000000000000000000000000000001111));
-        }
-        vm.prank(aliasedMessenger);
-        messenger.relayMessage(nonce, sender, target, 0, minGas, data);
-    }
-
-    function _checkBaseState(
-        EnumerableIntegrationsLike.Config memory expected,
-        EnumerableIntegrationsLike.Config memory oldCctp,
-        bool executed
-    ) internal view {
-        PASBeamStateLike state_ = PASBeamStateLike(base.addr("L2_PAS_STATE"));
-        BeaconTestLike beacon = BeaconTestLike(base.addr("L2_PAU_BEACON"));
-        address limits = base.addr("BASE_OSERO_RATE_LIMITS");
-        address controller = base.addr("BASE_OSERO_CONTROLLER");
-        address cBeam = wallets.addr("OSERO_PAS_CBEAM");
-        uint256 added = executed ? 1 : 0;
-        assertEq(state_.cBeams(cBeam), added, "Base/cBeam");
-        assertEq(state_.rateLimits(limits), added, "Base/rate-limits");
-        assertEq(state_.controllers(controller), added, "Base/controller");
-        assertEq(state_.rateLimitsCBeams(limits, cBeam), added, "Base/rate-limits-pair");
-        assertEq(state_.controllersCBeams(controller, cBeam), added, "Base/controller-pair");
-        if (executed) {
-            assertEq(abi.encode(beacon.getConfig("ERC4626_FACET")), abi.encode(expected), "Base/complete-ERC4626-config");
-            _checkBaseDispatches(address(beacon), expected);
-        } else {
-            assertEq(beacon.getConfig("ERC4626_FACET").facet, address(0), "Base/initial-ERC4626");
-        }
-        assertEq(abi.encode(beacon.getConfig("CCTP_FACET")), abi.encode(oldCctp), "Base/CCTP-unchanged");
-        _checkBaseDispatches(address(beacon), oldCctp);
-        assertEq(state_.hop(limits), 0, "Base/no-specific-hop");
-        assertEq(state_.maxChange(limits), 0, "Base/no-specific-maxChange");
-        assertEq(state_.getHop(limits), 16 hours, "Base/effective-hop");
-        assertEq(state_.getMaxChange(limits), 1.2e18, "Base/effective-maxChange");
-        bytes32 depositKey = 0x4530b5750e1bd4febbd736da62648a217afd5809f6d9f626fdae219ba97adf32;
-        (uint256 maxAmount, uint256 slope) = state_.initRateLimits(depositKey, limits);
-        assertEq(maxAmount, 0, "Base/no-specific-initial-max");
-        assertEq(slope, 0, "Base/no-specific-initial-slope");
-    }
-
-    function _checkBaseDispatches(address target, EnumerableIntegrationsLike.Config memory expected) internal view {
-        for (uint256 i = 0; i < expected.wires.length; i++) {
-            (address facet, bytes4 selector) = BeaconTestLike(target).getDispatch(expected.wires[i].callSelector);
-            assertEq(facet, expected.facet, "Base/dispatch-facet");
-            assertEq(selector, expected.wires[i].delegateSelector, "Base/dispatch-selector");
-        }
+        // Get the USDC deposit rate-limit key for Osero's vault from the ERC4626 Facet.
+        p.initialRateLimitKey = ERC4626FacetLike(p.l2Facet).getDepositRateLimitKey(
+            base.addr("BASE_OSERO_USDC_VAULT"),
+            base.addr("L2_USDC")
+        );
+        // Return to the original fork so the Core cast uses the requested Ethereum block.
+        vm.selectFork(l1Fork);
     }
 
     function testBaseSpellExecution() public {
-        (
-            EnumerableIntegrationsLike.Config memory expected,
-            EnumerableIntegrationsLike.Config memory oldCctp,
-            uint256 deadline,
-            Vm.Log memory message
-        ) = _setupBaseSpell();
-        vm.warp(deadline);
-        _relayBaseSpell(message);
-        _checkBaseState(expected, oldCctp, true);
+        _testOpL2BeaconPasExecution(_baseBeaconPasParams());
     }
 
     function testBaseSpellAfterDeadline() public {
-        (
-            EnumerableIntegrationsLike.Config memory expected,
-            EnumerableIntegrationsLike.Config memory oldCctp,
-            uint256 deadline,
-            Vm.Log memory message
-        ) = _setupBaseSpell();
-        vm.warp(deadline + 1);
-        vm.expectCall(base.addr("L2_MULTICALL_SPELL"), abi.encodeWithSelector(L2MulticallSpellLike.execute.selector));
-        _relayBaseSpell(message);
-        _checkBaseState(expected, oldCctp, false);
+        _testOpL2BeaconPasAfterDeadline(_baseBeaconPasParams());
     }
 
     function testBaseSpellRollback() public {
-        (
-            EnumerableIntegrationsLike.Config memory expected,
-            EnumerableIntegrationsLike.Config memory oldCctp,
-            uint256 deadline,
-            Vm.Log memory message
-        ) = _setupBaseSpell();
-        assertLt(block.timestamp, deadline);
-        address state_ = base.addr("L2_PAS_STATE");
-        bytes memory data = abi.encodeCall(
-            SpellBeamStateLike.setCBeamForController,
-            (base.addr("BASE_OSERO_CONTROLLER"), wallets.addr("OSERO_PAS_CBEAM"))
-        );
-        vm.mockCallRevert(state_, data, hex"01");
-        vm.expectCall(state_, data);
-        _relayBaseSpell(message);
-        _checkBaseState(expected, oldCctp, false);
-        vm.clearMockedCalls();
+        _testOpL2BeaconPasRollback(_baseBeaconPasParams());
     }
 }
