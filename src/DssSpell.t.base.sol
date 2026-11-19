@@ -1292,6 +1292,10 @@ contract DssSpellTestBase is Config, DssTest {
 
         // split
         {
+            // check split hop against SBE BEAM bounds
+            assertGe(split.hop(), sbebeam.minHop(), "TestError/split-hop-below-min");
+            assertLe(split.hop(), 5 * 365 days, "TestError/split-hop-exceeds-max");
+
             // check split.farm address to match config
             address split_farm = addr.addr(values.split_farm);
             assertEq(split.farm(), split_farm, "TestError/split-farm");
