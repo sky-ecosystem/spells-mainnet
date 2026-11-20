@@ -1407,20 +1407,6 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testSplitHopAndFarmRewardsDuration() public {
-        StakingRewardsLike farm = StakingRewardsLike(addr.addr("REWARDS_LSSKY_USDS"));
-
-        assertEq(split.hop(), 2_693, "TestError/split-hop-before");
-        assertEq(farm.rewardsDuration(), 2_693, "TestError/rewards-duration-before");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        assertEq(split.hop(), 2_119, "TestError/split-hop-after");
-        assertEq(farm.rewardsDuration(), 2_119, "TestError/rewards-duration-after");
-    }
-
     function testCoreVaultDebtCeilingChanges() public {
         bytes32[5] memory ilks = [bytes32("ETH-A"), "ETH-B", "ETH-C", "WSTETH-A", "WSTETH-B"];
         uint256[5] memory beforeArts;

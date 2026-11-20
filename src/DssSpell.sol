@@ -37,10 +37,6 @@ interface AllocatorVaultLike {
     function ilk() external view returns (bytes32);
 }
 
-interface FarmOwnerLike {
-    function setRewardsDuration(uint256 duration) external;
-}
-
 interface DaiUsdsLike {
     function daiToUsds(address usr, uint256 wad) external;
 }
@@ -98,8 +94,8 @@ interface L2MulticallSpellLike {
 contract DssSpellAction is DssAction {
     // Provides a descriptive tag for bot consumption
     // This should be modified weekly to provide a summary of the actions
-    // Hash: cast keccak -- "$(wget 'https://raw.githubusercontent.com/sky-ecosystem/executive-votes/e4d7f7119a67520e87e4fe6e6b410779f758a8c2/2026/executive-vote-2026-11-19-msc-psm-offboard-launch-test-halo-launch-osero-base-dpau.md' -q -O - 2>/dev/null)"
-    string public constant override description = "2026-11-19 MakerDAO Executive Spell | Hash: 0x727d79f7e41b4bf954ee7b7915e8148bff245247fedd337a6b1bda7f9484573b";
+    // Hash: cast keccak -- "$(wget 'https://raw.githubusercontent.com/sky-ecosystem/executive-votes/ee8e579bdccdcffdd88c7c12d75b0f498091ec50/2026/executive-vote-2026-11-19-msc-psm-offboard-launch-test-halo-launch-osero-base-dpau.md' -q -O - 2>/dev/null)"
+    string public constant override description = "2026-11-19 MakerDAO Executive Spell | Hash: 0x243d9365fb931a4d88928e5ba11f8fc5a66af973401097d7a65e01ed0d618fe1";
 
     // Set office hours according to the summary
     function officeHours() public pure override returns (bool) {
@@ -145,8 +141,6 @@ contract DssSpellAction is DssAction {
     address internal immutable DAI_USDS                 = DssExecLib.getChangelogAddress("DAI_USDS");
     address internal immutable SKY                      = DssExecLib.getChangelogAddress("SKY");
     address internal immutable REWARDS_DIST_LSSKY_SKY   = DssExecLib.getChangelogAddress("REWARDS_DIST_LSSKY_SKY");
-    address internal immutable MCD_SPLIT                = DssExecLib.getChangelogAddress("MCD_SPLIT");
-    address internal immutable REWARDS_OWNER_LSSKY_USDS = DssExecLib.getChangelogAddress("REWARDS_OWNER_LSSKY_USDS");
     address internal immutable MCD_JOIN_PSM_USDC_A      = DssExecLib.getChangelogAddress("MCD_JOIN_PSM_USDC_A");
     address internal immutable MCD_CLIP_PSM_USDC_A      = DssExecLib.getChangelogAddress("MCD_CLIP_PSM_USDC_A");
     address internal immutable CRON_STARGUARD_JOB       = DssExecLib.getChangelogAddress("CRON_STARGUARD_JOB");
@@ -243,13 +237,6 @@ contract DssSpellAction is DssAction {
             // vestTau: 90 days
             vestTau: 90 days
         }));
-
-        // Decrease splitter.hop by 574 seconds from 2,693 seconds to 2,119 seconds
-        DssExecLib.setValue(MCD_SPLIT, "hop", 2_119);
-
-        // Decrease rewardsDuration in REWARDS_LSSKY_USDS by 574 seconds from 2,693 seconds to 2,119 seconds
-        // Note: The farm owner must route this call to the rewards contract.
-        FarmOwnerLike(REWARDS_OWNER_LSSKY_USDS).setRewardsDuration(2_119);
 
         // ---------- Adjust Core Vault DC-IAM Parameters ----------
         // Forum: https://forum.skyeco.com/t/core-vaults-parameter-changes-set-dc-iam-line-to-0-on-eth-a-eth-b-eth-c-wsteth-a-and-wsteth-b/28399
