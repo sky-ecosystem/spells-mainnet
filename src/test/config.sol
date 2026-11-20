@@ -145,9 +145,9 @@ contract Config {
         // Values for spell-specific parameters
         //
         spellValues = SpellValues({
-            deployed_spell:         address(0xaBc702420dCc1868F7f8Df06A89dA766BcB01136), // populate with deployed spell if deployed
-            deployed_spell_created: 1793868755,          // use `make deploy-info tx=<deployment-tx>` to obtain the timestamp
-            deployed_spell_block:   26347557,          // use `make deploy-info tx=<deployment-tx>` to obtain the block number
+            deployed_spell:         address(0x8c7eE657FcbEda789F45A6660Dc592a6E30fE88c), // populate with deployed spell if deployed
+            deployed_spell_created: 1795178087,          // use `make deploy-info tx=<deployment-tx>` to obtain the timestamp
+            deployed_spell_block:   26456338,          // use `make deploy-info tx=<deployment-tx>` to obtain the block number
             previous_spells:        prevSpells, // older spells to ensure are executed first
             office_hours_enabled:   true,       // true if officehours is expected to be enabled in the spell
             expiration_threshold:   30 days     // Amount of time before spell expires
@@ -190,8 +190,8 @@ contract Config {
         afterSpell.vest_sky_mint_cap      = 176_000_000 * WAD / 182 days;                   // In WAD SKY per second
         afterSpell.vest_spk_cap           = 2_502_500_000 * WAD / 730 days;                 // In WAD SPK per second
         afterSpell.vest_grove_cap         = (110 * 2_450_000_000 * WAD) / (100 * 730 days); // In WAD GROVE per second
-        afterSpell.ilk_count              = 33;                                             // Num expected in system
-        afterSpell.chainlog_version       = "1.20.22";                                      // String expected in system
+        afterSpell.ilk_count              = 32;                                             // Num expected in system
+        afterSpell.chainlog_version       = "1.20.23";                                      // String expected in system
 
         afterSpell.SP_tau       = 57_600 seconds;                             // In seconds
         afterSpell.SP_bud       = 0xe1c6f81D0c3CD570A77813b81AA064c5fff80309; // Address of SPBEAM Bud
@@ -224,11 +224,11 @@ contract Config {
         // Update when adding or modifying Collateral Values
         //
         afterSpell.collaterals["ETH-A"] = CollateralValues({
-            um:           UpdateMethod.AUTOLINE,     // Method for updating collateral values. See UpdateMethod enum for more details
-            aL_line:      15 * BILLION,              // In whole Dai units
-            aL_gap:       150 * MILLION,             // In whole Dai units
-            aL_ttl:       6 hours,                   // In seconds
-            line:         0,                         // In whole Dai units. Not checked here as there is auto line
+            um:           UpdateMethod.MANUAL,       // Method for updating collateral values. See UpdateMethod enum for more details
+            aL_line:      0,                         // In whole Dai units
+            aL_gap:       0,                         // In whole Dai units
+            aL_ttl:       0,                         // In seconds
+            line:         0,                         // In whole Dai units
             dust:         7_500,                     // In whole Dai units
             pct:          0,                         // In basis points
             mat:          14500,                     // In basis points
@@ -253,10 +253,10 @@ contract Config {
             offboarding:  false                      // If mat is being offboarded
         });
         afterSpell.collaterals["ETH-B"] = CollateralValues({
-            um:           UpdateMethod.AUTOLINE,
-            aL_line:      250 * MILLION,
-            aL_gap:       20 * MILLION,
-            aL_ttl:       6 hours,
+            um:           UpdateMethod.MANUAL,
+            aL_line:      0,
+            aL_gap:       0,
+            aL_ttl:       0,
             line:         0,
             dust:         25 * THOUSAND,
             pct:          0,
@@ -282,10 +282,10 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["ETH-C"] = CollateralValues({
-            um:           UpdateMethod.AUTOLINE,
-            aL_line:      2 * BILLION,
-            aL_gap:       100 * MILLION,
-            aL_ttl:       8 hours,
+            um:           UpdateMethod.MANUAL,
+            aL_line:      0,
+            aL_gap:       0,
+            aL_ttl:       0,
             line:         0,
             dust:         3_500,
             pct:          0,
@@ -395,35 +395,6 @@ contract Config {
             SP_min:       2_00,
             SP_max:       30_00,
             SP_step:      4_00,
-            offboarding:  false
-        });
-        afterSpell.collaterals["PSM-USDC-A"] = CollateralValues({
-            um:           UpdateMethod.MANUAL,
-            aL_line:      0,
-            aL_gap:       0,
-            aL_ttl:       0,
-            line:         0,
-            dust:         0,
-            pct:          0,
-            mat:          10000,
-            liqType:      "clip",
-            liqOn:        false,
-            chop:         1300,
-            dog_hole:     0,
-            clip_buf:     10500,
-            clip_tail:    220 minutes,
-            clip_cusp:    9000,
-            clip_chip:    10,
-            clip_tip:     300,
-            clipper_mom:  0,
-            cm_tolerance: 9500,
-            calc_tau:     0,
-            calc_step:    120,
-            calc_cut:     9990,
-            SP_enabled:   false,
-            SP_min:       0,
-            SP_max:       0,
-            SP_step:      0,
             offboarding:  false
         });
         afterSpell.collaterals["LITE-PSM-USDC-A"] = CollateralValues({
@@ -659,10 +630,10 @@ contract Config {
             offboarding:  true
         });
         afterSpell.collaterals["WSTETH-A"] = CollateralValues({
-            um:           UpdateMethod.AUTOLINE,
-            aL_line:      750 * MILLION,
-            aL_gap:       30 * MILLION,
-            aL_ttl:       12 hours,
+            um:           UpdateMethod.MANUAL,
+            aL_line:      0,
+            aL_gap:       0,
+            aL_ttl:       0,
             line:         0,
             dust:         7_500,
             pct:          0,
@@ -688,10 +659,10 @@ contract Config {
             offboarding:  false
         });
         afterSpell.collaterals["WSTETH-B"] = CollateralValues({
-            um:           UpdateMethod.AUTOLINE,
-            aL_line:      1 * BILLION,
-            aL_gap:       45 * MILLION,
-            aL_ttl:       12 hours,
+            um:           UpdateMethod.MANUAL,
+            aL_line:      0,
+            aL_gap:       0,
+            aL_ttl:       0,
             line:         0,
             dust:         3_500,
             pct:          0,
