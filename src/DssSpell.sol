@@ -19,48 +19,6 @@ pragma solidity 0.8.16;
 import {DssExec} from "dss-exec-lib/DssExec.sol";
 import {DssAction} from "dss-exec-lib/DssAction.sol";
 
-interface StarGuardJobLike {
-    function add(address starGuard) external;
-}
-
-interface IEnumerableIntegrations {
-    struct Config {
-        address facet;
-        Wire[] wires;
-    }
-
-    struct Wire {
-        bytes4 callSelector;
-        bytes4 delegateSelector;
-    }
-}
-
-interface BeaconLike {
-    function getConfig(bytes32 integrationId) external view returns (IEnumerableIntegrations.Config memory);
-    function setIntegration(bytes32 id, IEnumerableIntegrations.Config calldata config) external;
-}
-
-interface BeamStateLike {
-    function addCBeam(address cBeam) external;
-    function addRateLimits(address rateLimits_) external;
-    function setCBeamForRateLimits(address rateLimits_, address cBeam) external;
-    function addController(address controller) external;
-    function setCBeamForController(address controller, address cBeam) external;
-}
-
-interface OpL1GovernanceRelayLike {
-    function relay(address target, bytes calldata targetData, uint32 minGasLimit) external;
-}
-
-interface L2MulticallSpellLike {
-    struct Call {
-        address target;
-        bytes data;
-    }
-
-    function execute(Call[] calldata calls, uint256 deadline) external;
-}
-
 contract DssSpellAction is DssAction {
     // Provides a descriptive tag for bot consumption
     // This should be modified weekly to provide a summary of the actions

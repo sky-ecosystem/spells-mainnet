@@ -207,7 +207,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
         string[2] memory addedKeys = [
             "TEST_HALO_SUBPROXY",
             "TEST_HALO_STARGUARD"
@@ -620,7 +620,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public { // add the `skipped` modifier to skip
+    function testVestSky() public skipped { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
         uint256 JAN_10_2027_14_01_47_UTC = 1799589707;
 
@@ -739,7 +739,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestedRewardsDist() public { // add the `skipped` modifier to skip
+    function testVestedRewardsDist() public skipped { // add the `skipped` modifier to skip
         uint256 expectedVestIdBefore = 18;
         uint256 expectedVestIdAfter = 19;
 
@@ -787,7 +787,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public { // add the `skipped` modifier to skip
+    function testPayments() public skipped { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -984,7 +984,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testBaseGovRelay() public { // add the `skipped` modifier to skip
+    function testBaseGovRelay() public skipped { // add the `skipped` modifier to skip
         _setupRootDomain();
         baseDomain = new OptimismDomain(config, getRelativeChain("base"), rootDomain);
         _testOpL2GovernanceRelay(
@@ -1250,7 +1250,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 
-    function testMonthlySettlementCycleInflows() public { // add the `skipped` modifier to skip
+    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
         AllocatorPayment[] memory payments = new AllocatorPayment[](4);
         payments[0] = AllocatorPayment(addr.addr("ALLOCATOR_SPARK_A_VAULT"), 14_048_690 * WAD);
         payments[1] = AllocatorPayment(addr.addr("ALLOCATOR_BLOOM_A_VAULT"),  8_866_792 * WAD);
@@ -1360,7 +1360,7 @@ contract DssSpellTest is DssSpellTestBase {
         address subProxy;
     }
 
-    function testStarGuardInitialization() public { // add the `skipped` modifier to skip
+    function testStarGuardInitialization() public skipped { // add the `skipped` modifier to skip
         StarguardValues[1] memory initializedStarGuards = [
             StarguardValues({
                 starGuard: addr.addr("TEST_HALO_STARGUARD"), // Insert StarGuard address
