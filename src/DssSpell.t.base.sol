@@ -36,7 +36,7 @@ import "./test/config.sol";
 import {DssSpell} from "./DssSpell.sol";
 
 import {RootDomain} from "dss-test/domains/RootDomain.sol";
-import {OptimismDomain} from "dss-test/domains/OptimismDomain.sol";
+import {OptimismDomain, MessengerLike} from "dss-test/domains/OptimismDomain.sol";
 import {ArbitrumDomain} from "dss-test/domains/ArbitrumDomain.sol";
 
 struct TeleportGUID {
@@ -67,6 +67,23 @@ interface BeamStateLike {
     ) external view returns (uint256 maxAmount, uint256 slope);
 }
 
+interface PASBeamStateLike is BeamStateLike {
+    function addCBeam(address cBeam) external;
+    function addRateLimits(address rateLimits_) external;
+    function setCBeamForRateLimits(address rateLimits_, address cBeam) external;
+    function addController(address controller) external;
+    function setCBeamForController(address controller, address cBeam) external;
+    function cBeams(address) external view returns (uint256);
+    function rateLimits(address) external view returns (uint256);
+    function controllers(address) external view returns (uint256);
+    function rateLimitsCBeams(address, address) external view returns (uint256);
+    function controllersCBeams(address, address) external view returns (uint256);
+    function hop(address) external view returns (uint256);
+    function maxChange(address) external view returns (uint256);
+    function getHop(address) external view returns (uint256);
+    function getMaxChange(address) external view returns (uint256);
+}
+
 interface RateLimitsLike {
     struct RateLimitData {
         uint256 maxAmount;
@@ -81,6 +98,22 @@ interface RateLimitsLike {
 
 interface PASConfiguratorLike {
     function setRateLimit(address rateLimits, bytes32 key, uint256 maxAmount, uint256 slope) external;
+}
+
+interface BeaconTestLike {
+    struct IntegrationConfig {
+        address facet;
+        Wire[] wires;
+    }
+
+    struct Wire {
+        bytes4 callSelector;
+        bytes4 delegateSelector;
+    }
+
+    function getConfig(bytes32 integrationId) external view returns (IntegrationConfig memory);
+    function setIntegration(bytes32 id, IntegrationConfig calldata config) external;
+    function getDispatch(bytes4 selector) external view returns (address facet, bytes4 delegateSelector);
 }
 
 interface DirectDepositLike is GemJoinAbstract {
@@ -638,6 +671,15 @@ interface OpL1GovernanceRelayLike {
 interface OpL2GovernanceRelayLike {
     function l1GovernanceRelay() external view returns (address);
     function relay(address target, bytes calldata targetData) external;
+}
+
+interface L2MulticallTestLike {
+    struct Call {
+        address target;
+        bytes data;
+    }
+
+    function execute(Call[] calldata calls, uint256 deadline) external;
 }
 
 interface ArbL1GovernanceRelayLike {
@@ -1250,6 +1292,10 @@ contract DssSpellTestBase is Config, DssTest {
 
         // split
         {
+            // check split hop against SBE BEAM bounds
+            assertGe(split.hop(), sbebeam.minHop(), "TestError/split-hop-below-min");
+            assertLe(split.hop(), 5 * 365 days, "TestError/split-hop-exceeds-max");
+
             // check split.farm address to match config
             address split_farm = addr.addr(values.split_farm);
             assertEq(split.farm(), split_farm, "TestError/split-farm");
@@ -2667,6 +2713,183 @@ contract DssSpellTestBase is Config, DssTest {
         vm.expectEmit(true, true, true, false, l2GovRelay);
         emit Executed(_stringToBytes32(chainName), l2GovRelay, l2Messenger);
         domain.relayFromHost(true);
+    }
+
+    function _getUniqueOpL2Message(
+        Vm.Log[] memory logs,
+        address l1Messenger,
+        address l2GovRelay
+    ) internal pure returns (Vm.Log memory message) {
+        // Select the unique Core message addressed to the destination governance relay.
+        uint256 messages;
+        for (uint256 i = 0; i < logs.length; i++) {
+            if (
+                logs[i].emitter == l1Messenger && logs[i].topics.length == 2 &&
+                logs[i].topics[0] == keccak256("SentMessage(address,address,bytes,uint256,uint256)") &&
+                address(uint160(uint256(logs[i].topics[1]))) == l2GovRelay
+            ) {
+                messages++;
+                message = logs[i];
+            }
+        }
+        assertEq(messages, 1, "OpL2/exactly-one-Core-message");
+    }
+
+    function _relayOpL2Message(
+        OptimismDomain domain,
+        Vm.Log memory message,
+        address l1GovRelay,
+        uint256 expectedMinGas
+    ) internal {
+        // The caller must select the destination domain's fork before relaying this message.
+        // SentMessage contains the sender, encoded relay call, nonce and minimum gas limit.
+        (address sender, bytes memory data, uint256 nonce, uint256 minGas) = abi.decode(message.data, (address, bytes, uint256, uint256));
+        assertEq(sender, l1GovRelay, "OpL2/message-sender");
+        assertEq(minGas, expectedMinGas, "OpL2/min-gas");
+        address target = address(uint160(uint256(message.topics[1])));
+        MessengerLike messenger = domain.l2Messenger();
+        address l1Messenger = address(domain.l1Messenger());
+        vm.expectCall(target, data, 1);
+
+        // Apply the OP-stack address alias to the L1 messenger.
+        address aliasedMessenger;
+        unchecked {
+            aliasedMessenger = address(uint160(l1Messenger) + uint160(0x1111000000000000000000000000000000001111));
+        }
+        vm.prank(aliasedMessenger);
+        messenger.relayMessage(nonce, sender, target, 0, minGas, data);
+    }
+
+    // Test initial Beacon/PAS registration through an OP relay using the supplied calls.
+    // Expects the integration and PAS registrations to be absent before the spell.
+    struct OpL2BeaconPasParams {
+        OptimismDomain domain;
+        address l1GovRelay;
+        address l2GovRelay;
+        address l2Multicall;
+        address l2Beacon;
+        address pas;
+        address cBeam;
+        address rateLimits;
+        address controller;
+        bytes32 integrationId;
+        BeaconTestLike.IntegrationConfig integrationConfig;
+        L2MulticallTestLike.Call[] calls;
+        bytes32[] preservedIntegrationIds;
+        uint256 deadlineDuration; // Relative to the Core cast.
+        uint256 relayDelay;       // Simulated minimum delay between the Core cast and L2 delivery.
+        uint32 minGas;
+        // Expected per-address overrides and effective PAS parameters, unchanged by this payload.
+        uint256 hop;
+        uint256 maxChange;
+        uint256 effectiveHop;
+        uint256 effectiveMaxChange;
+        // Expected PAS reference rate limits, unchanged by this payload.
+        bytes32 initialRateLimitKey;
+        uint256 initialMaxAmount;
+        uint256 initialSlope;
+    }
+
+    function _setupOpL2BeaconPas(OpL2BeaconPasParams memory p) internal returns (
+        BeaconTestLike.IntegrationConfig memory expected,
+        BeaconTestLike.IntegrationConfig[] memory preserved,
+        uint256 deadline,
+        Vm.Log memory message
+    ) {
+        assertEq(block.chainid, 1, "OpL2BeaconPas/mainnet-fork");
+
+        expected = p.integrationConfig;
+
+        _vote(address(spell));
+        spell.schedule();
+        vm.warp(spell.nextCastTime());
+        uint256 castTime = block.timestamp;
+        deadline = castTime + p.deadlineDuration;
+
+        // Check the fixture's expected batch against the actual Core relay call.
+        vm.expectCall(
+            p.l1GovRelay,
+            abi.encodeCall(OpL1GovernanceRelayLike.relay, (
+                p.l2Multicall,
+                abi.encodeCall(L2MulticallTestLike.execute, (p.calls, deadline)),
+                p.minGas
+            )),
+            1
+        );
+
+        // Capture the actual message emitted by the Core cast.
+        vm.recordLogs();
+        spell.cast();
+        assertTrue(spell.done(), "TestError/spell-not-done");
+
+        message = _getUniqueOpL2Message(vm.getRecordedLogs(), address(p.domain.l1Messenger()), p.l2GovRelay);
+
+        // Prepare the destination fork and preserve its existing integrations.
+        p.domain.selectFork();
+        assertEq(block.chainid, p.domain.details().chainId, "OpL2BeaconPas/destination-chain");
+        if (block.timestamp < castTime + p.relayDelay) vm.warp(castTime + p.relayDelay);
+        assertLe(block.timestamp, deadline, "OpL2BeaconPas/destination-after-deadline");
+
+        preserved = new BeaconTestLike.IntegrationConfig[](p.preservedIntegrationIds.length);
+        for (uint256 i = 0; i < preserved.length; i++) {
+            preserved[i] = BeaconTestLike(p.l2Beacon).getConfig(p.preservedIntegrationIds[i]);
+        }
+        _checkBeaconPasState(p, expected, preserved, false);
+    }
+
+    function _testOpL2BeaconPasExecution(OpL2BeaconPasParams memory p) internal {
+        (
+            BeaconTestLike.IntegrationConfig memory expected,
+            BeaconTestLike.IntegrationConfig[] memory preserved,
+            uint256 deadline,
+            Vm.Log memory message
+        ) = _setupOpL2BeaconPas(p);
+
+        // Test execution exactly at the deadline.
+        vm.warp(deadline);
+        (,,, uint256 minGas) = abi.decode(message.data, (address, bytes, uint256, uint256));
+
+        // Measure the relay helper only, excluding fixture preparation.
+        uint256 startGas = gasleft();
+        _relayOpL2Message(p.domain, message, p.l1GovRelay, p.minGas);
+        uint256 endGas = gasleft();
+        uint256 totalGas = startGas - endGas;
+
+        assertLt(totalGas, minGas, "OpL2BeaconPas/relay-gas-too-high");
+        _checkBeaconPasState(p, expected, preserved, true);
+    }
+
+    function _testOpL2BeaconPasAfterDeadline(OpL2BeaconPasParams memory p) internal {
+        (
+            BeaconTestLike.IntegrationConfig memory expected,
+            BeaconTestLike.IntegrationConfig[] memory preserved,
+            uint256 deadline,
+            Vm.Log memory message
+        ) = _setupOpL2BeaconPas(p);
+
+        // Deliver after expiry and check that the batch has no effects.
+        vm.warp(deadline + 1);
+        vm.expectCall(p.l2Multicall, abi.encodeWithSelector(L2MulticallTestLike.execute.selector));
+        _relayOpL2Message(p.domain, message, p.l1GovRelay, p.minGas);
+        _checkBeaconPasState(p, expected, preserved, false);
+    }
+
+    function _testOpL2BeaconPasRollback(OpL2BeaconPasParams memory p) internal {
+        (
+            BeaconTestLike.IntegrationConfig memory expected,
+            BeaconTestLike.IntegrationConfig[] memory preserved,
+            uint256 deadline,
+            Vm.Log memory message
+        ) = _setupOpL2BeaconPas(p);
+        assertLt(block.timestamp, deadline);
+
+        // Fail the last supplied call to check atomic rollback of the L2 batch.
+        L2MulticallTestLike.Call memory lastCall = p.calls[p.calls.length - 1];
+        vm.mockCallRevert(lastCall.target, lastCall.data, hex"01");
+        vm.expectCall(lastCall.target, lastCall.data);
+        _relayOpL2Message(p.domain, message, p.l1GovRelay, p.minGas);
+        _checkBeaconPasState(p, expected, preserved, false);
+        vm.clearMockedCalls();
     }
 
     function _applyArbitrumL1ToL2Alias(address l1Address) internal pure returns (address) {
@@ -4486,6 +4709,55 @@ contract DssSpellTestBase is Config, DssTest {
         }
 
         vm.revertToStateAndDelete(beforeCast);
+    }
+
+    function _checkBeaconDispatches(address target, BeaconTestLike.IntegrationConfig memory expected) internal view {
+        for (uint256 i = 0; i < expected.wires.length; i++) {
+            (address facet, bytes4 selector) = BeaconTestLike(target).getDispatch(expected.wires[i].callSelector);
+            assertEq(facet, expected.facet, "Beacon/dispatch-facet");
+            assertEq(selector, expected.wires[i].delegateSelector, "Beacon/dispatch-selector");
+        }
+    }
+
+    function _checkBeaconPasState(
+        OpL2BeaconPasParams memory p,
+        BeaconTestLike.IntegrationConfig memory expected,
+        BeaconTestLike.IntegrationConfig[] memory preserved,
+        bool executed
+    ) internal view {
+        PASBeamStateLike state_ = PASBeamStateLike(p.pas);
+        BeaconTestLike beacon = BeaconTestLike(p.l2Beacon);
+
+        // Check PAS registrations and pairings.
+        uint256 added = executed ? 1 : 0;
+        assertEq(state_.cBeams(p.cBeam), added, "OpL2BeaconPas/cBeam");
+        assertEq(state_.rateLimits(p.rateLimits), added, "OpL2BeaconPas/rate-limits");
+        assertEq(state_.controllers(p.controller), added, "OpL2BeaconPas/controller");
+        assertEq(state_.rateLimitsCBeams(p.rateLimits, p.cBeam), added, "OpL2BeaconPas/rate-limits-pair");
+        assertEq(state_.controllersCBeams(p.controller, p.cBeam), added, "OpL2BeaconPas/controller-pair");
+
+        // Check the new integration, including selector routing after execution.
+        if (executed) {
+            assertEq(abi.encode(beacon.getConfig(p.integrationId)), abi.encode(expected), "OpL2BeaconPas/complete-integration-config");
+            _checkBeaconDispatches(address(beacon), expected);
+        } else {
+            assertEq(beacon.getConfig(p.integrationId).facet, address(0), "OpL2BeaconPas/initial-integration");
+        }
+
+        // Existing integrations and their selector routing must remain unchanged.
+        for (uint256 i = 0; i < p.preservedIntegrationIds.length; i++) {
+            assertEq(abi.encode(beacon.getConfig(p.preservedIntegrationIds[i])), abi.encode(preserved[i]), "OpL2BeaconPas/integration-unchanged");
+            _checkBeaconDispatches(address(beacon), preserved[i]);
+        }
+
+        // PAS overrides, effective parameters and reference rate limits must remain unchanged.
+        assertEq(state_.hop(p.rateLimits), p.hop, "OpL2BeaconPas/hop");
+        assertEq(state_.maxChange(p.rateLimits), p.maxChange, "OpL2BeaconPas/maxChange");
+        assertEq(state_.getHop(p.rateLimits), p.effectiveHop, "OpL2BeaconPas/effective-hop");
+        assertEq(state_.getMaxChange(p.rateLimits), p.effectiveMaxChange, "OpL2BeaconPas/effective-maxChange");
+        (uint256 maxAmount, uint256 slope) = state_.initRateLimits(p.initialRateLimitKey, p.rateLimits);
+        assertEq(maxAmount, p.initialMaxAmount, "OpL2BeaconPas/initial-max");
+        assertEq(slope, p.initialSlope, "OpL2BeaconPas/initial-slope");
     }
 
     function _testPASInitRateLimitUpdate(
