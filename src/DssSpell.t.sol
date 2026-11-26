@@ -18,10 +18,6 @@ pragma solidity 0.8.16;
 
 import "./DssSpell.t.base.sol";
 
-interface ERC4626FacetLike {
-    function getDepositRateLimitKey(address token, address asset) external pure returns (bytes32);
-}
-
 interface L2Spell {
     function dstDomain() external returns (bytes32);
     function gateway() external returns (address);
@@ -170,7 +166,7 @@ contract DssSpellTest is DssSpellTestBase {
         //assertEq(OsmAbstract(0xF15993A5C5BE496b8e1c9657Fd2233b579Cd3Bc6).wards(ORACLE_WALLET01), 1);
     }
 
-    function testRemovedChainlogKeys() public { // add the `skipped` modifier to skip
+    function testRemovedChainlogKeys() public skipped { // add the `skipped` modifier to skip
         string[4] memory removedKeys = [
             "MCD_PSM_USDC_A",
             "MCD_JOIN_PSM_USDC_A",
@@ -207,7 +203,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testAddedChainlogKeys() public { // add the `skipped` modifier to skip
+    function testAddedChainlogKeys() public skipped { // add the `skipped` modifier to skip
         string[2] memory addedKeys = [
             "TEST_HALO_SUBPROXY",
             "TEST_HALO_STARGUARD"
@@ -620,7 +616,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestSky() public { // add the `skipped` modifier to skip
+    function testVestSky() public skipped { // add the `skipped` modifier to skip
         // Provide human-readable names for timestamps
         uint256 JAN_10_2027_14_01_47_UTC = 1799589707;
 
@@ -739,7 +735,7 @@ contract DssSpellTest is DssSpellTestBase {
         );
     }
 
-    function testVestedRewardsDist() public { // add the `skipped` modifier to skip
+    function testVestedRewardsDist() public skipped { // add the `skipped` modifier to skip
         uint256 expectedVestIdBefore = 18;
         uint256 expectedVestIdAfter = 19;
 
@@ -787,7 +783,7 @@ contract DssSpellTest is DssSpellTestBase {
         int256 sky;
     }
 
-    function testPayments() public { // add the `skipped` modifier to skip
+    function testPayments() public skipped { // add the `skipped` modifier to skip
         // Note: set to true when there are additional DAI/USDS operations (e.g. surplus buffer sweeps, SubDAO draw-downs) besides direct transfers
         bool ignoreTotalSupplyDaiUsds = false;
         bool ignoreTotalSupplyMkrSky = true;
@@ -984,7 +980,7 @@ contract DssSpellTest is DssSpellTestBase {
         }
     }
 
-    function testBaseGovRelay() public { // add the `skipped` modifier to skip
+    function testBaseGovRelay() public skipped { // add the `skipped` modifier to skip
         _setupRootDomain();
         baseDomain = new OptimismDomain(config, getRelativeChain("base"), rootDomain);
         _testOpL2GovernanceRelay(
@@ -1250,7 +1246,7 @@ contract DssSpellTest is DssSpellTestBase {
         assertEq(daiVow, expectedDaiVow, "MSC/invalid-dai-value");
     }
 
-    function testMonthlySettlementCycleInflows() public { // add the `skipped` modifier to skip
+    function testMonthlySettlementCycleInflows() public skipped { // add the `skipped` modifier to skip
         AllocatorPayment[] memory payments = new AllocatorPayment[](4);
         payments[0] = AllocatorPayment(addr.addr("ALLOCATOR_SPARK_A_VAULT"), 14_048_690 * WAD);
         payments[1] = AllocatorPayment(addr.addr("ALLOCATOR_BLOOM_A_VAULT"),  8_866_792 * WAD);
@@ -1311,7 +1307,7 @@ contract DssSpellTest is DssSpellTestBase {
         bool directExecutionEnabled;
     }
 
-    function testPrimeAgentSpellExecutions() public { // add the `skipped` modifier to skip
+    function testPrimeAgentSpellExecutions() public skipped { // add the `skipped` modifier to skip
         PrimeAgentSpell[3] memory primeAgentSpells = [
             PrimeAgentSpell({
                 // Insert Prime Agent StarGuards Chainlog key
@@ -1360,7 +1356,7 @@ contract DssSpellTest is DssSpellTestBase {
         address subProxy;
     }
 
-    function testStarGuardInitialization() public { // add the `skipped` modifier to skip
+    function testStarGuardInitialization() public skipped { // add the `skipped` modifier to skip
         StarguardValues[1] memory initializedStarGuards = [
             StarguardValues({
                 starGuard: addr.addr("TEST_HALO_STARGUARD"), // Insert StarGuard address
@@ -1378,322 +1374,35 @@ contract DssSpellTest is DssSpellTestBase {
 
     // SPELL-SPECIFIC TESTS GO BELOW
 
-    function testBurnSky() public {
-        uint256 skyTotalSupplyBefore     = sky.totalSupply();
-        uint256 skyTreasuryBalanceBefore = sky.balanceOf(address(pauseProxy));
+    function testTransferUSDSFromAgentSubProxies() public {
+        address amatsuSubProxy        = addr.addr("AMATSU_SUBPROXY");
+        address ozoneSubProxy         = addr.addr("OZONE_SUBPROXY");
+        address ccea1SubProxy         = addr.addr("CCEA1_SUBPROXY");
+        address skyFrontierFoundation = wallets.addr("SKY_FRONTIER_FOUNDATION");
 
-        // Note: `updateFarmVest` distributes the accrued amount of the previous LSSKY->SKY vest
-        // out of the treasury (the vest czar) before yanking it.
-        VestedRewardsDistributionLike dist = VestedRewardsDistributionLike(addr.addr("REWARDS_DIST_LSSKY_SKY"));
-        VestAbstract vestSky      = VestAbstract(dist.dssVest());
-        uint256 prevVestId        = dist.vestId();
-        uint256 prevVestRxdBefore = vestSky.rxd(prevVestId);
+        uint256 amatsuAmount = 6_000_000 * WAD;
+        uint256 ozoneAmount  = 4_000_000 * WAD;
+        uint256 ccea1Amount  = 15_000_000 * WAD;
 
+        uint256 amatsuBefore = usds.balanceOf(amatsuSubProxy);
+        uint256 ozoneBefore  = usds.balanceOf(ozoneSubProxy);
+        uint256 ccea1Before  = usds.balanceOf(ccea1SubProxy);
+        uint256 sffBefore    = usds.balanceOf(skyFrontierFoundation);
+
+        // Check source balances
+        assertGe(amatsuBefore, amatsuAmount, "TestError/insufficient-amatsu-usds");
+        assertGe(ozoneBefore, ozoneAmount, "TestError/insufficient-ozone-usds");
+        assertGe(ccea1Before, ccea1Amount, "TestError/insufficient-ccea1-usds");
+
+        // Execute spell
         _vote(address(spell));
         _scheduleWaitAndCast(address(spell));
         assertTrue(spell.done(), "TestError/spell-not-done");
 
-        uint256 distributed = vestSky.rxd(prevVestId) - prevVestRxdBefore;
-
-        assertEq(
-            sky.totalSupply(),
-            skyTotalSupplyBefore - 7_770_211 ether,
-            "TestError/invalid-total-supply"
-        );
-        assertEq(
-            sky.balanceOf(address(pauseProxy)),
-            skyTreasuryBalanceBefore - 7_770_211 ether - distributed,
-            "TestError/invalid-treasury-balance"
-        );
-    }
-
-    function testCoreVaultDebtCeilingChanges() public {
-        bytes32[5] memory ilks = [bytes32("ETH-A"), "ETH-B", "ETH-C", "WSTETH-A", "WSTETH-B"];
-        uint256[5] memory beforeArts;
-        uint256[5] memory expectedRates;
-
-        _vote(address(spell));
-        spell.schedule();
-        // Delay the cast to exercise fees accrued since the last drip.
-        vm.warp(spell.nextCastTime() + 7 days);
-
-        uint256 preLine = vat.Line();
-        uint256 correction;
-        uint256 before = vm.snapshotState();
-
-        // Calculate the expected reduction with fees accrued through the cast timestamp.
-        {
-            uint256 correctionBeforeDrip;
-            for (uint256 i = 0; i < ilks.length; i++) {
-                uint256 rate;
-                uint256 line;
-                (beforeArts[i], rate,, line,) = vat.ilks(ilks[i]);
-                uint256 debt = beforeArts[i] * rate;
-                correctionBeforeDrip += line > debt ? line - debt : 0;
-
-                expectedRates[i] = jug.drip(ilks[i]);
-                debt = beforeArts[i] * expectedRates[i];
-                correction += line > debt ? line - debt : 0;
-            }
-            assertLt(correction, correctionBeforeDrip, "TestError/fixture-did-not-accrue");
-        }
-
-        // Test with MCD_JUG.drip() having been called in the same block.
-        spell.cast();
-        assertTrue(spell.done(), "TestError/spell-not-done");
-        assertEq(vat.Line(), preLine - correction, "TestError/global-line-adjustment");
-
-        for (uint256 i = 0; i < ilks.length; i++) {
-            (uint256 Art, uint256 rate,,,) = vat.ilks(ilks[i]);
-            assertEq(Art, beforeArts[i], "TestError/principal-changed");
-            assertEq(rate, expectedRates[i], "TestError/rate-changed");
-            (, uint256 rho) = jug.ilks(ilks[i]);
-            assertEq(rho, block.timestamp, "TestError/rho-not-updated");
-        }
-        uint256 debtAfter = vat.debt();
-        uint256 daiVowAfter = vat.dai(address(vow));
-
-        vm.revertToStateAndDelete(before);
-
-        // Test without prior MCD_JUG.drip() at the same delayed cast timestamp.
-        spell.cast();
-        assertTrue(spell.done(), "TestError/spell-not-done");
-        assertEq(vat.Line(), preLine - correction, "TestError/global-line-adjustment");
-        assertEq(vat.debt(), debtAfter, "TestError/debt-depends-on-prior-drip");
-        assertEq(vat.dai(address(vow)), daiVowAfter, "TestError/vow-dai-depends-on-prior-drip");
-
-        for (uint256 i = 0; i < ilks.length; i++) {
-            (uint256 Art, uint256 rate,,,) = vat.ilks(ilks[i]);
-            assertEq(Art, beforeArts[i], "TestError/principal-changed");
-            assertEq(rate, expectedRates[i], "TestError/rate-not-updated");
-            (, uint256 rho) = jug.ilks(ilks[i]);
-            assertEq(rho, block.timestamp, "TestError/rho-not-updated");
-        }
-    }
-
-    function testLineAdjustmentBoundaries() public {
-        bytes32[5] memory ilks = [bytes32("ETH-A"), "ETH-B", "ETH-C", "WSTETH-A", "WSTETH-B"];
-        uint256[5] memory beforeArts;
-        uint256[5] memory beforeRates;
-
-        _vote(address(spell));
-        spell.schedule();
-        vm.warp(spell.nextCastTime());
-
-        // Give ETH-A zero debt to exercise removal of its entire unused capacity.
-        stdstore.target(address(vat)).sig("ilks(bytes32)").with_key(bytes32("ETH-A")).depth(0).checked_write(uint256(0));
-        // Set the boundaries using debt accrued through the cast timestamp.
-        for (uint256 i = 0; i < ilks.length; i++) {
-            jug.drip(ilks[i]);
-            (beforeArts[i], beforeRates[i],,,) = vat.ilks(ilks[i]);
-            if (i != 0) assertGt(beforeArts[i], 0, "TestError/fixture-no-debt");
-        }
-        // Capacities are in raw RAD units to detect rounding to whole USDS.
-        uint256 zeroDebtCapacity = 29;
-        uint256 positiveDebtCapacity = 17;
-        uint256[5] memory lines = [
-            zeroDebtCapacity,                                      // ETH-A: zero debt, positive ceiling.
-            beforeArts[1] * beforeRates[1],                         // ETH-B: debt equals ceiling.
-            beforeArts[2] * beforeRates[2] - 1,                     // ETH-C: debt exceeds ceiling by one RAD unit.
-            uint256(0),                                           // WSTETH-A: zero ceiling, positive debt.
-            beforeArts[4] * beforeRates[4] + positiveDebtCapacity   // WSTETH-B: ceiling exceeds debt.
-        ];
-        vm.startPrank(pauseProxy);
-        for (uint256 i = 0; i < ilks.length; i++) {
-            vat.file(ilks[i], "line", lines[i]);
-        }
-        vm.stopPrank();
-        uint256 preLine = vat.Line();
-
-        spell.cast();
-        assertTrue(spell.done(), "TestError/spell-not-done");
-        assertEq(vat.Line(), preLine - zeroDebtCapacity - positiveDebtCapacity, "TestError/global-line-boundaries");
-
-        for (uint256 i = 0; i < ilks.length; i++) {
-            (uint256 Art, uint256 rate,, uint256 line,) = vat.ilks(ilks[i]);
-            assertEq(Art, beforeArts[i], "TestError/principal-changed");
-            assertEq(rate, beforeRates[i], "TestError/rate-changed");
-            assertEq(line, 0, "TestError/line-not-zero");
-        }
-    }
-
-    function testOffboardPsms() public {
-        bytes32 ilk = "PSM-USDC-A";
-        address psm = addr.addr("MCD_PSM_USDC_A");
-        address join = addr.addr("MCD_JOIN_PSM_USDC_A");
-        address clip = addr.addr("MCD_CLIP_PSM_USDC_A");
-        GemAbstract token = GemAbstract(addr.addr("USDC"));
-        address recipient = wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG");
-        uint256 amount = 99_328_577; // 99.328577 USDC, in native six-decimal units.
-
-        {
-            (uint256 ink, uint256 art) = vat.urns(ilk, psm);
-            (uint256 Art,,, uint256 line,) = vat.ilks(ilk);
-            assertEq(ink, 0, "testOffboardPsms/ink-not-zero-before");
-            assertEq(art, 0, "testOffboardPsms/art-not-zero-before");
-            assertEq(Art, 0, "testOffboardPsms/Art-not-zero-before");
-            assertEq(line, 0, "testOffboardPsms/line-not-zero-before");
-        }
-        assertEq(LineMomLike(address(lineMom)).ilks(ilk), 1, "testOffboardPsms/not-in-line-mom-before");
-        assertEq(reg.join(ilk), join, "testOffboardPsms/not-in-ilk-registry-before");
-        assertEq(GemJoinAbstract(join).live(), 1, "testOffboardPsms/join-not-live-before");
-        assertEq(GemJoinAbstract(join).gem(), address(token), "testOffboardPsms/wrong-gem");
-        assertEq(GemJoinAbstract(join).dec(), 6, "testOffboardPsms/wrong-decimals");
-        assertEq(vat.wards(join), 1, "testOffboardPsms/join-not-authed-on-vat-before");
-        assertEq(vat.wards(clip), 1, "testOffboardPsms/clip-not-authed-on-vat-before");
-        assertEq(dog.wards(clip), 1, "testOffboardPsms/clip-not-authed-on-dog-before");
-
-        // Recovery is a fixed amount: an extra donation must remain in the Join.
-        _giveTokens(address(token), 1_000_000);
-        assertTrue(token.transfer(join, 1_000_000));
-        vm.prank(pauseProxy);
-        vat.slip(ilk, pauseProxy, int256(17 * WAD));
-        uint256 gemBefore = vat.gem(ilk, pauseProxy);
-        uint256 joinBalanceBefore = token.balanceOf(join);
-        uint256 recipientBalanceBefore = token.balanceOf(recipient);
-        uint256 daiBalanceBefore = dai.balanceOf(join);
-        assertGe(joinBalanceBefore, amount + 1_000_000, "testOffboardPsms/insufficient-recovery-custody");
-
-        _vote(address(spell));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        assertEq(token.balanceOf(join), joinBalanceBefore - amount, "testOffboardPsms/invalid-join-balance");
-        assertEq(token.balanceOf(recipient), recipientBalanceBefore + amount, "testOffboardPsms/invalid-recipient-balance");
-        assertEq(vat.gem(ilk, pauseProxy), gemBefore, "testOffboardPsms/free-gem-changed");
-        assertEq(dai.balanceOf(join), daiBalanceBefore, "testOffboardPsms/dai-balance-changed");
-        {
-            (uint256 ink, uint256 art) = vat.urns(ilk, psm);
-            (uint256 Art,,,,) = vat.ilks(ilk);
-            assertEq(ink, 0, "testOffboardPsms/ink-not-zero-after");
-            assertEq(art, 0, "testOffboardPsms/art-not-zero-after");
-            assertEq(Art, 0, "testOffboardPsms/Art-not-zero-after");
-        }
-
-        // Removed from ILK_REGISTRY and LINE_MOM; permissionless re-add is impossible.
-        assertEq(reg.join(ilk), address(0), "testOffboardPsms/still-in-ilk-registry");
-        assertEq(LineMomLike(address(lineMom)).ilks(ilk), 0, "testOffboardPsms/still-in-line-mom");
-        vm.expectRevert("IlkRegistry/adapter-not-authorized");
-        reg.add(join);
-
-        // Join caged and module permissions revoked; governance administration remains.
-        assertEq(GemJoinAbstract(join).live(), 0, "testOffboardPsms/join-not-caged");
-        assertEq(vat.wards(join), 0, "testOffboardPsms/join-still-authed-on-vat");
-        assertEq(vat.wards(clip), 0, "testOffboardPsms/clip-still-authed-on-vat");
-        assertEq(dog.wards(clip), 0, "testOffboardPsms/clip-still-authed-on-dog");
-        assertEq(GemJoinAbstract(join).wards(pauseProxy), 1, "testOffboardPsms/join-governance-auth-removed");
-        assertEq(WardsAbstract(clip).wards(pauseProxy), 1, "testOffboardPsms/clip-governance-auth-removed");
-        assertEq(WardsAbstract(psm).wards(pauseProxy), 1, "testOffboardPsms/psm-governance-auth-removed");
-        assertEq(vat.wards(pauseProxy), 1, "testOffboardPsms/vat-governance-auth-removed");
-    }
-
-    function testPsmUsdcRecoveryFailure() public {
-        bytes32 ilk = "PSM-USDC-A";
-        address join = addr.addr("MCD_JOIN_PSM_USDC_A");
-        address clip = addr.addr("MCD_CLIP_PSM_USDC_A");
-        GemAbstract token = GemAbstract(addr.addr("USDC"));
-        address recipient = wallets.addr("CORE_COUNCIL_BUDGET_MULTISIG");
-        uint256 amount = 99_328_577;
-
-        // Test-only custody reduction forces the actual token transfer to revert inside exit.
-        // A nonzero existing free-gem balance must survive the catch compensation.
-        uint256 withdrawal = token.balanceOf(join) - (amount - 1);
-        assertGt(withdrawal, 0, "testPsmUsdcRecoveryFailure/invalid-custody-fixture");
-        vm.prank(join);
-        assertTrue(token.transfer(address(this), withdrawal));
-        vm.prank(pauseProxy);
-        vat.slip(ilk, pauseProxy, int256(17 * WAD));
-        uint256 gemBefore = vat.gem(ilk, pauseProxy);
-        uint256 recipientBalanceBefore = token.balanceOf(recipient);
-
-        _vote(address(spell));
-        vm.expectCall(address(token), abi.encodeWithSignature("transfer(address,uint256)", recipient, amount));
-        _scheduleWaitAndCast(address(spell));
-        assertTrue(spell.done(), "TestError/spell-not-done");
-
-        assertEq(token.balanceOf(join), amount - 1, "testPsmUsdcRecoveryFailure/custody-changed");
-        assertEq(token.balanceOf(recipient), recipientBalanceBefore, "testPsmUsdcRecoveryFailure/recipient-paid");
-        assertEq(vat.gem(ilk, pauseProxy), gemBefore, "testPsmUsdcRecoveryFailure/slip-not-compensated");
-        // The caught recovery failure must not skip the remaining offboarding actions.
-        assertEq(reg.join(ilk), address(0), "testPsmUsdcRecoveryFailure/still-in-ilk-registry");
-        assertEq(LineMomLike(address(lineMom)).ilks(ilk), 0, "testPsmUsdcRecoveryFailure/still-in-line-mom");
-        assertEq(GemJoinAbstract(join).live(), 0, "testPsmUsdcRecoveryFailure/join-not-caged");
-        assertEq(vat.wards(join), 0, "testPsmUsdcRecoveryFailure/join-still-authed-on-vat");
-        assertEq(vat.wards(clip), 0, "testPsmUsdcRecoveryFailure/clip-still-authed-on-vat");
-        assertEq(dog.wards(clip), 0, "testPsmUsdcRecoveryFailure/clip-still-authed-on-dog");
-    }
-
-    function _baseBeaconPasParams() internal returns (OpL2BeaconPasParams memory p) {
-        uint256 l1Fork = vm.activeFork();
-        _setupRootDomain();
-        baseDomain = new OptimismDomain(config, getRelativeChain("base"), rootDomain);
-        vm.makePersistent(address(addr), address(base), address(wallets));
-
-        p.domain        = baseDomain;
-        p.l1GovRelay    = addr.addr("BASE_GOV_RELAY");
-        p.l2GovRelay    = base.addr("L2_GOV_RELAY");
-        p.l2Multicall   = base.addr("L2_MULTICALL_SPELL");
-        p.l2Beacon      = base.addr("L2_PAU_BEACON");
-        p.pas           = base.addr("L2_PAS_STATE");
-        p.cBeam         = wallets.addr("OSERO_PAS_CBEAM");
-        p.rateLimits    = base.addr("BASE_OSERO_RATE_LIMITS");
-        p.controller    = base.addr("BASE_OSERO_CONTROLLER");
-        p.integrationId = "ERC4626_FACET";
-
-        p.preservedIntegrationIds    = new bytes32[](1);
-        p.preservedIntegrationIds[0] = "CCTP_FACET";
-
-        p.deadlineDuration   = 7 days;
-        p.relayDelay         = 60 seconds;
-        p.minGas             = 1_000_000;
-        p.hop                = 0;
-        p.maxChange          = 0;
-        p.effectiveHop       = 16 hours;
-        p.effectiveMaxChange = 1.2e18;
-        p.initialMaxAmount   = 0;
-        p.initialSlope       = 0;
-
-        baseDomain.selectFork();
-        // Get the USDC deposit rate-limit key for Osero's vault from the ERC4626 Facet.
-        p.initialRateLimitKey = ERC4626FacetLike(base.addr("L2_ERC4626_FACET")).getDepositRateLimitKey(
-            base.addr("BASE_OSERO_USDC_VAULT"),
-            base.addr("L2_USDC")
-        );
-        // Return to the original fork so the Core cast uses the requested Ethereum block.
-        vm.selectFork(l1Fork);
-
-        // Copy the L1 integration config and replace only its facet.
-        p.integrationConfig = BeaconTestLike(addr.addr("PAU_BEACON")).getConfig(p.integrationId);
-        p.integrationConfig.facet = base.addr("L2_ERC4626_FACET");
-
-        // Build the expected six-call batch independently of the emitted message.
-        p.calls = new L2MulticallTestLike.Call[](6);
-        p.calls[0] = L2MulticallTestLike.Call(
-            p.l2Beacon,
-            abi.encodeCall(BeaconTestLike.setIntegration, (p.integrationId, p.integrationConfig))
-        );
-        p.calls[1] = L2MulticallTestLike.Call(p.pas, abi.encodeCall(PASBeamStateLike.addCBeam, (p.cBeam)));
-        p.calls[2] = L2MulticallTestLike.Call(p.pas, abi.encodeCall(PASBeamStateLike.addRateLimits, (p.rateLimits)));
-        p.calls[3] = L2MulticallTestLike.Call(
-            p.pas,
-            abi.encodeCall(PASBeamStateLike.setCBeamForRateLimits, (p.rateLimits, p.cBeam))
-        );
-        p.calls[4] = L2MulticallTestLike.Call(p.pas, abi.encodeCall(PASBeamStateLike.addController, (p.controller)));
-        p.calls[5] = L2MulticallTestLike.Call(
-            p.pas,
-            abi.encodeCall(PASBeamStateLike.setCBeamForController, (p.controller, p.cBeam))
-        );
-    }
-
-    function testBaseSpellExecution() public {
-        _testOpL2BeaconPasExecution(_baseBeaconPasParams());
-    }
-
-    function testBaseSpellAfterDeadline() public {
-        _testOpL2BeaconPasAfterDeadline(_baseBeaconPasParams());
-    }
-
-    function testBaseSpellRollback() public {
-        _testOpL2BeaconPasRollback(_baseBeaconPasParams());
+        // Check balance changes
+        assertEq(usds.balanceOf(amatsuSubProxy), amatsuBefore - amatsuAmount, "TestError/amatsu-usds-balance");
+        assertEq(usds.balanceOf(ozoneSubProxy), ozoneBefore - ozoneAmount, "TestError/ozone-usds-balance");
+        assertEq(usds.balanceOf(ccea1SubProxy), ccea1Before - ccea1Amount, "TestError/ccea1-usds-balance");
+        assertEq(usds.balanceOf(skyFrontierFoundation), sffBefore + 25_000_000 * WAD, "TestError/sff-usds-balance");
     }
 }
